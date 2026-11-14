@@ -8,8 +8,8 @@ A browser-based pixel art editor. It is a static site: no build step, backend, a
 
 ## Features
 
-- Exact pixel grid with brush, eraser, flood fill, eyedropper, line, and rectangle tools
-- 16×16, 24×24, 32×32, 48×48, and 64×64 canvas sizes
+- Exact pixel grid with brush, eraser, flood fill, eyedropper, line, outlined/filled rectangle, and outlined/filled ellipse tools
+- Square and rectangular canvas presets, plus custom width and height from 1 to 512 pixels per side
 - Custom color palette
 - Undo and redo
 - Import an image and convert it to the current pixel grid
