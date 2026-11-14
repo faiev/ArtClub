@@ -1,7 +1,7 @@
 export const CAPABILITY_DOCUMENT_VERSION = 1;
 export const AGENT_PROTOCOL_NAME = "one-pixel-studio-agent";
 export const AGENT_PROTOCOL_VERSION = 1;
-export const BRIDGE_VERSION = "0.6.0";
+export const BRIDGE_VERSION = "0.7.0";
 
 const READ_ONLY_TOOLS = [
   "artclub_get_status",
@@ -13,7 +13,8 @@ const READ_ONLY_TOOLS = [
   "artclub_list_projects",
   "artclub_export_project",
   "artclub_export_png",
-  "artclub_get_capabilities"
+  "artclub_get_capabilities",
+  "artclub_get_bridge_diagnostics"
 ];
 
 const DOCUMENT_MUTATING_TOOLS = [
@@ -181,7 +182,8 @@ export function createCapabilities(options = {}) {
       palette_formats: false
     },
     diagnostics: {
-      available: false,
+      available: true,
+      bridge_runtime: true,
       bridge_doctor: false,
       read_only_project_inspection: false
     },
@@ -194,7 +196,10 @@ export function createCapabilities(options = {}) {
       onion_skin: true,
       cross_process_profile_lock: true,
       operation_deadlines: true,
-      request_cancellation: true
+      request_cancellation: true,
+      reconnect_state_reporting: true,
+      queue_metrics: true,
+      redacted_diagnostics: true
     }
   };
 }
