@@ -1,6 +1,6 @@
 /*!
  * One Pixel Studio — deterministic pixel-grid Bézier curve rasterization.
- * Browser-global + CommonJS; fixed-point flattening, then integer Bresenham lines.
+ * Browser-global + CommonJS; fixed-point flattening, then integer major-axis segment rasterization.
  */
 (function (root, factory) {
   const api = factory();
