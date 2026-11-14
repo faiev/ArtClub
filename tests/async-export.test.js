@@ -400,19 +400,50 @@ test("GIF missing-cel composition still yields and can be interrupted", async ()
   }), "composition");
 });
 
-test("AbortSignal timers run while GIF async work yields to the host", async () => {
-  const project = makeLargeSingleFrameProject(256, 256);
+test("512×512 GIF work yields to a timer during LZW encoding", async () => {
+  const project = makeLargeSingleFrameProject();
   const controller = new AbortController();
+  let timerScheduled = false;
   const pending = GIF.encodeGIFAsync(project, {
     signal: controller.signal,
-    yieldEvery: 64
+    yieldEvery: 8192,
+    onProgress(event) {
+      if (event.phase === "encoding" && !timerScheduled) {
+        timerScheduled = true;
+        setTimeout(() => controller.abort(), 0);
+      }
+    }
   });
-  setTimeout(() => controller.abort(), 0);
   await assert.rejects(pending, error => {
+    assert.equal(error.name, "ExportAbortError");
     assert.equal(error.code, "EXPORT_ABORTED");
-    assert.ok(["validation", "composition"].includes(error.stage));
+    assert.equal(error.stage, "encoding");
     return true;
   });
+  assert.equal(timerScheduled, true, "the 512×512 export should yield during its JavaScript LZW loop");
+});
+
+test("512×512 sprite-sheet composition yields to a timer between raster chunks", async () => {
+  const project = makeLargeSingleFrameProject();
+  const controller = new AbortController();
+  let timerScheduled = false;
+  const pending = Sprite.buildSpriteSheetAsync(project, {
+    signal: controller.signal,
+    yieldEvery: 8192,
+    onProgress(event) {
+      if (event.phase === "composition" && event.progress > 12 && !timerScheduled) {
+        timerScheduled = true;
+        setTimeout(() => controller.abort(), 0);
+      }
+    }
+  });
+  await assert.rejects(pending, error => {
+    assert.equal(error.name, "ExportAbortError");
+    assert.equal(error.code, "EXPORT_ABORTED");
+    assert.equal(error.stage, "composition");
+    return true;
+  });
+  assert.equal(timerScheduled, true, "the 512×512 sheet should yield during its JavaScript raster loop");
 });
 
 test("sprite-sheet PNG finalization checks cancellation after an asynchronous codec returns", async () => {
