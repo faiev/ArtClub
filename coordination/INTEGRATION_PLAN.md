@@ -233,3 +233,13 @@ This update supersedes the earlier UI-01 status that referenced head `29e348...`
 - Specialist reviews remain assigned: Agent 1 (12-flow task QA), Agent 2 (canvas viewport/pointer sizing and responsive layout), Agent 5 (production visual-design review). At this update, their independent review responses are not yet recorded.
 - GitHub Actions does not emit screenshot artifacts for the shell workflow. Automated interaction tests pass on the previous candidate; independent 1440×900 and 1280×800 visual inspection remains an explicit review gate.
 - Production `index.html` on main remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no production shell has merged to main or been published. After PR #84 merge, inspect the GitHub Pages deployment and live editor before claiming release.
+
+## UI-01 post-UI-00 exact-head validation — 2026-11-14
+
+- UI-00 / AC-091 is accepted and merged via PR #77 as `a229a8c0028dc4290c3f5da811fa565fc3a17610`.
+- PR #84 was synchronized non-force against the post-UI-00 coordination main. Current reviewed branch head: `fa5c105ce8f98043f92e18cab33f9cfa0d4d21f8`; main base at sync: `2551198bde4cb528ff84b0ff908b478abcb2c1fc`; compare: 10 ahead / 0 behind; changed-file scope: `index.html` and `tests/ui-workstation-shell.test.js` only.
+- Exact-head Actions [#43623647840](https://github.com/faiev/ArtClub/actions/runs/43623647840) completed successfully. Node/editor test job and real Chromium browser job passed, including animated GIF decode and MCP client E2E.
+- The earlier canvas clipping regression was fixed by constraining `#pixelGrid` to the available viewport; the real-browser drawing assertion now passes on the current head.
+- Independent reviews remain pending: Agent 1 must report the 12-flow task matrix; Agent 2 must report canvas geometry/pointer/responsive checks; Agent 5 must review fidelity of the actual production implementation to the now-merged design system. No agent status file has yet recorded these review outcomes.
+- The workflow did not publish screenshot artifacts. Automated browser behavior is green, but explicit 1440×900 and 1280×800 visual screenshot review remains outstanding.
+- Current `main` production `index.html` remains unchanged at blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; PR #84 is not merged. No production redesign or GitHub Pages publication is claimed.
