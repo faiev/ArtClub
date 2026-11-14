@@ -2,20 +2,19 @@
 
 ## Active workstream — UX / accessibility / interaction design
 
-### Phase 1 — AC-049: Canvas navigation and workspace interaction specification
+### Phase 2 — AC-050: Layer, frame and timeline workflow specification
 
 - **Status:** IN_PROGRESS
-- **Branch:** `agent/canvas-workspace-spec`
-- **Branch starting base:** `8806de86441b2de79471c74fade8a2caa7fc23c5`
-- **Allowed deliverable:** `docs/ux/CANVAS_WORKSPACE_SPEC.md`
-- **Scope:** Documentation/specification only; do not edit `index.html`, app JS, CSS, existing tests, bridge or workflow. No UI lock is granted.
-- **Dependency reviewed:** Agent 2's AC-034 assignment defines a renderer-independent `js/canvas-viewport.js` utility for pan, zoom, fit/reset, cursor anchor, coordinate transforms, DPR/fractional bounds and deterministic transform state. There is no `js/canvas-viewport.js` on main yet. AC-049 will define the UX contract and stay implementation/API-neutral.
-- **Current source audit:** `index.html` has toolbar zoom buttons and `[`/`]`/0 shortcuts; `applyZoom()` scales the grid relative to the fitted largest canvas side, clamps to 0.5–2 in quarter steps, and labels the default fit-relative scale as 100%. The canvas wrapper is scrollable but there is no explicit pan mode, cursor-anchored zoom, Fit action or minimap. Grid uses pointer capture for edit strokes and `touch-action:none`. Project dimensions are limited to 512 per side.
-- **PR #18 / Agent 2 status:** AC-028 browser harness is submitted, but its dedicated renderer browser suite and benchmark have not yet been executed. Do not assume measured viewport/renderer timings or active renderer integration.
-- **Previous phase AC-026:** `KEYBOARD_SHORTCUTS_PLAN.md` submitted in [PR #20](https://github.com/faiev/ArtClub/pull/20), open/draft/unmerged. It is a checkpoint, not a blocker for AC-049.
-- **Next queue:** (1) complete AC-049 spec and acceptance matrix; (2) AC-050 layer/frame/timeline workflow spec; (3) AC-051 palette/export user-journey spec; (4) AC-052 accessibility audit; (5) AC-053 static interaction prototypes; then AC-054 integrated UX implementation sequence.
-- **Tests:** No tests run yet; AC-049 is documentation-only. Structural/source validation will be recorded on submission.
-- **Blockers:** None for documentation. Live editor UI work remains coordinator-controlled and is explicitly out of scope.
+- **Branch:** `agent/layer-timeline-spec` (create from latest main after this status commit)
+- **Allowed deliverable:** `docs/ux/LAYER_TIMELINE_SPEC.md`
+- **Scope:** Documentation/specification only. Do not edit `index.html`, app JS, CSS, existing tests, bridge, exporter modules or workflow. No UI lock is granted.
+- **AC-049 completed:** `docs/ux/CANVAS_WORKSPACE_SPEC.md` (359 additions) submitted in [PR #24](https://github.com/faiev/ArtClub/pull/24), open/draft/unmerged. PR head `2cde5e9bc8ad4ad3b25bd79b939880b2b43d6502`; one changed file. It may need latest-main refresh because main advanced after PR creation; no review/merge dependency for AC-050.
+- **Source inspection:** v2 project model stores ordered `layers[]`, ordered `frames[]`, and `cels[]` keyed by `layerId`/`frameId`; each layer has name/visible/locked/opacity and each frame has name/durationMs. Current UI has a separate layer list and frame-card strip. Frame cards have names/duration/reorder but no thumbnails or layer×frame cel grid. Layer controls expose select/rename/visibility/lock/reorder, but no opacity slider. The model stores opacity, but current `getCompositePixels()` checks visibility and opaque pixels without applying layer opacity.
+- **Safety dependency:** Agent 6's AC-055 contract rejects hidden, locked, zero-opacity, non-active or stale targets and rejects missing/invalid cels. AC-056 safe-edit transactions and later audit are in Agent 6's authorized queue. AC-050 will distinguish structural blank-cel creation from pixel mutation and require fail-closed edits.
+- **Export dependency:** Agent 3's AC-039 layout/metadata contract and AC-040 export planner retain stable frame IDs, durations and explicit selected frame order. The timeline's order and timing must be the export source of truth; this spec will not edit exporter files.
+- **Next queue:** (1) finish AC-050 layer/frame/cel/timeline spec; (2) AC-051 palette/export journeys; (3) AC-052 accessibility audit; (4) AC-053 static interaction prototypes; (5) AC-054 integrated UX implementation sequence.
+- **Tests:** No application tests run; this is documentation-only. Validate source claims and the required workflow/acceptance matrix before submission.
+- **Blockers:** None for documentation. Production UI and shared editor integration remain coordinator-controlled.
 - **Last updated:** 2026-11-14.
 
 ## Previous task — AC-009
