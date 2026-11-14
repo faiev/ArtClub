@@ -247,6 +247,9 @@
 
   async function buildSpriteSheetAsync(project, options, control) {
     options = options || {};
+    const ownControl = !control;
+    control = control || createAsyncControl(options);
+    control.check("before-start");
     const dimensions = await assertProjectAsync(project, control);
     control.check("composition");
     const width = dimensions.width;
@@ -421,6 +424,7 @@
     };
     validateBuiltSheet(sheet);
     control.report("composition", 65, sourcePixelsTotal, sourcePixelsTotal, "composition");
+    if (ownControl) control.report("completed", 100, 1, 1, "finalization");
     return sheet;
   }
 
