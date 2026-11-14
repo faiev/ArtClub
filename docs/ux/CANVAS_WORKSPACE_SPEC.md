@@ -34,33 +34,34 @@ This is a behavior and acceptance specification for the later implementation own
 
 ## 2. Current behavior verified in main
 
-The source review was performed against `main` at `cb0ed64114e8934270e7e18e2c7c20f3a640c124`.
+The post-release source audit was rechecked against the current production `index.html` blob `4645281c1aad8580529e7feb99cd299a88543913` (the merged UI-01 workstation shell). UI-01 changed the editor's layout and responsive hierarchy but intentionally retained the live DOM pixel grid, drawing handlers and original zoom model.
 
 ### 2.1 Existing canvas and zoom presentation
 
-- The editor has a visible zoom control in the stage header: Zoom out, a percentage/reset button and Zoom in (`index.html` lines 313–321).
-- `applyZoom()` computes a reference side from the canvas container width, capped at 560 CSS pixels, and scales the largest canvas dimension to that side multiplied by a zoom factor (`index.html` lines 1214–1224).
-- `setZoom()` clamps the factor to 0.5–2.0 in increments of 0.25 (`index.html` lines 1225–1228).
-- The UI displays `zoom × 100` as a percentage. Because the underlying grid is first sized to fit the container, the displayed “100%” is currently fit-relative, not one CSS pixel per logical artwork pixel.
-- There are no explicit Fit or Pan controls in the stage header. The percentage button resets to the current factor 1.0; it is not a distinct “fit” action.
-- The canvas wrapper is styled as a scrollable flex container in the later studio styles (`index.html` lines 136–140), while the earlier base rule sets overflow hidden (`index.html` line 60). Later rules override the base overflow, so the effective style is scrollable.
-- Mobile breakpoints change the workspace to one column and reduce canvas padding (`index.html` lines 159–162). The panels currently remain in the document flow rather than becoming compact drawers.
+- The production editor now presents a compact workstation: the left tool panel, central stage/canvas, right inspector and bottom timeline. The canvas remains the central editing surface; UI-01 did not replace it with the AC-091 prototype's synthetic layer-by-frame matrix.
+- The stage exposes three live zoom controls: `#zoomOut`, `#zoomReset` and `#zoomIn`. The reset button's visible percentage is dynamically populated by `applyZoom()`.
+- `applyZoom()` derives a fit-relative base size from the canvas wrapper: `maxSide = clamp(parentWidth - 48, 96, 560)`; it then multiplies that base by the current zoom factor and scales the largest logical canvas dimension to that size. This is not a CSS-pixel-per-artwork-pixel measurement.
+- `setZoom()` clamps the factor to 0.5–2.0 in 0.25 increments. The visible “100%” value therefore means the fit-relative factor 1.0, **not** one CSS pixel per logical artwork pixel.
+- There is still no distinct Fit action, no true Actual Size action, and no pan/hand mode in the live stage. The center may scroll when content exceeds its wrapper, but scrolling is not a deliberate, bounded viewport-pan model.
+- UI-01 added a responsive shell: at 1050 CSS px the inspector moves beneath the primary workspace; at 700 CSS px the workspace stacks into one column and the tool controls reflow. The viewport specification must treat panel reflow and canvas wrapper resizing as inputs to the future viewport owner, not as proof that view state is already preserved across every layout transition.
+- The production grid has an additional bounding rule in `.canvas-wrap #pixelGrid`: width is constrained to the wrapper and 560 px maximum while its project aspect ratio is retained. This protects reachability of the first/last pixel after the UI-01 height/layout correction.
 
 ### 2.2 Existing input behavior
 
-- The pixel grid receives pointer events for drawing, selection, fill and sampling. A drawing stroke captures the pointer; the grid has `touch-action:none` (`index.html` around lines 62–65 and 1797–1864).
-- Grid pointer movement is interpreted as artwork interaction. There is no separate Hand/Pan mode or middle-button/Space-drag navigation path.
-- The grid has arrow-key navigation between logical pixel cells and Space/Enter activation (`index.html` lines 1865–1894).
-- The document-level handler maps `[`, `]` and `0` to zoom out, zoom in and reset (`index.html` lines 2073–2092).
-- Toolbar buttons call `setZoom()` directly (`index.html` lines 1914–1916).
-- No canvas-anchored wheel zoom, explicit pan state or touch pinch/pan behavior was found in the inspected handlers.
+- `#pixelGrid[role=grid]` remains the production canvas. Pointer input is routed to the active drawing/selection/fill/sampling tool; the UI-01 shell did not add a separate pan gesture or alter pixel mutation handlers.
+- The grid retains its keyboard pixel navigation and Space/Enter activation model. These actions operate on logical cells, not on a separate viewport-focus navigation mode.
+- The document-level key handler still processes project shortcuts before its editable-control guard for some modified keys; this specification does not treat the current shortcut routing as a completed accessibility implementation.
+- The three toolbar zoom controls call `setZoom()` directly. They do not preserve a pointer-anchored logical pixel because the production zoom model does not track viewport offsets or a zoom anchor.
+- No production wheel zoom, trackpad pan, two-finger pinch, middle-button pan or temporary Space-drag pan behavior is wired.
+- Canvas pointer mapping continues to be tied to the DOM grid's current geometry. Any later viewport wiring must prove that drawing/selection still maps to the same logical cell after zoom, wrapper resize, responsive reflow and browser zoom.
 
-### 2.3 Relevant system constraints
+### 2.3 Relevant system constraints and available modules
 
 - ProjectModel permits a maximum canvas width or height of 512 logical pixels.
-- The merged Canvas renderer prototype supports nearest-neighbor presentation, has its own pointer mapping based on client bounds, and accepts display dimensions and device-pixel ratio. It remains an isolated renderer until its validation and a later integration lock are complete.
-- Agent 2's assigned AC-034 phase is to create a renderer-independent `js/canvas-viewport.js` utility covering pan, zoom, fit/reset, cursor anchoring, screen/canvas conversion, DPR/fractional CSS dimensions, bounds, deterministic state and invalid-input rejection.
-- Agent 2's current AC-028 status says the dedicated renderer browser suite and benchmark have not yet been executed. No measured performance conclusion or live renderer integration is assumed by this specification.
+- The renderer-independent viewport utility is now present on `main` as `js/canvas-viewport.js`, documented by `docs/CANVAS_VIEWPORT.md`. Its pure API includes `createViewport`, `panBy`, `zoomAt`, `zoomBy`, `fitToCanvas`, `resetViewport`, `resizeViewport`, coordinate conversion helpers and DPR/backing-store helpers.
+- The viewport utility uses CSS pixels for offsets and screen coordinates; DPR is applied only at backing-store conversion boundaries. Its pan functions clamp content to the viewport and center content that is smaller than the view. Invalid dimensions, scales and coordinates are rejected.
+- The viewport module is a reusable contract, **not a live production integration**. UI-01 continues to render the existing DOM pixel grid, and this specification does not imply a Canvas renderer replacement.
+- The isolated Canvas renderer and its project adapter remain separate from the production DOM grid. Any renderer decision must use Agent 2's current workload evidence and preserve the DOM fallback until raster, pointer, focus, overlay and performance gates pass.
 
 ## 3. Core viewport model and invariants
 
