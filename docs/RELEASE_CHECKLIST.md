@@ -23,8 +23,24 @@ From the repository root:
 - [ ] `node --test tests/qa/compatibility/gif-export-contract.test.js`
 - [ ] `node --test tests/qa/release/qa-release-check.test.js`
 - [ ] `node --test tests/qa/renderer/canvas-renderer-contract.test.js`
+- [ ] `node --test tests/qa/runner/run-qa.test.mjs`
 
 The current root test command only expands top-level `tests/*.test.js`. It does not include nested QA suites; running the root suite alone does not satisfy the focused QA commands above.
+
+Run the explicit QA manifest from the repository root:
+
+```bash
+node tools/run-qa.mjs --suite all
+node tools/run-qa.mjs --suite all --json
+```
+
+The default run reports the browser suite as skipped. After Playwright and Chromium are already installed, run the real-browser suite explicitly:
+
+```bash
+node tools/run-qa.mjs --suite browser --include-browser
+```
+
+The runner never installs dependencies; review skipped and not-run entries rather than treating them as passes.
 
 ## 3. Real-browser and bridge tests
 
