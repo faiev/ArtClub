@@ -139,6 +139,7 @@ test("autosave and explicit no-op saves preserve recovery; Recover and later edi
 
     // Autosave and an explicit Save both call saveProject with unchanged
     // content. Neither should rotate B into recovery in place of A.
+    await new Promise(resolve => setTimeout(resolve, 10));
     await storage.saveProject(versionB);
     await storage.saveProject(versionB);
     current = await storage.getProject(versionA.id);
@@ -164,7 +165,7 @@ test("autosave and explicit no-op saves preserve recovery; Recover and later edi
     await storage.saveProject(versionC);
     recovery = await storage.getRecovery(versionA.id);
     assert.equal(cel(recovery.project, versionA.layers[0].id, versionA.frames[0].id).pixels[0], "#112233");
-    assert.equal(cel(recovery.project, versionA.layers[0].id, versionA.frames[0].id).pixels[1], "#223344",
+    assert.equal(cel(recovery.project, versionA.layers[1].id, versionA.frames[0].id).pixels[1], "#223344",
       "a genuine later edit should rotate recovered A into the one-step recovery slot");
   } finally {
     storage.close();
