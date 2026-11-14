@@ -39,7 +39,7 @@ function usage() {
     "Single-file and batch inspection accept v2 documents and legacy single-canvas documents.",
     "Input files larger than 64 MiB are rejected before JSON parsing.",
     "Batch limits: 500 files and 32 MiB total input bytes.",
-    "Directory symlinks are not followed."
+    "Symbolic links are not followed."
   ].join("\n");
 }
 function parseArguments(argv) {
@@ -57,7 +57,14 @@ function parseArguments(argv) {
     if (!positionalOnly && argument === "--") { positionalOnly = true; continue; }
     if (!positionalOnly && argument === "--json") { result.json = true; continue; }
     if (!positionalOnly && argument === "--help") { result.help = true; continue; }
-    if (!positionalOnly && argument === "--batch") { result.batch = true; continue; }
+    if (!positionalOnly && argument === "--batch") {
+      if (result.filePath !== null) {
+        result.error = inspectorError("INVALID_ARGUMENT", "Use --batch before listing batch input paths.", 2);
+        return result;
+      }
+      result.batch = true;
+      continue;
+    }
     if (!positionalOnly && argument === "--recursive") { result.recursive = true; continue; }
     if (!positionalOnly && argument.startsWith("-")) {
       result.error = inspectorError("INVALID_ARGUMENT", "Unknown option: " + argument + ". Use --help to see supported options.", 2);
@@ -86,28 +93,40 @@ function parseArguments(argv) {
   }
   return result;
 }
-function readProjectFile(filePath) {
+function readProjectFile(filePath, byteBudget = MAX_FILE_BYTES) {
   let descriptor;
+  const readLimit = Math.min(MAX_FILE_BYTES, byteBudget);
+  const batchLimit = readLimit < MAX_FILE_BYTES;
   try {
     const pathStats = fs.lstatSync(filePath);
     if (pathStats.isSymbolicLink()) {
       throw inspectorError("SYMLINK_NOT_FOLLOWED", "Symbolic links are not followed by the project inspector: " + filePath);
     }
     if (!pathStats.isFile()) throw inspectorError("NOT_A_FILE", "The supplied path is not a regular file: " + filePath);
-    if (pathStats.size > MAX_FILE_BYTES) {
-      throw inspectorError("FILE_TOO_LARGE", "Project file is " + pathStats.size + " bytes; the inspection limit is " + MAX_FILE_BYTES + " bytes (64 MiB).");
+    if (pathStats.size > readLimit) {
+      throw inspectorError(
+        batchLimit ? "BATCH_TOTAL_SIZE_LIMIT" : "FILE_TOO_LARGE",
+        batchLimit
+          ? "Reading this file would exceed the remaining batch byte budget."
+          : "Project file is " + pathStats.size + " bytes; the inspection limit is " + MAX_FILE_BYTES + " bytes (64 MiB)."
+      );
     }
     const noFollow = fs.constants.O_NOFOLLOW || 0;
     descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | noFollow);
   } catch (error) {
-    if (error && error.code) throw error;
+    if (error && Number.isInteger(error.exitCode)) throw error;
     throw inspectorError("FILE_READ_ERROR", "Unable to open project file " + JSON.stringify(filePath) + ": " + error.message);
   }
   try {
     const stats = fs.fstatSync(descriptor);
     if (!stats.isFile()) throw inspectorError("NOT_A_FILE", "The supplied path is not a regular file: " + filePath);
-    if (stats.size > MAX_FILE_BYTES) {
-      throw inspectorError("FILE_TOO_LARGE", "Project file is " + stats.size + " bytes; the inspection limit is " + MAX_FILE_BYTES + " bytes (64 MiB).");
+    if (stats.size > readLimit) {
+      throw inspectorError(
+        batchLimit ? "BATCH_TOTAL_SIZE_LIMIT" : "FILE_TOO_LARGE",
+        batchLimit
+          ? "Reading this file would exceed the remaining batch byte budget."
+          : "Project file is " + stats.size + " bytes; the inspection limit is " + MAX_FILE_BYTES + " bytes (64 MiB)."
+      );
     }
     const chunks = [];
     const buffer = Buffer.allocUnsafe(READ_BUFFER_BYTES);
@@ -116,14 +135,21 @@ function readProjectFile(filePath) {
       const bytesRead = fs.readSync(descriptor, buffer, 0, buffer.length, null);
       if (bytesRead === 0) break;
       totalBytes += bytesRead;
-      if (totalBytes > MAX_FILE_BYTES) {
-        throw inspectorError("FILE_TOO_LARGE", "Project file grew beyond the 64 MiB inspection limit while it was being read.");
+      if (totalBytes > readLimit) {
+        const limitError = inspectorError(
+          batchLimit ? "BATCH_TOTAL_SIZE_LIMIT" : "FILE_TOO_LARGE",
+          batchLimit
+            ? "Project file grew beyond the remaining batch byte budget while it was being read."
+            : "Project file grew beyond the 64 MiB inspection limit while it was being read."
+        );
+        limitError.bytesRead = totalBytes;
+        throw limitError;
       }
       chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
     }
     return { text: Buffer.concat(chunks, totalBytes).toString("utf8"), bytes: totalBytes };
   } catch (error) {
-    if (error && error.code) throw error;
+    if (error && Number.isInteger(error.exitCode)) throw error;
     throw inspectorError("FILE_READ_ERROR", "Unable to read project file " + JSON.stringify(filePath) + ": " + error.message);
   } finally {
     try { fs.closeSync(descriptor); } catch {}
@@ -205,9 +231,9 @@ function inspectProject(data, filePath, fileSizeBytes) {
     totalDurationMs: frames.reduce((sum, frame) => sum + frame.durationMs, 0)
   };
 }
-function inspectOneFile(filePath) {
+function inspectOneFile(filePath, byteBudget = MAX_FILE_BYTES) {
   try {
-    const input = readProjectFile(filePath);
+    const input = readProjectFile(filePath, byteBudget);
     let data;
     try {
       data = JSON.parse(input.text.replace(/^\uFEFF/, ""));
@@ -222,7 +248,7 @@ function inspectOneFile(filePath) {
         file: filePath,
         error: { code: error.code || "INSPECTION_FAILED", message: error.message || "Project inspection failed." }
       },
-      bytesRead: 0
+      bytesRead: Number.isFinite(error.bytesRead) ? error.bytesRead : 0
     };
   }
 }
@@ -274,6 +300,7 @@ function collectBatchFiles(inputPaths, recursive) {
   const seenFiles = new Set();
   const seenDirectories = new Set();
   let visitedEntries = 0;
+  let discoveredFileCount = 0;
   let fatalLimit = false;
 
   function addFile(filePath) {
@@ -283,7 +310,8 @@ function collectBatchFiles(inputPaths, recursive) {
       return;
     }
     seenFiles.add(normalized);
-    if (files.length >= MAX_BATCH_FILES) {
+    discoveredFileCount += 1;
+    if (discoveredFileCount > MAX_BATCH_FILES) {
       discoveryErrors.push({
         path: normalized,
         code: "BATCH_FILE_LIMIT",
@@ -374,7 +402,7 @@ function collectBatchFiles(inputPaths, recursive) {
   files.sort(lexicalCompare);
   discoveryErrors.sort((left, right) => lexicalCompare(left.path || "", right.path || "") || lexicalCompare(left.code, right.code));
   warnings.sort((left, right) => lexicalCompare(left.path, right.path));
-  return { files, discoveryErrors, warnings, fatalLimit, visitedEntries };
+  return { files, discoveryErrors, warnings, fatalLimit, visitedEntries, discoveredFileCount };
 }
 function inspectBatch(inputPaths, recursive) {
   const collected = collectBatchFiles(inputPaths, recursive);
@@ -403,7 +431,8 @@ function inspectBatch(inputPaths, recursive) {
           "Reading this file would exceed the batch total input limit of " + MAX_BATCH_TOTAL_BYTES + " bytes (32 MiB)."));
         continue;
       }
-      const inspected = inspectOneFile(filePath);
+      const remainingBytes = Math.max(0, MAX_BATCH_TOTAL_BYTES - bytesRead);
+      const inspected = inspectOneFile(filePath, Math.min(MAX_FILE_BYTES, remainingBytes));
       bytesRead += inspected.bytesRead;
       results.push(inspected.report);
     }
@@ -415,7 +444,7 @@ function inspectBatch(inputPaths, recursive) {
     mode: "batch",
     recursive,
     inputCount: inputPaths.length,
-    fileCount: collected.files.length,
+    fileCount: collected.discoveredFileCount,
     successCount,
     failureCount,
     bytesRead,
