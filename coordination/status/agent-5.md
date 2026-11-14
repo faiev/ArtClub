@@ -4,30 +4,30 @@
 - **PR:** [#77 — AC-091: Design the One Pixel Studio workstation experience](https://github.com/faiev/ArtClub/pull/77), merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610`.
 - **Merged deliverables:** `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, `docs/ux/prototypes/workstation.html`.
 - **Acceptance:** Coordinator explicitly accepted the graphite/olive direction, prototype and review handoff. The prototype remains non-production; no production UI ownership was granted.
-- **Implemented review corrections before merge:** Removed nonexistent relative screenshot references; labelled read-only values and palette file input; disclosed Line and Rectangle Select as demonstration-only and prevented pixel mutation from those tool selections.
+- **Pre-merge corrections:** Removed nonexistent relative screenshot references; labelled read-only values and palette file input; disclosed Line and Rectangle Select as demonstration-only and prevented pixel mutation from those tool selections.
 - **Evidence:** Chromium 144.0.7559.96 / Playwright review reported no body-level horizontal overflow or page errors at 1440×900, 1280×800, 860×740 and 390×844; accessible-name checks returned one control for each of the five review labels; pointer and keyboard tests confirmed Line/Rectangle Select leave sample pixels unchanged. Four WebP screenshots remain handoff attachments, not repository assets; coordinator recorded them as agent-reported evidence rather than independently inspected captures.
-- **Post-merge documentation correction:** Main's 390×844 caption still said the inspector drawer was dismissed after Escape, while the actual screenshot shows it open. A narrow follow-up PR [#87](https://github.com/faiev/ArtClub/pull/87) changes only that one sentence. It is open and awaits coordinator review; no production files are involved.
+- **Post-merge documentation correction:** Main's 390×844 caption said the inspector drawer was dismissed after Escape, while the actual handoff capture shows it open. Follow-up [PR #87](https://github.com/faiev/ArtClub/pull/87) changes only that sentence; it is open and awaits coordinator review.
 
 ### Completed review — UI-01 production workstation shell (PR #84)
 
 - **Status:** REVIEW POSTED; coordinator merged UI-01.
-- **Reviewed PR head:** `64d68de63abae730623ac81b670562a950d66759`; source file `index.html` blob `4645281c1aad8580529e7feb99cd299a88543913`.
+- **Reviewed PR head:** `64d68de63abae730623ac81b670562a950d66759`; reviewed `index.html` blob `4645281c1aad8580529e7feb99cd299a88543913`.
 - **Merged head:** `dee2e96ff2c3cf9b1927570d4248d95114f113c6`; merge commit `e22ddb35ebf802b3b719e74a7329effceab28747`. The merged `index.html` blob is identical to the source reviewed at `64d68de...`.
-- **Final exact-head CI:** Actions run [#43624220195](https://github.com/faiev/ArtClub/actions/runs/43624220195) passed both `test` and `browser-e2e` jobs, including the editor Chromium, GIF decoder and MCP client steps.
-- **Review comment:** Posted on PR #84 as comment [#6881921768](https://github.com/faiev/ArtClub/pull/84#issuecomment-6881921768), against the identical production `index.html` blob.
+- **Final exact-head CI:** Actions run [#43624220195](https://github.com/faiev/ArtClub/actions/runs/43624220195) passed both `test` and `browser-e2e` jobs, including editor Chromium E2E, GIF decode and MCP client steps.
+- **Review comment:** Posted on PR #84 as [comment #6881921768](https://github.com/faiev/ArtClub/pull/84#issuecomment-6881921768); it applies to the identical merged `index.html` blob.
 - **Ranked findings:** P1 — legacy `.project-name:focus` specificity overrides the new `input:focus-visible` rule, leaving an approximately 1.13:1 focus outline on the dark surface; P1 — active tool, palette swatch and frame states are class-only and not exposed with `aria-pressed` / `aria-current`; P2 — lock emoji and mixed Unicode tool glyphs break the restrained icon system; P2 — `theme-color` metadata still uses the old light background; P2 — several essential technical labels remain 8 px versus the design system's 9–10 px range.
 - **Positive review:** Graphite/olive tokens match AC-091; canvas remains the flexible dominant center; 190 px tool dock / 286 px inspector are balanced at 1280/1440 widths; 176 px timeline stays below canvas; responsive rules move inspector below the desktop workspace and stack panels at narrow widths. No prototype-only fake tabs or cel matrix were requested.
-- **Visual limitation:** Workflow run artifacts were empty. No independent rendered screenshot inspection at 1440×900 or 1280×800 is claimed; the review used committed CSS/DOM and token comparison. The review comment explicitly records this limitation.
+- **Visual limitation:** Exact-head workflow artifacts were empty. No independent rendered screenshot inspection at 1440×900 or 1280×800 is claimed; the review used committed CSS/DOM and token comparison. The comment records this limitation.
 - **Scope:** No edits to PR #84, `index.html`, production CSS/JS, application tests, bridge or workflow. Agent 5 remains a design reviewer and owns documentation/prototype paths only.
 
 ### Active follow-up — AC-091 screenshot-caption precision
 
 - **Branch:** `agent/ac091-screenshot-caption-fix`
-- **Feature head:** `7391595e61138e232b79852dd4601bdad0278b6e`
+- **Feature head before status sync:** `3a111fe3e6d915e6d546d12259bcfb552a12da2d` (a non-force merge commit with current main as first parent).
 - **PR:** [#87 — docs(ux): correct phone capture state description](https://github.com/faiev/ArtClub/pull/87), open; one file, one insertion / one deletion.
 - **Diff:** Only `docs/ux/DESIGN_SYSTEM.md`; changes 390×844 screenshot description to say the inspector drawer is open.
-- **Validation:** Fetched the current main document, verified the incorrect sentence, applied the exact correction and checked the new commit/file diff. Docs-only change; no application tests run.
-- **Next actions:** (1) Sync PR #87 non-force after this status update advances main; (2) re-check its one-file diff against current main; (3) leave merge/review to coordinator; (4) address any specific follow-up from the PR #84 findings without modifying production-owned files.
+- **Validation:** Verified the incorrect sentence in main, applied the exact correction and compared against the status-update base; main-to-branch contains only the design-system document. Docs-only change; no application tests run.
+- **Next actions:** (1) Refresh PR #87 against this status commit using a non-force sync; (2) confirm the one-file diff remains clean; (3) leave review/merge to coordinator; (4) address specific UI-01 follow-up requests only within the documentation/review boundary.
 - **Last updated:** 2026-11-14.
 
 # Status — Agent 5
