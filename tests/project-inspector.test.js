@@ -1062,3 +1062,60 @@ test("CI artifact report rejects incompatible modes and missing file arguments",
   assert.equal(missing.status, 2);
   assert.match(missing.stderr, /INVALID_ARGUMENT/);
 });
+
+
+test("diagnostic fixture corpus exercises stable codes and never modifies source files", (t) => {
+  const directory = temporaryDirectory(t);
+  const cases = [
+    ["diag-root-not-object.json", ["PROJECT_ROOT_INVALID"]],
+    ["diag-unsupported-format-version.json", ["UNSUPPORTED_FORMAT", "UNSUPPORTED_VERSION"]],
+    ["diag-invalid-dimensions.json", ["CANVAS_WIDTH_INVALID", "CANVAS_HEIGHT_INVALID"]],
+    ["diag-duplicate-identifiers-active-targets.json", [
+      "LAYER_ID_DUPLICATE", "FRAME_ID_DUPLICATE", "ACTIVE_LAYER_MISSING", "ACTIVE_FRAME_MISSING"
+    ]],
+    ["diag-cel-entry-and-reference-errors.json", [
+      "CEL_ENTRY_INVALID", "CEL_LAYER_REFERENCE_INVALID", "CEL_FRAME_REFERENCE_INVALID", "CEL_PAIR_DUPLICATE"
+    ]],
+    ["diag-cels-not-array.json", ["CELS_NOT_ARRAY"]],
+    ["diag-pixel-array-shape-errors.json", [
+      "PIXEL_ARRAY_NOT_ARRAY", "PIXEL_ARRAY_SHORT", "PIXEL_ARRAY_LONG"
+    ]],
+    ["diag-invalid-pixels-and-palette.json", [
+      "PIXEL_COLOR_INVALID", "PIXEL_COLOR_NOT_IN_PALETTE", "PALETTE_COLOR_DUPLICATE", "PALETTE_ENTRY_UNUSED"
+    ]],
+    ["diag-expected-pixel-budget.json", ["DOCUMENT_EXPECTED_PIXEL_BUDGET_EXCEEDED"]]
+  ];
+
+  for (const [fixture, expectedCodes] of cases) {
+    const file = copyFixture(directory, fixture);
+    const original = fs.readFileSync(file);
+    const result = runDiagnostics(file);
+    assert.equal(result.status, 1, fixture + ": " + result.stderr);
+    const report = JSON.parse(result.stdout);
+    assert.equal(report.ok, true, fixture);
+    assert.equal(report.schema.valid, false, fixture);
+    const actualCodes = new Set(report.diagnostics.map((item) => item.code));
+    for (const code of expectedCodes) {
+      assert.ok(actualCodes.has(code), fixture + " should report " + code);
+    }
+    assert.ok(report.diagnostics.every((item) => item.source === "supplemental"), fixture);
+    assert.deepEqual(fs.readFileSync(file), original, fixture + " must remain byte-for-byte unchanged");
+  }
+});
+
+test("diagnostic byte-limit fixture is exercised without checking in a huge file", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "valid-v2.json");
+  const seed = fs.readFileSync(file);
+  fs.truncateSync(file, MAX_FILE_BYTES + 1);
+
+  const result = runDiagnostics(file);
+  assert.equal(result.status, 1, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, false);
+  assert.equal(report.schema.checked, false);
+  assert.equal(report.diagnostics[0].code, "DOCUMENT_BYTE_LIMIT");
+  assert.equal(report.diagnostics[0].details.maxBytes, MAX_FILE_BYTES);
+  assert.equal(fs.statSync(file).size, MAX_FILE_BYTES + 1);
+  assert.equal(seed.length < fs.statSync(file).size, true);
+});
