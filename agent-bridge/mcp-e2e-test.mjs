@@ -74,6 +74,7 @@ async function run() {
     for (const required of [
       "artclub_get_status",
       "artclub_draw_pixel",
+      "artclub_draw_ellipse",
       "artclub_get_pixel",
       "artclub_export_png",
       "artclub_save",
@@ -106,6 +107,20 @@ async function run() {
       arguments: { x: 6, y: 7 }
     });
     assert.equal(pixelResult.structuredContent.color, "#12abef");
+
+    const ellipseResult = await client.callTool({
+      name: "artclub_draw_ellipse",
+      arguments: {
+        x1: 3, y1: 3, x2: 9, y2: 9,
+        color: "#33aa77", filled: true
+      }
+    });
+    assert.notEqual(ellipseResult.isError, true);
+    const ellipseCenter = await client.callTool({
+      name: "artclub_get_pixel",
+      arguments: { x: 6, y: 6 }
+    });
+    assert.equal(ellipseCenter.structuredContent.color, "#33aa77");
 
     const pngResult = await client.callTool({
       name: "artclub_export_png",
