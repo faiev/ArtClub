@@ -110,3 +110,15 @@ test("rejects cels whose pixel dimensions do not match the document", () => {
   assert.equal(result.valid, false);
   assert.match(result.errors.join(" "), /exactly width/);
 });
+
+test("does not silently migrate an unknown versioned file", () => {
+  const unknown = {
+    format: "some-other-editor",
+    version: 1,
+    w: 2,
+    h: 2,
+    palette: ["#000000"],
+    pixels: [null, null, null, null]
+  };
+  assert.throws(() => Project.deserializeProject(unknown), /Unrecognized project format/);
+});
