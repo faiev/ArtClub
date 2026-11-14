@@ -3,7 +3,7 @@
 **Task:** AC-050 — Layer, frame and timeline workflow specification  
 **Owner:** Agent 5 — UX / interaction design / accessibility  
 **Branch:** `agent/layer-timeline-spec`  
-**Base:** `16ac23f51a2c24a40babc54966bbbf5e00e1e34a`  
+**Production source rechecked:** `main` `index.html` blob `4645281c1aad8580529e7feb99cd299a88543913` (merged UI-01 workstation shell)  
 **Status:** Specification only; no production UI or application implementation is included.
 
 ---
@@ -546,3 +546,18 @@ AC-050 is ready for coordinator review when:
 - Agent 6's guard/transaction dependencies and Agent 3's frame-order export contract are identified.
 - Undo/redo, safety, empty states, accessibility, responsive behavior and acceptance tests are included.
 - Only this UX specification is delivered; no production UI or implementation is claimed.
+
+
+## Post UI-01 production-source recheck — 2026-11-15
+
+This specification was prepared before the UI-01 workstation shell was merged. The current production `index.html` blob is `4645281c1aad8580529e7feb99cd299a88543913`. UI-01 reorganized the existing controls but did not implement the proposed layer×frame matrix or change the underlying editing workflow.
+
+- The layer list is now presented in the right inspector within the graphite workstation. Existing layer selection, add, duplicate, delete, visibility, lock and reorder commands remain the production behavior; the inspector is not a cel matrix.
+- The frame strip and playback controls are positioned in the bottom timeline. Existing frame selection, add/duplicate/delete/reorder, duration, playback mode and onion-skin controls remain separate from the layer list.
+- The production UI still does not expose a combined layer-row × frame-column matrix. Missing/unallocated cels are not represented as explicit matrix cells; the AC-050 matrix remains a future interaction model.
+- The current rendering/adapter work does not authorize a production opacity control unless the active composition and export paths apply the same opacity semantics. Keep the current read-only/limited opacity treatment explicit.
+- The merged safety modules and current ProjectModel contracts are implementation dependencies, not proof that every production mutation has been routed through guard/transaction APIs. UI-02 must verify each actual production mutation path before this spec's destructive cel operations are wired.
+- The exported frame-order contract must be consumed by timeline selection and export planning; the timeline must not silently sort explicit frame-ID selections.
+- The AC-091 workstation design system is the approved visual language for later production matrix controls: graphite surfaces, olive selection, amber focus, compact separators and readable 9–12 px text. The matrix must still preserve sticky layer/frame headers, internal horizontal scrolling and no body overflow at phone widths.
+
+This is a source and module-state recheck only. No production UI changes, browser interaction tests or screen-reader tests are claimed by this specification.
