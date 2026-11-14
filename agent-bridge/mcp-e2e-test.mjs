@@ -87,7 +87,15 @@ async function run() {
       "artclub_rename_layer",
       "artclub_move_layer",
       "artclub_duplicate_layer",
-      "artclub_delete_layer"
+      "artclub_delete_layer",
+      "artclub_set_selection",
+      "artclub_select_all",
+      "artclub_copy_selection",
+      "artclub_cut_selection",
+      "artclub_paste_selection",
+      "artclub_clear_selection",
+      "artclub_deselect",
+      "artclub_move_selection"
     ]) {
       assert.ok(names.has(required), "MCP server should register " + required);
     }
@@ -204,6 +212,46 @@ async function run() {
     const layerList = await client.callTool({ name: "artclub_list_layers", arguments: {} });
     assert.ok(layerList.content[0].text.includes("MCP Highlights"));
 
+    const beforeSelection = await client.callTool({
+      name: "artclub_get_status", arguments: {}
+    });
+    const selectionResult = await client.callTool({
+      name: "artclub_set_selection",
+      arguments: { x: 10, y: 10, width: 1, height: 1, expected_revision: beforeSelection.structuredContent.revision }
+    });
+    assert.notEqual(selectionResult.isError, true);
+    const selectedDraw = await client.callTool({
+      name: "artclub_draw_pixel",
+      arguments: { x: 10, y: 10, color: "#aabbcc" }
+    });
+    assert.notEqual(selectedDraw.isError, true);
+    const outsideDraw = await client.callTool({
+      name: "artclub_draw_pixel",
+      arguments: { x: 11, y: 10, color: "#ff0000" }
+    });
+    assert.notEqual(outsideDraw.isError, true);
+    const outsideRead = await client.callTool({
+      name: "artclub_get_pixel", arguments: { x: 11, y: 10 }
+    });
+    assert.notEqual(outsideRead.structuredContent.color, "#ff0000", "drawing must be constrained to the selected rectangle");
+    const copiedSelection = await client.callTool({
+      name: "artclub_copy_selection", arguments: {}
+    });
+    assert.notEqual(copiedSelection.isError, true);
+    const beforeMove = await client.callTool({
+      name: "artclub_get_status", arguments: {}
+    });
+    const movedSelection = await client.callTool({
+      name: "artclub_move_selection",
+      arguments: { dx: 1, dy: 1, expected_revision: beforeMove.structuredContent.revision }
+    });
+    assert.notEqual(movedSelection.isError, true);
+    const movedPixel = await client.callTool({
+      name: "artclub_get_pixel", arguments: { x: 11, y: 11 }
+    });
+    assert.equal(movedPixel.structuredContent.color, "#aabbcc");
+    await client.callTool({ name: "artclub_deselect", arguments: {} });
+
     const pngResult = await client.callTool({
       name: "artclub_export_png",
       arguments: {}
@@ -231,7 +279,7 @@ async function run() {
     });
     assert.equal(invalidResult.isError, true, "invalid coordinates should be rejected");
 
-    console.log("MCP E2E passed: handshake, drawing, pixel readback, layer management, PNG preview, save and input validation.");
+    console.log("MCP E2E passed: handshake, drawing, selection and copy/paste, layer management, pixel readback, PNG preview, save and input validation.");
   } finally {
     await client.close().catch(() => {});
     await new Promise(resolve => staticServer.close(resolve));
