@@ -1122,8 +1122,6 @@ async function commitSafeEditResult(result,previousProject,target,successMessage
   }
 }
 async function runSafeClear(options,confirmation,successMessage){
-  window.__safeClearStage="entered";
-  window.__safeClearConfirmation=confirmation;
   if(safeEditBusy){toast("Another safe edit is already being saved.");return false;}
   if(drawing){toast("Finish the current stroke before clearing pixels.");return false;}
   if(isPlaying||playbackFrameId)resetPlayback();
@@ -1137,13 +1135,10 @@ async function runSafeClear(options,confirmation,successMessage){
     frameId:source.activeFrameId
   };
   const result=window.ArtClubSafeEditOperations.clearActiveCel(source,options||{});
-  window.__safeClearResult={ok:result.ok,reason:result.reason,changedPixels:result.changedPixels};
   if(!result.ok){toast(safeEditDenialMessage(result));return false;}
   if(result.changedPixels===0){toast("There are no pixels to clear in this area.");return true;}
   if(confirmation){
-    window.__safeClearConfirmCalled=true;
-    window.__safeClearConfirmAccepted=window.confirm(confirmation);
-    if(!window.__safeClearConfirmAccepted)return false;
+    if(!window.confirm(confirmation))return false;
   }
   return commitSafeEditResult(result,source,target,successMessage);
 }
@@ -2386,7 +2381,7 @@ $("canvasForm").addEventListener("submit",async e=>{
   else resizeCanvas(width,height);
   $("canvasDialog").close();
 });
-$("clearBtn").addEventListener("click",()=>{window.__clearHandlerRan=true;void clearActiveCel()});
+$("clearBtn").addEventListener("click",()=>{void clearActiveCel()});
 $("gridSize").addEventListener("change",e=>{
   if(e.target.value==="custom"){openCanvasDialog("resize");syncDimensionSelect();return}
   const [nextWidth,nextHeight]=e.target.value.split("x").map(Number);

@@ -56,7 +56,7 @@ async function run() {
     page.on("pageerror", error => pageErrors.push(error.message));
     page.on("console", message => { if (message.type() === "error") consoleErrors.push(message.text()); });
     page.on("dialog", async dialog => {
-      if (dialog.type === "confirm") {
+      if (dialog.type() === "confirm") {
         confirmationMessage = dialog.message();
         await dialog.accept();
       } else {
@@ -80,30 +80,8 @@ async function run() {
       button.addEventListener("click", () => { window.__clearClickCount += 1; }, true);
     });
     await page.locator("#clearBtn").click();
-    await page.waitForTimeout(500);
-    const clearDiagnostics = await page.evaluate(() => ({
-      pixel: window.onePixelStudio.get_pixel({ x: 0, y: 0 }),
-      toast: document.getElementById("toast").textContent,
-      saveState: document.getElementById("saveState").textContent,
-      busy: document.body.inert,
-      clickCount: window.__clearClickCount,
-      handlerRan: window.__clearHandlerRan,
-      clearStage: window.__safeClearStage,
-      safeResult: window.__safeClearResult,
-      confirmation: window.__safeClearConfirmation,
-      confirmCalled: window.__safeClearConfirmCalled,
-      confirmAccepted: window.__safeClearConfirmAccepted,
-      confirmType: String(window.confirm),
-      button: document.getElementById("clearBtn").outerHTML,
-      activeLayer: window.onePixelStudio.get_status().active_layer,
-      activeCel: JSON.parse(window.onePixelStudio.export_project()).cels.find(cel =>
-        cel.layerId === window.onePixelStudio.get_status().active_layer.id &&
-        cel.frameId === window.onePixelStudio.get_status().active_frame.id
-      )?.pixels?.slice(0, 4)
-    }));
-    if (clearDiagnostics.pixel.color !== null) {
-      throw new Error("Active-cel Clear did not commit: " + JSON.stringify({clearDiagnostics,pageErrors,consoleErrors,confirmationMessage}));
-    }
+    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === null);
+    assert.equal((await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }))).color, null);
     assert.match(confirmationMessage, /active layer for this frame/i);
     assert.match(confirmationMessage, /Other layers and frames will be preserved/i);
     assert.equal((await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }))).color, "#00ff00",
@@ -159,7 +137,7 @@ async function run() {
     const blockedPage = await blockedContext.newPage();
     let blockedConfirmation = false;
     blockedPage.on("dialog", async dialog => {
-      if (dialog.type === "confirm") {
+      if (dialog.type() === "confirm") {
         blockedConfirmation = true;
         await dialog.accept();
       } else await dialog.dismiss();
