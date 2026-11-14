@@ -581,7 +581,7 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
           <button class="zoom-value" id="zoomReset" title="Reset zoom">100%</button>
           <button class="zoom-button" id="zoomIn" aria-label="Zoom in" title="Zoom in ( ] )">＋</button>
         </div>
-        <button class="icon-button" id="clearBtn" aria-label="Clear canvas" title="Clear canvas">⌫</button>
+        <button class="icon-button" id="clearBtn" aria-label="Clear active cel" title="Clear active layer for this frame">⌫</button>
       </div>
     </div>
     <div class="canvas-toolbar">
@@ -738,6 +738,8 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
 
 <script src="./js/project-model.js"></script>
 <script src="./js/project-storage.js"></script>
+<script src="./js/layer-edit-guard.js"></script>
+<script src="./js/safe-edit-operations.js"></script>
 <script src="./js/agent-api.js"></script>
 <script>
 (function(){
@@ -756,12 +758,13 @@ const PALETTE_SETS = {
   mono: ["#161b1e","#343b3e","#515a5d","#6d7779","#929b9b","#b5bcba","#d8dc d5".replaceAll(" ",""),"#f3f3ec"]
 };
 let w=24,h=24,pixels=[],palette=DEFAULT_PALETTE.slice(),selected=8,tool="brush",projectName="Untitled artwork",zoom=1;
-let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,saveTimer=null,focusedIndex=0;
+let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,saveTimer=null,persistInFlight=null,focusedIndex=0;
 let selection=null,selectionPreview=null,selectionDragMode=null,selectionClipboard=null;
 let isPlaying=false,playbackFrameId=null,playbackTimer=null,playbackDirection=1,playbackMode="loop",onionSkinEnabled=false;
 let projectDoc=null;
 let projectStorage=null;
 let activeProjectId=null;
+let safeEditBusy=false;
 let documentRevision=0;
 const grid=$("pixelGrid");
 
@@ -829,7 +832,7 @@ function activeLayer(){
 }
 function isActiveLayerEditable(){
   const layer=activeLayer();
-  return Boolean(layer&&!layer.locked&&layer.visible);
+  return Boolean(layer&&!layer.locked&&layer.visible&&Number.isFinite(layer.opacity)&&layer.opacity>0);
 }
 function displayFrameId(){
   return playbackFrameId||projectDoc.activeFrameId;
@@ -1019,14 +1022,130 @@ function cutSelection(){
   }
   renderGrid();renderStats();scheduleSave();toast("Selection cut.");return true;
 }
-function clearSelectedPixels(){
-  if(!selection){toast("Select an area first.");return false}
-  if(!isActiveLayerEditable()){toast("The active layer is locked or hidden.");return false}
-  remember();
-  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
-    pixels[(selection.y+y)*w+selection.x+x]=null;
+function createSafeEditProject(){
+  if(!projectDoc)throw new Error("The editor project is not ready yet.");
+  const source=ProjectModel.cloneProject(projectDoc);
+  const cel=ProjectModel.getCel(source,source.activeLayerId,source.activeFrameId);
+  if(!cel)throw new Error("The active layer/frame cel no longer exists.");
+  if(!Array.isArray(pixels)||pixels.length!==source.canvas.width*source.canvas.height){
+    throw new Error("The active pixel buffer does not match the project dimensions.");
   }
-  renderGrid();renderStats();scheduleSave();return true;
+  cel.pixels=pixels.slice();
+  return source;
+}
+function safeEditDenialMessage(result){
+  const messages={
+    LAYER_HIDDEN:"Show this layer before editing it.",
+    LAYER_LOCKED:"Unlock this layer before editing it.",
+    LAYER_ZERO_OPACITY:"Increase this layer's opacity above zero before editing it.",
+    LAYER_NOT_FOUND:"The active layer no longer exists. Select a current layer and try again.",
+    LAYER_NOT_ACTIVE:"The active layer changed. Select it again and retry.",
+    FRAME_NOT_FOUND:"The active frame no longer exists. Select a current frame and try again.",
+    FRAME_NOT_ACTIVE:"The active frame changed. Select it again and retry.",
+    CEL_NOT_FOUND:"The active layer/frame cel is missing. Reopen the project and try again.",
+    PROJECT_REVISION_STALE:"The project changed. Refresh the target and try again.",
+    FRAME_REVISION_STALE:"The frame changed. Refresh the target and try again.",
+    COMPOSITE_REVISION_STALE:"The visible artwork changed. Refresh the target and try again."
+  };
+  return messages[result&&result.reason]||(result&&result.message)||"This edit is not safe to apply to the current target.";
+}
+async function commitSafeEditResult(result,previousProject,target,successMessage){
+  if(safeEditBusy){toast("Another safe edit is already being saved.");return false;}
+  const nextProject=ProjectModel.deserializeProject(result.project);
+  const undoBefore=undoStack.slice(),redoBefore=redoStack.slice();
+  const previousFocus=document.activeElement;
+  const bodyWasInert=document.body.inert;
+  let persisted=false,published=false;
+  safeEditBusy=true;
+  clearTimeout(saveTimer);saveTimer=null;
+  document.body.inert=true;
+  document.body.setAttribute("aria-busy","true");
+  $("saveState").textContent="SAVING SAFE EDIT…";
+  try{
+    if(persistInFlight)await persistInFlight;
+    const targetStillCurrent=documentRevision===target.revision&&projectDoc&&
+      projectDoc.id===target.projectId&&
+      projectDoc.activeLayerId===target.layerId&&
+      projectDoc.activeFrameId===target.frameId;
+    if(!targetStillCurrent){
+      toast("The project changed before this clear could be saved. No edit was applied; retry on the current target.");
+      return false;
+    }
+    if(projectStorage){
+      await projectStorage.saveProject(nextProject);
+      persisted=true;
+    }else{
+      if(!writeLocalBackup(nextProject))throw new Error("Local backup storage is unavailable.");
+      persisted=true;
+    }
+    remember();
+    published=true;
+    loadProjectIntoEditor(nextProject,false);
+    documentRevision+=1;
+    const backupSaved=writeLocalBackup(nextProject);
+    $("saveState").textContent=projectStorage
+      ?(backupSaved?"SAVED IN PROJECT LIBRARY":"LIBRARY SAVED · LOCAL BACKUP UNAVAILABLE")
+      :"LOCAL BACKUP ONLY";
+    toast(successMessage);
+    return true;
+  }catch(error){
+    if(published){
+      undoStack.splice(0,undoStack.length,...undoBefore);
+      redoStack.splice(0,redoStack.length,...redoBefore);
+      try{loadProjectIntoEditor(previousProject,false);documentRevision+=1;}
+      catch(restoreError){console.error("Safe-edit in-memory rollback failed:",restoreError);}
+    }
+    if(persisted&&projectStorage){
+      try{await projectStorage.saveProject(previousProject);}
+      catch(rollbackError){
+        console.error("Safe-edit database rollback failed:",rollbackError);
+        $("saveState").textContent="SAVE / ROLLBACK FAILED · EXPORT JSON";
+      }
+    }else if(!projectStorage){
+      writeLocalBackup(previousProject);
+    }
+    if($("saveState").textContent!=="SAVE / ROLLBACK FAILED · EXPORT JSON"){
+      $("saveState").textContent="SAVE FAILED · PREVIOUS ARTWORK KEPT";
+    }
+    toast("Could not save this edit. Your previous artwork was preserved. "+(error&&error.message?error.message:""));
+    return false;
+  }finally{
+    safeEditBusy=false;
+    document.body.inert=bodyWasInert;
+    if(!bodyWasInert)document.body.removeAttribute("aria-busy");
+    if(previousFocus&&previousFocus.isConnected&&typeof previousFocus.focus==="function")previousFocus.focus();
+  }
+}
+async function runSafeClear(options,confirmation,successMessage){
+  if(safeEditBusy){toast("Another safe edit is already being saved.");return false;}
+  if(drawing){toast("Finish the current stroke before clearing pixels.");return false;}
+  if(isPlaying||playbackFrameId)resetPlayback();
+  let source;
+  try{source=createSafeEditProject();}
+  catch(error){toast(error.message||"The active edit target is unavailable.");return false;}
+  const target={
+    revision:documentRevision,
+    projectId:source.id,
+    layerId:source.activeLayerId,
+    frameId:source.activeFrameId
+  };
+  const result=window.ArtClubSafeEditOperations.clearActiveCel(source,options||{});
+  if(!result.ok){toast(safeEditDenialMessage(result));return false;}
+  if(result.changedPixels===0){toast("There are no pixels to clear in this area.");return true;}
+  if(confirmation){
+    if(!window.confirm(confirmation))return false;
+  }
+  return commitSafeEditResult(result,source,target,successMessage);
+}
+async function clearSelectedPixels(){
+  if(!selection){toast("Select an area first.");return false;}
+  return runSafeClear({selection:{x:selection.x,y:selection.y,width:selection.width,height:selection.height}},
+    null,"Selection cleared.");
+}
+async function clearActiveCel(){
+  return runSafeClear({},
+    "Clear all pixels on the active layer for this frame? Other layers and frames will be preserved.",
+    "Active cel cleared.");
 }
 function pasteSelection(){
   if(!selectionClipboard){toast("Copy or cut a selection first.");return false}
@@ -1367,6 +1486,10 @@ function renderLayers(){
   $("deleteLayerBtn").disabled=layers.length<=1;
   $("duplicateLayerBtn").disabled=layers.length>=ProjectModel.LIMITS.maxLayers;
   $("addLayerBtn").disabled=layers.length>=ProjectModel.LIMITS.maxLayers;
+  $("clearBtn").disabled=!isActiveLayerEditable();
+  $("clearBtn").title=isActiveLayerEditable()
+    ?"Clear the active layer cel for this frame"
+    :"Show and unlock the active layer with opacity above zero to clear it";
 }
 function setActiveLayer(layerId){
   if(drawing){toast("Finish the current stroke before switching layers.");return}
@@ -1432,11 +1555,11 @@ function renameLayer(layerId,providedName){
 }
 function toggleLayerVisibility(layerId){
   const layer=ProjectModel.getLayer(projectDoc,layerId);if(!layer)return;
-  remember();layer.visible=!layer.visible;renderGrid();renderLayers();renderStats();scheduleSave();
+  remember();layer.visible=!layer.visible;renderGrid();renderLayers();renderStats();renderSelectionTools();scheduleSave();
 }
 function toggleLayerLock(layerId){
   const layer=ProjectModel.getLayer(projectDoc,layerId);if(!layer)return;
-  remember();layer.locked=!layer.locked;renderLayers();scheduleSave();
+  remember();layer.locked=!layer.locked;renderLayers();renderSelectionTools();scheduleSave();
   toast(layer.locked?"Layer locked.":"Layer unlocked.");
 }
 function moveLayer(layerId,direction){
@@ -1492,6 +1615,25 @@ function setZoom(value){
 function readLocalValue(key){
   try{return localStorage.getItem(key)}catch(_){return null}
 }
+function captureImportTarget(){
+  if(!projectDoc)return null;
+  return {
+    revision:documentRevision,
+    projectId:projectDoc.id,
+    layerId:projectDoc.activeLayerId,
+    frameId:projectDoc.activeFrameId,
+    width:w,
+    height:h
+  };
+}
+function isImportTargetCurrent(target){
+  return Boolean(target&&!safeEditBusy&&projectDoc&&
+    documentRevision===target.revision&&
+    projectDoc.id===target.projectId&&
+    projectDoc.activeLayerId===target.layerId&&
+    projectDoc.activeFrameId===target.frameId&&
+    w===target.width&&h===target.height);
+}
 function writeLocalBackup(doc){
   try{
     localStorage.setItem(STORAGE_KEY,ProjectModel.serializeProject(doc));
@@ -1511,23 +1653,29 @@ async function saveCurrentProject(){
 }
 async function persistNow(){
   clearTimeout(saveTimer);saveTimer=null;
+  if(safeEditBusy)return false;
+  const pending=saveCurrentProject();
+  persistInFlight=pending;
   try{
-    const saved=await saveCurrentProject();
+    const saved=await pending;
     $("saveState").textContent=saved?(projectStorage?"SAVED IN PROJECT LIBRARY":"LOCAL BACKUP ONLY"):"SAVE FAILED · EXPORT JSON";
     return saved;
   }catch(error){
     $("saveState").textContent="SAVE FAILED · EXPORT JSON";
     console.error("Project save failed:",error);
     return false;
+  }finally{
+    if(persistInFlight===pending)persistInFlight=null;
   }
 }
 function scheduleSave(){
+  if(safeEditBusy)return;
   documentRevision+=1;
   $("saveState").textContent="SAVING LOCALLY…";
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     const saved=await persistNow();
-    if(!saved)toast("Could not save this project. Export a JSON backup.");
+    if(!saved&&!safeEditBusy)toast("Could not save this project. Export a JSON backup.");
   },280);
 }
 function toast(message){
@@ -1852,7 +2000,7 @@ function agentSetLayerVisibility(payload){
   const layer=requireAgentLayer(payload);
   if(layer.visible!==payload.visible){
     remember();layer.visible=payload.visible;
-    renderGrid();renderLayers();renderStats();scheduleSave();
+    renderGrid();renderLayers();renderStats();renderSelectionTools();scheduleSave();
   }
   return getAgentStatus();
 }
@@ -1862,7 +2010,7 @@ function agentSetLayerLocked(payload){
   const layer=requireAgentLayer(payload);
   if(layer.locked!==payload.locked){
     remember();layer.locked=payload.locked;
-    renderLayers();scheduleSave();
+    renderLayers();renderSelectionTools();scheduleSave();
   }
   return getAgentStatus();
 }
@@ -1938,9 +2086,9 @@ function agentPasteSelection(payload){
   if(!pasteSelection())throw new Error("There is no editable clipboard selection to paste.");
   return getAgentStatus();
 }
-function agentClearSelection(payload){
+async function agentClearSelection(payload){
   payload=payload||{};assertAgentSelectionAction(payload);
-  if(!clearSelectedPixels())throw new Error("There is no editable active selection to clear.");
+  if(!await clearSelectedPixels())throw new Error("There is no editable active selection to clear.");
   return getAgentStatus();
 }
 function agentDeselect(payload){
@@ -2010,7 +2158,7 @@ function agentRenameFrame(payload){
 }
 function installAgentAPI(){
   if(!window.ArtClubAgentAPI)throw new Error("Agent API module failed to load.");
-  window.onePixelStudio=window.ArtClubAgentAPI.create({
+  const adapter={
     getStatus:getAgentStatus,
     getCanvas:getAgentCanvas,
     getPixel:getAgentPixel,
@@ -2054,7 +2202,17 @@ function installAgentAPI(){
     stopPlayback:agentStopPlayback,
     setPlaybackMode:agentSetPlaybackMode,
     setOnionSkin:agentSetOnionSkin
+  };
+  const readOnlyMethods=new Set(["getStatus","getCanvas","getPixel","listProjects","listLayers","listFrames"]);
+  Object.keys(adapter).forEach(name=>{
+    if(readOnlyMethods.has(name))return;
+    const operation=adapter[name];
+    adapter[name]=function(...args){
+      if(safeEditBusy)throw new Error("A safe edit is being committed. Retry this command when it finishes.");
+      return operation.apply(null,args);
+    };
   });
+  window.onePixelStudio=window.ArtClubAgentAPI.create(adapter);
 }
 
 grid.addEventListener("pointerdown",e=>{
@@ -2155,7 +2313,7 @@ $("undoBtn").addEventListener("click",undo);$("redoBtn").addEventListener("click
 $("selectionCopyBtn").addEventListener("click",copySelection);
 $("selectionCutBtn").addEventListener("click",cutSelection);
 $("selectionPasteBtn").addEventListener("click",pasteSelection);
-$("selectionClearBtn").addEventListener("click",clearSelectedPixels);
+$("selectionClearBtn").addEventListener("click",()=>{void clearSelectedPixels()});
 $("selectionAllBtn").addEventListener("click",selectAll);
 $("selectionDeselectBtn").addEventListener("click",deselect);
 $("selectionFlipHBtn").addEventListener("click",()=>{try{transformSelection("flip_h")}catch(error){toast(error.message)}});
@@ -2243,10 +2401,7 @@ $("canvasForm").addEventListener("submit",async e=>{
   else resizeCanvas(width,height);
   $("canvasDialog").close();
 });
-$("clearBtn").addEventListener("click",()=>{
-  if(!confirm("Clear every pixel on this canvas?"))return;
-  remember();pixels=blank(w,h);renderGrid();renderStats();scheduleSave();toast("Canvas cleared.");
-});
+$("clearBtn").addEventListener("click",()=>{void clearActiveCel()});
 $("gridSize").addEventListener("change",e=>{
   if(e.target.value==="custom"){openCanvasDialog("resize");syncDimensionSelect();return}
   const [nextWidth,nextHeight]=e.target.value.split("x").map(Number);
@@ -2296,35 +2451,51 @@ $("jsonBtn").addEventListener("click",()=>{download(safeFilename()+"-project.jso
 $("importProjectBtn").addEventListener("click",()=>$("projectInput").click());
 $("projectInput").addEventListener("change",async e=>{
   const file=e.target.files[0];if(!file)return;
+  if(safeEditBusy){e.target.value="";toast("Finish saving the current edit before opening a project.");return}
+  const target=captureImportTarget();
   try{
     const imported=ProjectModel.deserializeProject(await file.text());
+    if(!isImportTargetCurrent(target)){
+      toast("The project changed while the file was loading. Open the file again on the current project.");
+      return;
+    }
     remember();
     restore(imported);
     toast("Project opened · "+imported.layers.length+" layer(s), "+imported.frames.length+" frame(s).");
   }catch(err){
     toast(err&&err.message?err.message:"Could not open that project file.");
+  }finally{
+    e.target.value="";
   }
-  e.target.value="";
 });
 $("importImageBtn").addEventListener("click",()=>$("imageInput").click());
 $("imageInput").addEventListener("change",e=>{
   const file=e.target.files[0];if(!file)return;
-  if(!file.type.startsWith("image/")){toast("Choose an image file.");return}
+  if(safeEditBusy){e.target.value="";toast("Finish saving the current edit before importing an image.");return}
+  if(!file.type.startsWith("image/")){e.target.value="";toast("Choose an image file.");return}
+  const target=captureImportTarget();
   const url=URL.createObjectURL(file),img=new Image();
   img.onload=()=>{
-    const c=document.createElement("canvas");c.width=w;c.height=h;const ctx=c.getContext("2d");
-    ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,w,h);
-    const scale=Math.min(w/img.width,h/img.height),dw=Math.max(1,Math.round(img.width*scale)),dh=Math.max(1,Math.round(img.height*scale));
-    ctx.drawImage(img,Math.floor((w-dw)/2),Math.floor((h-dh)/2),dw,dh);
-    const data=ctx.getImageData(0,0,w,h).data,next=blank(w,h);
-    for(let i=0;i<w*h;i++){
+    if(!isImportTargetCurrent(target)){
+      URL.revokeObjectURL(url);
+      toast(safeEditBusy
+        ?"Image import was canceled because another edit is being saved. Choose the image again."
+        :"The project or edit target changed while the image was loading. Choose the image again.");
+      return;
+    }
+    const c=document.createElement("canvas");c.width=target.width;c.height=target.height;const ctx=c.getContext("2d");
+    ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,target.width,target.height);
+    const scale=Math.min(target.width/img.width,target.height/img.height),dw=Math.max(1,Math.round(img.width*scale)),dh=Math.max(1,Math.round(img.height*scale));
+    ctx.drawImage(img,Math.floor((target.width-dw)/2),Math.floor((target.height-dh)/2),dw,dh);
+    const data=ctx.getImageData(0,0,target.width,target.height).data,next=blank(target.width,target.height);
+    for(let i=0;i<target.width*target.height;i++){
       const alpha=data[i*4+3];if(alpha<32)continue;
       const hex="#"+[data[i*4],data[i*4+1],data[i*4+2]].map(v=>v.toString(16).padStart(2,"0")).join("");
       let best=palette[0],dist=Infinity;
       palette.forEach(col=>{const r=parseInt(col.slice(1,3),16)-data[i*4],g=parseInt(col.slice(3,5),16)-data[i*4+1],b=parseInt(col.slice(5,7),16)-data[i*4+2],d=r*r+g*g+b*b;if(d<dist){dist=d;best=col}});
       next[i]=best;
     }
-    remember();pixels=next;renderGrid();renderStats();scheduleSave();URL.revokeObjectURL(url);toast("Image converted to "+w+" × "+h+" grid cells.");
+    remember();pixels=next;renderGrid();renderStats();scheduleSave();URL.revokeObjectURL(url);toast("Image converted to "+target.width+" × "+target.height+" grid cells.");
   };
   img.onerror=()=>{URL.revokeObjectURL(url);toast("Could not read that image.")};
   img.src=url;e.target.value="";
@@ -2334,6 +2505,7 @@ $("demoBtn").addEventListener("click",()=>{
   remember();selection=null;selectionPreview=null;selectionDragMode=null;w=24;h=24;palette=DEFAULT_PALETTE.slice();selected=8;pixels=demo();projectName="Untitled artwork";$("projectName").value=projectName;syncDimensionSelect();projectDoc=ProjectModel.createProject({width:w,height:h,name:projectName,palette:palette,selectedColorIndex:selected,pixels:pixels});renderAll();scheduleSave();toast("Starter artwork restored.");
 });
 document.addEventListener("keydown",e=>{
+  if(safeEditBusy)return;
   const tag=document.activeElement&&document.activeElement.tagName;
   const editing=tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA";
   const mod=e.ctrlKey||e.metaKey;
@@ -2345,7 +2517,7 @@ document.addEventListener("keydown",e=>{
   if(mod&&e.key.toLowerCase()==="v"&&selectionClipboard){e.preventDefault();pasteSelection();return}
   if(mod&&e.key.toLowerCase()==="a"){e.preventDefault();selectAll();return}
   if(mod&&e.key.toLowerCase()==="d"&&selection){e.preventDefault();deselect();return}
-  if((e.key==="Delete"||e.key==="Backspace")&&selection){e.preventDefault();clearSelectedPixels();return}
+  if((e.key==="Delete"||e.key==="Backspace")&&selection){e.preventDefault();void clearSelectedPixels();return}
   const keys={b:"brush",e:"eraser",g:"fill",i:"eyedropper",m:"select"};
   if(keys[e.key.toLowerCase()])setTool(keys[e.key.toLowerCase()]);
   if(e.key==="Escape"){if(selection)deselect();else setTool("brush")}
