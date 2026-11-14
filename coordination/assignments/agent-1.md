@@ -67,3 +67,20 @@ Do not edit agent-bridge/e2e-test.mjs, .github/workflows/project-tests.yml, inde
 
 ## Required handoff
 Maintain coordination/status/agent-1.md with phase completion, branches/PRs, current-head CI, next queue and actual blockers. You do not merge PRs or self-accept work.
+
+## Coordinator-added extension — AC-087: QA suite discovery and local runner
+
+After the existing AC-033 release checker and ongoing regression-triage work, build a reproducible runner for the QA-owned nested suites that are not discovered by the current root-only `node --test tests/*.test.js` command.
+
+### Deliverable
+- Add `tools/run-qa.mjs` and focused tests under `tests/qa/runner/`.
+- Maintain an explicit, sorted suite manifest for lifecycle, compatibility, import/export and browser QA suites. Discover files only within `tests/qa/**`; do not silently sweep unrelated tests.
+- Support selecting one named suite or all suites, human-readable output and stable JSON summary.
+- Spawn Node's built-in test runner with argument arrays (no shell interpolation), preserve exit codes, capture per-suite output and report skipped/not-run suites explicitly.
+- Validate paths against the repository root and reject unknown suite names or paths escaping the QA directory.
+- Document separate Node and real-browser commands. The runner must not install dependencies, change files, launch deployments or claim that an unexecuted browser suite passed.
+- Add fixtures/stub child-process tests for argument safety, missing files, failing suites, deterministic ordering, JSON schema and exit behavior.
+
+**Allowed files:** `tools/run-qa.mjs`, `tests/qa/runner/**`, `docs/QA_MATRIX.md`, `docs/RELEASE_CHECKLIST.md`.
+
+Do not edit the shared workflow, root test script, feature modules, index.html, storage/model code or another worker's tests. If workflow-level discovery is eventually needed, prepare the exact command and ask the coordinator for a separate workflow lock after Agent 3 releases it.
