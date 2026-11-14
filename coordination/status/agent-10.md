@@ -3,24 +3,24 @@
 - **Workstream:** Deterministic pixel-art algorithm library
 - **State:** IN_PROGRESS — all assigned deliverables are submitted; AC-085 parity tranche remains dependency-gated
 - **Coordination source:** `main`
-- **Main snapshot checked before this status update:** `dafd5471cd9e497ccbe79ae9f158a334910c5c6a`
+- **Main snapshot checked before this status update:** `20408f45815d0e59539c4df5b06e8672ae4d3ed6`
 - **Current ownership:** `js/pixel-*.js` pure modules, matching tests/fixtures and pixel-algorithm docs only. No UI, renderer, project-model, Agent API or shared-workflow authority.
 
 ## Phase / PR ledger
 
 | Task | Branch | PR / state | Current tested head | Exact-head workflow |
 |---|---|---|---|---|
-| AC-019 craft effects | `agent/pixel-effects` | [#15](https://github.com/faiev/ArtClub/pull/15), ready for review | `fd41bce6805f8f56d15616f292caa49a0697a9f7` | #43630111802 — Node + browser-e2e passed |
+| AC-019 craft effects | `agent/pixel-effects` | [#15](https://github.com/faiev/ArtClub/pull/15), ready for review | `3b8acb6f672bf4dbd62b3f10a3b838f6bb9e9c46` | #43631298298 — Node + browser-e2e passed |
 | AC-080 raster primitives | `agent/pixel-primitives` | [#31](https://github.com/faiev/ArtClub/pull/31), **MERGED** | `12010cd3f17ba0f0227e3adeb58a01cb1bdf7c5d` | #43613997761 — Node, Chromium and MCP passed |
-| AC-081 regions/flood fill | `agent/pixel-regions` | [#37](https://github.com/faiev/ArtClub/pull/37), ready for review | `7740fceddcc8a691eb04c893c4f12791d266e5ce` | #43630120052 — Node + browser-e2e passed |
-| AC-082 color/gradients | `agent/pixel-color` | [#44](https://github.com/faiev/ArtClub/pull/44), ready for review | `30e22e65735060b8ae1b75ced907c69ffc30be8f` | #43630157475 — Node + browser-e2e passed |
-| AC-083 transforms | `agent/pixel-transform` | [#50](https://github.com/faiev/ArtClub/pull/50), ready for review | `89947741fce7bd1d7ce93daf2922379c01e28bc2` | #43630161436 — Node + browser-e2e passed |
-| AC-084 advanced dithering/outlines | `agent/pixel-advanced-dither` | [#69](https://github.com/faiev/ArtClub/pull/69), ready for review | `38904947622b3f7ee2f7474fdf73ac8abdf063a6` | #43630194843 — Node + browser-e2e passed |
-| AC-085 golden/stress corpus | `agent/pixel-golden-fixtures` | [#70](https://github.com/faiev/ArtClub/pull/70), ready for review; first tranche | `07e661d3a54ffedb9dde51948f771fcd5b905e66` | #43630201290 — Node + browser-e2e passed |
-| AC-086 algorithm catalog | `agent/pixel-catalog` | [#72](https://github.com/faiev/ArtClub/pull/72), ready for review; docs-only | `1cf5b7ce721e0d9d532f3e637ea944da51fa8974` | Not applicable — documentation only |
-| AC-096 Bézier curves | `agent/pixel-curves` | [#76](https://github.com/faiev/ArtClub/pull/76), ready for review | `909095553f41b2268a42e0e7d6ab7e596279c72f` | #43630239453 — Node + browser-e2e passed |
+| AC-081 regions/flood fill | `agent/pixel-regions` | [#37](https://github.com/faiev/ArtClub/pull/37), ready for review | `6926d2160ed639ba2d06aa4f9e0e395f96d821b3` | #43631308580 — Node + browser-e2e passed |
+| AC-082 color/gradients | `agent/pixel-color` | [#44](https://github.com/faiev/ArtClub/pull/44), ready for review | `07540da4269d4eb4df431b033ccedec8b17f9cf7` | #43631338413 — Node + browser-e2e passed |
+| AC-083 transforms | `agent/pixel-transform` | [#50](https://github.com/faiev/ArtClub/pull/50), ready for review | `ae7627e78e9397ed11ee67acb9c4d3156ba5cc2a` | #43631344151 — Node + browser-e2e passed |
+| AC-084 advanced dithering/outlines | `agent/pixel-advanced-dither` | [#69](https://github.com/faiev/ArtClub/pull/69), ready for review | `62a1c890f3b67faad2ad737942271b921c8f080c` | #43631371949 — Node + browser-e2e passed |
+| AC-085 golden/stress corpus | `agent/pixel-golden-fixtures` | [#70](https://github.com/faiev/ArtClub/pull/70), ready for review; first tranche | `b71d880930dbac3a565ec2df079f1d29ca8178fc` | #43631379517 — Node + browser-e2e passed |
+| AC-086 algorithm catalog | `agent/pixel-catalog` | [#72](https://github.com/faiev/ArtClub/pull/72), ready for review; docs-only | `3e2f6de1c54fbfeffde2e365a82196df96bb59f8` | Not applicable — documentation only |
+| AC-096 Bézier curves | `agent/pixel-curves` | [#76](https://github.com/faiev/ArtClub/pull/76), ready for review | `f1052d6640f62a2c9adab5961a7fe678f2744323` | #43631412895 — Node + browser-e2e passed |
 
-All code PRs were non-force synchronized to `main` at `9f4948d101853489125005da05d3341aa7a7155b` before these exact-head runs. The current main head subsequently advanced to `dafd5471` with one unrelated edit to Agent 1's status file. GitHub reports all eight PRs mergeable; no Agent 10 owned application paths overlap that later status-only change. These PRs remain unmerged and are not represented as shipped.
+All code PRs were non-force synchronized to `main` at `471168e3a883886b2dd8db3889ccd84bbaf8faf5` before these exact-head runs. Since then, `main` advanced through five coordination-only commits touching status files for Agents 2, 4, 6, 7 and 10. No application, test, fixture or pixel-algorithm documentation paths changed in that delta. The PR branches are therefore behind the latest `main` and GitHub currently reports them not mergeable; the coordinator must re-evaluate final base synchronization and CI before merge. These PRs remain open and unmerged; none is represented as shipped.
 
 ## AC-019 review correction
 
@@ -30,7 +30,7 @@ All code PRs were non-force synchronized to `main` at `9f4948d101853489125005da0
 - Added regression tests for both cases, including caller-array immutability assertions.
 - Implementation commit: `59c14c1ac1348e6e53ea37336da390b82d88ab87`.
 - Test commit: `19ffd61a41ce11e1ab59a8e49173e47e12b0222f`.
-- Included in tested PR #15 head `fd41bce6`; workflow #43630111802 passed both required jobs. Coordinator review follow-up posted in PR #15.
+- Included in tested PR #15 head `3b8acb6f672bf4dbd62b3f10a3b838f6bb9e9c46`; workflow #43631298298 passed both required jobs. Coordinator review follow-up posted in PR #15.
 
 ## AC-085 current coverage and remaining scope
 
