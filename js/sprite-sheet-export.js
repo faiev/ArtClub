@@ -749,7 +749,7 @@
       const end = Math.min(total, offset + chunk);
       imageData.data.set(sheet.rgba.subarray(offset, end), offset);
       control.report("render", asyncPhaseProgress(66, 88, end, total), end, total, "encoding");
-      if (end < total) await control.yieldToHost("finalization");
+      if (end < total) await control.yieldToHost("encoding");
     }
     control.check("encoding");
     context.putImageData(imageData, 0, 0);
@@ -802,6 +802,7 @@
     const blob = await renderSpriteSheetPNGAsync(sheet, options, control);
     control.check("finalization");
     const metadata = buildMetadata(sheet, options.imageFilename);
+    control.check("finalization");
     control.report("completed", 100, 1, 1, "finalization");
     return { blob: blob, metadata: metadata, sheet: sheet };
   }
