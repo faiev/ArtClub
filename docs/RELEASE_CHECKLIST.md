@@ -25,6 +25,7 @@ From the repository root:
 - [ ] `node --test tests/qa/renderer/canvas-renderer-contract.test.js`
 - [ ] `node --test tests/qa/runner/run-qa.test.mjs`
 - [ ] `node tools/run-qa.mjs --suite all`
+- [ ] `node tests/qa/runner/verify-qa-runner-ci.mjs`
 - [ ] `node tools/run-qa.mjs --suite browser --include-browser`
 
 The current root test command only expands top-level `tests/*.test.js`. It does not include nested QA suites; running the root suite alone does not satisfy the focused QA commands above.
