@@ -401,8 +401,9 @@ test("returns a stable JSON-ready summary and human output without mutating file
     const human = formatHumanReport(report1);
     assert.match(human, /Art Club QA suite runner/);
     assert.match(human, /PARTIAL/);
-    assert.match(human, /SKIPPED/);
     assert.match(human, /NOT-RUN/);
+    assert.doesNotMatch(human, /\\[SKIPPED\\]/,
+      "a missing manifest file must not be mislabeled as an intentional skip");
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
