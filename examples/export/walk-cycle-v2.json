@@ -1,0 +1,65 @@
+{
+  "format": "one-pixel-studio",
+  "version": 2,
+  "id": "export-format-example",
+  "name": "Two-frame walk cycle export example",
+  "canvas": {
+    "width": 2,
+    "height": 2,
+    "background": null
+  },
+  "palette": [
+    "#f97316",
+    "#1f2937"
+  ],
+  "selectedColorIndex": 0,
+  "layers": [
+    {
+      "id": "linework",
+      "name": "Linework",
+      "visible": true,
+      "locked": false,
+      "opacity": 1
+    }
+  ],
+  "frames": [
+    {
+      "id": "idle",
+      "name": "Idle",
+      "durationMs": 145
+    },
+    {
+      "id": "contact",
+      "name": "Contact",
+      "durationMs": 155
+    }
+  ],
+  "cels": [
+    {
+      "layerId": "linework",
+      "frameId": "idle",
+      "pixels": [
+        "#f97316",
+        null,
+        "#1f2937",
+        "#f97316"
+      ]
+    },
+    {
+      "layerId": "linework",
+      "frameId": "contact",
+      "pixels": [
+        null,
+        "#f97316",
+        "#1f2937",
+        null
+      ]
+    }
+  ],
+  "activeLayerId": "linework",
+  "activeFrameId": "idle",
+  "metadata": {
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+}
