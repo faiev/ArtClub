@@ -183,6 +183,89 @@ Migration preview accepts legacy single-canvas inputs only. A v2 source returns 
 
 The command returns a nonzero exit code for unreadable, malformed, unsupported or invalid legacy input. Successful preview returns zero even when the report contains explanatory warnings. The source is always left unchanged.
 
+
+
+## Versioned CI artifact report
+
+Run `--ci-report` to emit one versioned JSON document suitable for saving as a CI artifact:
+
+    node tools/project-inspector.mjs --ci-report path/to/project.json > project-report.json
+
+The command always emits JSON; `--json` is accepted as a harmless explicit-output flag but is not required. The report is deterministic for a given input and inspector version: it contains no generation timestamp.
+
+The artifact contract is identified by:
+
+- `artifactType: "application/vnd.one-pixel-studio.project-inspection+json"`
+- `artifactSchemaVersion: 1`
+
+Top-level fields:
+
+- `status`: `valid`, `invalid`, or `incomplete`. Incomplete means the source could not be read or parsed, so model validation was not completed.
+- `input`: source path, measured byte count, source format and version. Values are null when unavailable.
+- `projectSummary`: the normal inspector project summary for model-valid input. It is null for invalid or unreadable input. Legacy projects are identified as migrated in memory only; synthetic model IDs are not reported as source IDs.
+- `validation`: `checked`, `valid`, and authoritative model `errors`.
+- `diagnostics`: supplemental diagnostic records with stable code, severity, JSONPath-like source path, message and optional details. These findings do not overwrite model validation.
+- `counts`: total diagnostics, severity counts, model-validation error count and combined finding count.
+- `risk`: the same bounded 0–100 supplemental risk score as deep diagnostics.
+- `exitCode` and `exitCodePolicy`: the exact CLI result and its documented meaning.
+- `readOnly`: confirms that no input or output file was modified or written by the command.
+
+Exit-code policy:
+
+| Code | Meaning |
+|---|---|
+| 0 | Source was read and parsed and authoritative project-model validation passed. Supplemental findings remain visible in the artifact but do not independently fail the command. |
+| 1 | Source could not be read or parsed, or authoritative model validation failed. A JSON artifact is still emitted whenever the CLI could construct a report. |
+| 2 | CLI arguments are invalid. No project artifact is produced. |
+
+Example outline:
+
+    {
+      "artifactType": "application/vnd.one-pixel-studio.project-inspection+json",
+      "artifactSchemaVersion": 1,
+      "tool": {
+        "name": "one-pixel-studio-project-inspector",
+        "mode": "ci-report"
+      },
+      "status": "valid",
+      "input": {
+        "path": "project.json",
+        "byteCount": 2048,
+        "sourceFormat": "one-pixel-studio",
+        "sourceVersion": 2
+      },
+      "projectSummary": {
+        "name": "Example",
+        "canvas": { "width": 32, "height": 32 },
+        "layerCount": 2,
+        "frameCount": 4
+      },
+      "validation": {
+        "checked": true,
+        "valid": true,
+        "errors": []
+      },
+      "diagnostics": [],
+      "counts": {
+        "diagnostics": 0,
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 0,
+        "info": 0,
+        "modelValidationErrors": 0,
+        "totalFindings": 0
+      },
+      "risk": { "score": 0, "level": "low" },
+      "exitCode": 0,
+      "readOnly": {
+        "inputModified": false,
+        "outputWritten": false
+      }
+    }
+
+SARIF output is intentionally not emitted. The inspector currently reports project JSON paths, custom diagnostic codes and its own severity/risk model; claiming SARIF compatibility without a reviewed rule/result mapping would create a misleading artifact contract. The versioned native JSON report has no external dependency and can be uploaded directly by CI systems.
+
 ## Validation and safety
 
 - Validation and migration rules come from `Project.deserializeProject()` and `Project.validateProject()` in `js/project-model.js`.
