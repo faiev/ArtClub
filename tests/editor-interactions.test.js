@@ -7,6 +7,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const ProjectModel = require("../js/project-model.js");
+const AgentAPI = require("../js/agent-api.js");
 
 class FakeClassList {
   constructor(owner) { this.owner = owner; this.values = new Set(); }
@@ -149,7 +150,8 @@ function bootEditor() {
   };
   const windowObject = {
     ArtClubProject: ProjectModel,
-    ArtClubStorage: { async open() { return storageApi; } }
+    ArtClubStorage: { async open() { return storageApi; } },
+    ArtClubAgentAPI: AgentAPI
   };
   const context = vm.createContext({
     document,
@@ -169,6 +171,7 @@ function bootEditor() {
     document,
     grid,
     storage,
+    agent: windowObject.onePixelStudio,
     tool(name) {
       return toolButtons.find(button => button.dataset.tool === name);
     },
@@ -226,4 +229,38 @@ test("flood fill paints a connected region", async () => {
   editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
   assert.equal(editor.cell(0).style.backgroundColor, "#e96f55");
   assert.equal(editor.cell(1).style.backgroundColor, "#e96f55");
+});
+
+test("agent API can inspect and draw pixels with revision protection", async () => {
+  const editor = await bootEditor();
+  const status = editor.agent.get_status();
+  assert.equal(status.protocol, "one-pixel-studio-agent");
+  assert.equal(status.canvas.width, 24);
+  const result = await editor.agent.draw_pixel({
+    x: 2, y: 3, color: "#ff00ff", expected_revision: status.revision
+  });
+  assert.equal(result.ok, true);
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 3 })).color, "#ff00ff");
+  assert.ok(editor.agent.get_palette().includes("#ff00ff"));
+  assert.throws(
+    () => editor.agent.draw_pixel({ x: 3, y: 3, expected_revision: status.revision }),
+    /canvas changed/
+  );
+});
+
+test("agent batches become one undoable edit and support shapes and fill", async () => {
+  const editor = await bootEditor();
+  const result = await editor.agent.execute({
+    label: "Small test sprite",
+    commands: [
+      { type: "draw_line", x1: 1, y1: 1, x2: 4, y2: 1, color: "#ffffff" },
+      { type: "draw_rectangle", x1: 1, y1: 2, x2: 4, y2: 4, filled: true, color: "#ff0000" },
+      { type: "fill", x: 0, y: 0, color: "#00ff00" }
+    ]
+  });
+  assert.equal(result.commands_applied, 3);
+  assert.equal((await editor.agent.get_pixel({ x: 1, y: 1 })).color, "#ffffff");
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#ff0000");
+  await editor.agent.undo();
+  assert.equal((await editor.agent.get_pixel({ x: 1, y: 1 })).color, "#172b3a");
 });
