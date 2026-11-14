@@ -1,11 +1,11 @@
 # Status — Agent 3
 
-- **Task:** AC-011 — Implement standalone animated GIF export
-- **Status:** IN_PROGRESS — AC-011 accepted; syncing branch with latest main and revalidating current head
-- **Branch:** `agent/gif-export`
-- **Latest main incorporated:** `220c2b5033ccd8752dd8e3e357be3fcd8bfc7b7a`
-- **Latest code/merge commit:** `1f5c7427d35fb2b09e10cb054dfaa5c637a56426`
-- **PR:** https://github.com/faiev/ArtClub/pull/11
+- **Task:** AC-027 — Complete real-browser sprite-sheet PNG verification
+- **Status:** IN_PROGRESS — AC-011 synchronized and revalidated; AC-027 browser verification underway
+- **Branch:** `agent/animation-export`
+- **AC-027 base to incorporate:** latest `main` at `56932bb16601ab5f5fd22c1d37bb877b8c06ab3f`
+- **AC-027 starting branch head:** `1cfdb08392c902f12b66d345a93b3ec9742e011d`
+- **PR:** https://github.com/faiev/ArtClub/pull/3
 - **Changed files:** `js/gif-export.js`, `tests/gif-export.test.js`, `tests/gif-export.browser.html`, `tests/gif-export.browser.mjs`, `GIF_EXPORT.md`, `.github/workflows/project-tests.yml`.
 - **PR #11 current verification:** PR remains open, draft and mergeable. Latest head `da81f74ecccf2d74d8a1033e9eee42c98b7845b5`; PR targets `main`. The latest PR workflow run https://github.com/faiev/ArtClub/actions/runs/43605119104 (run #119) completed **success**: Node/model/editor suite **48 passed, 0 failed**; real-browser editor E2E passed; GIF Chromium `ImageDecoder` test passed with native 2×2 dimensions and every RGBA byte matched for both frames (including transparency/disposal overlap); MCP client E2E passed. No merge performed.
 - **GIF test evidence:** Latest CI includes the GIF-specific and repository Node tests: 48/48 passed. The seeded quantization regression and 1,048,576-pixel stress test passed; Chromium checked full-frame RGBA for both frames. Earlier FFmpeg and ImageMagick local inspection of the original 2×2 GIF also passed.
@@ -75,3 +75,23 @@ Reviewed PR https://github.com/faiev/ArtClub/pull/6 at head `77d425c9d2d01c56f77
 - **Next assignment:** AC-027, existing sprite-sheet PR #3 on `agent/animation-export`, begins after this AC-011 current-head workflow completes successfully. Requirements: Chromium decode deterministic PNG fixture, compare full RGBA raster, dimensions, spacing/margins, transparency, frame order and JSON metadata. Keep workflow file locked; prepare page/runner/docs only and do not edit `.github/workflows/project-tests.yml` until coordinator releases it.
 - No AC-007 UI/API integration. No changes to Agent 2 or Agent 4 files.
 - **Last updated:** 2026-11-14 — latest-main sync commit created and current-head workflow #138 started.
+
+
+## AC-011 — accepted isolated GIF exporter; latest-main sync complete
+
+- Coordinator acceptance is recorded in PR #11 comment `6878897754`; the feature remains an isolated module and no UI/API/MCP integration is authorized.
+- Merged latest main into `agent/gif-export` without force-push. Current main at sync: `56932bb16601ab5f5fd22c1d37bb877b8c06ab3f`; synchronized feature head: `5ebaf81e3285d456e7dcfe172fbc6f37fbe0442b`. Compare: 15 ahead, 0 behind.
+- Exact-head workflow #144: https://github.com/faiev/ArtClub/actions/runs/43606467255 — **success**. Node/model/editor suite **70 passed, 0 failed**; Chromium editor E2E passed; GIF ImageDecoder verification checked both 2×2 frame dimensions and every RGBA byte including disposal transparency; MCP E2E passed.
+- PR #11 description updated with synchronized head and run #144. PR #11 remains open, unmerged and mergeable.
+- No GIF exporter changes since accepted head `da81f74ecccf2d74d8a1033e9eee42c98b7845b5`; sync merge commits only integrate main.
+
+## AC-027 — real-browser sprite-sheet PNG verification (active)
+
+- Existing PR #3: https://github.com/faiev/ArtClub/pull/3
+- Feature branch: `agent/animation-export`; branch head at assignment fetch: `1cfdb08392c902f12b66d345a93b3ec9742e011d`.
+- Allowed scope: existing sprite-sheet module/tests/docs and new sprite-sheet browser page/runner. Do not edit `index.html`, Agent API, MCP, bridge, other agents' files, or `.github/workflows/project-tests.yml` while PR #11 remains unmerged and the coordinator has not released the workflow lock.
+- Required deterministic Chromium fixture: explicit frame order `f3,f1,f2`, grid layout 2 columns, margin 1 and spacing 1; complete decoded PNG RGBA equality, 7×7 dimensions, transparency in cells/gutters/margins, frame ordering and JSON metadata positions/names/durations.
+- Include browser checks for invalid canvas dimensions and oversized output budget. Keep module native-resolution; no scaling/smoothing.
+- Prepare browser command `node tests/sprite-sheet-export.browser.mjs` and document it, but do not claim CI execution until the browser runner is wired through an authorized workflow or independently run in a real Chromium environment.
+- PR #3 currently open/draft. Previous local evidence only covers 10 Node unit tests and a mocked canvas; prior workflow evidence predates merged PR #10 and is not current.
+- **Last updated:** 2026-11-14 — AC-011 current-main sync and exact-head CI passed; AC-027 started.
