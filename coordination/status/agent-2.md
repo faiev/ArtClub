@@ -174,3 +174,16 @@ No local shell commands, checkout, browser, or benchmark commands were run. This
 5. Branch deletion and PR closure remain coordinator-owned. No refs or PR states were changed.
 
 **Completion evidence:** This inventory was committed only to this Agent 2 status file. No production implementation, branch creation/deletion, force-push, PR closure, or shared-file edit occurred.
+
+ 
+### Unique commits per assigned PR (GitHub compare main...head)
+
+These are the exact commit SHAs reported by GitHub as ahead of current main at inventory time (merge-sync commits included in the ahead count):
+
+- **#18 (13):** cec2eb0a23e615f7daafaf48a5ea36c48f13e92c; 9ba5558b84f75a6c0b93b6b2dcad11d8b842c81e; 1126e6e5b26266e438cb1b789fabf6d2064ccaad; 5b9df47deedc6b8a6714dea0aa71af04fd01169f; 14b98e0b08b316692e2c3867dc5ab6c781b00f8d; 088d2876af2ae89854356a4cdc9168cdbfc3301d; 8f7bf15524543611b7e7892e87599b37eb1e8f29; 5b40cebabf12521cf62f3dbeeaf18257ff5f0fb0; 087bf1ef0d6da4d9da6a9f60672944cb47743c3c; 40ae55c55aa51a2692f594aaad3ab4f0c06a5568; 33948b740e3958ff3c2b0cfa245e86cd6bf1c2bb; 1f626a4c104e1ef20f382e15139757a01bc2981b; 9af15df08c4178952dcbc404bb48463fb3fd1541.
+- **#52 (10):** ad1b6b561dea4996ce10f5eb3970753704036ea0; 5ee87fd22a94621de0d8e1bcf8ee87f3fe78c0ab; 3bb131273d601797d44629b15812806e63111425; e426846358a677fd0288e8ccf67db4de7a27253f; 278b1bc51f0778ecec9ab670015c3701b318a051; c45ba40273bc0e372e3a1fab7d9f6709195a64e3; 33ff4cd616a00e9fb40e45db2ecd4dc3cbaab797; da5697e72fbae49eac189d21bf687bc549d8c3e5; eaa7174e717f508cb5d9bb3b66f3fc782c8ae04b; bbdb24e1b1e65010a61807553cc33a78c9890c0c.
+- **#73 (11):** e6762d6dd142fb651d76c369957531c1c42dbf67; bf328d96eb50e6956f7db4773a0c5367d8ae8c88; 68734538f770b13c98188397cb8cb94c7d019608; 28fe6f7eabcc7b73315e437b3b10da424ab66f37; 9dccac73f05f855285a85a9615c74cba57cd3972; c9a3f39d8e0b7345674bd0045e574aedae66aad9; 129626efc53bed49ef6031e1d59c87e5399cc1aa; 70076a799cc6cd484e51b32cc70e2089eead17ca; 2197be47b6345a9d237be25dfe65cb853c54b29b; b939c0edf3c457ac57bf2154af82282cc4bf5ce7; a025dde2636be96bc26df30627c5c06e447bb0c3.
+- **#75 (16):** fc8004b8ea55bb11c810e11e65e7f4ef56b180c3; 0a8923d0bf7438fc66ff5b9236dd170622518a6a; 9c812f4da1a5def8735459ff089d3503ced7dfee; c9e070a4d062507f33da231522d392145f085900; 13978c918472160f1c919409c3406e78fa1cf2c8; 8d6e9b42d6019feaa99e0cd3a77ebe68a4eaea35; 9b469993e8cb3fc2e0f3f18ed2175447efa60437; 740328c0f999c08b73c53c7b3f43f2059b2932ee; 580b08dd61b84c8857a64e47525e5bb7b319ace8; 4b231b4466f2a31119936eaa273e1fbbeea1b6b5; d5e72fcdeafce62d48e57dc3e95f277c1062d4b4; cd36ce37e796106b472772a7783ad942158631ae; d4c9a8b60ad450de8d8d7496c6704bc4647b6aa9; 17a1a496c8e2a45167d95049b13759127ed7f902; 8ff594b2948980a6b91a9d357bef5c2bd9096c68; cf5376825a82d927ebb1cd42a7983b18c6d05b64.
+- **#90 (7):** dea13e4426664ab637174ed34d77c25035f8374c; 617b60cf8c3b5d72e8ad27fa874d21611cc6c1ef; 6941f98da0a007fac3afad59df15e440cbb80200; c116a4679f0a92d3dc055cb56f9284482df8fa27; 29f22446283c409cd6d7c5013c7bd608dbb67b63; 684333b09f136d27b25dbbc4bac527ea102c3df2; 2ab42f27be2661976fd182d284e65e53e3bd3cb7.
+
+Note: the compare endpoint's ahead list includes merge commits used to sync these branches. The per-PR file list above is the effective unique file delta against main; the two are different measures.
