@@ -1,0 +1,33 @@
+{
+  "schema": "artclub.tile-fixture.v1",
+  "id": "rectangular-pattern",
+  "kind": "tile",
+  "description": "Non-square 5 by 3 row-major tile guarding rectangular indexing and bounds.",
+  "tile": {
+    "width": 5,
+    "height": 3,
+    "pixels": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K",
+      "L",
+      "M",
+      "N",
+      "O"
+    ]
+  },
+  "expect": {
+    "leftRightMismatchCount": 3,
+    "topBottomMismatchCount": 5,
+    "cornerMismatchCount": 2,
+    "pixelCount": 15
+  }
+}

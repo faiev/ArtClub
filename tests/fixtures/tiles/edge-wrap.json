@@ -1,0 +1,68 @@
+{
+  "schema": "artclub.tile-fixture.v1",
+  "id": "edge-wrap",
+  "kind": "edge-wrap",
+  "description": "Toroidal preview shifts over a 3 by 2 non-square tile.",
+  "tile": {
+    "width": 3,
+    "height": 2,
+    "pixels": [
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F"
+    ]
+  },
+  "operations": [
+    {
+      "offsetX": 1,
+      "offsetY": 0,
+      "expected": [
+        "C",
+        "A",
+        "B",
+        "F",
+        "D",
+        "E"
+      ]
+    },
+    {
+      "offsetX": -1,
+      "offsetY": 0,
+      "expected": [
+        "B",
+        "C",
+        "A",
+        "E",
+        "F",
+        "D"
+      ]
+    },
+    {
+      "offsetX": 0,
+      "offsetY": 1,
+      "expected": [
+        "D",
+        "E",
+        "F",
+        "A",
+        "B",
+        "C"
+      ]
+    },
+    {
+      "offsetX": 1,
+      "offsetY": -1,
+      "expected": [
+        "F",
+        "D",
+        "E",
+        "C",
+        "A",
+        "B"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "artclub.tile-fixture.v1",
+  "id": "seamless-square",
+  "kind": "tile",
+  "description": "Square tile with matching opposing edges and diagonal corners.",
+  "tile": {
+    "width": 3,
+    "height": 3,
+    "pixels": [
+      "#e85d3f",
+      "#e0b65a",
+      "#e85d3f",
+      "#477b69",
+      "#f2e8d5",
+      "#477b69",
+      "#e85d3f",
+      "#e0b65a",
+      "#e85d3f"
+    ]
+  },
+  "expect": {
+    "leftRightMismatchCount": 0,
+    "topBottomMismatchCount": 0,
+    "cornerMismatchCount": 0,
+    "seamless": true,
+    "pixelCount": 9
+  }
+}
