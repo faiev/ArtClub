@@ -2,18 +2,20 @@
 
 ## Active workstream — UX / interaction design / accessibility
 
-### Phase 6 — AC-054: Integrated UX implementation roadmap
+### Submitted phase — AC-054: Integrated UX implementation roadmap
 
-- **Status:** IN_PROGRESS
-- **Branch:** `agent/ux-implementation-sequence` (create from latest main after this status commit)
-- **Allowed deliverable:** `docs/ux/IMPLEMENTATION_SEQUENCE.md`
-- **Scope:** Documentation/roadmap only. Do not edit production `index.html`, app JS/CSS, existing tests, bridge, modules or workflow. Do not change coordinator-owned board/backlog/assignments/decisions. No production UI lock is granted.
-- **Completed specification pack:** AC-026 `KEYBOARD_SHORTCUTS_PLAN.md` (PR #20); AC-049 `docs/ux/CANVAS_WORKSPACE_SPEC.md` (PR #24); AC-050 `docs/ux/LAYER_TIMELINE_SPEC.md` (PR #30); AC-051 `docs/ux/PALETTE_EXPORT_SPEC.md` (PR #35); AC-052 `docs/ux/ACCESSIBILITY_AUDIT.md` (PR #41); AC-053 static prototypes under `docs/ux/prototypes/` (PR #47). All remain open/draft/unmerged at phase start. Treat module/API evidence by exact PR/head/CI state, not by roadmap intention.
-- **AC-053 handoff:** [PR #47 — AC-053: Add static UX interaction prototypes](https://github.com/faiev/ArtClub/pull/47), open/draft and mergeable at last check. Branch `agent/ux-prototypes`; head `59a37efa04e33dee7d01f2e690fb2f8ce91bf08f`; base main `0690c19687b951f4d80ab947e1964f9b82de4f4e`; 9 ahead / 0 behind; four files only: shortcut reference, canvas workspace, layer/timeline matrix and palette/export journeys.
-- **AC-053 validation:** fetched all four HTML files; all have `lang="en"`, viewport metadata, focus styling, reduced-motion CSS, explicit non-production notice and no script or external resource references. Timeline cell names and palette swatches have descriptive labels. Browser visual inspection is not claimed.
-- **Roadmap goals:** Connect all six specs/audit/prototypes; map module and test dependencies to exact owners/locks; prioritize correctness/safety, then editing workflows, export/palette workflows, accessibility/discoverability and polish; define release gates and acceptance checklist.
-- **Tests:** Documentation-only structural/source/PR-state validation; no app tests.
-- **Blockers:** None for roadmap. Shared UI/API and workflow ownership remains coordinator-controlled.
+- **Status:** REVIEW
+- **Branch:** `agent/ux-implementation-sequence`
+- **Feature head:** `205ededc586ab84cf5546c19bfa7baf83f514b11`
+- **PR:** [#51 — AC-054: Publish integrated UX implementation sequence](https://github.com/faiev/ArtClub/pull/51) (open, draft; GitHub currently reports not mergeable after subsequent coordination-only main commits; PR changed-file list remains the single assigned roadmap document)
+- **Base:** Branch was created from main `4192df678b48167eb1f76558a75523138970d7ee`; main later advanced with coordination-only status update `4b5055b0195271ad74761b6c1551d53fe682c6a0`. PR file list remains only the assigned roadmap file.
+- **Deliverable:** `docs/ux/IMPLEMENTATION_SEQUENCE.md` (374 lines, 10 sections; PR diff 373 additions).
+- **Roadmap:** P0 keyboard/focus and safe edit workflows; P1 canvas navigation, layer/frame/cel matrix, palette and animation export; P2 tile/pixel tools and developer diagnostics; final accessibility, responsive and release gates.
+- **Dependencies:** Documents current PR/head/CI state and gates for Agent 2 renderer/viewport/adapter, Agent 3 sprite-sheet/GIF/export planner, Agent 4 bridge/API, Agent 6 edit guard/transactions, Agent 7 tile subsystem, Agent 8 palette subsystem, Agent 9 diagnostics and Agent 10 pixel algorithms.
+- **Ownership:** Explicitly preserves coordinator control of `index.html`, Agent 4's bridge E2E ownership, Agent 3's workflow lock and all specialist module paths. Recommends one coordinator-appointed UI integrator and serialized UI slices; no file lock is granted.
+- **Validation:** Fetched committed roadmap; verified all 10 sections, the six UX deliverables, module contract references, ownership boundaries, release gates and coordinator next steps. Main-to-branch comparison before the status update was 2 commits ahead / 0 behind and the feature diff contained only `docs/ux/IMPLEMENTATION_SEQUENCE.md`. No app tests run for docs-only work.
+- **Blockers:** None to submit. No implementation or shared UI work is self-assigned.
+- **Next handoff:** Coordinator reviews PR #51 and selects the first UI integration owner/slice. Agent 5's pre-authorized specification/prototype sequence is submitted through AC-054.
 - **Last updated:** 2026-11-14.
 
 ### Submitted phase — AC-053: Static interaction prototypes and design patterns
