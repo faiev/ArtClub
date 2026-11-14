@@ -68,7 +68,7 @@ async function run() {
 
     const initial = await page.evaluate(() => window.onePixelStudio.get_status());
     const baseLayerId = initial.active_layer.id;
-    await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 0, y: 0, color: "#ff0000" }));
+    await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 23, y: 23, color: "#123456" }));
     const overlay = await page.evaluate(() => window.onePixelStudio.add_layer({ name: "Preserved overlay" }));
     const overlayLayerId = overlay.active_layer.id;
     await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 1, y: 1, color: "#00ff00" }));
@@ -80,7 +80,7 @@ async function run() {
       button.addEventListener("click", () => { window.__clearClickCount += 1; }, true);
     });
     await page.locator("#clearBtn").click();
-    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === null);
+    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 23, y: 23 }).color === null);
     assert.equal((await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }))).color, null);
     assert.match(confirmationMessage, /active layer for this frame/i);
     assert.match(confirmationMessage, /Other layers and frames will be preserved/i);
@@ -173,7 +173,7 @@ async function run() {
       const finalProject = probe.snapshots[probe.snapshots.length - 1];
       const cel = finalProject.cels.find(item =>
         item.layerId === finalProject.activeLayerId && item.frameId === finalProject.activeFrameId);
-      return { maxActive: probe.maxActive, saves: probe.snapshots.length, finalPixel: cel && cel.pixels[0] };
+      return { maxActive: probe.maxActive, saves: probe.snapshots.length, finalPixel: cel && cel.pixels[23 * 24 + 23] };
     });
     assert.equal(saveProbe.maxActive, 1, "autosave and safe Clear persistence must never overlap");
     assert.equal(saveProbe.finalPixel, null, "the last persisted project must match the cleared editor state");
