@@ -328,6 +328,56 @@ test("selection copy, cut, paste and move operate on active-layer pixels", async
   assert.equal((await editor.agent.get_pixel({ x: 4, y: 3 })).color, "#172b3a");
 });
 
+test("selection flips and quarter-turn rotation preserve exact pixel positions", async () => {
+  const editor = await bootEditor();
+  await editor.agent.set_selection({ x: 2, y: 2, width: 2, height: 3 });
+  const colors = [
+    ["#110000", "#220000"],
+    ["#330000", "#440000"],
+    ["#550000", "#660000"]
+  ];
+  for (let y = 0; y < 3; y += 1) {
+    for (let x = 0; x < 2; x += 1) {
+      await editor.agent.draw_pixel({ x: 2 + x, y: 2 + y, color: colors[y][x] });
+    }
+  }
+
+  await editor.agent.transform_selection({ operation: "flip_h" });
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#220000");
+  assert.equal((await editor.agent.get_pixel({ x: 3, y: 2 })).color, "#110000");
+
+  await editor.agent.transform_selection({ operation: "flip_v" });
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#660000");
+  assert.equal((await editor.agent.get_pixel({ x: 3, y: 4 })).color, "#110000");
+
+  await editor.agent.transform_selection({ operation: "rotate_cw" });
+  const rotated = editor.agent.get_status().selection;
+  assert.equal(rotated.width, 3);
+  assert.equal(rotated.height, 2);
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#550000");
+  assert.equal((await editor.agent.get_pixel({ x: 3, y: 2 })).color, "#330000");
+  assert.equal((await editor.agent.get_pixel({ x: 4, y: 2 })).color, "#110000");
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 3 })).color, "#660000");
+  assert.equal((await editor.agent.get_pixel({ x: 3, y: 3 })).color, "#440000");
+  assert.equal((await editor.agent.get_pixel({ x: 4, y: 3 })).color, "#220000");
+
+  await editor.agent.undo();
+  assert.equal(editor.agent.get_status().selection.width, 3);
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#660000");
+});
+
+test("rotating a selection beyond the canvas edge is rejected without changing pixels", async () => {
+  const editor = await bootEditor();
+  await editor.agent.set_selection({ x: 22, y: 20, width: 2, height: 3 });
+  await editor.agent.draw_pixel({ x: 22, y: 20, color: "#abc123" });
+  assert.throws(
+    () => editor.agent.transform_selection({ operation: "rotate_cw" }),
+    /will not fit/
+  );
+  assert.equal((await editor.agent.get_pixel({ x: 22, y: 20 })).color, "#abc123");
+  assert.equal(editor.agent.get_status().selection.width, 2);
+});
+
 test("active selection constrains human and agent drawing and can be cleared", async () => {
   const editor = await bootEditor();
   await editor.agent.set_selection({ x: 1, y: 1, width: 2, height: 2 });
