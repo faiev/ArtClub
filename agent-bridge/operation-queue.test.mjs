@@ -193,6 +193,48 @@ test("shutdown cancels queued work and waits for the active task to clean up", a
   });
 });
 
+test("tracks queue outcomes and request correlation", async () => {
+  const queue = new SerialOperationQueue({ maxPending: 2 });
+  const gate = deferred();
+  const controller = new AbortController();
+
+  const active = queue.run(() => gate.promise, {
+    requestId: "metric-active", timeoutMs: 1_000
+  });
+  await pause(5);
+  const cancelled = queue.run(() => "must not run", {
+    requestId: "metric-cancelled", signal: controller.signal, timeoutMs: 1_000
+  });
+  await assert.rejects(
+    queue.run(() => "overflow", { requestId: "metric-overflow", timeoutMs: 1_000 }),
+    error => error.code === "QUEUE_FULL"
+  );
+  controller.abort("metrics test");
+  await assert.rejects(cancelled, error => error.code === "OPERATION_CANCELLED");
+  gate.resolve("active result");
+  assert.equal(await active, "active result");
+  await assert.rejects(
+    queue.run(() => { throw new Error("metric failure"); }, {
+      requestId: "metric-failed", timeoutMs: 1_000
+    }),
+    /metric failure/
+  );
+
+  const metrics = queue.getMetrics();
+  assert.equal(metrics.accepted, 3);
+  assert.equal(metrics.completed, 1);
+  assert.equal(metrics.failed, 1);
+  assert.equal(metrics.cancelled, 1);
+  assert.equal(metrics.timed_out, 0);
+  assert.equal(metrics.rejected_full, 1);
+  assert.equal(metrics.rejected_closed, 0);
+  assert.equal(metrics.max_observed_outstanding, 2);
+  assert.equal(metrics.last_request_id, "metric-failed");
+  assert.equal(metrics.active_request_id, null);
+  assert.ok(metrics.total_queue_wait_ms >= 0);
+  assert.ok(metrics.total_execution_ms >= 0);
+});
+
 test("measures JSON payload limits in UTF-8 bytes", () => {
   const value = { text: "🖼️" };
   const expected = Buffer.byteLength(JSON.stringify(value), "utf8");
