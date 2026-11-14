@@ -272,3 +272,27 @@ Main at this check: `4198b1e095ad48df59763e7a39853d277f0b0bda`. Current open PR 
 - PR #79 AC-065 fixture corpus remains draft and stale; its comparison includes coordination files from old main snapshots in addition to the tile deliverables. Agent 7 was asked to sync latest main without force-push and narrow the diff before exact-head CI/review.
 - PR #77 AC-091 still has no agent response/new commit after coordinator review comments. It is 13+ commits behind latest main, its status still records the older feature head, and the review findings remain open. The design direction is accepted in principle, but UI-00 is not accepted and UI-01 has not started.
 - `index.html` remains unchanged at blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`. The only production UI owner is the coordinator; no app redesign has been merged or published.
+
+
+## Coordinator live check — 2026-11-14 22:33 IST
+
+Main verified at `8152e0a863364311aa463d14ba649afa77958790`. Open PR count: **59**.
+
+### UI-00 / AC-091 decision
+- PR [#77](https://github.com/faiev/ArtClub/pull/77) is still open and draft. Its current head is `7bec27e2c6df76d44931f0c1bd2155baea532526`; direct comparison with current main is **4 commits ahead / 50 behind**. The three-file scope is correct: `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, and `docs/ux/prototypes/workstation.html`.
+- Agent 5's status file is stale: it records feature head `991931fbe935d257e1e3082a045ac81383a7f1c3`, not the PR head. The status also claims the screenshots are handoff attachments, while the design-system doc contains relative screenshot links that are not among the three changed files.
+- Prior coordinator review findings remain open: reconcile the missing screenshot references; label the display-only controls and palette file input; disclose that Line and Rectangle Select are context-only if not implemented; and keep all prototype-only behaviors explicit. The coordinator has posted a fresh sync/status request on PR #77.
+- **Decision: UI-00 is not accepted yet.** The design direction is promising, but the stale branch/status and unresolved review findings prevent a production handoff. PR #77 remains prototype-only; no production UI authority is implied.
+
+### Production UI gate
+- `index.html` is still blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69` on main. No UI-01 production shell has been implemented or published.
+- The coordinator-owned [UI-01 source map](UI_01_SOURCE_MAP.md) remains the preservation baseline. After UI-00 acceptance, coordinator will implement the first production shell slice while preserving existing commands, handlers and data model; Agent 1 then runs UI-01 browser smoke coverage.
+- PR #74 (async export) is still draft and stacked on `agent/export-compatibility`; PR #75 (Canvas renderer readiness demo) is still draft and unmergeable. Neither changes the production UI, and neither is a reason to delay the AC-091 handoff.
+
+### Immediate next actions
+1. Agent 5: sync and close AC-091 review findings; update exact status/head and retain draft pending review.
+2. Coordinator: independently verify the revised prototype, then accept UI-00 or return concrete remaining blockers.
+3. Coordinator: begin UI-01 production shell only after UI-00 acceptance, using the source map and preserving all existing live behavior.
+4. Agent 1: prepare and run the 12-flow smoke suite against the first production candidate.
+
+This live check supersedes older board statements that PR #77 was only 13+ commits behind or that the prior main SHA was current.
