@@ -216,6 +216,20 @@ test("async sprite-sheet output pixels, PNG bytes and metadata match synchronous
   assert.deepEqual(Array.from(asyncResult.sheet.rgba), Array.from(sync.sheet.rgba));
   assert.deepEqual(asyncResult.metadata, sync.metadata);
   assert.deepEqual(await blobBytes(asyncResult.blob), await blobBytes(sync.blob));
+
+  const directProgress = [];
+  const directSheet = await Sprite.buildSpriteSheetAsync(project, {
+    ...options,
+    yieldEvery: 32,
+    onProgress(event) { directProgress.push(event); }
+  });
+  assert.deepEqual(Array.from(directSheet.rgba), Array.from(sync.sheet.rgba));
+  assert.deepEqual(directProgress.at(-1).progress, 100);
+  const directBlob = await Sprite.renderSpriteSheetPNGAsync(directSheet, {
+    yieldEvery: 32,
+    canvasFactory: canvasFactory()
+  });
+  assert.deepEqual(await blobBytes(directBlob), await blobBytes(sync.blob));
   assert.equal(JSON.stringify(project), before);
   assert.ok(progress.length > 4);
   assert.deepEqual(progress.map(event => event.progress), progress.map(event => event.progress).slice().sort((a, b) => a - b));
