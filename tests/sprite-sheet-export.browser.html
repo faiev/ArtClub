@@ -346,6 +346,82 @@
           Exporter.buildSpriteSheet(invalidColor);
         }, /valid.*colors/i, "malformed cel color");
 
+        const sparsePixels = structuredClone(project);
+        delete sparsePixels.cels[0].pixels[1];
+        expectThrow(function () {
+          Exporter.buildSpriteSheet(sparsePixels);
+        }, /valid.*colors/i, "sparse cel pixel slot");
+
+        const sparseCels = structuredClone(project);
+        sparseCels.cels = new Array(1);
+        expectThrow(function () {
+          Exporter.buildSpriteSheet(sparseCels);
+        }, /Every cel/, "sparse cel list");
+
+        const malformedSheet = {
+          ...exported.sheet,
+          rgba: new Uint8ClampedArray(4)
+        };
+        expectThrow(function () {
+          Exporter.buildMetadata(malformedSheet);
+        }, /RGBA.*length|buffer length/i, "malformed sheet metadata buffer");
+
+        // Maximum project canvas: independent Chromium PNG decode checks every
+        // pixel, not just the in-memory RGBA buffer or PNG signature.
+        const maxWidth = 512;
+        const maxHeight = 512;
+        const maxPixels = new Array(maxWidth * maxHeight).fill(null);
+        maxPixels[0] = "#123456";
+        maxPixels[maxPixels.length - 1] = "#abcdef";
+        const maxProject = {
+          format: "one-pixel-studio",
+          version: 2,
+          id: "maximum-canvas-browser-fixture",
+          name: "Maximum canvas PNG fixture",
+          canvas: { width: maxWidth, height: maxHeight, background: null },
+          palette: ["#123456", "#abcdef"],
+          selectedColorIndex: 0,
+          layers: [{ id: "max-layer", name: "Maximum", visible: true, locked: false, opacity: 1 }],
+          frames: [{ id: "max-frame", name: "Maximum frame", durationMs: 145 }],
+          cels: [{ layerId: "max-layer", frameId: "max-frame", pixels: maxPixels }],
+          activeLayerId: "max-layer",
+          activeFrameId: "max-frame",
+          metadata: { createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }
+        };
+        const maxOriginal = JSON.stringify(maxProject);
+        const maxExport = await Exporter.exportSpriteSheet(maxProject, { imageFilename: "maximum-canvas.png" });
+        assert(maxExport.blob.type === "image/png", "Maximum-canvas export must be PNG.");
+        assert(maxExport.sheet.width === maxWidth && maxExport.sheet.height === maxHeight,
+          "Maximum-canvas sheet dimensions mismatch.");
+        assert(maxExport.sheet.rgba.length === maxWidth * maxHeight * 4,
+          "Maximum-canvas RGBA buffer length mismatch.");
+        assert(JSON.stringify(maxProject) === maxOriginal, "Maximum-canvas export mutated its source project.");
+
+        const maxBitmap = await createImageBitmap(maxExport.blob);
+        try {
+          assert(maxBitmap.width === maxWidth && maxBitmap.height === maxHeight,
+            "Decoded maximum PNG dimensions mismatch.");
+          const maxCanvas = new OffscreenCanvas(maxWidth, maxHeight);
+          const maxContext = maxCanvas.getContext("2d", { willReadFrequently: true });
+          maxContext.drawImage(maxBitmap, 0, 0);
+          const actual = maxContext.getImageData(0, 0, maxWidth, maxHeight).data;
+          assert(actual.length === maxWidth * maxHeight * 4, "Decoded maximum PNG raster length mismatch.");
+          for (let pixel = 0; pixel < maxWidth * maxHeight; pixel += 1) {
+            const expectedColor = pixel === 0
+              ? [18, 52, 86, 255]
+              : (pixel === maxWidth * maxHeight - 1 ? [171, 205, 239, 255] : [0, 0, 0, 0]);
+            const offset = pixel * 4;
+            for (let channel = 0; channel < 4; channel += 1) {
+              if (actual[offset + channel] !== expectedColor[channel]) {
+                throw new Error("Maximum PNG RGBA mismatch at pixel " + pixel + ", channel " + channel +
+                  ": expected " + expectedColor[channel] + ", received " + actual[offset + channel] + ".");
+              }
+            }
+          }
+        } finally {
+          maxBitmap.close();
+        }
+
         output.textContent = "PASS " + JSON.stringify({
           decoder: "Chromium createImageBitmap + OffscreenCanvas",
           pngDimensions: [expectedWidth, expectedHeight],
@@ -358,7 +434,8 @@
           transparentPixelCount: expected.filter(function (_, index) { return index % 4 === 3; }).filter(function (alpha, index) {
             return alpha === 0;
           }).length,
-          invalidCases: ["513px canvas dimension", "49-pixel output over a 48-pixel budget", "malformed HEX cel color"],
+          invalidCases: ["513px canvas dimension", "49-pixel output over a 48-pixel budget", "malformed HEX cel color", "sparse cel pixel", "sparse cel list", "malformed metadata buffer"],
+          maximumCanvasDecoded: { dimensions: [512, 512], pixelsCompared: 512 * 512 },
           blobType: exported.blob.type,
           blobSize: exported.blob.size,
           sourceProjectUnchanged: true
