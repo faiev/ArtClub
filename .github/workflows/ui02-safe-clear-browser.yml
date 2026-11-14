@@ -7,6 +7,8 @@ on:
       - "index.html"
       - "js/layer-edit-guard.js"
       - "js/safe-edit-operations.js"
+      - "js/project-storage.js"
+      - "tests/project-storage.test.js"
       - "tests/ui02-safe-clear*"
       - ".github/workflows/ui02-safe-clear-browser.yml"
   pull_request:
@@ -36,5 +38,7 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
         working-directory: agent-bridge
+      - name: Run project storage concurrency and rollback tests
+        run: node --test tests/project-storage.test.js
       - name: Run UI-02 safe Clear browser checks
         run: node tests/ui02-safe-clear.browser.mjs
