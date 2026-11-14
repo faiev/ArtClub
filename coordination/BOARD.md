@@ -187,3 +187,24 @@ Both were reviewed as isolated module/test/documentation changes. Neither modifi
 - **Production UI:** `index.html` blob SHA remains `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no production workstation shell has been merged. Agent 1's UI-01 smoke matrix remains unexecuted pending a real UI candidate.
 
 The engineering modules merged in #34/#43 are prerequisites for specialist integration work only. They do not constitute a production Canvas renderer switch or a published UI release.
+
+## Coordinator live check — AC-091 handoff and latest PR queue (2026-11-14)
+
+Latest main observed: `51d2557cd8f2d1562af6f8a89b8168b6dd0d4246`. Live open PR count: **60**. This section supersedes earlier live-check counts until the board is fully reconciled.
+
+### Production UI / UX milestone
+
+- **Agent 5 submitted AC-091 as PR #77** (`agent/workstation-design-system-current`; current PR head observed `7bec27e2c6df76d44931f0c1bd2155baea532526`). The three-file diff is exactly `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, and `docs/ux/prototypes/workstation.html` (934 additions). It describes a professional graphite workstation, tool/context rail, dominant canvas, layer×frame/cel matrix, inspector/drawer, playback and import/export dialogs. The prototype is explicitly isolated; production model, persistence, safe transactions, real palette parser/encoder, and export are not wired.
+- Handoff reports manual/headless Chromium interaction and responsive checks at 1440×900, 1280×800, 860×740, 390×844 and 320 px overflow check. No CI was triggered for the latest PR head. Screenshots are described as separate handoff attachments rather than committed repository assets. **Review issue:** `DESIGN_SYSTEM.md` still links to four nonexistent relative `screenshots/*.jpg` files and calls them included in `screenshots/`; coordinator requested that Agent 5 either commit accessible captures or remove/fix those broken links and reconcile the review document.
+- PR #77 is still draft, 0 commits behind? Its latest base observation was main `7265080...`, while main has since advanced to `51d2557...`; latest head is 2 commits behind current main by comparison, although GitHub currently reports it mergeable. Coordinator requested a non-force main sync and exact feature-head update in `coordination/status/agent-5.md`. UI-00 is **under review**, not yet accepted.
+- **Production UI remains unchanged:** `index.html` blob SHA `1a29a9eca58d9035287af1ff58b97f2ff4040a69`. No production UI-01 shell has been merged. Agent 1's 12-flow QA matrix awaits a coordinator implementation candidate.
+
+### Renderer and export queue
+
+- **PR #34 AC-034** merged as `3bd35de8b75adf52945eb58c64407e74c815bcc7`; refreshed exact-head run #600 passed 175 Node tests plus existing Chromium editor, GIF browser and MCP E2E jobs.
+- **PR #43 AC-035** merged as `79013ee60239dfb4665c34f258dd6d69fdb2dac0`; refreshed exact-head run #601 passed 180 Node tests plus existing Chromium editor, GIF browser and MCP E2E jobs.
+- **PR #75 AC-038 demo** remains draft, retargeted to `main`, head `8d6e9b42d6019feaa99e0cd3a77ebe68a4eaea35`. Exact run #603 passed 185 Node tests and the standard Chromium editor/GIF/MCP jobs, but those jobs do not interact with the standalone demo. Diff still includes `js/canvas-viewport.js` despite an identical blob now on main; branch ancestry compares 10 commits behind. Coordinator requested a non-force main merge, removal of the duplicate module from the PR diff, exact-head CI, and dedicated Chromium demo interaction evidence. Do not merge until those are done.
+- **PR #74 AC-089 async export** remains draft and stacked on PR #55. Latest observed head `71fd0112174551b91b0441581a749501bf9a12e0`; workflow run #628 is queued. Its diff now includes `EXPORT_ASYNC.md` and browser test pages in addition to GIF/sprite implementation and tests. Earlier head #598 passed, but does not validate this new head. Await run #628 plus parent #55; review browser parity/cancellation and 512×512 responsiveness before accepting.
+- **PR #76 AC-096 Bézier rasterization** is newly open and draft; exact-head workflow #626 was in progress at last check. Independent pure algorithm work; not a reason to postpone visible workstation integration.
+
+No production release claim is authorized until a coordinator-owned UI PR merges to main, GitHub Pages deployment succeeds, and the published editor is inspected.
