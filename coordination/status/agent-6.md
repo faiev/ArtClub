@@ -1,3 +1,51 @@
+# Agent 6 — D-028 safety review refresh (2026-11-15 02:21 IST)
+
+## Current task and objective
+Read-only safety review of coordinator PR #96 at its latest inspected head, plus completion of the existing AC-058 dedicated browser harness. No production changes authorized.
+
+## Branch and exact commit
+- PR #96 branch: coordinator/ui-02a-safe-clear
+- Exact PR head inspected: 64a1d9218bce4231e531b0c1746c04194991433e
+- Main baseline: 404e412e34e28827e1bac7e66f821c2c15e06f26
+- PR #96 comparison: 29 ahead / 0 behind.
+- AC-058 branch tip: 2b900a79c4094b274db6c8611c101cbf75c7adc6; 32 ahead / 0 behind main.
+
+## Files inspected
+- Coordination: coordination/BOARD.md, coordination/BACKLOG.md, coordination/DECISIONS.md, coordination/assignments/agent-6.md, this status file.
+- PR #96: index.html, js/project-storage.js, tests/ui02-safe-clear.test.js, tests/ui02-safe-clear.browser.mjs, .github/workflows/ui02-safe-clear-browser.yml.
+- PR #96 latest diff adds a browser test wait; production persistence code remains unchanged from the reviewed unsafe path.
+
+## Work completed / findings
+- P1 remains confirmed: index.html:1075 calls projectStorage.saveProject(nextProject) without a persisted expected revision. js/project-storage.js reads the current record and unconditionally puts the candidate; there is no compare-and-swap. A stale tab can overwrite another tab's newer project and rotate its primary into the one-slot recovery store.
+- P2 remains confirmed: index.html:1098–1100 handles a post-persist publication failure by calling ordinary saveProject(previousProject). This is another recovery-rotating save, not an exact transaction rollback; it can replace the pre-existing recovery snapshot with the rejected candidate.
+- Existing exact-head browser tests cover in-tab autosave serialization and image decode rejection during a safe edit, but do not cover two independent tabs sharing IndexedDB or post-persist rollback preserving primary and recovery byte-for-byte.
+- No production files or other agents' files changed.
+
+## Tests and CI actually checked
+- No local tests executed: this execution environment has no mounted checkout and no node executable; no local pass is claimed.
+- PR #96 standard Project model workflow run #43636851524: success.
+- PR #96 dedicated UI-02 browser workflow run #43636851563: failure. Job log identifies timeout at tests/ui02-safe-clear.browser.mjs:167 waiting for window.__safeClearSaveProbe.storageOpened. This is a harness setup/initialization failure; it does not test or clear P1/P2.
+- AC-058 standard workflow run #43639272626: success, but it does not execute node tests/layer-safety.browser.mjs. Dedicated AC-058 runner remains unexecuted.
+
+## PR and CI links
+- PR #96: https://github.com/faiev/ArtClub/pull/96
+- PR #40: https://github.com/faiev/ArtClub/pull/40
+- PR #96 standard CI: https://github.com/faiev/ArtClub/actions/runs/43636851524
+- PR #96 dedicated browser CI: https://github.com/faiev/ArtClub/actions/runs/43636851563
+- AC-058 standard CI: https://github.com/faiev/ArtClub/actions/runs/43639272626
+
+## Blockers and dependencies
+- P1/P2 require a storage-level expected-revision transaction contract and rollback receipt/conditional restore; this agent is read-only and cannot implement them.
+- AC-058 dedicated runner remains blocked by missing local checkout/Node. Existing workflow does not invoke it; Agent 6 assignment excludes workflow edits.
+- PR #96 exact-head dedicated browser run is red due its storageOpened wait timeout.
+
+## Next three concrete actions
+1. Post the updated exact-head P1/P2 evidence and CI failure details on PR #96; keep it a specialist report, not an approval recommendation.
+2. Keep PR #40 draft and request a coordinator-authorized CI invocation of node tests/layer-safety.browser.mjs; do not edit the shared workflow.
+3. Re-review the next coordinator-supplied exact head and verify deterministic two-context CAS and rollback/recovery tests before reporting the blockers cleared.
+
+---
+
 # Latest resume — 2026-11-15 02:xx IST
 
 - **Coordination source:** `main`; latest main base observed by GitHub compare: `95e9a83efc0d024b4aa4abde709768db2b9a82b9`. Re-read README, BOARD, BACKLOG, DECISIONS and Agent 6 assignment. D-028 remains active: read-only UI-02 review + existing AC-058 harness only.
