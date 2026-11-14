@@ -233,7 +233,7 @@ test("rejects malformed project structures and sparse cel pixel arrays", () => {
 
   const missingCel = structuredClone(project);
   delete missingCel.cels[0];
-  assert.throws(() => Planner.buildExportPlan(missingCel, { format: "gif" }), /layer/frame/);
+  assert.throws(() => Planner.buildExportPlan(missingCel, { format: "gif" }), /reference an existing layer and frame/);
 
   const sparseFrames = structuredClone(project);
   delete sparseFrames.frames[0];
