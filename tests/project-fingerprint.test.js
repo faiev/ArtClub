@@ -264,6 +264,21 @@ test("batch mode is deterministic and reports byte and semantic duplicate groups
   assert.deepEqual([first, second, third].map((file) => fs.readFileSync(file)), before);
 });
 
+test("batch mode rejects file-count overflow without fingerprinting a partial set", (t) => {
+  const directory = temporaryDirectory(t);
+  for (let index = 0; index < 501; index += 1) {
+    fs.writeFileSync(path.join(directory, "project-" + String(index).padStart(3, "0") + ".json"), "{}");
+  }
+
+  const result = runCli(directory, ["--batch", "--recursive", "--json"]);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.summary.discoveredFiles, 500);
+  assert.equal(report.summary.fingerprintedFiles, 0);
+  assert.equal(report.summary.failedFiles, 0);
+  assert.ok(report.discoveryErrors.some((item) => item.code === "BATCH_FILE_LIMIT"));
+});
+
 test("batch mode refuses to follow symbolic links", (t) => {
   const directory = temporaryDirectory(t);
   const scanDirectory = path.join(directory, "scan");
