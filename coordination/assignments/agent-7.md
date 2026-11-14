@@ -52,3 +52,18 @@ All phases are pre-authorized. PR #13 review/CI is not a reason to stop. Complet
 
 ## Handoff
 Update only coordination/status/agent-7.md with active phase, commits/PRs, exact tests and the next 3–5 tasks. Do not merge or self-accept.
+
+## Coordinator-added extension — AC-093: Deterministic autotile rule resolver
+
+After AC-066, add a renderer-independent rule engine for selecting tile variants from neighboring map cells.
+
+### Deliverable
+- Add `js/autotile.js` and `tests/autotile.test.js`.
+- Define a versioned, data-only ruleset with documented 4-neighbor and 8-neighbor masks, explicit directional ordering, wildcard/fallback behavior and deterministic priority/tie-breaking.
+- Resolve a bounded tile map into a detached map of selected tile variants; preserve source map/catalog and never mutate artwork pixels.
+- Validate missing variants, conflicting/equal-priority rules, duplicate IDs, malformed masks and oversized maps before returning output.
+- Support a clear "unresolved" result when no rule matches; never guess or silently substitute a tile.
+- Add exact fixtures for corners, edges, inner cells, isolated cells, rotations/mirroring only when transform semantics are explicit, and non-square map boundaries.
+- Document the ruleset schema, examples, bounds and future UI/export integration contract.
+
+**Allowed files:** `js/autotile.js`, matching tests, tile fixtures and tile documentation only. Do not edit tile-map/preview/transform implementation owned by earlier phases unless a separate coordinator-approved change is needed; no UI, renderer, project model, exporter or Agent API integration.
