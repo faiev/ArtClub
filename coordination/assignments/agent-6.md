@@ -57,3 +57,19 @@ All phases are pre-authorized. Fix PR #14, then continue to the next independent
 
 ## Handoff
 Update only coordination/status/agent-6.md with phase IDs, branches/PRs, exact tests, risks and next 3–5 actions. Do not merge or self-accept.
+
+## Coordinator-added extension — AC-092: Adversarial and property-based safe-edit conformance
+
+After AC-060, add a bounded, deterministic adversarial test layer over the guard, immutable transaction and import-staging APIs.
+
+### Deliverable
+- Add seeded property-style tests in Agent 6-owned test paths; do not put these under Agent 1's `tests/qa/**`.
+- Generate valid and invalid projects with bounded dimensions, dense/sparse pixel arrays, duplicate/missing IDs, invalid cels, hidden/locked/zero-opacity targets and stale revisions.
+- Assert every denied operation leaves the complete source project, pixel buffers, own-slot shape and derived raster unchanged.
+- Assert every accepted operation returns a detached valid state, preserves unrelated frames/layers, and is deterministic for the same seed/input.
+- Exercise composed sequences: stage import → validate target → apply immutable transaction; clear selection → patch; replace cel → reject stale follow-up. Verify failure at every stage produces no partial commit.
+- Add minimization/replay output: a failing seed and compact case description must reproduce the failure without logging enormous buffers.
+- Keep iterations and allocations strictly bounded; use only seeded generators and no new runtime dependency.
+- Document remaining assumptions and a reproducible command.
+
+**Allowed files:** Agent 6's safe-edit modules and tests, `tests/layer-safety.browser.*`, safety documentation. Do not edit Agent 1 QA paths, index.html, project model/storage, Agent API/bridge, renderer, exporters, shared workflow or another agent's tests.
