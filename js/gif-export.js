@@ -564,6 +564,558 @@
     writer.byte(0);
   }
 
+  class ExportAbortError extends Error {
+    constructor(stage) {
+      super("Export was aborted during " + stage + ".");
+      this.name = "ExportAbortError";
+      this.code = "EXPORT_ABORTED";
+      this.stage = stage;
+    }
+  }
+
+  function createAsyncControl(options) {
+    const signal = options.signal;
+    if (signal !== undefined && (!signal || typeof signal.aborted !== "boolean")) {
+      throw new TypeError("signal must be an AbortSignal-like object with an aborted boolean.");
+    }
+    const onProgress = options.onProgress;
+    if (onProgress !== undefined && typeof onProgress !== "function") {
+      throw new TypeError("onProgress must be a function when provided.");
+    }
+    const yieldEvery = options.yieldEvery === undefined ? 8192 : options.yieldEvery;
+    assertInteger(yieldEvery, "Async yieldEvery", 1, 65536);
+    let lastProgress = 0;
+    function check(stage) {
+      if (signal && signal.aborted) throw new ExportAbortError(stage);
+    }
+    function report(phase, progress, completed, total, stage) {
+      const next = Math.max(lastProgress, Math.min(100, progress));
+      lastProgress = next;
+      if (onProgress) {
+        onProgress({
+          phase: phase,
+          progress: next,
+          completed: completed,
+          total: total
+        });
+      }
+      check(stage);
+    }
+    async function yieldToHost(stage) {
+      await new Promise(function (resolve) { setTimeout(resolve, 0); });
+      check(stage);
+    }
+    return {
+      signal: signal,
+      yieldEvery: yieldEvery,
+      check: check,
+      report: report,
+      yieldToHost: yieldToHost
+    };
+  }
+
+  function phaseProgress(start, end, completed, total) {
+    return total > 0 ? start + (end - start) * (completed / total) : end;
+  }
+
+  async function validateProjectAsync(project, control) {
+    control.check("before-start");
+    control.report("validation", 0, 0, 1, "before-start");
+    if (!isObject(project)) throw new Error("Project must be an object.");
+    if (project.format !== PROJECT_FORMAT || project.version !== PROJECT_VERSION) {
+      throw new Error("GIF export requires a version 2 One Pixel Studio project.");
+    }
+    if (!isObject(project.canvas)) throw new Error("Project canvas settings are missing.");
+    const width = project.canvas.width;
+    const height = project.canvas.height;
+    assertInteger(width, "Canvas width", 1, MAX_DIMENSION);
+    assertInteger(height, "Canvas height", 1, MAX_DIMENSION);
+    if (!Array.isArray(project.frames) || project.frames.length < 1 || project.frames.length > MAX_FRAMES) {
+      throw new Error("Project must contain 1–" + MAX_FRAMES + " frames.");
+    }
+    if (!Array.isArray(project.layers) || project.layers.length < 1 || project.layers.length > MAX_LAYERS) {
+      throw new Error("Project must contain 1–" + MAX_LAYERS + " layers.");
+    }
+    if (!Array.isArray(project.cels)) throw new Error("Project cels must be an array.");
+
+    const frameIds = assertUniqueIds(project.frames, "Frame");
+    const layerIds = assertUniqueIds(project.layers, "Layer");
+    for (let index = 0; index < project.frames.length; index += 1) {
+      const frame = project.frames[index];
+      if (!isObject(frame) || typeof frame.name !== "string" || !frame.name.trim()) {
+        throw new Error("Every frame needs a name.");
+      }
+      assertInteger(frame.durationMs, "Frame duration", 10, 60000);
+    }
+    for (let index = 0; index < project.layers.length; index += 1) {
+      const layer = project.layers[index];
+      if (!isObject(layer) || typeof layer.visible !== "boolean") {
+        throw new Error("Layer visibility must be boolean.");
+      }
+    }
+
+    let totalSourcePixels = 0;
+    for (let celIndex = 0; celIndex < project.cels.length; celIndex += 1) {
+      const cel = project.cels[celIndex];
+      if (cel && Array.isArray(cel.pixels)) {
+        totalSourcePixels += cel.pixels.length;
+        if (totalSourcePixels > MAX_PROJECT_CEL_PIXELS) {
+          throw new Error("Project exceeds the GIF export source cel-data safety limit.");
+        }
+      }
+      if ((celIndex + 1) % control.yieldEvery === 0) {
+        control.check("validation");
+        await control.yieldToHost("validation");
+      }
+    }
+    const totalWork = Math.max(1, project.cels.length + totalSourcePixels);
+    let completed = 0;
+    const celKeys = new Set();
+    for (let celIndex = 0; celIndex < project.cels.length; celIndex += 1) {
+      const cel = project.cels[celIndex];
+      if (!isObject(cel) || !layerIds.has(cel.layerId) || !frameIds.has(cel.frameId)) {
+        throw new Error("Every cel must reference an existing layer and frame.");
+      }
+      const key = cel.layerId + "::" + cel.frameId;
+      if (celKeys.has(key)) throw new Error("A layer/frame pair cannot contain duplicate cels.");
+      celKeys.add(key);
+      if (!Array.isArray(cel.pixels) || cel.pixels.length !== width * height) {
+        throw new Error("Each cel must contain exactly width × height pixels.");
+      }
+      completed += 1;
+      for (let pixelIndex = 0; pixelIndex < cel.pixels.length; pixelIndex += 1) {
+        const color = cel.pixels[pixelIndex];
+        if (color !== null && (typeof color !== "string" || !HEX.test(color))) {
+          throw new Error("Cel pixels must be transparent or valid HEX colors.");
+        }
+        completed += 1;
+        if (completed % control.yieldEvery === 0) {
+          control.report("validation", phaseProgress(0, 5, completed, totalWork), completed, totalWork, "composition");
+          await control.yieldToHost("composition");
+        }
+      }
+    }
+    control.report("validation", 5, totalWork, totalWork, "composition");
+    return { width: width, height: height, frameIds: frameIds, layerIds: layerIds };
+  }
+
+  async function composeFramesAsync(project, dimensions, options, control) {
+    const width = dimensions.width;
+    const height = dimensions.height;
+    const frameIds = resolveIds(
+      options.frameIds,
+      dimensions.frameIds,
+      project.frames.map(function (frame) { return frame.id; }),
+      "Frame IDs"
+    );
+    const defaultLayerIds = project.layers.filter(function (layer) { return layer.visible; })
+      .map(function (layer) { return layer.id; });
+    const selectedLayerIds = resolveIds(options.layerIds, dimensions.layerIds, defaultLayerIds, "Layer IDs");
+    const layerOrder = project.layers.filter(function (layer) { return selectedLayerIds.includes(layer.id); });
+    const framesById = new Map(project.frames.map(function (frame) { return [frame.id, frame]; }));
+    const celsByKey = new Map(project.cels.map(function (cel) {
+      return [cel.layerId + "::" + cel.frameId, cel];
+    }));
+    const framePixels = width * height;
+    const totalPixels = framePixels * frameIds.length;
+    const maxPixels = options.maxTotalPixels === undefined ? MAX_TOTAL_PIXELS : options.maxTotalPixels;
+    assertInteger(maxPixels, "Maximum total export pixels", 1, MAX_TOTAL_PIXELS);
+    if (!Number.isSafeInteger(totalPixels) || totalPixels > maxPixels) {
+      throw new Error("Animated GIF is too large (" + totalPixels + " frame pixels). Reduce the selected frames or canvas size.");
+    }
+
+    const totalWork = Math.max(1, totalPixels * (1 + layerOrder.length));
+    let completed = 0;
+    const frames = [];
+    for (let frameIndex = 0; frameIndex < frameIds.length; frameIndex += 1) {
+      const frameId = frameIds[frameIndex];
+      const frame = framesById.get(frameId);
+      const pixels = new Uint32Array(framePixels);
+      for (let index = 0; index < framePixels; index += 1) {
+        pixels[index] = TRANSPARENT;
+        completed += 1;
+        if (completed % control.yieldEvery === 0) {
+          control.report("composition", phaseProgress(5, 30, completed, totalWork), completed, totalWork, "composition");
+          await control.yieldToHost("composition");
+        }
+      }
+      for (let layerIndex = 0; layerIndex < layerOrder.length; layerIndex += 1) {
+        const layer = layerOrder[layerIndex];
+        const cel = celsByKey.get(layer.id + "::" + frameId);
+        if (cel) {
+          for (let index = 0; index < framePixels; index += 1) {
+            const color = cel.pixels[index];
+            if (color !== null) pixels[index] = readHex(color);
+            completed += 1;
+            if (completed % control.yieldEvery === 0) {
+              control.report("composition", phaseProgress(5, 30, completed, totalWork), completed, totalWork, "composition");
+              await control.yieldToHost("composition");
+            }
+          }
+        } else {
+          for (let index = 0; index < framePixels; index += 1) {
+            completed += 1;
+            if (completed % control.yieldEvery === 0) {
+              control.report("composition", phaseProgress(5, 30, completed, totalWork),
+                completed, totalWork, "composition");
+              await control.yieldToHost("composition");
+            }
+          }
+        }
+      }
+      frames.push({
+        id: frame.id,
+        name: frame.name,
+        durationMs: frame.durationMs,
+        pixels: pixels
+      });
+    }
+    control.report("composition", 30, totalWork, totalWork, "composition");
+    return { width: width, height: height, frameIds: frameIds, frames: frames, totalPixels: totalPixels };
+  }
+
+  async function inspectColorsAsync(frames, maxOpaqueColors, control) {
+    const exact = new Map();
+    let hasTransparency = false;
+    let overflow = false;
+    const total = frames.reduce(function (sum, frame) { return sum + frame.pixels.length; }, 0);
+    let completed = 0;
+    for (let frameIndex = 0; frameIndex < frames.length; frameIndex += 1) {
+      const pixels = frames[frameIndex].pixels;
+      for (let index = 0; index < pixels.length; index += 1) {
+        const color = pixels[index];
+        if (color === TRANSPARENT) hasTransparency = true;
+        else if (!exact.has(color)) {
+          if (exact.size < maxOpaqueColors) exact.set(color, exact.size);
+          else overflow = true;
+        }
+        completed += 1;
+        if (completed % control.yieldEvery === 0) {
+          control.report("palette", phaseProgress(30, 38, completed, total), completed, total, "encoding");
+          await control.yieldToHost("encoding");
+        }
+      }
+    }
+    return { exact: exact, hasTransparency: hasTransparency, overflow: overflow };
+  }
+
+  async function makeHistogramAsync(frames, control) {
+    const counts = new Uint32Array(HISTOGRAM_SIZE);
+    const redSums = new Uint32Array(HISTOGRAM_SIZE);
+    const greenSums = new Uint32Array(HISTOGRAM_SIZE);
+    const blueSums = new Uint32Array(HISTOGRAM_SIZE);
+    const total = frames.reduce(function (sum, frame) { return sum + frame.pixels.length; }, 0);
+    let completed = 0;
+    for (let frameIndex = 0; frameIndex < frames.length; frameIndex += 1) {
+      const pixels = frames[frameIndex].pixels;
+      for (let index = 0; index < pixels.length; index += 1) {
+        const color = pixels[index];
+        if (color !== TRANSPARENT) {
+          const red = color >>> 16;
+          const green = (color >>> 8) & 255;
+          const blue = color & 255;
+          const bucket = ((red >>> 3) << 10) | ((green >>> 3) << 5) | (blue >>> 3);
+          counts[bucket] += 1;
+          redSums[bucket] += red;
+          greenSums[bucket] += green;
+          blueSums[bucket] += blue;
+        }
+        completed += 1;
+        if (completed % control.yieldEvery === 0) {
+          control.report("palette", phaseProgress(38, 42, completed, total), completed, total, "encoding");
+          await control.yieldToHost("encoding");
+        }
+      }
+    }
+    const points = [];
+    for (let index = 0; index < HISTOGRAM_SIZE; index += 1) {
+      const count = counts[index];
+      if (count) points.push({
+        r: redSums[index] / count,
+        g: greenSums[index] / count,
+        b: blueSums[index] / count,
+        weight: count
+      });
+      if ((index + 1) % control.yieldEvery === 0) {
+        control.report("palette", phaseProgress(42, 45, index + 1, HISTOGRAM_SIZE), index + 1, HISTOGRAM_SIZE, "encoding");
+        await control.yieldToHost("encoding");
+      }
+    }
+    return points;
+  }
+
+  async function buildPaletteAsync(frames, colorInfo, control) {
+    const maximum = colorInfo.hasTransparency ? 255 : 256;
+    let palette;
+    let exactMap = null;
+    let searchTree = null;
+    let quantized = false;
+    if (!colorInfo.overflow) {
+      exactMap = colorInfo.exact;
+      palette = Array.from(exactMap.keys()).map(function (color) {
+        return { r: color >>> 16, g: (color >>> 8) & 255, b: color & 255 };
+      });
+    } else {
+      quantized = true;
+      const points = await makeHistogramAsync(frames, control);
+      control.check("encoding");
+      palette = medianCut(points, maximum);
+      searchTree = buildPaletteSearchTree(palette);
+    }
+    const transparentIndex = colorInfo.hasTransparency ? palette.length : null;
+    const colorTableEntries = nextPowerOfTwo(Math.max(2, palette.length + (colorInfo.hasTransparency ? 1 : 0)));
+    control.report("palette", 45, 1, 1, "encoding");
+    return {
+      colors: palette,
+      exactMap: exactMap,
+      searchTree: searchTree,
+      quantized: quantized,
+      transparentIndex: transparentIndex,
+      colorTableEntries: colorTableEntries,
+      colorTableBits: Math.round(Math.log2(colorTableEntries))
+    };
+  }
+
+  async function toIndexedFramesAsync(frames, palette, control) {
+    const output = [];
+    const colorCache = palette.searchTree ? new Map() : null;
+    let transparentPixelCount = 0;
+    const total = frames.reduce(function (sum, frame) { return sum + frame.pixels.length; }, 0);
+    let completed = 0;
+    for (let frameIndex = 0; frameIndex < frames.length; frameIndex += 1) {
+      const frame = frames[frameIndex];
+      const indexes = new Uint8Array(frame.pixels.length);
+      for (let index = 0; index < frame.pixels.length; index += 1) {
+        const color = frame.pixels[index];
+        if (color === TRANSPARENT) {
+          indexes[index] = palette.transparentIndex;
+          transparentPixelCount += 1;
+        } else if (palette.exactMap) {
+          indexes[index] = palette.exactMap.get(color);
+        } else {
+          let paletteIndex = colorCache.get(color);
+          if (paletteIndex === undefined) {
+            paletteIndex = nearestPaletteIndex(color, palette.searchTree);
+            if (colorCache.size < MAX_RGB_LOOKUP_CACHE) colorCache.set(color, paletteIndex);
+          }
+          indexes[index] = paletteIndex;
+        }
+        completed += 1;
+        if (completed % control.yieldEvery === 0) {
+          control.report("indexing", phaseProgress(45, 60, completed, total), completed, total, "encoding");
+          await control.yieldToHost("encoding");
+        }
+      }
+      const delay = Math.max(1, Math.round(frame.durationMs / 10));
+      output.push({
+        id: frame.id,
+        name: frame.name,
+        durationMs: frame.durationMs,
+        delayCentiseconds: delay,
+        effectiveDurationMs: delay * 10,
+        indexes: indexes
+      });
+    }
+    control.report("indexing", 60, total, total, "encoding");
+    return { frames: output, transparentPixelCount: transparentPixelCount };
+  }
+
+  async function lzwCompressAsync(indexes, minimumCodeSize, control, progressStart, progressEnd) {
+    const clearCode = 1 << minimumCodeSize;
+    const endCode = clearCode + 1;
+    const dictionary = new Map();
+    const bytes = new ByteWriter(Math.max(1024, indexes.length * 2 + 1024));
+    let bitBuffer = 0;
+    let bitCount = 0;
+    let codeSize = minimumCodeSize + 1;
+    let nextCode = endCode + 1;
+    function writeCode(code) {
+      bitBuffer |= code << bitCount;
+      bitCount += codeSize;
+      while (bitCount >= 8) {
+        bytes.byte(bitBuffer & 255);
+        bitBuffer >>>= 8;
+        bitCount -= 8;
+      }
+    }
+    writeCode(clearCode);
+    if (!indexes.length) writeCode(endCode);
+    else {
+      let prefix = indexes[0];
+      for (let index = 1; index < indexes.length; index += 1) {
+        const symbol = indexes[index];
+        const key = prefix * 256 + symbol;
+        const existing = dictionary.get(key);
+        if (existing !== undefined) prefix = existing;
+        else {
+          writeCode(prefix);
+          if (nextCode < 4096) {
+            dictionary.set(key, nextCode);
+            nextCode += 1;
+            if (nextCode > (1 << codeSize) && codeSize < 12) codeSize += 1;
+          } else {
+            writeCode(clearCode);
+            dictionary.clear();
+            codeSize = minimumCodeSize + 1;
+            nextCode = endCode + 1;
+          }
+          prefix = symbol;
+        }
+        if (index % control.yieldEvery === 0) {
+          control.report("encoding",
+            phaseProgress(progressStart, progressEnd, index, Math.max(1, indexes.length - 1)),
+            index, indexes.length, "encoding");
+          await control.yieldToHost("encoding");
+        }
+      }
+      writeCode(prefix);
+      writeCode(endCode);
+    }
+    if (bitCount > 0) bytes.byte(bitBuffer & 255);
+    return bytes.asUint8Array();
+  }
+
+  async function appendSubBlocksAsync(writer, compressed, control) {
+    let offset = 0;
+    let sinceYield = 0;
+    while (offset < compressed.length) {
+      const length = Math.min(255, compressed.length - offset);
+      writer.byte(length);
+      writer.bytes(compressed.subarray(offset, offset + length));
+      offset += length;
+      sinceYield += length;
+      if (sinceYield >= control.yieldEvery) {
+        sinceYield = 0;
+        await control.yieldToHost("encoding");
+      }
+    }
+    writer.byte(0);
+  }
+
+  async function encodeGIFAsync(project, options, sharedControl) {
+    options = options || {};
+    if (!isObject(options)) throw new TypeError("Export options must be an object.");
+    const ownControl = !sharedControl;
+    const control = sharedControl || createAsyncControl(options);
+    control.check("before-start");
+    const dimensions = await validateProjectAsync(project, control);
+    control.check("composition");
+    const composed = await composeFramesAsync(project, dimensions, options, control);
+    const colorProbe = await inspectColorsAsync(composed.frames, 256, control);
+    const maxOpaqueColors = colorProbe.hasTransparency ? 255 : 256;
+    const colorInfo = await inspectColorsAsync(composed.frames, maxOpaqueColors, control);
+    const palette = await buildPaletteAsync(composed.frames, colorInfo, control);
+    const indexed = await toIndexedFramesAsync(composed.frames, palette, control);
+
+    const loopCount = options.loopCount === undefined ? 0 : options.loopCount;
+    if (loopCount !== null) assertInteger(loopCount, "Loop count", 0, 65535);
+    const maxBytes = options.maxBytes === undefined ? MAX_GIF_BYTES : options.maxBytes;
+    assertInteger(maxBytes, "Maximum GIF bytes", 1024, MAX_GIF_BYTES);
+    control.check("encoding");
+    const writer = new ByteWriter(maxBytes);
+    writeAscii(writer, "GIF89a");
+    writer.word(dimensions.width);
+    writer.word(dimensions.height);
+    writer.byte(0x80 | 0x70 | (palette.colorTableBits - 1));
+    writer.byte(palette.transparentIndex === null ? 0 : palette.transparentIndex);
+    writer.byte(0);
+    for (let index = 0; index < palette.colorTableEntries; index += 1) {
+      const color = palette.colors[index];
+      writer.byte(color ? color.r : 0);
+      writer.byte(color ? color.g : 0);
+      writer.byte(color ? color.b : 0);
+    }
+    if (loopCount !== null) {
+      writer.bytes([0x21, 0xff, 0x0b]);
+      writeAscii(writer, "NETSCAPE2.0");
+      writer.bytes([0x03, 0x01, loopCount & 255, (loopCount >>> 8) & 255, 0x00]);
+    }
+
+    const minimumCodeSize = Math.max(2, palette.colorTableBits);
+    const frameMetadata = [];
+    const encodedTotal = indexed.frames.length;
+    for (let frameIndex = 0; frameIndex < indexed.frames.length; frameIndex += 1) {
+      control.check("encoding");
+      const frame = indexed.frames[frameIndex];
+      const hasTransparency = palette.transparentIndex !== null;
+      const disposal = hasTransparency ? 2 : 1;
+      const packedControl = (disposal << 2) | (hasTransparency ? 1 : 0);
+      writer.bytes([0x21, 0xf9, 0x04, packedControl]);
+      writer.word(frame.delayCentiseconds);
+      writer.byte(hasTransparency ? palette.transparentIndex : 0);
+      writer.byte(0);
+      writer.byte(0x2c);
+      writer.word(0);
+      writer.word(0);
+      writer.word(dimensions.width);
+      writer.word(dimensions.height);
+      writer.byte(0);
+      writer.byte(minimumCodeSize);
+      const frameStart = 60 + 35 * (frameIndex / encodedTotal);
+      const frameEnd = 60 + 35 * ((frameIndex + 1) / encodedTotal);
+      const compressed = await lzwCompressAsync(
+        frame.indexes, minimumCodeSize, control, frameStart, frameEnd
+      );
+      await appendSubBlocksAsync(writer, compressed, control);
+      frameMetadata.push({
+        index: frameIndex,
+        frameId: frame.id,
+        name: frame.name,
+        width: dimensions.width,
+        height: dimensions.height,
+        durationMs: frame.durationMs,
+        encodedDelayCentiseconds: frame.delayCentiseconds,
+        effectiveDurationMs: frame.effectiveDurationMs
+      });
+      control.report("encoding", phaseProgress(60, 95, frameIndex + 1, encodedTotal),
+        frameIndex + 1, encodedTotal, "encoding");
+      await control.yieldToHost("encoding");
+    }
+    writer.byte(0x3b);
+    control.report("finalizing", 97, 0, 1, "finalization");
+    control.check("finalization");
+    const bytes = writer.asUint8Array();
+    const diagnostics = {
+      paletteMode: palette.quantized ? "median-cut" : "exact",
+      opaquePaletteColors: palette.colors.length,
+      colorTableEntries: palette.colorTableEntries,
+      quantization: palette.quantized
+        ? "5-bit-per-channel RGB histogram followed by weighted median-cut; each source RGB maps to its exact nearest palette entry by squared RGB distance (bounded cache + k-d tree), without dithering"
+        : "Exact RGB palette; no color quantization",
+      transparency: palette.transparentIndex === null
+        ? "No transparent pixels in selected frames"
+        : "One reserved fully-transparent palette index; GIF transparency is binary and cannot preserve partial alpha",
+      transparentPixelCount: indexed.transparentPixelCount,
+      loopCount: loopCount,
+      loopBehavior: loopCount === null ? "No looping extension; play once" : (loopCount === 0 ? "Infinite loop" : loopCount + " repeat(s)"),
+      totalFramePixels: composed.totalPixels,
+      encodedBytes: bytes.length
+    };
+    const metadata = {
+      format: FORMAT,
+      version: VERSION,
+      image: { mimeType: "image/gif", width: dimensions.width, height: dimensions.height },
+      frameCount: frameMetadata.length,
+      frames: frameMetadata,
+      diagnostics: diagnostics
+    };
+    if (ownControl) control.report("completed", 100, 1, 1, "finalization");
+    return { bytes: bytes, metadata: metadata, diagnostics: diagnostics };
+  }
+
+  async function exportGIFAsync(project, options) {
+    options = options || {};
+    if (!isObject(options)) throw new TypeError("Export options must be an object.");
+    const control = createAsyncControl(options);
+    control.check("before-start");
+    const result = await encodeGIFAsync(project, options, control);
+    control.check("finalization");
+    const blob = new Blob([result.bytes], { type: "image/gif" });
+    control.check("finalization");
+    control.report("completed", 100, 1, 1, "finalization");
+    return { blob: blob, metadata: result.metadata, diagnostics: result.diagnostics };
+  }
+
   function encodeGIF(project, options) {
     options = options || {};
     const dimensions = validateProject(project);
@@ -676,6 +1228,9 @@
     MAX_GIF_BYTES: MAX_GIF_BYTES,
     validateProject: validateProject,
     encodeGIF: encodeGIF,
-    exportGIF: exportGIF
+    exportGIF: exportGIF,
+    encodeGIFAsync: encodeGIFAsync,
+    exportGIFAsync: exportGIFAsync,
+    ExportAbortError: ExportAbortError
   });
 });
