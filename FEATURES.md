@@ -57,6 +57,15 @@ This inventory was checked against the current `index.html` in the repository. I
 - PNG export at native size and 16× scale, SVG export and JSON project export/import.
 - Browser-local autosave using local storage.
 
+### Available now: local project library and agent access
+
+- Create multiple projects without overwriting the previous project.
+- Open, rename, duplicate and delete browser-local projects.
+- Keep one previous saved version per project for recovery.
+- Restore the active project after a refresh; keep a local JSON backup where browser storage allows it.
+- Versioned browser Agent API and local stdio MCP bridge for AI agents.
+- Agent tools can inspect pixels, draw, fill, erase, batch edits, undo/redo, save, import/export projects and return PNG previews.
+
 ### Important gaps
 
 | Capability | Current state | Product consequence |
@@ -69,11 +78,11 @@ This inventory was checked against the current `index.html` in the repository. I
 | Custom rectangular canvas | Not implemented | Users are restricted to a short list of square sizes |
 | Sprite-sheet export | Not implemented | No direct game-engine animation asset workflow |
 | Animated GIF export | Not implemented | No shareable animated output |
-| Durable project library | Not implemented | There is only one autosaved working project in the browser |
-| Crash recovery | Not implemented as a distinct recovery system | A refresh or storage failure could cost work |
+| Durable project library | Implemented with IndexedDB | Local to this browser profile; export JSON for portability |
+| Crash recovery | Basic previous-save recovery implemented | One previous saved version is kept per project; this is not a multi-version history or cloud backup |
 | Advanced pixel-art tools | Not implemented | No symmetry, dithering, outline, shading or tile preview tools |
 
-**Key conclusion:** the current app is a promising drawing prototype. It is not yet a complete pixel-art studio. Layers, animation, selection, project reliability and sprite-sheet export are the major product gaps.
+**Key conclusion:** the current app now has a reliable static-sprite foundation and an AI-agent interface, but it is not yet a complete pixel-art studio. Layers, animation, selection, flexible rectangular canvases and game-ready sprite-sheet export remain major product gaps.
 
 ### Implementation log
 
@@ -89,7 +98,33 @@ This inventory was checked against the current `index.html` in the repository. I
 
 **Verified:** 8 project-model tests passed in GitHub Actions. The Pages build was also triggered for the same repository revision.
 
-**Still outstanding in foundation:** IndexedDB project library, multi-project handling, recoverable autosave and a complete bounded command-history system. These are the next foundation slices, not completed work.
+**Verified:** 8 project-model tests passed. The later editor and agent regression suite also covers browser-script parsing, mouse strokes, erasing, fill, undo/redo and agent command execution.
+
+#### Step A2 — Local project library and recovery (implemented)
+
+- Added an IndexedDB database for multiple projects.
+- Added project list, open, rename, duplicate and delete operations.
+- Added a previous-saved-version recovery copy for each project.
+- Autosave now writes to the project library and retains a lightweight localStorage backup where quota permits.
+- Migrates an existing v2 or legacy v1 localStorage project into the IndexedDB library without discarding it.
+- Adds a visible Projects dialog with save/open/recover actions and a local-only privacy explanation.
+- If IndexedDB is unavailable, the editor retains its local backup fallback and reports that the full library is unavailable.
+
+**Verified:** Chromium end-to-end tests created two projects, reopened a saved project, checked saved pixels, refreshed the browser and confirmed the same project and artwork were restored. Storage fallback and quota edge cases still need broader cross-browser coverage.
+
+#### Step A3 — Browser Agent API and MCP bridge (implemented)
+
+- Added `window.onePixelStudio`, a versioned browser API available after `window.OnePixelStudioReady` resolves.
+- Added validated pixel, line, rectangle, fill, erase, clear, palette, batch, undo/redo, save, project import/export, project listing/opening and PNG preview operations.
+- Agent batches are capped at 1,000 commands and are grouped into one undo step.
+- Added coordinate/color validation and optional revision checks to reject stale edits.
+- Agent writes are blocked while a human pointer stroke is in progress.
+- Added a local MCP server using a dedicated Playwright Chromium profile and stdio transport. It does not add a public server endpoint to GitHub Pages.
+- Added `AGENT_API.md` and `agent-bridge/README.md` with protocol, tools, setup and privacy details.
+
+**Verified:** agent interaction tests pass; the Chromium end-to-end suite exercised both mouse and API drawing, undo/redo, batch edits, project storage/reopen/refresh and PNG preview output. The MCP adapter's dependency imports and JavaScript syntax are checked in CI; actual registration with each MCP client still needs a host-specific smoke test.
+
+---
 
 ---
 
@@ -334,6 +369,28 @@ The timeline is a grid of layers and frames. Each cell is a cel.
 - Preview size and output dimensions before export.
 
 **Acceptance criteria:** exported PNGs contain crisp hard-edged pixels; sprite-sheet rectangles match the metadata exactly; GIF playback respects frame durations within the limits of the selected format.
+
+---
+
+### F-110 · AI agent drawing interface
+
+Expose the actual editor operations to AI systems through a stable, documented interface. Agents must draw in logical canvas coordinates and must not depend on screen positions or DOM implementation details.
+
+Requirements:
+- A versioned page-scoped JavaScript Agent API.
+- Read project status, dimensions, palette and pixels.
+- Draw pixels, lines and rectangles; fill and erase regions; change colors.
+- Batch related commands into one undoable transaction.
+- Read a pixel/canvas back and request a PNG preview to inspect the result.
+- Save, list, open, import and export local projects.
+- Reject out-of-range coordinates, invalid colors, oversized batches and stale revision writes.
+- Keep agent operations from interrupting a human pointer stroke.
+- Optional local MCP server exposing equivalent structured tools over stdio.
+- Do not expose arbitrary JavaScript execution, shell access or a public unauthenticated network endpoint.
+
+**Acceptance criteria:** an MCP-connected agent can inspect a canvas, draw a sprite in a batch, request a PNG preview, correct the result, undo/redo and save the editable project. Human mouse drawing and agent edits must share the same pixels and history.
+
+**Current implementation:** browser Agent API v1 and local Playwright-backed MCP bridge are implemented. The browser app currently exposes one editable layer and one frame; layer/frame-aware agent commands are deferred until those features exist in the UI.
 
 ---
 
