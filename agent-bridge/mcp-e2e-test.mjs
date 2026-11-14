@@ -96,7 +96,15 @@ async function run() {
       "artclub_clear_selection",
       "artclub_deselect",
       "artclub_move_selection",
-      "artclub_transform_selection"
+      "artclub_transform_selection",
+      "artclub_list_frames",
+      "artclub_add_frame",
+      "artclub_duplicate_frame",
+      "artclub_select_frame",
+      "artclub_delete_frame",
+      "artclub_move_frame",
+      "artclub_set_frame_duration",
+      "artclub_rename_frame"
     ]) {
       assert.ok(names.has(required), "MCP server should register " + required);
     }
@@ -288,6 +296,82 @@ async function run() {
     assert.equal(rotatedA.structuredContent.color, "#aa0000");
     assert.equal(rotatedB.structuredContent.color, "#00aa00");
 
+    const initialFrames = await client.callTool({
+      name: "artclub_list_frames", arguments: {}
+    });
+    assert.equal(initialFrames.structuredContent[0].active, true);
+    const firstFrameId = initialFrames.structuredContent[0].id;
+    const frameAdded = await client.callTool({
+      name: "artclub_add_frame",
+      arguments: { name: "MCP Walk 2", duration_ms: 140 }
+    });
+    assert.notEqual(frameAdded.isError, true);
+    const secondFrameId = frameAdded.structuredContent.active_frame.id;
+    await client.callTool({
+      name: "artclub_draw_pixel",
+      arguments: { x: 14, y: 14, color: "#12fe34" }
+    });
+    const backToFirst = await client.callTool({
+      name: "artclub_select_frame",
+      arguments: { frame_id: firstFrameId }
+    });
+    assert.notEqual(backToFirst.isError, true);
+    const firstFramePixel = await client.callTool({
+      name: "artclub_get_pixel", arguments: { x: 14, y: 14 }
+    });
+    assert.notEqual(firstFramePixel.structuredContent.color, "#12fe34");
+    await client.callTool({
+      name: "artclub_select_frame",
+      arguments: { frame_id: secondFrameId }
+    });
+    const secondFramePixel = await client.callTool({
+      name: "artclub_get_pixel", arguments: { x: 14, y: 14 }
+    });
+    assert.equal(secondFramePixel.structuredContent.color, "#12fe34");
+
+    const duplicateFrame = await client.callTool({
+      name: "artclub_duplicate_frame",
+      arguments: { frame_id: secondFrameId, name: "MCP Walk 2 Copy" }
+    });
+    assert.notEqual(duplicateFrame.isError, true);
+    const duplicateFrameId = duplicateFrame.structuredContent.active_frame.id;
+    await client.callTool({
+      name: "artclub_set_frame_duration",
+      arguments: { frame_id: duplicateFrameId, duration_ms: 210 }
+    });
+    await client.callTool({
+      name: "artclub_move_frame",
+      arguments: { frame_id: duplicateFrameId, direction: "up" }
+    });
+    await client.callTool({
+      name: "artclub_rename_frame",
+      arguments: { frame_id: duplicateFrameId, name: "MCP Final Pose" }
+    });
+    const orderedFrames = await client.callTool({
+      name: "artclub_list_frames", arguments: {}
+    });
+    const activeFrameRecord = orderedFrames.structuredContent.find(frame => frame.id === duplicateFrameId);
+    assert.equal(activeFrameRecord.order, 1);
+    assert.equal(activeFrameRecord.duration_ms, 210);
+    assert.equal(activeFrameRecord.name, "MCP Final Pose");
+    await client.callTool({
+      name: "artclub_delete_frame",
+      arguments: { frame_id: duplicateFrameId }
+    });
+    const frameCountAfterDelete = await client.callTool({
+      name: "artclub_list_frames", arguments: {}
+    });
+    assert.equal(frameCountAfterDelete.structuredContent.length, 2);
+    await client.callTool({
+      name: "artclub_delete_frame",
+      arguments: { frame_id: secondFrameId }
+    });
+    const cannotDeleteLastFrame = await client.callTool({
+      name: "artclub_delete_frame",
+      arguments: { frame_id: firstFrameId }
+    });
+    assert.equal(cannotDeleteLastFrame.isError, true, "the final animation frame must be retained");
+
     const pngResult = await client.callTool({
       name: "artclub_export_png",
       arguments: {}
@@ -315,7 +399,7 @@ async function run() {
     });
     assert.equal(invalidResult.isError, true, "invalid coordinates should be rejected");
 
-    console.log("MCP E2E passed: handshake, drawing, selection transforms and copy/paste, layer management, pixel readback, PNG preview, save and input validation.");
+    console.log("MCP E2E passed: drawing, layer/selection management, animation frames and timing, pixel readback, PNG preview, save and input validation.");
   } finally {
     await client.close().catch(() => {});
     await new Promise(resolve => staticServer.close(resolve));
