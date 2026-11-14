@@ -74,7 +74,7 @@ This inventory was checked against the current `index.html` in the repository. I
 |---|---|---|
 | Layers | Core editing implemented | Opacity controls, merge down and drag-to-reorder are still missing |
 | Frames and timeline | Core timeline implemented | Frame thumbnails, cels copy/paste, playback, onion skin, frame tags and animation export remain missing |
-| Playback and onion skin | Not implemented | Frames can be edited but cannot yet be previewed as a timed animation |
+| Playback and onion skin | Core preview implemented | Adjustable onion opacity/range and animation export are still missing |
 | Selection and transforms | Rectangular selection implemented | Move, copy, cut, paste, clear, flip H/V and rotate 90° work; lasso, invert, freeform and scaling remain missing |
 | Polygon and freeform shape tools | Not implemented | Other than line, rectangle and ellipse, freeform geometry is still missing |
 | Custom rectangular canvas | Implemented | 1–512 px per side; nine-point canvas anchoring and crop/expand without resampling remain missing |
@@ -84,7 +84,7 @@ This inventory was checked against the current `index.html` in the repository. I
 | Crash recovery | Basic previous-save recovery implemented | One previous saved version is kept per project; this is not a multi-version history or cloud backup |
 | Advanced pixel-art tools | Not implemented | No symmetry, dithering, outline, shading or tile preview tools |
 
-**Key conclusion:** the app now has multi-layer editing, rectangular selection/transforms, a basic multi-frame timeline and an AI-agent interface. It is still not a complete pixel-art studio: playback/onion skin, advanced selection, layer opacity/merge and game-ready sprite-sheet/GIF export remain major gaps.
+**Key conclusion:** the app now has multi-layer editing, rectangular selection/transforms, a multi-frame timeline, playback/onion skin preview and an AI-agent interface. It is still not a complete pixel-art studio: advanced selection, layer opacity/merge and game-ready sprite-sheet/GIF export remain major gaps.
 
 ### Implementation log
 
@@ -183,7 +183,21 @@ This inventory was checked against the current `index.html` in the repository. I
 
 **Verified:** editor interaction tests cover frame isolation, duplication, duration, naming, ordering and last-frame protection. MCP E2E creates a frame, draws on it, switches back to the original, verifies the cels are independent, duplicates and edits a frame, then deletes frames down to the one-frame minimum.
 
-**Still outstanding in F-106/F-107:** frame thumbnails, cel copy/paste, playback controls, loop modes, onion skin and animation export.
+**Still outstanding in F-106/F-107:** frame thumbnails, cel copy/paste, adjustable onion-skin opacity/range, sprite-sheet export and animated GIF export.
+
+
+#### Step D2 — Animation playback and onion skin (implemented)
+
+- Added playback preview with per-frame durations and loop, once and ping-pong modes.
+- Playback advances a separate preview frame ID; it does not change the selected editing frame, active cel or project data.
+- Added pause (keep preview frame visible) and stop (return to the selected editing frame).
+- Added previous/next onion-skin overlays using distinct tints. They appear only where the displayed frame is transparent and never modify pixel data or exports.
+- Blocked drawing and agent structural edits during active playback. A paused preview returns to the selected editing frame before the next edit.
+- Exposed playback, pause, stop, mode selection and onion-skin toggling through the browser Agent API and MCP tools.
+
+**Verified:** interaction tests check previous/next onion overlays, stable active-frame identity, drawing rejection during playback, pause/stop behavior and safe editing after pause. MCP E2E runs playback, validates the preview state, verifies edits are blocked while playing and returns to the editing frame.
+
+**Still outstanding in F-107:** adjustable onion-skin opacity and frame range, frame thumbnails, and animation export.
 
 
 ---
