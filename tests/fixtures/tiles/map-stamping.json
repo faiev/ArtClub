@@ -1,0 +1,53 @@
+{
+  "schema": "artclub.tile-fixture.v1",
+  "id": "map-stamping",
+  "kind": "map-stamping",
+  "description": "Stamp a detached 2 by 2 selection into a larger row-major tile map.",
+  "map": {
+    "width": 4,
+    "height": 3,
+    "cells": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "stamp": {
+    "x": 1,
+    "y": 1,
+    "width": 2,
+    "height": 2,
+    "cells": [
+      "grass",
+      "water",
+      "water",
+      "grass"
+    ]
+  },
+  "expect": {
+    "cells": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      "grass",
+      "water",
+      null,
+      null,
+      "water",
+      "grass",
+      null
+    ],
+    "sourceMapUnchanged": true
+  }
+}
