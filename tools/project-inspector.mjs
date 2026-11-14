@@ -1645,7 +1645,6 @@ function buildMigrationPreview(data, filePath, sourceBytes, sourceHash) {
   ];
   const generatedFields = [
     { field: "format", previewValue: project.format },
-    { field: "version", previewValue: project.version },
     { field: "id", previewValue: "preview-only deterministic ID" },
     { field: "canvas.background", previewValue: null },
     { field: "layers[0]", previewValue: "one default layer with a preview-only ID" },
@@ -1712,10 +1711,19 @@ function inspectMigrationPreview(filePath) {
   try {
     input = readProjectFile(filePath);
   } catch (error) {
+    let byteCount = null;
+    try { byteCount = fs.lstatSync(filePath).size; } catch {}
     return migrationPreviewFailure(
       filePath,
       error.code || "FILE_READ_ERROR",
-      error.message || "Unable to read migration source."
+      error.message || "Unable to read migration source.",
+      {
+        file: filePath,
+        byteCount,
+        sha256: null,
+        format: null,
+        version: null
+      }
     );
   }
 
