@@ -10,7 +10,7 @@ The current corpus is stored in golden-corpus.json and uses dense row-major #RRG
 - 5×5 symmetric sprite for reflection and rotation invariants;
 - generated 512×512 checkerboard recipe for maximum-dimension counts without storing a large repetitive JSON array.
 
-tests/pixel-effects-fixtures.test.js validates the manifest, dimensions, dense pixel data, expected output buffer lengths, coordinate uniqueness/bounds, reference transform invariants and generated stress counts.
+tests/pixel-effects-fixtures.test.js validates the manifest, dimensions, dense pixel data, expected output buffer lengths, coordinate uniqueness/bounds, reference transform invariants and generated stress counts. The AC-080 stress tranche also caps maximum-size ellipse/circle/rectangle output at the 262,144-pixel budget, rejects over-limit line and polygon work, checks repeat-run polygon determinism, and verifies that polygon input vertices are not mutated.
 
 ## Current limitation
 
