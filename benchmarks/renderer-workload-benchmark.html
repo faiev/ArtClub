@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Art Club renderer workload benchmark</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 24px; color: #202c30; font: 14px/1.5 system-ui, sans-serif; }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  p { max-width: 1000px; }
+  #status { margin: 18px 0; font-weight: 650; }
+  #stage { position: fixed; left: -12000px; top: 0; width: 560px; height: 560px; overflow: hidden; contain: strict; }
+  #dom-grid { display: grid; width: 560px; height: 560px; gap: 0; overflow: hidden; }
+  #canvas-grid { display: block; width: 560px; height: 560px; image-rendering: pixelated; }
+  pre { max-width: 1200px; overflow: auto; white-space: pre-wrap; background: #f4f5ef; padding: 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Art Club renderer workload benchmark</h1>
+<p>Renderer-only microbenchmarks for sparse/dense content, full redraw, repeated small dirty edits, grid/selection overlays and onion-before/after. This page does not measure application compositing, input latency or full-editor frame time.</p>
+<div id="status">Preparing workload matrix…</div>
+<pre id="raw"></pre>
+<div id="stage"><div id="dom-grid"></div><canvas id="canvas-grid"></canvas></div>
+<script src="../js/canvas-renderer.js"></script>
+<script>
+(function () {
+  "use strict";
+  const params = new URLSearchParams(location.search);
+  const forced = window.__ARTCLUB_WORKLOAD_CONFIG || {};
+  const sampleCount = Math.max(3, Math.min(11, Number(forced.samples || params.get("samples")) || 5));
+  const warmupCount = Math.max(1, Math.min(4, Number(forced.warmups || params.get("warmup")) || 2));
+  const dirtyUpdatesPerSample = Math.max(4, Math.min(512, Number(forced.dirtyUpdates || params.get("dirtyUpdates")) || 20));
+  const allowedSizes = [32, 64, 128, 256, 512];
+  const sizes = Array.isArray(forced.sizes) && forced.sizes.length
+    ? forced.sizes.filter(size => allowedSizes.includes(size))
+    : allowedSizes;
+  const displaySize = 560;
+  const domGrid = document.getElementById("dom-grid");
+  const canvas = document.getElementById("canvas-grid");
+  const status = document.getElementById("status");
+  const raw = document.getElementById("raw");
+  const beforeTint = [232, 95, 100, 0.35];
+  const afterTint = [76, 144, 210, 0.35];
+
+  function round(value) { return Number(value.toFixed(3)); }
+  function median(values) {
+    const sorted = values.slice().sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+  function percentile(values, fraction) {
+    const sorted = values.slice().sort((a, b) => a - b);
+    return sorted[Math.max(0, Math.ceil(fraction * sorted.length) - 1)];
+  }
+  function statistics(values) {
+    const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+    const variance = values.reduce((sum, value) => sum + (value - average) ** 2, 0) / values.length;
+    const standardDeviation = Math.sqrt(variance);
+    return {
+      sampleCount: values.length,
+      medianMs: round(median(values)),
+      p95Ms: round(percentile(values, 0.95)),
+      meanMs: round(average),
+      standardDeviationMs: round(standardDeviation),
+      coefficientOfVariation: average > 0 ? round(standardDeviation / average) : 0,
+      rawSamplesMs: values.map(round)
+    };
+  }
+  function composeTint(before, after) {
+    if (!before) return after;
+    if (!after) return before;
+    const alpha = after[3] + before[3] * (1 - after[3]);
+    return [
+      Math.round((after[0] * after[3] + before[0] * before[3] * (1 - after[3])) / alpha),
+      Math.round((after[1] * after[3] + before[1] * before[3] * (1 - after[3])) / alpha),
+      Math.round((after[2] * after[3] + before[2] * before[3] * (1 - after[3])) / alpha),
+      alpha
+    ];
+  }
+  function makePixels(size, density) {
+    const count = size * size;
+    const pixels = new Array(count);
+    for (let i = 0; i < count; i++) {
+      const x = i % size;
+      const y = Math.floor(i / size);
+      const occupied = density === "dense" || ((i * 37 + x * 11 + y * 17) % 100 < 5);
+      pixels[i] = occupied ? ["#e96f55", "#253e50", "#b8cc76", "#e4b85d"][(i + x * 3 + y) % 4] : null;
+    }
+    return pixels;
+  }
+  function makeOnionMasks(size, density) {
+    const count = size * size;
+    const before = new Array(count);
+    const after = new Array(count);
+    for (let i = 0; i < count; i++) {
+      const active = density === "dense" || ((i * 37 + (i % size) * 11) % 100 < 5);
+      before[i] = active && i % 5 !== 0 ? "#ff0000" : null;
+      after[i] = active && i % 7 !== 0 ? "#0000ff" : null;
+    }
+    return { before, after };
+  }
+  function domPixelColor(active, before, after) {
+    if (active !== null) return active;
+    const tint = composeTint(before ? beforeTint : null, after ? afterTint : null);
+    return tint ? "rgba(" + tint[0] + "," + tint[1] + "," + tint[2] + "," + tint[3] + ")" : "transparent";
+  }
+  function renderDom(state, withOverlay) {
+    const size = state.width;
+    domGrid.style.gridTemplateColumns = "repeat(" + size + ", minmax(0,1fr))";
+    domGrid.style.gridTemplateRows = "repeat(" + size + ", minmax(0,1fr))";
+    const fragment = document.createDocumentFragment();
+    const selection = withOverlay ? state.selection : null;
+    for (let i = 0; i < state.pixels.length; i++) {
+      const x = i % size;
+      const y = Math.floor(i / size);
+      const cell = document.createElement("div");
+      cell.className = "pixel-cell";
+      cell.tabIndex = -1;
+      cell.dataset.index = String(i);
+      cell.setAttribute("role", "gridcell");
+      cell.setAttribute("aria-label", "Pixel " + (x + 1) + ", " + (y + 1) + ", " + (state.pixels[i] || "transparent"));
+      cell.style.backgroundColor = domPixelColor(state.pixels[i], state.onionBefore && state.onionBefore[i], state.onionAfter && state.onionAfter[i]);
+      if (withOverlay) {
+        cell.style.borderRight = "1px solid rgba(37,53,49,0.2)";
+        cell.style.borderBottom = "1px solid rgba(37,53,49,0.2)";
+      }
+      if (selection && x >= selection.x && y >= selection.y && x < selection.x + selection.width && y < selection.y + selection.height) {
+        const edge = x === selection.x || y === selection.y || x === selection.x + selection.width - 1 || y === selection.y + selection.height - 1;
+        if (edge) cell.style.outline = "1px dashed #e97960";
+      }
+      fragment.appendChild(cell);
+    }
+    domGrid.replaceChildren(fragment);
+    return domGrid.getBoundingClientRect().height;
+  }
+  function makeCanvasRenderer() {
+    return new ArtClubCanvasRenderer.CanvasPixelRenderer(canvas, {
+      displayWidth: displaySize,
+      displayHeight: displaySize,
+      devicePixelRatio: window.devicePixelRatio || 1
+    });
+  }
+  function makeState(width, height, pixels, options) {
+    return Object.assign({ width, height, pixels, grid: false }, options || {});
+  }
+  function timeDomFull(state, withOverlay) {
+    const start = performance.now();
+    renderDom(state, withOverlay);
+    return performance.now() - start;
+  }
+  function timeCanvasFull(renderer, state) {
+    const start = performance.now();
+    renderer.render(state);
+    renderer.context.getImageData(0, 0, 1, 1);
+    return performance.now() - start;
+  }
+  function runFullSamples(state, withOverlay) {
+    const renderer = makeCanvasRenderer();
+    const canvasState = Object.assign({}, state, { grid: withOverlay, selection: withOverlay ? state.selection : null });
+    const domSamples = [];
+    const canvasSamples = [];
+    for (let warm = 0; warm < warmupCount; warm++) {
+      if (warm % 2 === 0) {
+        timeDomFull(state, withOverlay);
+        timeCanvasFull(renderer, canvasState);
+      } else {
+        timeCanvasFull(renderer, canvasState);
+        timeDomFull(state, withOverlay);
+      }
+    }
+    for (let sample = 0; sample < sampleCount; sample++) {
+      let domTime;
+      let canvasTime;
+      if (sample % 2 === 0) {
+        domTime = timeDomFull(state, withOverlay);
+        canvasTime = timeCanvasFull(renderer, canvasState);
+      } else {
+        canvasTime = timeCanvasFull(renderer, canvasState);
+        domTime = timeDomFull(state, withOverlay);
+      }
+      domSamples.push(domTime);
+      canvasSamples.push(canvasTime);
+    }
+    renderer.destroy();
+    domGrid.replaceChildren();
+    return { dom: statistics(domSamples), canvas: statistics(canvasSamples) };
+  }
+  function runDirtySamples(baseState) {
+    const renderer = makeCanvasRenderer();
+    const canvasState = Object.assign({}, baseState, { grid: false });
+    renderer.render(canvasState);
+    renderDom(baseState, false);
+    const domCells = domGrid.children;
+    const domSamples = [];
+    const canvasSamples = [];
+    const total = baseState.width * baseState.height;
+    const indices = Array.from({ length: dirtyUpdatesPerSample }, (_, i) => (i * 7919 + Math.floor(i / 4) * 104729) % total);
+    let toggle = false;
+    function measureDomDirty() {
+      const start = performance.now();
+      for (let i = 0; i < indices.length; i++) {
+        const index = indices[i];
+        toggle = !toggle;
+        const value = toggle ? "#ff00ff" : "#00ffff";
+        baseState.pixels[index] = value;
+        domCells[index].style.backgroundColor = value;
+      }
+      void window.getComputedStyle(domCells[indices[indices.length - 1]]).backgroundColor;
+      void domGrid.offsetHeight;
+      return performance.now() - start;
+    }
+    function measureCanvasDirty() {
+      const start = performance.now();
+      for (let i = 0; i < indices.length; i++) {
+        const index = indices[i];
+        toggle = !toggle;
+        const value = toggle ? "#ff00ff" : "#00ffff";
+        canvasState.pixels[index] = value;
+        renderer.render(canvasState, { x: index % baseState.width, y: Math.floor(index / baseState.width), width: 1, height: 1 });
+      }
+      renderer.context.getImageData(0, 0, 1, 1);
+      return performance.now() - start;
+    }
+    for (let warm = 0; warm < warmupCount; warm++) {
+      if (warm % 2 === 0) { measureDomDirty(); measureCanvasDirty(); }
+      else { measureCanvasDirty(); measureDomDirty(); }
+    }
+    for (let sample = 0; sample < sampleCount; sample++) {
+      if (sample % 2 === 0) { domSamples.push(measureDomDirty()); canvasSamples.push(measureCanvasDirty()); }
+      else { canvasSamples.push(measureCanvasDirty()); domSamples.push(measureDomDirty()); }
+    }
+    renderer.destroy();
+    domGrid.replaceChildren();
+    return {
+      dom: statistics(domSamples),
+      canvas: statistics(canvasSamples),
+      dirtyUpdatesPerSample,
+      domMedianPerUpdateMs: round(median(domSamples) / dirtyUpdatesPerSample),
+      canvasMedianPerUpdateMs: round(median(canvasSamples) / dirtyUpdatesPerSample)
+    };
+  }
+  function memoryEstimate(size, dpr, onion) {
+    const pixels = size * size;
+    const backingWidth = Math.max(1, Math.round(displaySize * dpr));
+    const backingHeight = Math.max(1, Math.round(displaySize * dpr));
+    const imageDataBytes = 4 * pixels;
+    const rasterSurfaceBytes = 4 * pixels;
+    const visibleCanvasBytes = 4 * backingWidth * backingHeight;
+    const overlayCanvasBytes = 4 * backingWidth * backingHeight;
+    const onionSnapshotsBytes = (onion ? 2 : 0) * 4 * pixels;
+    const knownBytes = imageDataBytes + rasterSurfaceBytes + visibleCanvasBytes + overlayCanvasBytes + onionSnapshotsBytes;
+    return {
+      logicalPixels: pixels,
+      dpr,
+      visibleBackingWidth: backingWidth,
+      visibleBackingHeight: backingHeight,
+      imageDataBytes,
+      rasterSurfaceBackingBytes: rasterSurfaceBytes,
+      visibleCanvasBackingBytes: visibleCanvasBytes,
+      overlayCanvasBackingBytes: overlayCanvasBytes,
+      onionMaskSnapshotBytes: onionSnapshotsBytes,
+      knownRendererBufferBytes: knownBytes,
+      knownRendererBufferMiB: round(knownBytes / (1024 * 1024)),
+      excludes: "project string arrays, JS object/DOM overhead, browser/GPU copies, driver allocations, allocator slack and garbage collector overhead"
+    };
+  }
+  async function nextFrame() { await new Promise(resolve => requestAnimationFrame(resolve)); }
+
+  async function run() {
+    const results = [];
+    const dpr = window.devicePixelRatio || 1;
+    for (const size of sizes) {
+      const sparse = makePixels(size, "sparse");
+      const dense = makePixels(size, "dense");
+      const onionSparse = makeOnionMasks(size, "sparse");
+      const onionDense = makeOnionMasks(size, "dense");
+      const selection = { x: Math.floor(size / 4), y: Math.floor(size / 4), width: Math.max(1, Math.floor(size / 2)), height: Math.max(1, Math.floor(size / 2)) };
+      const allScenarios = [
+        { id: "full_sparse", state: makeState(size, size, sparse), overlay: false, onion: false, full: true },
+        { id: "full_dense", state: makeState(size, size, dense), overlay: false, onion: false, full: true },
+        { id: "dirty_1px_sparse", state: makeState(size, size, sparse.slice()), overlay: false, onion: false, dirty: true },
+        { id: "dirty_1px_dense", state: makeState(size, size, dense.slice()), overlay: false, onion: false, dirty: true },
+        { id: "overlay_grid_selection_dense", state: makeState(size, size, dense, { grid: true, selection }), overlay: true, onion: false, full: true },
+        { id: "onion_before_after_sparse", state: makeState(size, size, sparse, { onionBefore: onionSparse.before, onionAfter: onionSparse.after }), overlay: false, onion: true, full: true },
+        { id: "onion_before_after_dense", state: makeState(size, size, dense, { onionBefore: onionDense.before, onionAfter: onionDense.after }), overlay: false, onion: true, full: true }
+      ];
+      const scenarios = Array.isArray(forced.scenarios) && forced.scenarios.length
+        ? allScenarios.filter(item => forced.scenarios.includes(item.id))
+        : allScenarios;
+      for (const scenario of scenarios) {
+        status.textContent = "Benchmarking " + size + "×" + size + " — " + scenario.id;
+        await nextFrame();
+        const measured = scenario.dirty ? runDirtySamples(scenario.state) : runFullSamples(scenario.state, scenario.overlay);
+        results.push({
+          size: size + "×" + size,
+          width: size,
+          height: size,
+          density: scenario.id.includes("sparse") ? "sparse" : "dense",
+          scenario: scenario.id,
+          warmupRunsPerRenderer: warmupCount,
+          dpr,
+          rendererOnly: measured,
+          memory: memoryEstimate(size, dpr, scenario.onion)
+        });
+        domGrid.replaceChildren();
+        await nextFrame();
+        if (typeof window.gc === "function") window.gc();
+      }
+    }
+    const report = {
+      benchmark: "Art Club renderer workload characterization",
+      completedAt: new Date().toISOString(),
+      environment: {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform || null,
+        devicePixelRatio: dpr,
+        hardwareConcurrency: navigator.hardwareConcurrency || null,
+        deviceMemoryGb: navigator.deviceMemory || null
+      },
+      methodology: {
+        sizes,
+        warmupRunsPerRenderer: warmupCount,
+        measuredSamplesPerRenderer: sampleCount,
+        dirtyUpdatesPerSample,
+        sampleOrder: "DOM-first and Canvas-first alternate across measured samples",
+        timing: "performance.now around synchronous renderer work; DOM reads computed style/layout after dirty updates, Canvas reads one pixel after operation to flush draw work",
+        domBaseline: "accessible pixel-cell div per logical pixel in DocumentFragment; overlays add per-cell borders/selection outlines; onion masks become RGBA CSS backgrounds",
+        canvasPath: "production CanvasPixelRenderer; full render(state); dirty calls render(state, one-pixel dirtyRect) per update; overlays/onion use production options",
+        statistics: "median, nearest-rank p95, mean, population standard deviation, coefficient of variation and raw samples; dirty timings shown per update",
+        memory: "known typed/backing buffer lower-bound: renderer ImageData, raster OffscreenCanvas, visible canvas, overlay canvas and optional two Uint32Array onion snapshots; excludes DOM/project JS/GPU/allocator overhead",
+        scope: "renderer-only microbenchmark, not full editor compositing, brush/fill model work, pointer latency, scheduling, accessibility or frame pacing"
+      },
+      results
+    };
+    raw.textContent = JSON.stringify(report, null, 2);
+    status.textContent = "Completed " + results.length + " workload cases across " + sizes.length + " sizes.";
+    document.documentElement.dataset.workloadComplete = "true";
+    window.__rendererWorkloadReport = report;
+  }
+  run().catch(error => {
+    status.textContent = "Benchmark failed: " + error.message;
+    raw.textContent = error.stack || String(error);
+    document.documentElement.dataset.workloadComplete = "false";
+    window.__rendererWorkloadError = String(error && error.stack || error);
+  });
+})();
+</script>
+</body>
+</html>
