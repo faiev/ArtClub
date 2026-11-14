@@ -72,9 +72,11 @@ export function sanitizeToolErrorMessage(value, maxLength = 1_200) {
   message = message.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "");
   message = message.replace(/[\u0000-\u001f\u007f-\u009f]/g, " ");
 
+  // Redact UNC/network paths before drive-letter and POSIX paths.
+  message = message.replace(/\\\\[^\s"'<>]+/g, REDACTED_PATH);
   // Do not return machine-specific paths or arbitrary URL values to an agent.
   message = message.replace(
-    /(?:[A-Za-z]:\\(?:[^\\\s"'<>]+\\?)+|\/(?:home|Users|workspace|workspaces|tmp|private|var|mnt|root|etc|opt|srv|app|build)\/[^\s"'<>]*)/g,
+    /(?:[A-Za-z]:\\(?:[^\\\s"'<>]+\\?)+|\/(?:home|Users|workspace|workspaces|tmp|private|var|mnt|root|etc|opt|srv|app|build|media|Volumes)\/[^\s"'<>]*)/g,
     REDACTED_PATH
   );
   message = message.replace(/\b(?:https?|file):\/\/[^\s"'<>]+/gi, REDACTED_URL);
