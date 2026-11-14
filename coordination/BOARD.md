@@ -44,7 +44,7 @@ All phase IDs above are authorized by the current assignments. The coordinator n
 | #11 | Animated GIF exporter | **Merged** as `d691bf86cec76c4d5742289b0d97f92e0e7952b8`; exact-head CI run #178 passed 70 Node tests, Chromium editor E2E, full-raster GIF ImageDecoder and MCP |
 | #12 | Project inspector CLI | Open draft; 67 Node tests + Chromium + MCP passed on submitted head; branch is diverged from current main; sync and rerun |
 | #13 | Tile preview | Open draft; 69 Node + Chromium + MCP passed on submitted head; now needs sync/retest after PR #11 main update |
-| #14 | Layer-edit safety guard | Open; indexed own-slot validation rejects sparse/undefined; 71 Node + Chromium + MCP passed on submitted head; sync/retest after PR #11 |
+| #14 | Layer-edit safety guard | Open; latest parent head cited by stacked PR #23 passed 72 Node tests + Chromium/MCP; still diverged from current main and must sync/retest before merge |
 | #15 | Pixel algorithms | Open draft; 79 Node + Chromium + MCP passed on submitted head; diverged substantially from current main; sync and rerun |
 | #16 | GPL/JASC-PAL/JSON palettes | Open; 75 Node + Chromium + MCP passed on submitted head; diverged from current main; sync and rerun |
 | #18 | Canvas renderer browser validation | Open draft; harness/benchmark runner added, but its renderer-specific Chromium checks and timing capture were not executed; main sync + actual execution required |
