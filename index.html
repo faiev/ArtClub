@@ -94,6 +94,72 @@ input[type=color]{width:38px;height:34px;border:1px solid var(--line);border-rad
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-width:1050px){.workspace{grid-template-columns:160px minmax(300px,1fr)}.inspector{grid-column:1/-1;display:grid;grid-template-columns:1.2fr 1fr 1fr;align-items:start}.inspector .rule{display:none}.palette-area{grid-row:span 2}}
 @media(max-width:700px){.shell{padding:16px 13px 22px}.topbar{padding-bottom:16px}.topmeta{gap:8px}.save-state{display:none}.intro{padding:22px 0 19px;align-items:flex-start;flex-direction:column}.intro-note{max-width:none}.workspace{grid-template-columns:1fr}.tools-panel{padding:13px}.tools-panel .panel-head{margin-bottom:10px}.tool-list{grid-template-columns:repeat(6,1fr)}.tool{padding:6px 2px;font-size:9px}.tool .glyph{width:28px;height:28px}.tools-panel .rule,.tools-panel .shortcut-list,.tools-panel .size-area{display:none}.stage{padding:13px}.canvas-wrap{min-height:0;padding:12px}.pixel-grid{width:min(100%,560px)}.inspector{grid-column:auto;display:grid;grid-template-columns:1fr 1fr;gap:14px}.inspector .palette-area{grid-column:1/-1;grid-row:auto}.bottom-note{font-size:9px;flex-direction:column;gap:6px}}
+
+/* Studio refinement: tighter hierarchy, project controls, zoom and responsive states */
+:root{--ink:#202c30;--muted:#74807b;--line:#dce0d8;--white:#fffefa;--lime:#d8f06f;--coral:#e97960;--shadow:0 12px 34px rgba(34,46,43,.055)}
+.shell{max-width:1580px;padding-top:22px}
+.topbar{padding-bottom:19px}
+.brandmark{box-shadow:0 5px 12px rgba(31,45,44,.12)}
+.local-pill{font-size:9px;letter-spacing:.1em}
+.save-state{font-size:10px;letter-spacing:.08em;text-transform:uppercase}
+.intro{padding:24px 0 21px}
+h1{font-size:clamp(30px,3.8vw,44px);letter-spacing:-.06em}
+.workspace{grid-template-columns:190px minmax(380px,1fr) 258px;gap:12px}
+.panel{border-radius:17px;box-shadow:0 8px 25px rgba(36,48,45,.045)}
+.tools-panel,.inspector{padding:18px}
+.stage{padding:18px 20px 16px}
+.stage-head{align-items:center;flex-wrap:wrap;row-gap:10px}
+.stage-title{flex:1 1 180px}
+.project-name{width:min(100%,220px);min-width:0;padding:5px 7px;margin-left:-7px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--ink);font-size:13px;font-weight:760;letter-spacing:-.025em}
+.project-name:hover{background:#f5f6ef;border-color:#e5e8df}
+.project-name:focus{background:#fff;border-color:#aeb8aa;outline:2px solid rgba(66,107,132,.15)}
+.dimension-badge{flex:0 0 auto;border:1px solid #e3e7df;background:#f4f5ef;padding:5px 7px;border-radius:6px;font:9px ui-monospace,monospace;letter-spacing:.07em}
+.stage-actions{gap:5px}
+.action-divider{width:1px;height:19px;background:#e2e5de;margin:0 3px}
+.icon-button{width:32px;height:32px;border-radius:8px;font-size:16px;transition:background .15s,border-color .15s,transform .15s}
+.icon-button:hover:not(:disabled){transform:translateY(-1px)}
+.zoom-control{display:flex;align-items:center;gap:2px;border:1px solid var(--line);background:#f7f8f3;padding:2px;border-radius:8px}
+.zoom-button,.zoom-value{height:25px;border:0;background:transparent;color:#53605b;border-radius:5px}
+.zoom-button{width:25px;font-size:15px}
+.zoom-button:hover:not(:disabled){background:#e9ece3;color:var(--ink)}
+.zoom-button:disabled{opacity:.3;cursor:not-allowed}
+.zoom-value{min-width:44px;font:10px ui-monospace,monospace}
+.zoom-value:hover{background:#e9ece3}
+.canvas-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 10px;padding:0 2px}
+.canvas-tool-state{display:flex;align-items:center;gap:7px;min-width:0}
+.active-color-dot{width:13px;height:13px;border-radius:4px;border:1px solid rgba(29,41,45,.2);box-shadow:0 0 0 2px #fff,0 0 0 3px #dce1d8}
+.active-color-label,.active-tool-label,.canvas-tip{font:9px ui-monospace,monospace;letter-spacing:.09em;color:#68756e}
+.active-color-label{font-weight:700;color:#35443e}
+.toolbar-divider{height:13px;width:1px;background:#dfe3db;margin:0 3px}
+.active-tool-label{font-weight:650}
+.canvas-tip{color:#929a93}
+.canvas-wrap{display:flex;align-items:center;justify-content:center;overflow:auto;min-height:390px;padding:24px;background-color:#f1f2ec;background-image:radial-gradient(#cbd2c8 .8px,transparent .8px);background-size:15px 15px}
+.canvas-wrap:before{display:none}
+.pixel-grid{flex:0 0 auto;max-width:none;border:1px solid rgba(41,57,51,.22);box-shadow:0 14px 32px rgba(31,45,42,.13),0 2px 5px rgba(31,45,42,.08)}
+.pixel-cell{outline-offset:-1px}
+.canvas-caption{padding:11px 2px 0}
+.tool{min-height:66px;border:1px solid #eff1ea;background:#fafaf6}
+.tool:hover{border-color:#e0e6d6;background:#f4f6ee}
+.tool.active{border-color:#d7e3b8;background:#f0f4e3;box-shadow:inset 0 0 0 1px rgba(216,240,111,.25)}
+.tool .glyph{width:30px;height:30px}
+.tool:active{transform:scale(.97)}
+.palette-presets{margin-top:14px}
+.palette-presets select{padding:8px 9px;font-size:11px}
+.swatch{height:35px;border-radius:8px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.15)}
+.swatch.selected{outline-color:#28363a;box-shadow:0 0 0 1px #fff}
+.color-tools{gap:8px}
+input[type=color]{width:40px;height:36px}
+.small-button{min-height:34px;padding:9px 11px;transition:background .15s,border-color .15s,transform .15s}
+.small-button:active{transform:translateY(1px)}
+.small-button.primary{box-shadow:0 4px 10px rgba(32,44,48,.13)}
+.stat{padding:10px;border-radius:10px}
+.stat strong{font-size:19px}
+.rule{background:#e6e9e2}
+.bottom-note{padding-top:19px}
+@media(max-width:1120px){.workspace{grid-template-columns:168px minmax(300px,1fr) 230px}.tools-panel,.inspector{padding:14px}.stage{padding:16px}.canvas-wrap{padding:18px;min-height:360px}}
+@media(max-width:900px){.workspace{grid-template-columns:158px minmax(0,1fr)}.inspector{grid-column:1/-1;display:grid;grid-template-columns:1.1fr 1fr 1fr;align-items:start}.inspector .rule{display:none}.palette-area{grid-row:span 2}}
+@media(max-width:700px){.shell{padding:13px 12px 20px}.topbar{padding-bottom:15px}.intro{padding:20px 0 17px}.workspace{grid-template-columns:1fr}.tools-panel{padding:12px}.stage{padding:13px}.stage-head{align-items:flex-start}.stage-title{flex:1 1 100%;justify-content:space-between}.project-name{width:min(62vw,230px)}.stage-actions{width:100%;justify-content:flex-end}.canvas-toolbar{margin-bottom:8px}.canvas-wrap{min-height:0;padding:14px 10px}.pixel-grid{max-width:none}.inspector{grid-column:auto;display:grid;grid-template-columns:1fr 1fr;gap:13px}.inspector .palette-area{grid-column:1/-1;grid-row:auto}.palette-presets{margin-top:11px}.canvas-tip{font-size:8px}.bottom-note{font-size:8px}}
+@media(max-width:390px){.local-pill{padding:7px 8px;font-size:8px}.brandname{font-size:13px}.brandname span{margin-left:2px}.stage-actions{gap:3px}.action-divider{margin:0 1px}.zoom-button{width:22px}.zoom-value{min-width:38px}.icon-button{width:29px;height:29px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
 </style>
 </head>
@@ -132,12 +198,32 @@ input[type=color]{width:38px;height:34px;border:1px solid var(--line);border-rad
 
   <section class="panel stage">
     <div class="stage-head">
-      <div class="stage-title"><strong>Untitled artwork</strong><span id="dimensionLabel">24 × 24 PX</span></div>
+      <div class="stage-title">
+        <input class="project-name" id="projectName" value="Untitled artwork" maxlength="48" aria-label="Project name" spellcheck="false">
+        <span class="dimension-badge" id="dimensionLabel">24 × 24 PX</span>
+      </div>
       <div class="stage-actions">
+        <button class="icon-button" id="newProjectBtn" aria-label="New project" title="New project">＋</button>
+        <span class="action-divider"></span>
         <button class="icon-button" id="undoBtn" aria-label="Undo" title="Undo (Ctrl/Cmd+Z)" disabled>↶</button>
         <button class="icon-button" id="redoBtn" aria-label="Redo" title="Redo (Ctrl/Cmd+Shift+Z)" disabled>↷</button>
+        <span class="action-divider"></span>
+        <div class="zoom-control" aria-label="Canvas zoom">
+          <button class="zoom-button" id="zoomOut" aria-label="Zoom out" title="Zoom out ( [ )">−</button>
+          <button class="zoom-value" id="zoomReset" title="Reset zoom">100%</button>
+          <button class="zoom-button" id="zoomIn" aria-label="Zoom in" title="Zoom in ( ] )">＋</button>
+        </div>
         <button class="icon-button" id="clearBtn" aria-label="Clear canvas" title="Clear canvas">⌫</button>
       </div>
+    </div>
+    <div class="canvas-toolbar">
+      <div class="canvas-tool-state">
+        <span class="active-color-dot" id="activeColorDot"></span>
+        <span class="active-color-label" id="activeColorLabel">#E96F55</span>
+        <span class="toolbar-divider"></span>
+        <span class="active-tool-label" id="toolMeta">BRUSH · 1 PX</span>
+      </div>
+      <span class="canvas-tip">DRAG TO DRAW</span>
     </div>
     <div class="canvas-wrap">
       <div id="pixelGrid" class="pixel-grid" role="grid" aria-label="Pixel art canvas"></div>
@@ -149,6 +235,16 @@ input[type=color]{width:38px;height:34px;border:1px solid var(--line);border-rad
     <section class="palette-area">
       <div class="panel-head"><h2>02 / Palette</h2><span class="section-kicker" id="colorCount">12 COLORS</span></div>
       <div class="palette-grid" id="paletteGrid" aria-label="Color palette"></div>
+      <div class="palette-presets">
+        <label class="field-label" for="palettePreset">Palette collection</label>
+        <select id="palettePreset">
+          <option value="studio">Studio · 12 colors</option>
+          <option value="arcade">Arcade · 12 colors</option>
+          <option value="ember">Ember · 10 colors</option>
+          <option value="mono">Monochrome · 8 colors</option>
+          <option value="custom">Custom palette</option>
+        </select>
+      </div>
       <div class="color-tools">
         <input type="color" id="colorPicker" value="#f06b4e" aria-label="Choose custom color">
         <input class="text-field" type="text" id="hexValue" value="#F06B4E" maxlength="7" aria-label="Hex color">
@@ -196,7 +292,13 @@ input[type=color]{width:38px;height:34px;border:1px solid var(--line);border-rad
 const $ = id => document.getElementById(id);
 const STORAGE_KEY = "one-pixel-studio-project-v1";
 const DEFAULT_PALETTE = ["#172b3a","#344b55","#53717a","#87a7a0","#d9e2c6","#f4edda","#f5c66d","#ef945e","#e96f55","#b85e62","#856f91","#5e8da8"];
-let w=24,h=24,pixels=[],palette=DEFAULT_PALETTE.slice(),selected=8,tool="brush";
+const PALETTE_SETS = {
+  studio: DEFAULT_PALETTE,
+  arcade: ["#171c35","#303e68","#4c6f91","#72a7a1","#b6d9a4","#f3e7a1","#f3b568","#e77b58","#bd5263","#79496d","#f5f2df","#7e8b99"],
+  ember: ["#2b2028","#56323a","#83464a","#b85e4e","#df805a","#f2aa72","#f5cd91","#f1e0bd","#8e7772","#4d5058"],
+  mono: ["#161b1e","#343b3e","#515a5d","#6d7779","#929b9b","#b5bcba","#d8dc d5".replaceAll(" ",""),"#f3f3ec"]
+};
+let w=24,h=24,pixels=[],palette=DEFAULT_PALETTE.slice(),selected=8,tool="brush",projectName="Untitled artwork",zoom=1;
 let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,saveTimer=null,focusedIndex=0;
 let savedProject=null;
 const grid=$("pixelGrid");
@@ -222,7 +324,7 @@ function demo(){
   rect(a,s,8,19,15,19,c[1]);a[20*s+9]=c[3];a[20*s+14]=c[3];
   return a;
 }
-function snapshot(){return {w,h,pixels:pixels.slice(),palette:palette.slice(),selected}}
+function snapshot(){return {w,h,pixels:pixels.slice(),palette:palette.slice(),selected,projectName}}
 function remember(){
   undoStack.push(snapshot());
   if(undoStack.length>60)undoStack.shift();
@@ -231,6 +333,8 @@ function remember(){
 }
 function restore(s){
   w=s.w;h=s.h;pixels=s.pixels.slice();palette=s.palette.slice();selected=Math.min(s.selected,palette.length-1);
+  projectName=typeof s.projectName==="string"&&s.projectName.trim()?s.projectName:"Untitled artwork";
+  $("projectName").value=projectName;
   $("gridSize").value=String(w);renderAll();scheduleSave();updateHistoryButtons();
 }
 function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());}
@@ -271,7 +375,10 @@ function renderPalette(){
   $("colorCount").textContent=palette.length+" COLORS";
 }
 function syncColorUI(){
-  const c=palette[selected]||"#000000";$("colorPicker").value=c;$("hexValue").value=c.toUpperCase();
+  const c=palette[selected]||"#000000";
+  $("colorPicker").value=c;$("hexValue").value=c.toUpperCase();
+  $("activeColorDot").style.backgroundColor=c;
+  $("activeColorLabel").textContent=c.toUpperCase();
 }
 function renderStats(){
   const painted=pixels.filter(Boolean),used=new Set(painted);
@@ -279,17 +386,29 @@ function renderStats(){
   $("usedColorStat").textContent=used.size;
   $("fillCaption").textContent=painted.length.toLocaleString();
 }
-function renderAll(){renderGrid();renderPalette();renderStats();updateHistoryButtons();setTool(tool)}
+function renderAll(){renderGrid();renderPalette();renderStats();updateHistoryButtons();setTool(tool);applyZoom()}
 function setTool(name){
   tool=name;
   document.querySelectorAll(".tool").forEach(b=>b.classList.toggle("active",b.dataset.tool===name));
   $("activeToolCaption").textContent=name.toUpperCase()+" TOOL";
+  $("toolMeta").textContent=name.toUpperCase()+" · "+(name==="eraser"?"ERASE":name==="eyedropper"?"PICK":name==="fill"?"AREA": "1 PX");
+}
+function applyZoom(){
+  const size=Math.round(560*zoom);
+  grid.style.width=zoom>1?size+"px":"min(100%, "+size+"px)";
+  $("zoomReset").textContent=Math.round(zoom*100)+"%";
+  $("zoomOut").disabled=zoom<=0.5;
+  $("zoomIn").disabled=zoom>=2;
+}
+function setZoom(value){
+  zoom=Math.max(0.5,Math.min(2,Math.round(value*4)/4));
+  applyZoom();
 }
 function scheduleSave(){
   $("saveState").textContent="SAVING LOCALLY…";
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot()));$("saveState").textContent="LOCAL SAVE · JUST NOW"}
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot()));$("saveState").textContent="SAVED ON THIS DEVICE"}
     catch(e){$("saveState").textContent="LOCAL SAVE · UNAVAILABLE"}
   },280);
 }
@@ -380,6 +499,19 @@ grid.addEventListener("keydown",e=>{
 });
 document.querySelectorAll(".tool").forEach(b=>b.addEventListener("click",()=>setTool(b.dataset.tool)));
 $("undoBtn").addEventListener("click",undo);$("redoBtn").addEventListener("click",redo);
+$("projectName").addEventListener("input",e=>{
+  projectName=e.target.value.slice(0,48)||"Untitled artwork";
+  scheduleSave();
+});
+$("zoomOut").addEventListener("click",()=>setZoom(zoom-0.25));
+$("zoomIn").addEventListener("click",()=>setZoom(zoom+0.25));
+$("zoomReset").addEventListener("click",()=>setZoom(1));
+$("newProjectBtn").addEventListener("click",()=>{
+  if(!confirm("Start a new blank project? The current canvas will be replaced."))return;
+  remember();w=24;h=24;pixels=blank(24);palette=DEFAULT_PALETTE.slice();selected=8;
+  projectName="Untitled artwork";$("projectName").value=projectName;$("gridSize").value="24";setZoom(1);
+  renderAll();syncColorUI();scheduleSave();toast("New canvas ready.");
+});
 $("clearBtn").addEventListener("click",()=>{
   if(!confirm("Clear every pixel on this canvas?"))return;
   remember();pixels=blank(w);renderGrid();renderStats();scheduleSave();toast("Canvas cleared.");
@@ -399,7 +531,12 @@ $("hexValue").addEventListener("change",e=>{
   c=c.toLowerCase();const idx=palette.indexOf(c);if(idx>=0){selected=idx;renderPalette()}else{palette.push(c);selected=palette.length-1;renderPalette()}syncColorUI();scheduleSave();
 });
 $("addColorBtn").addEventListener("click",()=>{
-  let c=$("colorPicker").value.toLowerCase();if(palette.includes(c)){selected=palette.indexOf(c);toast("That color is already in the palette.")}else{palette.push(c);selected=palette.length-1;toast("Color added to palette.")}renderPalette();syncColorUI();scheduleSave();
+  let c=$("colorPicker").value.toLowerCase();if(palette.includes(c)){selected=palette.indexOf(c);toast("That color is already in the palette.")}else{palette.push(c);selected=palette.length-1;toast("Color added to palette.")}renderPalette();syncColorUI();$("palettePreset").value="custom";scheduleSave();
+});
+$("palettePreset").addEventListener("change",e=>{
+  const name=e.target.value;if(name==="custom")return;
+  remember();palette=PALETTE_SETS[name].slice();selected=Math.min(selected,palette.length-1);
+  renderPalette();syncColorUI();scheduleSave();toast("Palette changed to "+name+".");
 });
 function download(name,type,content){
   const blob=new Blob([content],{type}),url=URL.createObjectURL(blob),a=document.createElement("a");
@@ -411,17 +548,20 @@ function canvasFromPixels(scale){
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){const col=pixels[y*w+x];if(col){ctx.fillStyle=col;ctx.fillRect(x*scale,y*scale,scale,scale)}}
   return c;
 }
+function safeFilename(){
+  return projectName.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")||"one-pixel-artwork";
+}
 function exportPNG(scale){
   const c=canvasFromPixels(scale);
-  c.toBlob(blob=>{if(!blob){toast("PNG export failed.");return}const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download="one-pixel-"+w+"x"+h+"-"+scale+"x.png";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("PNG exported — "+(w*scale)+" × "+(h*scale)+" px.");},"image/png");
+  c.toBlob(blob=>{if(!blob){toast("PNG export failed.");return}const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=safeFilename()+"-"+w+"x"+h+"-"+scale+"x.png";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast("PNG exported — "+(w*scale)+" × "+(h*scale)+" px.");},"image/png");
 }
 $("pngBtn").addEventListener("click",()=>exportPNG(1));$("scaledBtn").addEventListener("click",()=>exportPNG(16));
 $("svgBtn").addEventListener("click",()=>{
   const shapes=[];for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=pixels[y*w+x];if(c)shapes.push('<rect x="'+x+'" y="'+y+'" width="1" height="1" fill="'+c+'"/>')}
   const svg='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" shape-rendering="crispEdges">\n'+shapes.join("\n")+'\n</svg>';
-  download("one-pixel-"+w+"x"+h+".svg","image/svg+xml;charset=utf-8",svg);toast("Crisp vector SVG exported.");
+  download(safeFilename()+"-"+w+"x"+h+".svg","image/svg+xml;charset=utf-8",svg);toast("Crisp vector SVG exported.");
 });
-$("jsonBtn").addEventListener("click",()=>{download("one-pixel-project.json","application/json",JSON.stringify({app:"One Pixel Studio",version:1,...snapshot()},null,2));toast("Project file exported.")});
+$("jsonBtn").addEventListener("click",()=>{download(safeFilename()+"-project.json","application/json",JSON.stringify({app:"One Pixel Studio",version:1,...snapshot()},null,2));toast("Project file exported.")});
 $("importProjectBtn").addEventListener("click",()=>$("projectInput").click());
 $("projectInput").addEventListener("change",async e=>{
   const file=e.target.files[0];if(!file)return;
@@ -429,7 +569,7 @@ $("projectInput").addEventListener("change",async e=>{
     const data=JSON.parse(await file.text());
     if(![16,24,32,48,64].includes(data.w)||data.h!==data.w||!Array.isArray(data.pixels)||data.pixels.length!==data.w*data.h||!Array.isArray(data.palette)||!data.palette.length)throw new Error("Invalid project structure");
     if(data.palette.some(c=>!/^#[0-9a-fA-F]{6}$/.test(c))||data.pixels.some(c=>c!==null&&!/^#[0-9a-fA-F]{6}$/.test(c)))throw new Error("Invalid color data");
-    remember();restore({w:data.w,h:data.h,pixels:data.pixels,palette:data.palette,selected:Number.isInteger(data.selected)?data.selected:0});toast("Project opened.");
+    remember();restore({w:data.w,h:data.h,pixels:data.pixels,palette:data.palette,selected:Number.isInteger(data.selected)?data.selected:0,projectName:data.projectName});toast("Project opened.");
   }catch(err){toast("Could not open that project file.")}
   e.target.value="";
 });
@@ -470,17 +610,23 @@ document.addEventListener("keydown",e=>{
   const keys={b:"brush",e:"eraser",g:"fill",i:"eyedropper"};
   if(keys[e.key.toLowerCase()])setTool(keys[e.key.toLowerCase()]);
   if(e.key==="Escape")setTool("brush");
+  if(e.key==="[")setZoom(zoom-0.25);
+  if(e.key==="]")setZoom(zoom+0.25);
+  if(e.key==="0")setZoom(1);
 });
 function init(){
   let restored=false;
   try{
     const raw=localStorage.getItem(STORAGE_KEY);
     if(raw){const data=JSON.parse(raw);if([16,24,32,48,64].includes(data.w)&&data.h===data.w&&Array.isArray(data.pixels)&&data.pixels.length===data.w*data.h&&Array.isArray(data.palette)&&data.palette.length&&data.palette.every(c=>/^#[0-9a-fA-F]{6}$/.test(c))&&data.pixels.every(c=>c===null||/^#[0-9a-fA-F]{6}$/.test(c))){
-      w=data.w;h=data.h;pixels=data.pixels;palette=data.palette;selected=Math.min(Number(data.selected)||0,palette.length-1);$("gridSize").value=String(w);restored=true;
+      w=data.w;h=data.h;pixels=data.pixels;palette=data.palette;selected=Math.min(Number(data.selected)||0,palette.length-1);
+      projectName=typeof data.projectName==="string"&&data.projectName.trim()?data.projectName:"Untitled artwork";
+      $("projectName").value=projectName;$("gridSize").value=String(w);restored=true;
     }}
   }catch(e){}
   if(!restored)pixels=demo();
-  renderAll();syncColorUI();$("saveState").textContent=restored?"LOCAL SAVE · RESTORED":"LOCAL SAVE · READY";
+  $("projectName").value=projectName;
+  renderAll();syncColorUI();$("saveState").textContent=restored?"SAVED PROJECT · RESTORED":"LOCAL SAVE · READY";
 }
 init();
 })();
