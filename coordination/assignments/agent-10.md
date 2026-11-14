@@ -1,30 +1,51 @@
 # Agent 10 — Pixel-art algorithms / craft tools
 
-## AC-019 — Pure pixel-art algorithms
+## Continuous workstream: build a deterministic pixel-art algorithm library
 
-Your implementation is submitted in PR #15:
-https://github.com/faiev/ArtClub/pull/15
+You own pure pixel operations with exact integer behavior. The initial four algorithms are only the first phase.
 
-Latest reported head:
-`93879e464f3840dc42cab3e108fdc3abb6591674`
+### Phase 0 — AC-019: Refresh and revalidate pixel algorithms
+PR #15: https://github.com/faiev/ArtClub/pull/15
+Sync latest main without force-pushing. Preserve deterministic symmetry, outline, shading and Bayer dithering. Run focused tests plus full Node 24, Chromium and MCP workflow on the new head.
 
-The isolated module and 21 focused tests are submitted. However, the initial GitHub workflow run #43604907494 failed in Chromium at the old persistence assertion before the MCP step. That run occurred before PR #10's recovery/frame-selection fix was merged.
+### Phase 1 — AC-080: Raster primitives
+Add tested pure operations for:
+- integer line rasterization (Bresenham);
+- rectangle outline and filled rectangle;
+- circle/ellipse outline and filled variants;
+- polygon fill with documented edge rules;
+- clipping to canvas bounds;
+- deterministic de-duplication and output order.
+Use exact known-output fixtures, avoid floating-point antialiasing and preserve null transparency.
 
-### Required next step: base refresh and full CI
+### Phase 2 — AC-081: Flood fill and region operations
+Implement bounded flood fill (4/8-connected), tolerance policy for exact HEX colors, contiguous region selection and border extraction. Protect against huge queue memory, malformed/sparse buffers and cancellation/iteration limits. Never mutate input buffers.
 
-Merge latest main into `agent/pixel-effects` without force-pushing. Preserve the existing deterministic symmetry, outline, shading and Bayer dithering module. Rerun:
-- `node --check` for module/tests.
-- `node --test tests/*.test.js` on Node 24.
-- Chromium editor E2E.
-- MCP client E2E.
+### Phase 3 — AC-082: Color and gradient operations
+Implement color replace, palette map, horizontal/vertical/linear gradients between HEX colors, quantization/posterize and deterministic color ramp application. Define rounding and tie-breaking. Preserve transparency and provide preview-only return values.
 
-Do not weaken or remove tests to bypass the old failure; the fix is now on main.
+### Phase 4 — AC-083: Pixel transforms
+Implement horizontal/vertical flip, 90/180/270 rotations, crop, pad and nearest-neighbor scale. Validate output dimensions before allocation. Keep integer pixel coordinates and no smoothing/interpolation.
 
-### Constraints
-- Keep the module pure and independent of UI.
-- Do not edit index.html, renderer, project model, palette handling, Agent API or MCP.
-- Preserve exact output tests, transparency behavior and input non-mutation.
-- Keep the documented fixed-canvas center symmetry and normalized-tone dithering API explicit.
+### Phase 5 — AC-084: Advanced dithering and shading
+Add deterministic error-diffusion option (for example Floyd–Steinberg) alongside ordered Bayer, with explicit scan direction, alpha handling and color-distance policy. Add configurable outline thickness and inner/outer behavior if bounded. Keep algorithm outputs explicit and deterministic.
 
-### Handoff
-Update PR #15 and only `coordination/status/agent-10.md` with new head, exact current-head CI and limitations. No merge by worker.
+### Phase 6 — AC-085: Golden fixture and stress corpus
+Build a small source-art fixture corpus made only of original synthetic patterns: checkerboards, diagonal lines, transparent holes, gradients, symmetric sprites and edge cases. Verify every algorithm against expected raw buffers. Add maximum-dimension/stress tests, non-mutation checks and runtime/allocation guards.
+
+### Phase 7 — AC-086: Algorithm integration contracts
+Create docs/PIXEL_EFFECTS_CATALOG.md with each operation's input/output schema, limits, determinism, complexity and future UI/Agent API integration examples. Provide a preview/commit boundary so the future UI never writes partial results on error. Do not edit index.html, renderer, project model or Agent API.
+
+## Ownership
+- js/pixel-effects.js and tests/pixel-effects.test.js
+- additional pure modules under js/pixel-*.js with matching tests
+- tests/fixtures/pixel-effects/**
+- docs/pixel-effects.md and docs/PIXEL_EFFECTS_CATALOG.md
+
+Do not edit index.html, Canvas renderer, project model, palette implementation, Agent API, bridge or another agent's files.
+
+## Working rules
+All phases are pre-authorized. After refreshing PR #15, start raster primitives on a separate branch while CI/review runs. Keep separate PRs for independent algorithms, or group tightly related primitives. Do not stop at a single green CI result.
+
+## Handoff
+Update only coordination/status/agent-10.md with phases, branch/PR ledger, exact test evidence, known algorithm limits and next 3–5 actions. Do not merge or self-accept.
