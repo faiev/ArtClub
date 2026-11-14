@@ -4,8 +4,10 @@ on:
   push:
     branches: [main]
     paths:
+      - "index.html"
       - "js/**"
       - "tests/**"
+      - "agent-bridge/**"
       - ".github/workflows/project-tests.yml"
   pull_request:
     paths:
@@ -28,4 +30,6 @@ jobs:
         with:
           node-version: 24
       - name: Run project model tests
-        run: node --test tests/*.test.js
+        run: |
+          node --test tests/*.test.js
+          node --check agent-bridge/server.mjs
