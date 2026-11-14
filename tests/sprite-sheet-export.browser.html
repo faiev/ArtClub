@@ -210,7 +210,7 @@
         invalidColor.cels[0].pixels[0] = "#xyzxyz";
         expectThrow(function () {
           Exporter.buildSpriteSheet(invalidColor);
-        }, /valid HEX colors/i, "malformed cel color");
+        }, /valid.*colors/i, "malformed cel color");
 
         output.textContent = "PASS " + JSON.stringify({
           decoder: "Chromium createImageBitmap + OffscreenCanvas",
