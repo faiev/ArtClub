@@ -116,7 +116,7 @@ Node tests cover early, mid-composition, mid-LZW, render-preparation and finaliz
 The async regression suite also proves:
 - The public GIF Blob API is byte-identical to the synchronous Blob output and does not return after an abort raised by the final progress callback.
 - Sparse/missing-cel composition yields through the event loop rather than treating a whole frame as one uninterruptible work unit.
-- A timer-triggered abort is observed while GIF validation/composition yields to the host event loop.
+- Timer-triggered aborts are observed during 512×512 GIF LZW encoding and 512×512 sprite-sheet raster composition after cooperative event-loop yields.
 - Sprite-sheet validation traverses cels in bounded chunks (it does not perform a separate synchronous full-cel reduction before yielding).
 - A delayed PNG codec result is discarded when the signal has been aborted while the platform encoder was running.
 
