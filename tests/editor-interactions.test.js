@@ -172,7 +172,7 @@ function bootEditor() {
       return toolButtons.find(button => button.dataset.tool === name);
     },
     cell(index) { return grid.children[index]; }
-  }));
+  })));
 }
 
 test("editor script parses and initializes a real pixel grid", async () => {
@@ -211,15 +211,18 @@ test("undo and redo restore the exact canvas pixels", async () => {
   assert.equal(editor.cell(0).style.backgroundColor, "#e96f55");
 });
 
-test("eraser removes a pixel and flood fill paints a connected area", async () => {
+test("eraser removes a pixel", async () => {
   const editor = await bootEditor();
   editor.tool("eraser").emit("click");
   editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
   editor.grid.emit("pointerup", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
   assert.equal(editor.cell(0).style.backgroundColor, "transparent");
+});
 
-  editor.document.getElementById("newProjectBtn").emit("click");
+test("flood fill paints a connected region", async () => {
+  const editor = await bootEditor();
   editor.tool("fill").emit("click");
-  editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 2, clientX: 1, clientY: 1 });
+  editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
   assert.equal(editor.cell(0).style.backgroundColor, "#e96f55");
+  assert.equal(editor.cell(1).style.backgroundColor, "#e96f55");
 });
