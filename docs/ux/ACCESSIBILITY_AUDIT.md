@@ -2,7 +2,7 @@
 
 **Task:** AC-052 — Accessibility and interaction audit  
 **Owner:** Agent 5 — UX / interaction design / accessibility  
-**Audited source:** `index.html` on `main`, commit `10f689611b1558966aeabbae1a93a927c7d3a022`  
+**Audited source:** `index.html` on `main`, blob `4645281c1aad8580529e7feb99cd299a88543913` (UI-01 workstation shell)  
 **Branch:** `agent/accessibility-audit`  
 **Status:** Source-based audit and remediation specification; no production code changes are included.
 
@@ -606,3 +606,32 @@ AC-052 is ready for coordinator review when:
 - Live browser, keyboard, screen-reader and device checks are clearly identified as not performed by this source-only audit.
 - No WCAG conformance claim is made.
 - The document is delivered without changing production UI or another agent's files.
+
+
+## Post UI-01 source recheck — 2026-11-15
+
+**Source:** current production `main` `index.html` blob `4645281c1aad8580529e7feb99cd299a88543913`. The UI-01 workstation shell changed layout, color and panel hierarchy while intentionally preserving the live editor DOM and handlers. The following findings are confirmed in the current source and should be treated as the current production remediation baseline; they do not replace the original 14-finding audit.
+
+### Confirmed current P1 findings
+
+1. **Global shortcut routing still precedes editable-control protection.** The document key handler calls project Undo/Redo for Ctrl/Cmd+Z and schedules project save for Ctrl/Cmd+S before the INPUT/SELECT/TEXTAREA guard. Both chords call `preventDefault()`. Text-field native undo and browser Save Page remain at risk; the editable guard also lacks contenteditable, role=textbox, IME and AltGraph coverage.
+2. **Project-name focus remains weaker than the workstation focus token.** The legacy `.project-name:focus` rule has a more specific selector than the general `input:focus-visible` rule and sets a low-alpha blue outline. The workstation design system defines opaque warm focus `#E1C477`; a field-specific `:focus-visible` override with sufficient specificity is still required. The original contrast measurements were based on the earlier light palette and must be recalculated from the current rendered dark input surface before quoting a numeric ratio.
+3. **Selected tool state is still visual-only.** `setTool(name)` updates the `.active` CSS class and contextual text but does not set `aria-pressed` or another programmatic current state on the selected tool button.
+4. **Selected palette swatch and frame state require programmatic state.** `renderPalette()` applies a visual selected class; `renderTimeline()` applies `.active` to the current frame card. Current source does not consistently expose these as `aria-pressed`, `aria-current` or a semantic selected state. The UI-01 shell did not add such state wiring.
+
+### Confirmed current P2 findings
+
+- The production layer lock control still renders a lock emoji glyph in its button text. Its accessible name should be a meaningful layer action, e.g. “Lock [layer]” / “Unlock [layer]”, independent of the icon.
+- `<meta name="theme-color">` remains the old light value `#f2f0e9`, while the workstation app background is `#15191b`.
+- The dark workstation CSS sets some essential status/technical labels (including section kickers, selection status and stat labels) to 8 px. The AC-091 scale calls for 9–10 px technical readouts; preserve density while raising essential information.
+- The pixel canvas remains a flat `role="grid"` with direct cell descendants; no row grouping or row/column indexes were added by UI-01. The project allows up to 512×512 pixels, so the accessibility tree remains potentially very large. Do not claim the matrix/grid structure is screen-reader validated.
+
+### UI-01 changes and limits
+
+- UI-01 improved the workstation hierarchy and responsive layout: inspector reflows below the workspace around the 1050 px breakpoint; at 700 px the workspace stacks and tool controls reflow. The live DOM grid remains the drawing target.
+- CSS reduced-motion rules cover transitions/animations; the JavaScript playback loop still needs a runtime check to establish whether the preference is consistently applied in every mode.
+- The current shell has not been manually verified in a screen reader, keyboard-only browser session, high zoom or touch browser as part of this source recheck. No WCAG conformance claim is made.
+
+### Updated validation requirements
+
+Before AC-052 can be treated as an integrated release audit, add exact-head Chromium tests for the P1 routing and selected-state findings; inspect focus against the actual dark surface at each focusable control; exercise 320 CSS px and browser zoom; then perform manual NVDA/VoiceOver or TalkBack sampling for the grid, layer/frame controls, status, error and dialog behavior. Record which platform/version was tested and keep source-only assertions distinct from live assistive-technology findings.
