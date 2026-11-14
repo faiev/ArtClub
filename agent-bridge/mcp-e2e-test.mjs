@@ -295,6 +295,9 @@ async function run() {
       arguments: { x: 8, y: 8, color: "#ff00ff" }
     });
     assert.equal(lockedDraw.isError, true, "locked layers must reject drawing");
+    assert.equal(lockedDraw.structuredContent.ok, false);
+    assert.equal(lockedDraw.structuredContent.error.tool, "artclub_draw_pixel");
+    assert.match(lockedDraw.structuredContent.error.message, /locked/i);
     await callTool({
       name: "artclub_set_layer_locked",
       arguments: { layer_id: topLayerId, locked: false }
@@ -557,8 +560,11 @@ async function run() {
     );
     const staleWrite = concurrentWrites.find(result => result.isError === true);
     assert.match(staleWrite.content[0].text, /changed since your last read|revision/i);
+    assert.equal(staleWrite.structuredContent.ok, false);
+    assert.equal(staleWrite.structuredContent.error.tool, "artclub_draw_pixel");
+    assert.match(staleWrite.structuredContent.error.message, /changed since your last read/i);
 
-    console.log("MCP E2E passed: structured reads, revision-guarded writes, concurrency rejection, layers, selections, animation, export/import, PNG preview, save and input validation.");
+    console.log("MCP E2E passed: structured reads, structured errors, revision-guarded writes, concurrency rejection, layers, selections, animation, export/import, PNG preview, save and input validation.");
   } finally {
     await client.close().catch(() => {});
     await new Promise(resolve => staticServer.close(resolve));
