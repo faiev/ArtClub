@@ -46,7 +46,7 @@ At the start of each resumed session, fetch README, BOARD, BACKLOG, DECISIONS, y
 ## Start/resume protocol
 
 1. Fetch the six coordination files listed above from main.
-2. Read all phases in your assignment and select the first unfinished, unblocked item.
+2. Treat your assignment file as the canonical authorization and scope. Your status file may still contain the old single-task handoff until you resume; update it to the new workstream rather than treating stale status text as a blocker. Read all phases in your assignment and select the first unfinished, unblocked item.
 3. Report task IDs, active branch/head, current PRs, test state and blockers.
 4. Begin immediately. There is no need to ask permission to move to the next item in your assigned queue.
 5. Check file ownership and branch dependencies before each phase.
