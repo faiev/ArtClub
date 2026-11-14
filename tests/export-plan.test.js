@@ -54,7 +54,7 @@ test("plans all GIF frames with centisecond timing, infinite loop and bounded si
   assert.equal(plan.output.totalFramePixels, 12);
   assert.equal(plan.output.rgbaBufferBytes, 48);
   assert.equal(plan.output.indexedBufferBytes, 12);
-  assert.equal(plan.output.estimatedEncodedBytesUpperBound, 1298);
+  assert.equal(plan.output.estimatedEncodedBytesUpperBound, 1316);
   assert.deepEqual(plan.frames.map(frame => [
     frame.frameId, frame.durationMs, frame.encodedDelayCentiseconds, frame.effectiveDurationMs
   ]), [
@@ -151,7 +151,7 @@ test("supports row-first and vertical sprite-sheet planning", () => {
     margin: 1,
     spacing: 2
   });
-  assert.deepEqual([vertical.output.width, vertical.output.height], [4, 10]);
+  assert.deepEqual([vertical.output.width, vertical.output.height], [4, 12]);
   assert.deepEqual(vertical.frames.map(frame => [frame.x, frame.y]), [[1, 1], [1, 5], [1, 9]]);
 });
 
