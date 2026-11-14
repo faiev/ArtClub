@@ -169,7 +169,7 @@ Genuine headless Chromium captures were taken at device scale factor 1 from the 
 - `workstation-1440x900.webp` — full workstation.
 - `workstation-1280x800.webp` — compact desktop.
 - `workstation-860x740.webp` — responsive workspace with the inspector drawer open.
-- `workstation-390x844.webp` — phone state with the inspector drawer dismissed after Escape.
+- `workstation-390x844.webp` — phone state with the inspector drawer open.
 
 These files are **not committed to this PR**. The available GitHub repository connector in this session supports text-file writes but does not expose a binary asset upload operation. This section intentionally contains no relative repository links; the four attachments are linked directly in the Agent 5 handoff response.
 
