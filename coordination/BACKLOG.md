@@ -6,16 +6,16 @@ The coordinator owns this roadmap. The detailed, pre-authorized phase queues liv
 
 | Agent | Workstream | Authorized phase range | Deliverable family |
 |---|---|---|---|
-| 1 | QA / release reliability | AC-025, AC-029–033 | regression matrix, lifecycle/migration/export coverage, browser QA harness, release checker |
-| 2 | Rendering / navigation | AC-028, AC-034–038 | real-browser renderer tests, viewport/navigation utility, renderer adapter, benchmarks, integration demo |
-| 3 | Animation / export | AC-011, AC-027, AC-039–042 | GIF, sprite-sheet browser verification/layouts, export planner, stress/compatibility corpus, export docs |
-| 4 | Agent API / MCP | AC-004, AC-043–048 | deadlines/cancellation, process locking, security, capability discovery, export/pixel adapters, resilience |
-| 5 | UX / accessibility | AC-026, AC-049–054 | keyboard spec, workspace, layer/timeline, palette/export, accessibility audit, static prototypes, integrated roadmap |
-| 6 | Editing safety | AC-015, AC-055–060 | fail-closed guard, immutable edit transactions, mutation-path audit, browser harness, import staging, integration contract |
-| 7 | Tile workflows | AC-016, AC-061–066 | tile transforms, offset preview, tile-map data model, seam diagnostics, atlas planner, integration contract |
-| 8 | Palette tooling | AC-017, AC-067–073 | palette analysis, color science, transformations/generators, palette mapping, accessibility diagnostics, fuzz/format corpus |
-| 9 | Project diagnostics | AC-018, AC-074–079 | batch inspect, structural diff, deep diagnostics, migration preview, CI/SARIF report, docs |
-| 10 | Pixel algorithms | AC-019, AC-080–086 | raster primitives, flood fill, color/gradient operations, transforms, advanced dithering, golden fixtures, catalog |
+| 1 | QA / release reliability | AC-025, AC-029–033, AC-087 | regression matrix, lifecycle/migration/export coverage, browser QA harness, release checker |
+| 2 | Rendering / navigation | AC-028, AC-034–038, AC-088 | real-browser renderer tests, viewport/navigation utility, renderer adapter, benchmarks, integration demo |
+| 3 | Animation / export | AC-011, AC-027, AC-039–042, AC-089 | GIF, sprite-sheet browser verification/layouts, export planner, stress/compatibility corpus, export docs |
+| 4 | Agent API / MCP | AC-004, AC-043–048, AC-090 | deadlines/cancellation, process locking, security, capability discovery, export/pixel adapters, resilience |
+| 5 | UX / accessibility | AC-026, AC-049–054, AC-091 | keyboard spec, workspace, layer/timeline, palette/export, accessibility audit, static prototypes, integrated roadmap |
+| 6 | Editing safety | AC-015, AC-055–060, AC-092 | fail-closed guard, immutable edit transactions, mutation-path audit, browser harness, import staging, integration contract |
+| 7 | Tile workflows | AC-016, AC-061–066, AC-093 | tile transforms, offset preview, tile-map data model, seam diagnostics, atlas planner, integration contract |
+| 8 | Palette tooling | AC-017, AC-067–073, AC-094 | palette analysis, color science, transformations/generators, palette mapping, accessibility diagnostics, fuzz/format corpus |
+| 9 | Project diagnostics | AC-018, AC-074–079, AC-095 | batch inspect, structural diff, deep diagnostics, migration preview, CI/SARIF report, docs |
+| 10 | Pixel algorithms | AC-019, AC-080–086, AC-096 | raster primitives, flood fill, color/gradient operations, transforms, advanced dithering, golden fixtures, catalog |
 
 ## Workstream execution rules
 
