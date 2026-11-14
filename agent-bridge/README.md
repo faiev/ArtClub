@@ -25,13 +25,15 @@ npx playwright install chromium
 npm start
 ```
 
-The first launch opens a dedicated Chromium profile in `~/.artclub-agent-browser`. The active project library and autosaves are stored in that profile's browser storage. The MCP process stays running while the client is connected.
+The first launch opens a dedicated Chromium profile in `~/.artclub-agent-browser`. The active project library and autosaves are stored in that profile's browser storage. The MCP process stays running while the client is connected. The bridge serializes tool operations, requires a fresh document revision for writes, and reconnects its dedicated editor page after a recoverable browser-page failure.
 
 Environment options:
 
 - `ARTCLUB_URL`: editor URL; defaults to `https://faiev.github.io/ArtClub/`.
 - `ARTCLUB_HEADLESS=1`: run Chromium without a visible window.
-- `ARTCLUB_PROFILE_DIR`: choose a different persistent browser profile directory.
+- `ARTCLUB_PROFILE_DIR`: choose a different persistent browser profile directory
+
+`ARTCLUB_URL` must use HTTPS, except that plain HTTP is accepted for loopback development URLs (`localhost`, `127.0.0.1` or `::1`). URLs containing embedded credentials are rejected..
 
 ## Connect an MCP client
 
@@ -97,6 +99,18 @@ Restart or reload the MCP client after adding the server. The server should expo
 The origin is the top-left pixel. `x` increases to the right and `y` increases downward. Coordinates are integers and refer to logical grid cells, never CSS pixels or screen coordinates. A 24×24 canvas has valid coordinates 0–23 on both axes.
 
 Transparent cells are returned as `null`. A color is a six-digit `#RRGGBB` value.
+
+## Revision safety and multiple agents
+
+Every MCP tool that changes the document requires `expected_revision`. Call `artclub_get_status` immediately before editing and pass the returned `revision` with the write. Read status again after each successful write; the revision changes as the document changes.
+
+The bridge serializes requests from its MCP connection and checks the revision in the browser immediately before the operation. When two calls target the same revision, only the first can proceed; later stale calls return an error asking the agent to read status again. The bridge never silently retries a stale edit.
+
+The bridge owns one persistent Chromium profile. Do not start two bridge processes with the same `ARTCLUB_PROFILE_DIR`; use one bridge process for one editor session. Separate profile directories are separate local project libraries, not shared concurrent workspaces.
+
+If the editor tab is closed, crashes or navigates away, the next tool call attempts to reopen the editor automatically. If the browser disconnects during an operation, its outcome may be uncertain: call `artclub_get_status` before retrying so an already-completed edit is not duplicated.
+
+Read-only array results are returned in object envelopes for structured MCP clients: `{ palette }`, `{ layers }` and `{ projects }`. Project JSON export returns `{ project_json }`; PNG export includes MIME type and dimensions in structured content alongside the image block.
 
 Example batch:
 
