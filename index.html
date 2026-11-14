@@ -492,6 +492,13 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
   *,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
 
+
+/* Fit the complete live pixel grid into the bounded workstation viewport.
+   Keep its inline project aspect ratio so the first/last pixel stay reachable. */
+.canvas-wrap #pixelGrid{
+  width:100%;height:auto;max-width:min(100%,560px);max-height:100%;
+}
+
 </style>
 </head>
 <body>
