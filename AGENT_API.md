@@ -33,6 +33,24 @@ const projects = await studio.list_projects();
 
 `get_canvas({ include_pixels: false })` returns metadata without the pixel array. The status includes a monotonically increasing `revision`, undo/redo availability and whether a human pointer stroke is in progress.
 
+## Revision and concurrency safety
+
+Every state-changing MCP tool requires an `expected_revision` value. Read `get_status` immediately before an edit and pass its `revision`:
+
+```js
+let status = studio.get_status();
+await studio.draw_pixel({
+  x: 4, y: 7,
+  color: "#e96f55",
+  expected_revision: status.revision
+});
+status = studio.get_status(); // use the new revision for the next edit
+```
+
+The direct browser API keeps `expected_revision` optional for backward compatibility, but omitting it removes stale-write protection. The local MCP bridge requires it for every document-changing tool, including layer, selection, frame, undo/redo and project-switch operations.
+
+The bridge serializes tool calls. If two agents submit edits based on the same revision, the first accepted edit advances the document revision and the later stale edit is rejected. The rejected agent must read the new status, inspect the current artwork and decide whether its planned change is still appropriate; the bridge does not automatically replay edits.
+
 ## Drawing operations
 
 ```js
@@ -93,7 +111,7 @@ await studio.move_layer({ layer_id: highlightLayerId, direction: "down" });
 
 Available layer methods: `list_layers`, `add_layer`, `select_layer`, `set_layer_visibility`, `set_layer_locked`, `rename_layer`, `move_layer`, `duplicate_layer` and `delete_layer`.
 
-The layer panel and agent API share one project stack. Drawing commands target the active visible, unlocked layer. Pixel and canvas read operations return the composite of visible layers. Layer actions participate in undo/redo, autosave and revision protection; deleting the final remaining layer is rejected.
+The layer panel and agent API share one project stack. Drawing commands target the active visible, unlocked layer. Pixel and canvas read operations return the composite of visible layers. Layer actions participate in undo/redo and autosave; pass `expected_revision` when you need stale-write protection. Deleting the final remaining layer is rejected.
 
 ## Rectangular selection and transforms
 
@@ -228,12 +246,18 @@ Safety rules:
 ## History, projects and export
 
 ```js
-studio.undo();
-studio.redo();
+let historyStatus = studio.get_status();
+studio.undo({ expected_revision: historyStatus.revision });
+historyStatus = studio.get_status();
+studio.redo({ expected_revision: historyStatus.revision });
 await studio.save();
 
 const projectJson = studio.export_project();
-await studio.import_project({ project_json: projectJson });
+const beforeImport = studio.get_status();
+await studio.import_project({
+  project_json: projectJson,
+  expected_revision: beforeImport.revision
+});
 
 const savedProjects = await studio.list_projects();
 await studio.open_project({ project_id: savedProjects[0].id });
