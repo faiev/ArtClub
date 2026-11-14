@@ -24,15 +24,6 @@ const REQUIRED_PATHS = [
   "tests/qa/compatibility/gif-export-contract.test.js",
   "tests/qa/browser/project-lifecycle.html",
   "tests/qa/browser/project-lifecycle.mjs",
-const REQUIRED_QA_COMMANDS = [
-  "node --test tests/qa/lifecycle/project-lifecycle.test.js",
-  "node --test tests/qa/lifecycle/editor-switch-contract.test.js",
-  "node --test tests/qa/compatibility/project-compatibility.test.js",
-  "node --test tests/qa/compatibility/gif-export-contract.test.js",
-  "node --test tests/qa/release/qa-release-check.test.js",
-  "node tests/qa/browser/project-lifecycle.mjs"
-];
-
   "tests/qa/release/qa-release-check.test.js",
   "docs/QA_MATRIX.md",
   "docs/RELEASE_CHECKLIST.md",
@@ -48,6 +39,15 @@ const REQUIRED_QA_COMMANDS = [
   "agent-bridge/server.mjs",
   "agent-bridge/e2e-test.mjs",
   "agent-bridge/mcp-e2e-test.mjs"
+];
+
+const REQUIRED_QA_COMMANDS = [
+  "node --test tests/qa/lifecycle/project-lifecycle.test.js",
+  "node --test tests/qa/lifecycle/editor-switch-contract.test.js",
+  "node --test tests/qa/compatibility/project-compatibility.test.js",
+  "node --test tests/qa/compatibility/gif-export-contract.test.js",
+  "node --test tests/qa/release/qa-release-check.test.js",
+  "node tests/qa/browser/project-lifecycle.mjs"
 ];
 
 const WORKFLOW = [
@@ -82,12 +82,11 @@ function populateCompleteFixture(root, recordedMainSha = null) {
   }, null, 2));
 
   writeFile(root, ".github/workflows/project-tests.yml", WORKFLOW);
-
+  writeFile(root, "docs/RELEASE_CHECKLIST.md", REQUIRED_QA_COMMANDS.join("\n"));
   writeFile(root, "coordination/BOARD.md", [
     "# Board",
     "Coordination source: main"
   ].join("\n"));
-
   writeFile(root, "coordination/status/agent-1.md", [
     "# Agent 1 status",
     "Coordination source: main",
@@ -105,6 +104,19 @@ function runGit(root, args) {
     throw new Error(result.stderr || (result.error && result.error.message) || "git command failed");
   }
   return result.stdout.trim();
+}
+
+function snapshotPaths(root, directory = root, prefix = "") {
+  const entries = fs.readdirSync(directory, { withFileTypes: true });
+  const output = [];
+  for (const entry of entries) {
+    const relative = path.posix.join(prefix, entry.name);
+    output.push(relative);
+    if (entry.isDirectory()) {
+      output.push(...snapshotPaths(root, path.join(directory, entry.name), relative));
+    }
+  }
+  return output.sort();
 }
 
 test("reports missing required files and bridge scripts as failures", () => {
@@ -128,13 +140,30 @@ test("reports missing required files and bridge scripts as failures", () => {
   }
 });
 
+test("reports a missing bridge test script even when the package file exists", () => {
+  const root = temporaryRoot();
+  try {
+    populateCompleteFixture(root);
+    writeFile(root, "agent-bridge/package.json", JSON.stringify({
+      name: "artclub-bridge-fixture",
+      scripts: { "test:e2e": "node e2e-test.mjs" }
+    }));
+    const report = checkReleaseReadiness({ root });
+    assert.equal(report.checks.find(check => check.id === "bridge-script:test:e2e").status, "pass");
+    assert.equal(report.checks.find(check => check.id === "bridge-script:test:mcp").status, "fail");
+    assert.equal(report.ok, false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("complete local fixture passes required-file checks but warns about nested QA and CI integration", () => {
   const root = temporaryRoot();
   try {
     populateCompleteFixture(root);
-    const before = fs.readdirSync(root, { recursive: true }).sort();
+    const before = snapshotPaths(root);
     const report = checkReleaseReadiness({ root });
-    const after = fs.readdirSync(root, { recursive: true }).sort();
+    const after = snapshotPaths(root);
 
     assert.equal(report.ok, true);
     assert.ok(report.counts.pass > 0);
@@ -148,23 +177,6 @@ test("complete local fixture passes required-file checks but warns about nested 
     assert.ok(nested.details.includes("tests/qa/release/qa-release-check.test.js"));
     const browser = report.checks.find(check => check.id === "lifecycle-browser-ci");
     assert.equal(browser.status, "warn");
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
-
-test("reports a missing bridge test script even when the package file exists", () => {
-  const root = temporaryRoot();
-  try {
-    populateCompleteFixture(root);
-    writeFile(root, "agent-bridge/package.json", JSON.stringify({
-      name: "artclub-bridge-fixture",
-      scripts: { "test:e2e": "node e2e-test.mjs" }
-    }));
-    const report = checkReleaseReadiness({ root });
-    assert.equal(report.checks.find(check => check.id === "bridge-script:test:e2e").status, "pass");
-    assert.equal(report.checks.find(check => check.id === "bridge-script:test:mcp").status, "fail");
-    assert.equal(report.ok, false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -187,8 +199,8 @@ test("reports coordination freshness only when local Git refs allow a comparison
     runGit(root, ["commit", "-m", "Initial coordination state"]);
     const recordedSha = runGit(root, ["rev-parse", "HEAD"]);
 
-    // Move HEAD and origin/main forward; the status file still records the
-    // preceding main SHA, which can now be proven to be an ancestor.
+    // Advance main and origin/main. The Agent 1 status still records the
+    // prior SHA, which is now provably an ancestor of the local tracking ref.
     writeFile(root, "README.md", "newer main state\n");
     runGit(root, ["add", "README.md"]);
     runGit(root, ["commit", "-m", "Advance main"]);
@@ -203,7 +215,10 @@ test("reports coordination freshness only when local Git refs allow a comparison
     const freshness = report.checks.find(check => check.id === "coordination-freshness");
     assert.equal(freshness.status, "warn");
     assert.equal(freshness.details.recordedMain, recordedSha);
-    assert.equal(freshness.details.localOriginMain, runGit(root, ["rev-parse", "refs/remotes/origin/main"]));
+    assert.equal(
+      freshness.details.localOriginMain,
+      runGit(root, ["rev-parse", "refs/remotes/origin/main"])
+    );
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -230,13 +245,13 @@ test("CLI help exits successfully without inspecting or changing the repository"
   const root = temporaryRoot();
   try {
     const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../tools/qa-release-check.mjs");
-    const before = fs.readdirSync(root);
+    const before = snapshotPaths(root);
     const result = spawnSync(process.execPath, [script, "--help", "--root", root], {
       encoding: "utf8"
     });
     assert.equal(result.status, 0);
     assert.match(result.stdout, /Usage:/);
-    assert.deepEqual(fs.readdirSync(root), before);
+    assert.deepEqual(snapshotPaths(root), before);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
