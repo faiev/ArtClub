@@ -129,6 +129,53 @@ Available selection methods: `set_selection`, `select_all`, `copy_selection`, `c
 
 The rectangle must be a positive integer size fully inside the canvas. A quarter-turn swaps selection width and height; the API rejects the operation if the rotated rectangle would extend beyond the canvas. Selection changes increment the document revision so agents can reject stale operations. The clipboard is local to the open editor page and is not stored in the project file.
 
+## Animation frames and timing
+
+Each frame has its own cel for every layer. Switching frames preserves the other frames, and all visible layers are composited for the active frame.
+
+```js
+const status = studio.get_status();
+const originalFrameId = status.active_frame.id;
+
+const added = await studio.add_frame({
+  name: "Walk 2",
+  duration_ms: 120,
+  expected_revision: status.revision
+});
+const walkFrameId = added.active_frame.id;
+
+await studio.draw_pixel({ x: 8, y: 8, color: "#f5c66d" });
+
+await studio.select_frame({ frame_id: originalFrameId });
+await studio.select_frame({ frame_id: walkFrameId });
+
+// Duplicate the frame and all of its layer cels.
+const copy = await studio.duplicate_frame({
+  frame_id: walkFrameId,
+  name: "Walk 2 copy"
+});
+
+await studio.set_frame_duration({
+  frame_id: copy.active_frame.id,
+  duration_ms: 180
+});
+await studio.rename_frame({
+  frame_id: copy.active_frame.id,
+  name: "Walk 2 contact pose"
+});
+await studio.move_frame({
+  frame_id: copy.active_frame.id,
+  direction: "up"
+});
+await studio.delete_frame({ frame_id: copy.active_frame.id });
+
+const frames = studio.list_frames();
+```
+
+Frame methods: `list_frames`, `add_frame`, `duplicate_frame`, `select_frame`, `delete_frame`, `move_frame`, `set_frame_duration` and `rename_frame`. Durations are integer milliseconds from 10 to 60,000. A project must retain at least one frame. Frame switching and frame edits participate in undo/redo, autosave and revision protection.
+
+The current timeline is for editing and organization. Real-time playback, onion skin, frame thumbnails and sprite-sheet/GIF export are not implemented yet.
+
 ## Batches and transactions
 
 For sprite construction, batch related operations so the artist can undo the whole pass:
@@ -179,4 +226,4 @@ The project library uses browser-local IndexedDB. JSON export is the portable ba
 
 ## Current limits
 
-The editor exposes editable layers and rectangular selection/transforms, but still only one animation frame. Layer- and selection-aware agent commands share the active document. Frame/timeline editing is not yet available.
+The editor exposes editable layers, rectangular selection/transforms and a multi-frame timeline. Frame-aware agent commands edit the active frame's cel; real-time playback, onion skin and animation export remain outstanding.
