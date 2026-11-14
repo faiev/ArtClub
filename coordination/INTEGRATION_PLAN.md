@@ -218,3 +218,48 @@ This update supersedes the earlier UI-01 status that referenced head `29e348...`
 - Exact-head workflow [#43622262911](https://github.com/faiev/ArtClub/actions/runs/43622262911) completed successfully. Node/editor and Chromium jobs passed; the browser job's real editor E2E, animated GIF decoder and MCP client steps all passed.
 - PR #84 is ready for review, not merged. Agent 1/2/5 review tasks are now written to their assignment files. Their independent review findings have not yet arrived, and no visual screenshot artifact was produced by Actions.
 - Current production `index.html` on main is still unchanged. Do not claim Pages publication until a later merge and deployment inspection.
+
+## UI-00 / AC-091 acceptance and merge — 2026-11-14
+
+- Agent 5's [PR #77](https://github.com/faiev/ArtClub/pull/77) was accepted and squash-merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610`. It adds only the workstation design system, standalone prototype and review document under `docs/ux/**`.
+- The coordinator accepted the graphite/olive workstation direction; the prototype's non-production limitations remain explicit. Agent 5 continues to own only `docs/ux/**`; production `index.html` ownership remains with the coordinator.
+- The four WebP viewport captures are reported as attachments in Agent 5's handoff, but are not committed to the repository or visible in this coordinator session. This is recorded as agent-reported Chromium review rather than independently inspected screenshot evidence.
+
+## UI-01 current production candidate — post UI-00 merge
+
+- Coordinator PR [#84 — UI-01: Introduce the production workstation shell](https://github.com/faiev/ArtClub/pull/84) remains open and unmerged. Previous tested head: `c955acae6ae8a5e11f4b4f5cc689884362c3002e`; exact-head run [#43622555688](https://github.com/faiev/ArtClub/actions/runs/43622555688) passed both Node/editor and Chromium editor/GIF/MCP jobs.
+- UI-01's only changed files remain `index.html` and `tests/ui-workstation-shell.test.js`. It preserves the existing DOM-grid renderer, project model/storage, live tool/selection/layer/frame/timeline/palette/import/export/project-library/save/recovery commands and Agent API scripts. It does not add placeholder menus, synthetic cel matrix, renderer replacement or new export functionality.
+- PR #77's merge moved main after PR #84's previous tested base. The coordinator is refreshing PR #84 with a non-force merge and will rerun exact-head CI before further review/merge decisions.
+- Specialist reviews remain assigned: Agent 1 (12-flow task QA), Agent 2 (canvas viewport/pointer sizing and responsive layout), Agent 5 (production visual-design review). At this update, their independent review responses are not yet recorded.
+- GitHub Actions does not emit screenshot artifacts for the shell workflow. Automated interaction tests pass on the previous candidate; independent 1440×900 and 1280×800 visual inspection remains an explicit review gate.
+- Production `index.html` on main remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no production shell has merged to main or been published. After PR #84 merge, inspect the GitHub Pages deployment and live editor before claiming release.
+
+## UI-01 post-UI-00 exact-head validation — 2026-11-14
+
+- UI-00 / AC-091 is accepted and merged via PR #77 as `a229a8c0028dc4290c3f5da811fa565fc3a17610`.
+- PR #84 was synchronized non-force against the post-UI-00 coordination main. Current reviewed branch head: `fa5c105ce8f98043f92e18cab33f9cfa0d4d21f8`; main base at sync: `2551198bde4cb528ff84b0ff908b478abcb2c1fc`; compare: 10 ahead / 0 behind; changed-file scope: `index.html` and `tests/ui-workstation-shell.test.js` only.
+- Exact-head Actions [#43623647840](https://github.com/faiev/ArtClub/actions/runs/43623647840) completed successfully. Node/editor test job and real Chromium browser job passed, including animated GIF decode and MCP client E2E.
+- The earlier canvas clipping regression was fixed by constraining `#pixelGrid` to the available viewport; the real-browser drawing assertion now passes on the current head.
+- Independent reviews remain pending: Agent 1 must report the 12-flow task matrix; Agent 2 must report canvas geometry/pointer/responsive checks; Agent 5 must review fidelity of the actual production implementation to the now-merged design system. No agent status file has yet recorded these review outcomes.
+- The workflow did not publish screenshot artifacts. Automated browser behavior is green, but explicit 1440×900 and 1280×800 visual screenshot review remains outstanding.
+- Current `main` production `index.html` remains unchanged at blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; PR #84 is not merged. No production redesign or GitHub Pages publication is claimed.
+
+## UI-01 final validation snapshot — 2026-11-14
+
+- UI-00/AC-091 merged separately as PR #77 (`a229a8c0028dc4290c3f5da811fa565fc3a17610`).
+- Current UI-01 application/test tree was validated on branch head `64d68de63abae730623ac81b670562a950d66759`, based on main `2158b11245905dc3de458784b63f7c0e391e9df2`; PR source diff is exactly `index.html` and `tests/ui-workstation-shell.test.js`.
+- Exact-head workflow [#43623873430](https://github.com/faiev/ArtClub/actions/runs/43623873430) completed successfully. Node test job: **241 passed, 0 failed**. Browser job: real Chromium editor E2E, animated GIF ImageDecoder and MCP client E2E all passed.
+- Verified browser log detail: drawing, undo/redo, agent batch, layers, custom canvas, real animation playback, onion skin, PNG, IndexedDB library and reload recovery passed; GIF ImageDecoder checked every pixel of both decoded frames including transparent disposal overlap; MCP E2E passed drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
+- The first candidate's clipped first-pixel drawing regression was fixed before this final run. The current tested tree includes the `#pixelGrid` viewport constraint.
+- Specialist reviews are still outstanding: Agent 1's independent 12-flow task matrix, Agent 2's viewport/pointer/responsive review and Agent 5's production visual-design review. The existing workflow does not emit desktop screenshots, so manual 1440×900 / 1280×800 visual evidence remains open. Do not mark these review gates complete from the standard E2E result.
+- Current production `index.html` on main remains the original blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; PR #84 is not merged and no published workstation redesign is claimed.
+
+## UI-01 production release — merged and deployed (2026-11-14)
+
+- **PR #84** merged successfully as `e22ddb35ebf802b3b719e74a7329effceab28747`.
+- Production `index.html` on main is now blob `4645281c1aad8580529e7feb99cd299a88543913` (the prior production blob was `1a29a9eca58d9035287af1ff58b97f2ff4040a69`). The production workstation shell is now part of main.
+- Pre-merge exact-head CI [#43624220195](https://github.com/faiev/ArtClub/actions/runs/43624220195) passed. Post-merge push test workflow [#43624328658](https://github.com/faiev/ArtClub/actions/runs/43624328658) also passed both Node and Chromium/GIF/MCP jobs.
+- GitHub Pages build/deploy [#43624328006](https://github.com/faiev/ArtClub/actions/runs/43624328006) completed successfully on merge commit `e22ddb35...`; build, artifact upload and deployment steps all passed. Deploy log reported environment URL: [https://faiev.github.io/ArtClub/](https://faiev.github.io/ArtClub/).
+- **Visual verification limitation:** direct fetching of the public Pages URL is blocked in this coordinator session. Deployment status and the target commit are verified, but a rendered-page screenshot/visual inspection is not claimed. Ask a reviewer with browser access to inspect the published site at 1440×900 and 1280×800 and report any clipping/density issues.
+- Specialist reports (Agent 1's 12-flow matrix, Agent 2's responsive/pointer review, Agent 5's production visual review) were requested but had not yet appeared in their status files at the time of merge. The functional suite is green; keep these manual reviews as post-release QA follow-up and fix any verified issues in a new narrowly scoped PR.
+- Scope remains UI shell only: original DOM-grid renderer, project model/storage, commands, data behavior, local-first architecture and current exports are preserved. No renderer switch, schema migration, bridge, server/backend or new tool capability was included.
