@@ -462,6 +462,8 @@ test("CLI preserves a failing built-in Node test exit code and JSON failure deta
 test("CLI returns non-zero when no selected files can run and prints actual help text", () => {
   const root = makeRoot();
   try {
+    const browser = SUITE_MANIFEST.find(suite => suite.name === "browser");
+    put(root, browser.files[0].path);
     const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../tools/run-qa.mjs");
     const skipped = spawnSync(process.execPath, [
       script, "--suite", "browser", "--root", root, "--json"
