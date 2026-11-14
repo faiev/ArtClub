@@ -216,18 +216,21 @@
           committedRevision: nextRevision,
           commitToken: commitToken
         });
-        self.rollbackReceipts.set(receipt, {
-          previous: previous,
-          previousRecovery: previousRecovery
-        });
+        let committedRecovery = previousRecovery;
         if (previous && previous.data) {
-          recovery.put({
+          committedRecovery = {
             projectId: copy.id,
             projectName: previous.name,
             savedAt: previous.updatedAt,
             data: previous.data
-          });
+          };
+          recovery.put(committedRecovery);
         }
+        self.rollbackReceipts.set(receipt, {
+          previous: previous,
+          previousRecovery: previousRecovery,
+          committedRecovery: committedRecovery
+        });
         projects.put(record);
         versions.put({
           projectId: copy.id,
@@ -275,8 +278,10 @@
     let failure = null;
     let current = null;
     let version = null;
+    let currentRecovery = null;
     let primaryReady = false;
     let versionReady = false;
+    let recoveryReady = false;
     let restoreStarted = false;
     let rollbackVersionToken = null;
 
@@ -305,12 +310,23 @@
       abortWith(versionRequest.error || new Error("Could not verify the committed project revision before rollback."));
     };
 
+    const recoveryRequest = recovery.get(projectId);
+    recoveryRequest.onsuccess = function () {
+      currentRecovery = recoveryRequest.result || null;
+      recoveryReady = true;
+      restoreWhenReady();
+    };
+    recoveryRequest.onerror = function () {
+      abortWith(recoveryRequest.error || new Error("Could not verify the recovery snapshot before rollback."));
+    };
+
     function restoreWhenReady() {
-      if (!primaryReady || !versionReady || restoreStarted || failure) return;
+      if (!primaryReady || !versionReady || !recoveryReady || restoreStarted || failure) return;
       restoreStarted = true;
       const currentToken = version || revisionTokenOf(current);
       if (!current || currentToken.revision !== receipt.committedRevision ||
-          currentToken.commitToken !== receipt.commitToken) {
+          currentToken.commitToken !== receipt.commitToken ||
+          JSON.stringify(currentRecovery) !== JSON.stringify(snapshot.committedRecovery)) {
         abortWith(conflictError(projectId, receipt.committedRevision, currentToken.revision));
         return;
       }
