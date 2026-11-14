@@ -142,6 +142,14 @@ test("reports legacy migration and optional metadata warnings", () => {
   assert.ok(result.warnings.some(d => d.code === "LEGACY_PROJECT_MIGRATED"));
 });
 
+test("rejects duplicate IDs and invalid normalized project documents", () => {
+  const duplicate = projectFixture();
+  duplicate.layers.push({ ...duplicate.layers[0], id: duplicate.layers[0].id });
+  const result = Staging.stageProjectImport(duplicate);
+  assert.equal(result.ok, false);
+  assert.ok(result.diagnostics.some(d => d.code === Staging.REASONS.PROJECT_MODEL_INVALID));
+});
+
 test("rejects cyclic project objects without throwing or mutating them", () => {
   const project = projectFixture();
   project.metadata.self = project.metadata;

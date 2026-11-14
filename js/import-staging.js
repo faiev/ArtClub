@@ -301,17 +301,18 @@
         "Project metadata is absent; the import will preserve that optional absence."));
     }
 
-    const validation = ProjectModel.validateProject(candidate);
-    if (!validation.valid) {
-      return failure("project", validation.errors.map(function (message) {
-        return makeDiagnostic(REASONS.PROJECT_MODEL_INVALID, "error", message);
-      }), warnings);
-    }
-
     let stagedProject;
     try { stagedProject = ProjectModel.deserializeProject(candidate); }
     catch (error) {
       return failure("project", [makeDiagnostic(REASONS.PROJECT_MODEL_INVALID, error.message)], warnings);
+    }
+    // Deserialize first so supported legacy projects can migrate, then validate
+    // the normalized detached candidate before it becomes a commit description.
+    const validation = ProjectModel.validateProject(stagedProject);
+    if (!validation.valid) {
+      return failure("project", validation.errors.map(function (message) {
+        return makeDiagnostic(REASONS.PROJECT_MODEL_INVALID, "error", message);
+      }), warnings);
     }
 
     freezeDeep(stagedProject);
