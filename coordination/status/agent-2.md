@@ -20,12 +20,10 @@
 - Upgraded the benchmark page with alternating sample order, configurable warm-ups/samples, median, nearest-rank p95, raw samples, environment metadata and downloadable JSON.
 - Updated the rendering architecture and benchmark instructions. No changes to index.html, project model, Agent API or MCP bridge; renderer remains isolated.
 
-## Test evidence
+## Earlier test evidence (superseded)
 
-- GitHub Actions run: https://github.com/faiev/ArtClub/actions/runs/43602659855
-- Node 24 job: **52 passed, 0 failed** (includes 17 renderer tests); `node --check agent-bridge/server.mjs` passed.
-- Chromium installation succeeded in CI. The editor browser E2E job failed at `agent-bridge/e2e-test.mjs:229`: persistence assertion “refresh should preserve saved pixels”, expected `#ff0000`, actual `null`. That file is outside this task's diff and this is the previously observed persistence failure. MCP client job was skipped after the E2E step failed.
-- **Renderer benchmark timings: not measured.** The harness is ready for a real browser run; no performance gain is claimed. Instructions: `python3 -m http.server 8000`, open `http://localhost:8000/benchmarks/renderer-benchmark.html`, then download the JSON report. Default: 2 warm-ups and 5 samples at sizes 32, 64, 128, 256 and 512.
+- Initial pre-correction run #43602659855 had a persistence E2E failure before Agent 1's recovery fix was merged. This result is historical and is superseded by the green final merged-head run recorded below.
+- Renderer benchmark timings remain **not measured**; no performance gain is claimed. To collect results, run `python3 -m http.server 8000` and open `http://localhost:8000/benchmarks/renderer-benchmark.html`.
 
 ## Risks / handoff
 
