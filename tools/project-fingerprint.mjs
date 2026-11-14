@@ -566,7 +566,9 @@ function collectBatchFiles(inputPaths, recursive) {
   warnings.sort((left, right) =>
     lexicalCompare(left.path, right.path) || lexicalCompare(left.code, right.code)
   );
-  return { files, discoveryErrors, warnings, fatalLimit };
+  const discoveredFiles = files.length;
+  if (fatalLimit) files.length = 0;
+  return { files, discoveredFiles, discoveryErrors, warnings, fatalLimit };
 }
 
 function collectDuplicateGroups(results, fingerprintPath) {
@@ -627,7 +629,7 @@ function inspectBatch(inputPaths, recursive) {
   );
 
   const summary = {
-    discoveredFiles: collected.files.length,
+    discoveredFiles: collected.discoveredFiles,
     fingerprintedFiles: successful.length,
     failedFiles: files.length - successful.length,
     discoveryErrors: collected.discoveryErrors.length,
