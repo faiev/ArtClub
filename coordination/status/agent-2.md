@@ -230,3 +230,13 @@ Each update used the existing branch ref with `force=false` and an expected-old-
 No local shell commands or browser tests were executed. Remote GitHub operations: read latest refs/commit trees; built merge trees from current main plus the four PR-owned blobs; created five non-force merge commits with the existing branch head as first parent and fetched main as second parent; updated the existing branch with expected-SHA leases; compared final head against main; queried PR metadata and Actions runs. No branch creation, deletion, PR creation, PR closure, force push, production file edit, or workflow edit.
 
 **Disposition:** branch synchronization step completed with verified SHA and unchanged four-file PR scope; PR #18 itself remains **unresolved** because the dedicated browser/benchmark gate and final-head CI evidence are outstanding.
+
+
+### AC-028 follow-up correction
+
+After the preceding status entry was committed, main advanced once more. The existing PR branch was non-force synchronized again:
+- Main parent: `ba721951a96009f53df77d343aa834499ee3992e`
+- New branch head: `c170ae75e69a1fc836fe8aae1075bd94294660e0`
+- Compare at that point: 19 ahead / 0 behind; effective diff remained the same four AC-028 files.
+- Exact-head Actions run [#43646093965](https://github.com/faiev/ArtClub/actions/runs/43646093965) was queued, not completed, at last observation.
+- PR #18 remained open and draft. The dedicated AC-028 runner was still not executed; no completion or merge-readiness claim.
