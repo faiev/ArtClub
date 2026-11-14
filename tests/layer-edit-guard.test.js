@@ -98,7 +98,7 @@ test("rejects malformed documents and malformed target pixel buffers", () => {
 
   const badCanvas = makeProject();
   badCanvas.canvas.width = 0;
-  assert.equal(Guard.resolveEditableTarget(badCanvas).reason, Guard.REASONS.PROJECT_INVALID);
+  assert.equal(Guard.resolveEditableTarget(badCanvas).reason, Guard.REASONS.CANVAS_SIZE_INVALID);
 
   const badLayer = makeProject();
   delete badLayer.layers[0].visible;
