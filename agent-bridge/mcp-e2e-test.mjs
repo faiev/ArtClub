@@ -118,7 +118,10 @@ async function run() {
       "artclub_get_canvas",
       "artclub_get_palette",
       "artclub_draw_pixel",
+      "artclub_draw_line",
+      "artclub_draw_rectangle",
       "artclub_draw_ellipse",
+      "artclub_fill",
       "artclub_erase_pixel",
       "artclub_erase_rectangle",
       "artclub_set_color",
@@ -131,6 +134,7 @@ async function run() {
       "artclub_export_png",
       "artclub_save",
       "artclub_list_projects",
+      "artclub_open_project",
       "artclub_list_layers",
       "artclub_add_layer",
       "artclub_select_layer",
@@ -164,6 +168,13 @@ async function run() {
       "artclub_set_onion_skin"
     ]) {
       assert.ok(names.has(required), "MCP server should register " + required);
+    }
+    for (const name of revisionRequiredTools) {
+      const tool = toolList.tools.find(item => item.name === name);
+      assert.ok(
+        tool.inputSchema.required?.includes("expected_revision"),
+        name + " must require expected_revision in its MCP input schema"
+      );
     }
 
     const statusResult = await callTool({
