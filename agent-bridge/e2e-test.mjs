@@ -138,15 +138,52 @@ async function run() {
     const reopenedPixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }));
     assert.equal(reopenedPixel.color, "#ff0000", "opening a saved project should preserve agent artwork");
 
+    const baseLayerId = reopenedStatus.active_layer.id;
+    const addedLayer = await page.evaluate(() =>
+      window.onePixelStudio.add_layer({ name: "Browser Details" })
+    );
+    const frontLayerId = addedLayer.active_layer.id;
+    assert.equal(addedLayer.layers.length, 2);
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 2, y: 2, color: "#ff8800" })
+    );
+    await page.evaluate(id => window.onePixelStudio.select_layer({ layer_id: id }), baseLayerId);
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 2, y: 2, color: "#0088ff" })
+    );
+    let compositePixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 2, y: 2 })
+    );
+    assert.equal(compositePixel.color, "#ff8800", "front layer should cover the lower layer");
+    await page.evaluate(id =>
+      window.onePixelStudio.set_layer_visibility({ layer_id: id, visible: false }),
+      frontLayerId
+    );
+    compositePixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 2, y: 2 })
+    );
+    assert.equal(compositePixel.color, "#0088ff", "hiding front layer should reveal the lower layer");
+    await page.evaluate(id =>
+      window.onePixelStudio.set_layer_visibility({ layer_id: id, visible: true }),
+      frontLayerId
+    );
+    await page.evaluate(id => window.onePixelStudio.select_layer({ layer_id: id }), frontLayerId);
+    await page.evaluate(() => window.onePixelStudio.save());
+
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => Boolean(window.onePixelStudio), null, { timeout: 30_000 });
     const afterReload = await page.evaluate(() => window.onePixelStudio.get_status());
     assert.equal(afterReload.project_id, firstProjectId, "refresh should restore the active project");
+    assert.equal(afterReload.layers.length, 2, "refresh should preserve the layer stack");
     const afterReloadPixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }));
     assert.equal(afterReloadPixel.color, "#ff0000", "refresh should preserve saved pixels");
+    const persistedLayerPixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 2, y: 2 })
+    );
+    assert.equal(persistedLayerPixel.color, "#ff8800", "refresh should preserve the visible layer composite");
 
     assert.deepEqual(pageErrors, [], "the app should not throw browser runtime errors");
-    console.log("Browser E2E passed: mouse drawing, undo/redo, agent batch, PNG, IndexedDB library and reload recovery.");
+    console.log("Browser E2E passed: mouse drawing, undo/redo, agent batch, layer compositing, custom canvas, PNG, IndexedDB library and reload recovery.");
   } finally {
     await browser?.close();
     await new Promise(resolve => server.close(resolve));
