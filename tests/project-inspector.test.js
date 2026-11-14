@@ -612,15 +612,14 @@ test("deep diagnostics preserve model validation as a separate authoritative res
   assert.ok(report.diagnostics.every((item) => item.source === "supplemental"));
 });
 
-test("deep diagnostics flags unsupported versions, invalid dimensions and short pixel arrays", (t) => {
+test("deep diagnostics flags unsupported versions and invalid canvas dimensions", (t) => {
   const directory = temporaryDirectory(t);
   const source = copyFixture(directory, "valid-v2.json");
   const project = JSON.parse(fs.readFileSync(source, "utf8"));
   project.version = 99;
   project.canvas.width = 0;
   project.canvas.height = 900;
-  project.cels[0].pixels.pop();
-  const file = writeDiagnosticProject(directory, "unsupported-short.json", project);
+  const file = writeDiagnosticProject(directory, "unsupported-dimensions.json", project);
 
   const result = runDiagnostics(file);
   assert.equal(result.status, 1);
@@ -629,9 +628,24 @@ test("deep diagnostics flags unsupported versions, invalid dimensions and short 
   assert.ok(codes.has("UNSUPPORTED_VERSION"));
   assert.ok(codes.has("CANVAS_WIDTH_INVALID"));
   assert.ok(codes.has("CANVAS_HEIGHT_INVALID"));
-  assert.ok(codes.has("PIXEL_ARRAY_SHORT"));
   assert.equal(report.schema.valid, false);
   assert.ok(report.schema.errors.some((message) => /Unsupported project version/.test(message)));
+});
+
+test("deep diagnostics flags shortened cel pixel arrays without inferring missing transparency", (t) => {
+  const directory = temporaryDirectory(t);
+  const source = copyFixture(directory, "valid-v2.json");
+  const project = JSON.parse(fs.readFileSync(source, "utf8"));
+  project.cels[0].pixels.pop();
+  const file = writeDiagnosticProject(directory, "short-pixels.json", project);
+
+  const result = runDiagnostics(file);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  const shortArray = report.diagnostics.find((item) => item.code === "PIXEL_ARRAY_SHORT");
+  assert.ok(shortArray);
+  assert.deepEqual(shortArray.details, { expected: 12, actual: 11 });
+  assert.ok(report.schema.errors.some((message) => /exactly width/.test(message)));
 });
 
 test("deep diagnostics finds duplicate cel pairs and non-array/invalid pixel values", (t) => {
