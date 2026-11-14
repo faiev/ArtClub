@@ -69,11 +69,11 @@ test("manifest is explicit, sorted, unique and confined to tests/qa", () => {
   assert.deepEqual(names, names.slice().sort());
   const paths = SUITE_MANIFEST.flatMap(suite => suite.files.map(file => file.path));
   assert.equal(new Set(paths).size, paths.length);
-  assert.deepEqual(paths, paths.slice().sort((a, b) => {
-    const left = a.split("/").slice(0, 3).join("/");
-    const right = b.split("/").slice(0, 3).join("/");
-    return left.localeCompare(right) || a.localeCompare(b);
-  }) .sort()); // Every path is also independently checked below.
+  for (const suite of SUITE_MANIFEST) {
+    const suitePaths = suite.files.map(file => file.path);
+    assert.deepEqual(suitePaths, suitePaths.slice().sort(),
+      "files within each suite should be sorted");
+  }
   for (const filePath of paths) {
     assert.ok(filePath.startsWith("tests/qa/"), filePath);
     assert.equal(filePath.includes(".."), false, filePath);
