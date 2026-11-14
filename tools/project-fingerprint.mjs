@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
+import { TextDecoder } from "node:util";
 
 const require = createRequire(import.meta.url);
 const Project = require("../js/project-model.js");
@@ -195,7 +196,6 @@ function readProjectFile(filePath, byteBudget = MAX_FILE_BYTES) {
     const sourceBuffer = Buffer.concat(chunks, totalBytes);
     return {
       buffer: sourceBuffer,
-      text: sourceBuffer.toString("utf8"),
       bytes: totalBytes
     };
   } catch (error) {
@@ -227,7 +227,8 @@ function canonicalJson(value) {
 }
 
 function normalizeColor(color) {
-  return color === null ? null : color.toLowerCase();
+  if (color === null || color === undefined) return null;
+  return typeof color === "string" ? color.toLowerCase() : color;
 }
 
 function buildCanonicalProjection(project) {
@@ -400,11 +401,22 @@ function inspectOneFile(filePath, byteBudget = MAX_FILE_BYTES) {
     };
   }
 
-  let data;
+  let decodedText;
   try {
-    data = JSON.parse(input.text.replace(/^\uFEFF/, ""));
+    decodedText = new TextDecoder("utf-8", { fatal: true }).decode(input.buffer);
   } catch (error) {
     return {
+      ok: false,
+      file: filePath,
+      bytesRead: input.bytes,
+      error: { code: "INVALID_UTF8", message: "Project file is not valid UTF-8: " + error.message }
+    };
+  }
+
+  let data;
+  try {
+    data = JSON.parse(decodedText.replace(/^\uFEFF/, ""));
+  } catch (error) {    return {
       ok: false,
       file: filePath,
       bytesRead: input.bytes,
