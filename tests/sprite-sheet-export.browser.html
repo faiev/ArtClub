@@ -15,6 +15,15 @@
         if (!condition) throw new Error(message);
       }
 
+      // Small browser-side structural comparison used for layout/rectangle arrays.
+      // The page intentionally has no dependency on Node's assert module.
+      assert.deepEqual = function (actual, expected, message) {
+        if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+          throw new Error(message + " Actual: " + JSON.stringify(actual) +
+            "; expected: " + JSON.stringify(expected) + ".");
+        }
+      };
+
       function expectThrow(callback, pattern, label) {
         let thrown = null;
         try {
