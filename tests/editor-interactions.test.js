@@ -290,7 +290,7 @@ test("ellipse tool previews and commits an outlined ellipse", async () => {
   editor.grid.emit("pointerup", { target: editor.cell(7 * 24 + 9), pointerId: 1, clientX: 2, clientY: 2 });
   const pixels = (await editor.agent.get_canvas()).pixels;
   assert.ok(pixels.some((color, index) => color === "#e96f55" && (index % 24) >= 3 && (index % 24) <= 9));
-  assert.equal((await editor.agent.get_pixel({ x: 6, y: 4 })).color, "#e96f55");
+  assert.equal((await editor.agent.get_pixel({ x: 6, y: 2 })).color, "#e96f55");
 });
 
 test("agents can draw a filled ellipse as one undoable command", async () => {
