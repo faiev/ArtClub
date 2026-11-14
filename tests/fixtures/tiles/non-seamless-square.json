@@ -1,0 +1,28 @@
+{
+  "schema": "artclub.tile-fixture.v1",
+  "id": "non-seamless-square",
+  "kind": "tile",
+  "description": "Square tile with deliberately mismatched opposing borders and corners.",
+  "tile": {
+    "width": 3,
+    "height": 3,
+    "pixels": [
+      "#e85d3f",
+      "#e0b65a",
+      "#477b69",
+      "#477b69",
+      "#f2e8d5",
+      "#e85d3f",
+      "#e0b65a",
+      "#477b69",
+      "#f2e8d5"
+    ]
+  },
+  "expect": {
+    "leftRightMismatchCount": 3,
+    "topBottomMismatchCount": 3,
+    "cornerMismatchCount": 2,
+    "seamless": false,
+    "pixelCount": 9
+  }
+}

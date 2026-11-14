@@ -1,0 +1,45 @@
+{
+  "schema": "artclub.tile-fixture.v1",
+  "id": "maximum-allocation",
+  "kind": "maximum-allocation",
+  "description": "Compact deterministic descriptor for the configured 4,194,304-pixel source-buffer ceiling.",
+  "allocation": {
+    "width": 4096,
+    "height": 1024,
+    "maxPixels": 4194304,
+    "pattern": [
+      0,
+      1,
+      2,
+      3,
+      255
+    ]
+  },
+  "expect": {
+    "pixelCount": 4194304,
+    "firstValues": [
+      0,
+      1,
+      2,
+      3,
+      255,
+      0,
+      1,
+      2,
+      3,
+      255
+    ],
+    "lastValues": [
+      255,
+      0,
+      1,
+      2,
+      3,
+      255,
+      0,
+      1,
+      2,
+      3
+    ]
+  }
+}
