@@ -1,6 +1,6 @@
 # Art Club agent coordination
 
-This directory is the shared coordination memory and task queue for five worker chats and one coordinator chat.
+This directory is the shared coordination memory and task queue for ten worker chats and one coordinator chat.
 
 ## What this does — and does not do
 
