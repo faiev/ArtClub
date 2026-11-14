@@ -1,31 +1,50 @@
 # Agent 2 — Rendering / performance
 
-## READY — AC-010: Validate and harden the Canvas 2D renderer prototype
+## AC-010 — Canvas renderer prototype
 
-You already have a prototype PR. Continue that work; do not wait for PR #6 to merge.
+Your AC-010 implementation has been accepted as an isolated prototype and merged:
 
-### Existing work
-- Branch: `agent/canvas-renderer`
-- PR: https://github.com/faiev/ArtClub/pull/6
-- Files include `js/canvas-renderer.js`, `tests/canvas-renderer.test.js`, `benchmarks/renderer-benchmark.html`, `benchmarks/README.md`, and `docs/rendering-architecture.md`.
-- The PR explicitly says no reliable Chromium timing was obtained in the development environment. Do not claim a speedup.
+- PR #6: https://github.com/faiev/ArtClub/pull/6
+- Merge commit: `1ba0aaee597d5bf11083c97a03a312c7ee434530`
+- CI run #43605014989 passed: 58 Node tests, Chromium editor E2E and MCP E2E.
 
-### Work
-1. Rebase/update your branch against latest main without discarding your commits. Do not force-push.
-2. Run the renderer unit tests and expand coverage for dirty rectangles, transparent pixels, crisp scaling, pointer-to-pixel mapping, overlay isolation and onion-skin composition.
-3. Inspect whether the render loop handles partial redraws correctly and whether resize/device-pixel-ratio changes reset buffers safely.
-4. Improve the browser benchmark page so it records repeatable DOM-grid versus Canvas timings, warm-up runs, multiple samples, median and p95, and test dimensions up to 512×512.
-5. If local Chromium cannot run, do not fabricate results. Make the benchmark runnable from the live app or a local browser and document exactly how the user can collect results.
-6. Update PR #6 with the validation summary and any fixes.
+The active editor still uses the DOM renderer. No AC-012 integration is authorized, and no performance speedup is claimed because the renderer benchmark has not yet been measured.
 
-### File scope
-`js/canvas-renderer.js`, `tests/canvas-renderer.test.js`, `benchmarks/*`, `docs/rendering-architecture.md`. Do not edit `index.html`, project model, Agent API or MCP bridge.
+## NEW ASSIGNMENT — AC-028: Real-browser renderer validation and benchmark capture
 
-### Acceptance criteria
-- Correctness tests cover the cases above.
-- Benchmark reports actual measured values only, with methodology.
-- No performance gain is claimed unless measured.
-- Renderer remains isolated; the active app renderer is not replaced.
+### Branch
+`agent/renderer-browser-validation`
+
+Base:
+`1ba0aaee597d5bf11083c97a03a312c7ee434530`
+
+This dedicated branch has already been created from current main.
+
+### Goal
+Add a repeatable real-browser validation suite for the isolated Canvas renderer and collect benchmark measurements with explicit environment metadata.
+
+### Files
+- `tests/canvas-renderer.browser.html`
+- `tests/canvas-renderer.browser.mjs`
+- `benchmarks/renderer-browser-validation.md`
+- `benchmarks/renderer-benchmark.html` only if the existing harness needs a focused correction.
+- `.github/workflows/project-tests.yml` only after the coordinator releases this file lock following PR #11 integration. Until then, develop the browser harness and docs without editing the workflow file.
+
+### Required checks
+1. Real Chromium rendering: compare complete ImageData/output pixels against exact known input buffers.
+2. Transparency and nearest-neighbor scaling at native and enlarged display sizes.
+3. Grid/selection overlay must not contaminate artwork pixels.
+4. Pointer-to-logical-pixel mapping at fractional CSS dimensions and DPR.
+5. Frame/composite revision change forces full redraw.
+6. Onion mask change and clearing removes stale tints.
+7. Invalid/sparse pixel inputs fail before visible output or render buffer mutation.
+8. Run DOM-grid versus Canvas measurements at 32, 64, 128, 256 and 512 dimensions; include warm-up, multiple samples, median, p95, raw samples, browser version and runner/hardware details.
+
+### Limits
+- Do not change `index.html`, editor UI, project model, Agent API or MCP bridge.
+- Do not claim a general speedup from one CI runner.
+- Report renderer-only measurements separately from the existing editor's full render costs.
+- Keep the current DOM renderer as the active application renderer.
 
 ### Handoff
-Update the existing draft PR and only `coordination/status/agent-2.md`.
+Open a new draft PR from `agent/renderer-browser-validation`, report exact test commands and measured results, and update only `coordination/status/agent-2.md`.
