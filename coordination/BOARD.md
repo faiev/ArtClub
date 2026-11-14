@@ -396,3 +396,15 @@ Main snapshot before this board update: `881ddd15448632afb1e7defbf09549b2a077833
 - The test tree is the same `index.html` + `tests/ui-workstation-shell.test.js` diff currently in PR #84. The earlier clipped-canvas regression is fixed and covered by the passing drawing E2E.
 - Independent reviews are still pending: Agent 1 12-flow QA, Agent 2 canvas sizing/pointer/responsive review, Agent 5 visual review of production implementation. The Actions workflow emits no screenshots, so explicit 1440×900 / 1280×800 visual inspection is not yet verified.
 - Production `index.html` on main remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`. Do not merge or claim published UI until the independent review gate is completed; after merge, verify Pages deployment/live URL.
+
+## Coordinator production release checkpoint — UI-01 shipped (2026-11-14)
+
+Main release commit: `e22ddb35ebf802b3b719e74a7329effceab28747`. Open PR count before this board update: **62**.
+
+- **UI-00 / AC-091:** PR #77 merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610`. The graphite/olive workstation design system and standalone prototype are on main under `docs/ux/**`; Agent 5 still does not own production UI.
+- **UI-01:** PR #84 merged as `e22ddb35ebf802b3b719e74a7329effceab28747`. Production `index.html` blob changed from `1a29a9eca58d9035287af1ff58b97f2ff4040a69` to `4645281c1aad8580529e7feb99cd299a88543913`. The actual editor now uses the compact graphite workstation shell while preserving live tools, renderer, project model, timeline/layers/palette, imports/exports, project library, save/recovery and bridge API.
+- Pre-merge exact-head Actions #43624220195 passed. Post-merge push test workflow [#43624328658](https://github.com/faiev/ArtClub/actions/runs/43624328658) passed both Node and browser jobs. Node suite contained 241 tests (241 passed / 0 failed); Chromium drawing, undo/redo, layer/custom canvas/animation/onion-skin/PNG/IndexedDB recovery, GIF ImageDecoder pixel comparisons and MCP E2E passed.
+- GitHub Pages deployment [#43624328006](https://github.com/faiev/ArtClub/actions/runs/43624328006) completed successfully for the release commit; Jekyll build, artifact upload and deploy all succeeded. The deployment log reports [https://faiev.github.io/ArtClub/](https://faiev.github.io/ArtClub/) as the environment URL.
+- **Visual limitation:** public URL fetching is blocked in the coordinator session. The Pages deployment is verified against the merge commit, but no direct rendered-page screenshot inspection is claimed. Independent visual review at 1440×900 and 1280×800 remains post-release QA.
+- Agent 1's 12-flow task matrix, Agent 2's pointer/responsive review and Agent 5's production visual review were requested on PR #84 but had not appeared in their status files at the time of merge. Follow up by resuming those agent chats; log their manual findings and file narrowly scoped fixes if needed.
+- Current PR inventory at the last check: **62 open**. This release is the first production-visible UI shell milestone; later UI-02 safety/palette/export integrations remain separate work.
