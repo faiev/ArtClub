@@ -134,25 +134,36 @@ async function run() {
       if (dialog.type() === "confirm") await dialog.accept();
       else await dialog.dismiss();
     });
-    await racePage.goto(url, { waitUntil: "domcontentloaded" });
-    await racePage.waitForFunction(() => Boolean(window.onePixelStudio && window.ArtClubStorage), null, { timeout: 30000 });
-    await racePage.evaluate(() => {
-      const original = window.ArtClubStorage.prototype.saveProject;
-      const probe = window.__safeClearSaveProbe = { active: 0, maxActive: 0, snapshots: [] };
-      window.ArtClubStorage.prototype.saveProject = async function (project) {
-        probe.active += 1;
-        probe.maxActive = Math.max(probe.maxActive, probe.active);
-        const snapshot = JSON.parse(JSON.stringify(project));
-        try {
-          await new Promise(resolve => setTimeout(resolve, 400));
-          probe.snapshots.push(snapshot);
-          return await original.call(this, project);
-        } finally {
-          probe.active -= 1;
+    await racePage.addInitScript(() => {
+      Object.defineProperty(window, "ArtClubStorage", {
+        configurable: true,
+        set(api) {
+          const originalOpen = api.open;
+          const probe = window.__safeClearSaveProbe = { active: 0, maxActive: 0, snapshots: [] };
+          api.open = async function (...args) {
+            const storage = await originalOpen.apply(this, args);
+            const originalSave = storage.saveProject.bind(storage);
+            storage.saveProject = async function (project) {
+              probe.active += 1;
+              probe.maxActive = Math.max(probe.maxActive, probe.active);
+              const snapshot = JSON.parse(JSON.stringify(project));
+              try {
+                await new Promise(resolve => setTimeout(resolve, 400));
+                probe.snapshots.push(snapshot);
+                return await originalSave(project);
+              } finally {
+                probe.active -= 1;
+              }
+            };
+            return storage;
+          };
+          Object.defineProperty(window, "ArtClubStorage", { configurable: true, writable: true, value: api });
         }
-      };
-      window.onePixelStudio.draw_pixel({ x: 0, y: 0, color: "#ff0000" });
+      });
     });
+    await racePage.goto(url, { waitUntil: "domcontentloaded" });
+    await racePage.waitForFunction(() => Boolean(window.onePixelStudio && window.__safeClearSaveProbe), null, { timeout: 30000 });
+    await racePage.evaluate(() => window.onePixelStudio.draw_pixel({ x: 0, y: 0, color: "#ff0000" }));
     await racePage.waitForFunction(() => window.__safeClearSaveProbe.active === 1, null, { timeout: 5000 });
     await racePage.locator("#clearBtn").click();
     await racePage.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === null, null, { timeout: 10000 });
