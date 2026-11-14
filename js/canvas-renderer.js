@@ -15,6 +15,8 @@
   const COLORS = new Map();
   const BEFORE = [232, 95, 100, 0.35];
   const AFTER = [76, 144, 210, 0.35];
+  const DEFAULT_GRID_COLOR = "rgba(37, 53, 49, 0.18)";
+  const DEFAULT_SELECTION_COLOR = "#e97960";
 
   function rgba(color) {
     if (color == null || color === "" || color === "transparent") return [0, 0, 0, 0];
@@ -35,12 +37,12 @@
   function blend(first, second) {
     if (!first) return second;
     if (!second) return first;
-    const a = second[3] + first[3] * (1 - second[3]);
+    const alpha = second[3] + first[3] * (1 - second[3]);
     return [
-      Math.round((second[0] * second[3] + first[0] * first[3] * (1 - second[3])) / a),
-      Math.round((second[1] * second[3] + first[1] * first[3] * (1 - second[3])) / a),
-      Math.round((second[2] * second[3] + first[2] * first[3] * (1 - second[3])) / a),
-      a
+      Math.round((second[0] * second[3] + first[0] * first[3] * (1 - second[3])) / alpha),
+      Math.round((second[1] * second[3] + first[1] * first[3] * (1 - second[3])) / alpha),
+      Math.round((second[2] * second[3] + first[2] * first[3] * (1 - second[3])) / alpha),
+      alpha
     ];
   }
 
@@ -56,7 +58,7 @@
     if (!rect) return { x: 0, y: 0, width, height };
     if (![rect.x, rect.y, rect.width, rect.height].every(Number.isInteger) ||
         rect.width < 1 || rect.height < 1) {
-      throw new RangeError("Dirty region must contain positive integer dimensions.");
+      throw new RangeError("Dirty region must contain integer coordinates and positive dimensions.");
     }
     const x = Math.max(0, rect.x);
     const y = Math.max(0, rect.y);
@@ -87,6 +89,7 @@
       this.renderCount = 0;
       this.lastRenderMode = "none";
       this.lastDirtyRect = null;
+      this.overlaySignature = null;
       this.destroyed = false;
       if (canvas.style && this.options.pixelated !== false) canvas.style.imageRendering = "pixelated";
     }
@@ -97,21 +100,29 @@
 
     _resize(width, height) {
       const bounds = this.canvas.getBoundingClientRect ? this.canvas.getBoundingClientRect() : null;
-      const displayWidth = Number(this.options.displayWidth) || this.canvas.clientWidth ||
+      const displayWidthCandidate = Number(this.options.displayWidth) || this.canvas.clientWidth ||
         (bounds && bounds.width) || width;
-      const displayHeight = Number(this.options.displayHeight) || this.canvas.clientHeight ||
+      const displayHeightCandidate = Number(this.options.displayHeight) || this.canvas.clientHeight ||
         (bounds && bounds.height) || height;
+      const displayWidth = Number.isFinite(displayWidthCandidate) && displayWidthCandidate > 0
+        ? displayWidthCandidate : width;
+      const displayHeight = Number.isFinite(displayHeightCandidate) && displayHeightCandidate > 0
+        ? displayHeightCandidate : height;
       const configuredDpr = typeof this.options.devicePixelRatio === "function"
         ? this.options.devicePixelRatio()
         : this.options.devicePixelRatio;
-      const dpr = Math.max(1, Number(configuredDpr) || Number(globalThis.devicePixelRatio) || 1);
+      const globalDpr = typeof globalThis !== "undefined" ? Number(globalThis.devicePixelRatio) : 1;
+      const dprCandidate = Number(configuredDpr) || globalDpr || 1;
+      const dpr = Number.isFinite(dprCandidate) && dprCandidate > 0 ? Math.max(1, dprCandidate) : 1;
       const backingWidth = Math.max(1, Math.round(displayWidth * dpr));
       const backingHeight = Math.max(1, Math.round(displayHeight * dpr));
       const changed = width !== this.width || height !== this.height ||
         displayWidth !== this.displayWidth || displayHeight !== this.displayHeight || dpr !== this.dpr ||
-        this.canvas.width !== backingWidth || this.canvas.height !== backingHeight;
+        this.canvas.width !== backingWidth || this.canvas.height !== backingHeight ||
+        this.overlay.width !== backingWidth || this.overlay.height !== backingHeight;
 
-      if (width !== this.width || height !== this.height) {
+      if (width !== this.width || height !== this.height ||
+          this.surface.width !== width || this.surface.height !== height) {
         this.surface.width = width;
         this.surface.height = height;
         this.imageData = this.surfaceContext.createImageData(width, height);
@@ -129,6 +140,32 @@
       this.surfaceContext.imageSmoothingEnabled = false;
       this.overlayContext.imageSmoothingEnabled = false;
       return changed;
+    }
+
+    _selectionFor(state) {
+      const selection = state.selectionPreview || state.selection;
+      if (!selection) return null;
+      const valid = [selection.x, selection.y, selection.width, selection.height].every(Number.isInteger);
+      if (!valid || selection.x < 0 || selection.y < 0 || selection.width < 1 ||
+          selection.height < 1 || selection.x + selection.width > state.width ||
+          selection.y + selection.height > state.height) {
+        throw new RangeError("Selection must be a non-empty integer rectangle inside the canvas.");
+      }
+      return {
+        x: selection.x,
+        y: selection.y,
+        width: selection.width,
+        height: selection.height
+      };
+    }
+
+    _overlaySignature(state, selection) {
+      return JSON.stringify([
+        state.grid !== false,
+        state.gridColor || DEFAULT_GRID_COLOR,
+        state.selectionColor || DEFAULT_SELECTION_COLOR,
+        selection ? [selection.x, selection.y, selection.width, selection.height] : null
+      ]);
     }
 
     _writePixels(state, rect) {
@@ -152,7 +189,7 @@
       this.surfaceContext.putImageData(this.imageData, 0, 0, rect.x, rect.y, rect.width, rect.height);
     }
 
-    _drawOverlay(state) {
+    _drawOverlay(state, selection) {
       const ctx = this.overlayContext;
       const sx = this.displayWidth / this.width;
       const sy = this.displayHeight / this.height;
@@ -162,7 +199,7 @@
       ctx.clearRect(0, 0, this.displayWidth, this.displayHeight);
       if (state.grid !== false) {
         ctx.beginPath();
-        ctx.strokeStyle = state.gridColor || "rgba(37, 53, 49, 0.18)";
+        ctx.strokeStyle = state.gridColor || DEFAULT_GRID_COLOR;
         ctx.lineWidth = 1 / dpr;
         for (let x = 1; x < this.width; x++) {
           const px = Math.round(x * sx * dpr) / dpr + 0.5 / dpr;
@@ -176,16 +213,8 @@
         }
         ctx.stroke();
       }
-      const selection = state.selectionPreview || state.selection;
       if (selection) {
-        const valid = [selection.x, selection.y, selection.width, selection.height].every(Number.isInteger);
-        if (!valid || selection.x < 0 || selection.y < 0 || selection.width < 1 ||
-            selection.height < 1 || selection.x + selection.width > this.width ||
-            selection.y + selection.height > this.height) {
-          ctx.restore();
-          throw new RangeError("Selection must be a non-empty integer rectangle inside the canvas.");
-        }
-        ctx.strokeStyle = state.selectionColor || "#e97960";
+        ctx.strokeStyle = state.selectionColor || DEFAULT_SELECTION_COLOR;
         ctx.lineWidth = 1 / dpr;
         if (ctx.setLineDash) ctx.setLineDash([3 / dpr, 2 / dpr]);
         const x = selection.x * sx;
@@ -209,10 +238,12 @@
       ctx.clearRect(dx, dy, dw, dh);
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(this.surface, rect.x, rect.y, rect.width, rect.height, dx, dy, dw, dh);
-      const sx = Math.round(dx * this.dpr);
-      const sy = Math.round(dy * this.dpr);
-      const sw = Math.max(1, Math.round(dw * this.dpr));
-      const sh = Math.max(1, Math.round(dh * this.dpr));
+      const sx = Math.floor(dx * this.dpr);
+      const sy = Math.floor(dy * this.dpr);
+      const right = Math.min(this.overlay.width, Math.ceil((dx + dw) * this.dpr));
+      const bottom = Math.min(this.overlay.height, Math.ceil((dy + dh) * this.dpr));
+      const sw = Math.max(1, right - sx);
+      const sh = Math.max(1, bottom - sy);
       ctx.drawImage(this.overlay, sx, sy, sw, sh, dx, dy, dw, dh);
       ctx.restore();
     }
@@ -233,13 +264,21 @@
       if (state.onionAfter && state.onionAfter.length !== count) {
         throw new RangeError("Next-frame pixel array length must equal width × height.");
       }
-      const resized = this._resize(state.width, state.height);
+
+      const selection = this._selectionFor(state);
       const requested = clippedRect(dirtyRect, state.width, state.height);
-      const rect = resized ? { x: 0, y: 0, width: state.width, height: state.height } : requested;
+      const overlaySignature = this._overlaySignature(state, selection);
+      const resized = this._resize(state.width, state.height);
+      const overlayChanged = overlaySignature !== this.overlaySignature;
+      const rect = resized || overlayChanged
+        ? { x: 0, y: 0, width: state.width, height: state.height }
+        : requested;
       if (!rect) return this.getStats();
+
       this._writePixels(state, rect);
-      this._drawOverlay(state);
+      this._drawOverlay(state, selection);
       this._blit(rect);
+      this.overlaySignature = overlaySignature;
       this.renderCount++;
       this.lastRenderMode = rect.width === state.width && rect.height === state.height ? "full" : "dirty";
       this.lastDirtyRect = Object.assign({}, rect);
@@ -248,8 +287,11 @@
 
     mapClientToPixel(clientX, clientY, bounds) {
       this._live();
+      if (!this.width || !this.height || !Number.isFinite(clientX) || !Number.isFinite(clientY)) return null;
       const rect = bounds || this.canvas.getBoundingClientRect();
-      if (!rect || rect.width <= 0 || rect.height <= 0) return null;
+      if (!rect || !Number.isFinite(rect.left) || !Number.isFinite(rect.top) ||
+          !Number.isFinite(rect.width) || !Number.isFinite(rect.height) ||
+          rect.width <= 0 || rect.height <= 0) return null;
       const xIn = clientX - rect.left;
       const yIn = clientY - rect.top;
       if (xIn < 0 || yIn < 0 || xIn >= rect.width || yIn >= rect.height) return null;
@@ -274,6 +316,7 @@
       this.overlay.width = this.overlay.height = 1;
       this.width = this.height = 0;
       this.imageData = null;
+      this.overlaySignature = null;
     }
   }
 
