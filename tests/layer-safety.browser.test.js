@@ -14,9 +14,9 @@ test("browser harness result parser reads a successful Chromium DOM result", asy
   });
 });
 
-test("browser harness result parser decodes serialized text entities", async () => {
+test("browser harness result parser decodes text-node entities and preserves escaped quotes", async () => {
   const { extractResult } = await import("./layer-safety.browser.mjs");
-  const dom = '<pre id="test-result" data-status="failed">{"ok":false,"message":"A &lt; B &amp; C","quote":"&quot;bad&quot;"}</pre>';
+  const dom = '<pre id="test-result" data-status="failed">{"ok":false,"message":"A &lt; B &amp; C","quote":"\\"bad\\""}</pre>';
   assert.deepEqual(extractResult(dom), {
     status: "failed",
     result: { ok: false, message: "A < B & C", quote: '"bad"' }

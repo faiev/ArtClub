@@ -40,9 +40,9 @@ function extractResult(dom) {
     throw new Error("Chromium did not return the layer safety result element.");
   }
   const status = match[1];
+  // The capture is a text node serialized by Chromium's DOM dump. Quotes are
+  // not HTML-escaped in text nodes; decode only the text-node entities.
   const payload = match[2]
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&amp;/g, "&");
