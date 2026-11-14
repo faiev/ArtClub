@@ -186,23 +186,23 @@ test("rejects documents beyond palette, layer, frame and dimension limits", () =
   });
 });
 
-test("rejects explicitly undefined cel entries and identifies sparse holes as a known validator gap", () => {
+test("rejects explicitly undefined cel entries", () => {
   const undefinedPixel = makeUndefinedCelProject();
   const undefinedResult = Project.validateProject(undefinedPixel);
   assert.equal(undefinedResult.valid, false);
   assert.ok(undefinedResult.errors.includes("Cel pixels must be transparent or valid HEX colors."));
+});
 
+// Current project-model.js uses Array.prototype.some() for cel color
+// validation; Array#some skips holes. Keep this expected-failure marker until
+// the project-model owner adds an indexed/sparse-safe validation pass.
+test("sparse cel array holes are rejected", {
+  todo: "Known gap: validation currently skips sparse array holes"
+}, () => {
   const sparsePixel = makeSparseCelProject();
-  // Current project-model.js uses Array.prototype.some() for cel color
-  // validation; Array#some skips holes. Keep this expected-failure marker
-  // until the project-model owner adds an indexed/sparse-safe validation pass.
-  test("sparse cel array holes are rejected", {
-    todo: "Known gap: validation currently skips sparse array holes"
-  }, () => {
-    const sparseResult = Project.validateProject(sparsePixel);
-    assert.equal(sparseResult.valid, false);
-    assert.ok(sparseResult.errors.includes("Cel pixels must be transparent or valid HEX colors."));
-  });
+  const sparseResult = Project.validateProject(sparsePixel);
+  assert.equal(sparseResult.valid, false);
+  assert.ok(sparseResult.errors.includes("Cel pixels must be transparent or valid HEX colors."));
 });
 
 test("validation and deserialization do not mutate v2 source documents", () => {
