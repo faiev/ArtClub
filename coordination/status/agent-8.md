@@ -1,77 +1,55 @@
 # Status — Agent 8
 
-- **Workstream:** Palette tooling, interoperability and color science
-- **Status:** REVIEW — PR #16 sparse-entry fix and PR #78 resource-budget fix both passed latest-main exact-head CI
-- **Coordinator source:** `main`
-- **Current shared base for both active PRs:** `7d11357cb61c65026604ddd76cec240299ac2765`.
-- **Active branch:** `agent/palette-formats` (PR #16); HEAD `8a0208a152c9963331b4335d2aaee728da86711d`.
-- **Active PR:** [#16 — AC-017 palette formats](https://github.com/faiev/ArtClub/pull/16) (open draft; based on `7d11357cb61c65026604ddd76cec240299ac2765`; zero commits behind; exactly 3 palette-format files changed).
-- **Exact-head CI:** [Run #661](https://github.com/faiev/ArtClub/actions/runs/43618468770) on `8a0208a152c9963331b4335d2aaee728da86711d` — 214 Node tests passed (0 failed), `node --check` passed, real Chromium editor E2E, animated GIF/ImageDecoder and MCP E2E passed. Both workflow jobs concluded success.
-- **Secondary PR:** [#78 — AC-094 resource-bounded perceptual palette mapping](https://github.com/faiev/ArtClub/pull/78), draft; head `46487e8fc3e5241a01fcef1c807b3f1ae0696585`, based on the same main snapshot; [run #652](https://github.com/faiev/ArtClub/actions/runs/43618272887) passed 218 Node tests plus syntax, Chromium, GIF/ImageDecoder and MCP checks.
-- **AC-017 files:** `js/palette-formats.js`, `tests/palette-formats.test.js`, `docs/palette-formats.md`.
-- **AC-094 files:** `js/palette-distance.js`, `tests/palette-distance.test.js`, `docs/palette-distance.md` (three files only).
+- **Workstream:** Palette formats, interoperability, analysis and color science
+- **Coordination source:** `main`
+- **Feature-branch sync base:** `dafd5471cd9e497ccbe79ae9f158a334910c5c6a`
+- **Later main delta:** main subsequently advanced to `1f8d5c49a8e4596443433a200a18d1251e65abc2` with Agent 3's status file only; no Agent 8-owned palette path changed.
+- **Status:** AC-017 and AC-094 are merged. AC-067–AC-072 are submitted in open PRs with latest branch refresh and exact-head CI passing. AC-073 remains a documentation-only draft PR.
+- **Ownership:** Only palette modules/tests/fixtures/docs listed in `coordination/assignments/agent-8.md`. No production UI, `index.html`, project model, exporter, Agent API or bridge changes.
 
-## Completed workstream ledger
+## Current PR ledger
 
-| Phase | Deliverable | Branch head | PR | Exact-head CI evidence |
+| Phase | PR | Branch / current head | Current state | Exact-head validation |
 |---|---|---|---|---|
-| AC-017 | GPL/JASC-PAL/JSON import/export; indexed rejection of sparse/undefined entries | `8a0208a152c9963331b4335d2aaee728da86711d` | [#16](https://github.com/faiev/ArtClub/pull/16) | [#661](https://github.com/faiev/ArtClub/actions/runs/43618468770): 214 Node passed; syntax, Chromium, GIF/ImageDecoder and MCP passed |
-| AC-067 | Palette usage/coverage analysis | `4e4b78098633f9dec727d79c8824b2b9c0da5528` | [#27](https://github.com/faiev/ArtClub/pull/27) | [#412](https://github.com/faiev/ArtClub/actions/runs/43613562230): 94 Node passed; full browser/GIF/MCP workflow passed |
-| AC-068 | HEX/RGB/HSL/HSV, WCAG contrast and ramps | `3fc332c61883d927bcc14bccecdbea02c2a1bd88` | [#33](https://github.com/faiev/ArtClub/pull/33) | [#414](https://github.com/faiev/ArtClub/actions/runs/43613572560): 86 Node passed; full browser/GIF/MCP workflow passed |
-| AC-069 | Immutable palette transformations/harmonies | `3d05bc1e1d66db9b727b131be9916a8fb0ba7ff0` | [#39](https://github.com/faiev/ArtClub/pull/39) | [#417](https://github.com/faiev/ArtClub/actions/runs/43613595647): 93 Node passed; full browser/GIF/MCP workflow passed |
-| AC-070 | Used-color extraction and project mapping | `36934295c63a74ce46180c6fd4d9a13268cabe61` | [#45](https://github.com/faiev/ArtClub/pull/45) | [#422](https://github.com/faiev/ArtClub/actions/runs/43613608452): 88 Node passed; full browser/GIF/MCP workflow passed |
-| AC-071 | Contrast, CIE76 near-duplicate and color-vision diagnostics | `a458cc0047723cd02e6bc0acb1e6e5a73f87d0b4` | [#53](https://github.com/faiev/ArtClub/pull/53) | [#424](https://github.com/faiev/ArtClub/actions/runs/43613620007): 87 Node passed; full browser/GIF/MCP workflow passed |
-| AC-072 | GPL/JASC-PAL/JSON fixtures and seeded corpus | `d518541bde3cff3f58afc1a5a73bb4f4734ef795` | [#56](https://github.com/faiev/ArtClub/pull/56) | [#433](https://github.com/faiev/ArtClub/actions/runs/43613693918): 102 Node passed; full browser/GIF/MCP workflow passed |
-| AC-073 | Import preview, export-loss and project workflow contract | `52056108ebb45eb18b21468ed743a1272e392e61` | [#60](https://github.com/faiev/ArtClub/pull/60) | Documentation-only; no application test run applies |
-| AC-094 | Opt-in CIEDE2000, CIE76 and resource-bounded palette mapping | `46487e8fc3e5241a01fcef1c807b3f1ae0696585` | [#78](https://github.com/faiev/ArtClub/pull/78) | [#652](https://github.com/faiev/ArtClub/actions/runs/43618272887): 218 Node passed; syntax, Chromium, GIF ImageDecoder and MCP passed |
+| AC-017 — palette formats | [#16](https://github.com/faiev/ArtClub/pull/16) | `agent/palette-formats` / `8a0208a152c9963331b4335d2aaee728da86711d` | **Merged** as `4198b1e095ad48df59763e7a39853d277f0b0bda` | Run [#661](https://github.com/faiev/ArtClub/actions/runs/43618468770): 214 Node tests; syntax, Chromium editor E2E, GIF/ImageDecoder and MCP passed |
+| AC-067 — palette analysis | [#27](https://github.com/faiev/ArtClub/pull/27) | `agent/palette-tools` / `563a6860c7c00a23ab07006c8d9af3f6a322891c` | Open; clean/mergeable | Run [#43630281119](https://github.com/faiev/ArtClub/actions/runs/43630281119): test and browser-e2e jobs passed |
+| AC-068 — color conversion / ramps | [#33](https://github.com/faiev/ArtClub/pull/33) | `agent/palette-color-science` / `cd19add75749f45dcf26a9e17b42b57a99dfd9cd` | Open; clean/mergeable | Run [#43630311769](https://github.com/faiev/ArtClub/actions/runs/43630311769): test and browser-e2e jobs passed |
+| AC-069 — palette transformations | [#39](https://github.com/faiev/ArtClub/pull/39) | `agent/palette-transformations` / `60c0dfd91ef03abc9cb23c17601ac6890502ef06` | Open; clean/mergeable | Run [#43630321786](https://github.com/faiev/ArtClub/actions/runs/43630321786): test and browser-e2e jobs passed |
+| AC-070 — extraction / mapping | [#45](https://github.com/faiev/ArtClub/pull/45) | `agent/palette-mapping` / `d51ea72dcbf2f0d5592300b642863bff05e14da8` | Open; clean/mergeable | Run [#43630354746](https://github.com/faiev/ArtClub/actions/runs/43630354746): test and browser-e2e jobs passed |
+| AC-071 — accessibility diagnostics | [#53](https://github.com/faiev/ArtClub/pull/53) | `agent/palette-accessibility` / `bd8e5464dc3b61c4ad03caf76e01c84a776a12f2` | Open; clean/mergeable | Run [#43630362709](https://github.com/faiev/ArtClub/actions/runs/43630362709): test and browser-e2e jobs passed |
+| AC-072 — interoperability corpus | [#56](https://github.com/faiev/ArtClub/pull/56) | `agent/palette-corpus` / `2a1e3ed9643a634985d7da53e6ac4f55fe627bba` | Open; clean/mergeable; no longer depends on unmerged #16 | Run [#43630398610](https://github.com/faiev/ArtClub/actions/runs/43630398610): completed success; test and browser-e2e jobs passed |
+| AC-073 — workflow contract | [#60](https://github.com/faiev/ArtClub/pull/60) | `agent/palette-workflow-contract` / `77a687942178b141b1534220c70678596048492b` | Open draft; clean/mergeable; documentation-only | No code CI expected; exactly `docs/PALETTE_WORKFLOW.md` |
+| AC-094 — perceptual palette distance | [#78](https://github.com/faiev/ArtClub/pull/78) | `agent/palette-distance-bounded-v2` / `46487e8fc3e5241a01fcef1c807b3f1ae0696585` | **Merged** as `d0d5e02c866544aae41fb18b8fef6488be04199b` | Run [#652](https://github.com/faiev/ArtClub/actions/runs/43618272887): 218 Node tests; syntax, Chromium, GIF/ImageDecoder and MCP passed |
 
-PR #56 is intentionally stacked on PR #16 because its corpus tests use the unmerged palette-format module. Keep #56 dependent on #16; do not merge it independently.
+## Latest-main refresh
 
-## AC-017 sparse-entry review fix
+On 2026-11-15, all seven open feature branches were refreshed from main snapshot `dafd5471cd9e497ccbe79ae9f158a334910c5c6a`.
 
-- Replaced sparse-skipping `slice().forEach()` normalization with an indexed loop and own-slot checks.
-- Sparse holes and explicit `undefined` entries are rejected before palette output is constructed, for both object input and the string-array shorthand.
-- Regression tests cover sparse holes and explicit undefined in both input forms; duplicates and original order remain supported.
-- Branch `agent/palette-formats` was synchronized with latest main using a non-force merge commit `8a0208a152c9963331b4335d2aaee728da86711d`; comparison reports zero commits behind and exactly the three AC-017 files.
-- PR #56 remains stacked on PR #16's old parent head and must not be retargeted until PR #16 is accepted/merged.
+- Each refresh is a two-parent merge commit with the previous feature head as first parent and main as second parent.
+- Branch refs were advanced with `force: false` and an `expected_sha` matching the prior head.
+- Raw GitHub PR metadata reports `mergeable=true` / `mergeable_state=clean` for PRs #27, #33, #39, #45, #53, #56 and #60.
+- The next main change observed after this sync changed only `coordination/status/agent-3.md`; the PRs' changed-file lists remain limited to their assigned palette paths.
 
-## AC-094 implementation notes
+## AC-094 implementation contract
 
-- CIEDE2000 uses sRGB → XYZ → CIELAB with D65 reference white, the sRGB transfer function and double-precision calculations. Converted L* is bounded to [0, 100] to remove a few-millionths overshoot at white caused by rounded matrix coefficients; caller-supplied Lab L* is strictly validated.
-- All 34 Sharma, Wu & Dalal (2005) published Lab reference pairs are embedded in `tests/palette-distance.test.js` and checked at four-decimal precision.
-- Metrics: `rgb-squared` remains the default; `rgb-euclidean` remains an explicit legacy alias; `cie76` and `ciede2000` are opt-in.
-- Tie resolution preserves original palette order and adds an `equal-distance-tie` diagnostic. Null/transparent targets return a structured non-match diagnostic; `mapToPalette` preserves null pixels and their positions.
-- Mapping enforces a 4,194,304 hard comparison budget (pixels × palette size) before reading entries or allocating output arrays; callers may lower but not raise it.
-- RGB channels and Lab palette coordinates are precomputed once per call; each source color is converted once before palette comparisons.
-- Full mapped pixels are preserved while match detail capture is capped at 1,000 by default (maximum configurable 10,000) or disabled; aggregate diagnostics stay bounded.
-- No existing AC-067/070 matching default or Agent 10 quantization behavior is changed.
-
-## Focused test evidence and runtime
-
-- Focused local Node v22.16.0 suites for AC-017–070 previously passed: 17, 24, 16, 23 and 18 tests respectively.
-- AC-071/072/094 are validated through exact-head Node 24 CI; no separate local focused result is claimed for those phases.
-- CI also runs `node --check agent-bridge/server.mjs`, Chromium editor E2E, animated GIF ImageDecoder full-raster verification and MCP E2E.
-- Local Git clone was unavailable due GitHub DNS resolution; feature branches were updated through GitHub Git Data operations with non-force expected-head checks.
-
-## Risks / boundaries
-
-- JASC-PAL cannot preserve palette or color names; the loss is explicitly documented.
-- AC-067/070 retain deterministic RGB nearest matching; AC-094 adds opt-in CIE76/CIEDE2000 without changing defaults.
-- AC-068 interpolation is encoded sRGB; WCAG contrast is one accessibility signal, not a full UI accessibility guarantee.
-- AC-071 CIE76 near-duplicate detection is heuristic; color-vision simulations are approximations, not medical tests.
-- AC-072 PR #56 is stacked on PR #16; parent must be accepted/merged before retargeting.
-- Original AC-094 PR #63 was closed as superseded by resource-bounded PR #78. Its branch was synchronized with latest main using non-force merge commit `46487e8fc3e5241a01fcef1c807b3f1ae0696585`; comparison reports zero commits behind and exactly the three AC-094 files. Exact-head run #652 passed.
-- AC-073 is a workflow contract only. No palette editor controls, downloads or Agent API endpoints are implemented.
-- No project/UI/Agent API integration is included. `index.html` and production UI wiring remain coordinator-controlled.
-- Earlier phase PRs retain successful exact-head CI evidence above, but were last based on earlier main tips; compare/refresh them before merge as needed. The AC-094 branch is based on current main.
+- Deterministic sRGB → Lab, CIE76 and CIEDE2000; D65 reference white and documented sRGB transfer/precision policy.
+- All 34 Sharma, Wu & Dalal (2005) reference pairs are retained in the conformance tests.
+- Squared RGB remains the default; CIE76 and CIEDE2000 are opt-in.
+- Palette values and each source pixel are precomputed once per mapping call; stable first-index tie handling is retained.
+- Null transparency is explicit. Mapping rejects workloads above 4,194,304 pixel × palette comparisons before reading pixel entries or allocating result arrays.
+- Full mapped pixel output is preserved; per-pixel match details are capped or can be disabled. Aggregate diagnostics remain bounded.
+- No existing palette nearest-color default or Agent 10 quantization behavior is changed.
 
 ## Next queue
 
-1. Coordinator review of fixed and latest-main-synchronized PR #16 after exact-head run #661; do not merge or self-accept.
-2. Coordinator review of resource-bounded AC-094 PR #78 after exact-head run #652; do not merge or self-accept.
-3. Keep PR #56 stacked until PR #16 is accepted/merged; only then retarget it onto the accepted parent and rerun exact-head CI.
-4. Coordinator review of earlier palette PRs #27, #33, #39, #45, #53 and #60 individually; inspect their actual base/changed-file scopes before any retarget.
-5. Do not start AC-022 palette controls or edit `index.html` without an explicit production UI lock.
+1. Coordinator review/integration of AC-067–AC-071 PRs #27, #33, #39, #45 and #53 against their refreshed exact heads.
+2. Coordinator review of AC-072 PR #56; its previous AC-017 parent dependency is removed because PR #16 has merged.
+3. Coordinator review of documentation-only AC-073 PR #60.
+4. Do not start palette editor controls or modify `index.html`; AC-022 remains gated on explicit production UI ownership/file lock. No further isolated implementation phase is currently authorized beyond AC-094.
 
-- **Blockers:** No blocker for the isolated palette modules. Production palette UI integration is gated on coordinator authorization/lock.
-- **Last updated:** 2026-11-14; both active feature branches validated against main `7d11357cb61c65026604ddd76cec240299ac2765`; PR #16 and PR #78 each retain their three-file assigned scope.
+## Risks / boundaries
+
+- Palette utilities remain isolated modules; they are not yet connected to production editor controls or file-picker workflows.
+- AC-073 describes the import/export decision contract; it does not implement a UI, download flow, project mutation endpoint or Agent API integration.
+- Do not merge or self-accept any Agent 8 PR.
+- **Last updated:** 2026-11-15.

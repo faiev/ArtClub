@@ -56,3 +56,7 @@ After AC-042 documentation, add an asynchronous export contract suitable for lon
 - Document responsiveness and memory limits honestly. Do not promise cancellation of a single non-yielding platform codec call.
 
 **Allowed files:** GIF/sprite-sheet exporter modules, exporter-specific Node/browser tests and export documentation owned by Agent 3. Do not edit index.html, Agent API/bridge, shared workflow or another agent's files. The existing workflow lock remains with Agent 3 only for AC-027 wiring and must be explicitly released when that work is complete.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile #3/#21/#22/#55/#68/#74 and their parent chain. Complete AC-027 real Chromium sprite-sheet PNG verification (frame order, pixel RGBA, rectangles, transparency, metadata, malformed/oversized cases) and exact-head CI. Release the project-tests workflow lock explicitly only after proof. No UI/export-dialog work, no self-merge.
