@@ -197,3 +197,53 @@ Existing `tests/project-storage.test.js` is a useful fast contract test, but its
 ---
 
 **Execution limitation:** source/coordination review only. No checkout was available to run tests. No test is reported as passed.
+
+---
+
+## D-028 live recheck — 2026-11-15 (latest assignment execution)
+
+This section supersedes the earlier 01:46-era bridge inventory above. Re-fetched the live repository, PR metadata, branch refs, comparisons, Actions runs/jobs, and failing job log. **No code, branch, PR, or workflow changes were made.**
+
+- Current main: `7e47089754a4586a47c36789f55450c70ea08f9c`.
+- All six scoped PRs remain open and draft.
+- Live branch refs match the six PR head SHAs listed below.
+- Current direct dependency graph:
+  `main → #8 → #38 → #54 → #82 → #86 → #92`.
+- Open PR inventory shows no additional bridge PRs downstream of #92. #92 is the leaf of this bridge chain.
+
+| PR | Branch / exact head | Declared base | Compare against current base branch | Compare against current main | Changed files in direct delta | Latest fetched exact-head workflow |
+|---|---|---|---|---|---:|---|
+| [#8](https://github.com/faiev/ArtClub/pull/8) | `agent/bridge-hardening` / `1a04d834ec3bb77610b4b83375ab89ce78720112` | `main` | 60 ahead / 198 behind | 60 ahead / 198 behind | 11 | [#43622700035](https://github.com/faiev/ArtClub/actions/runs/43622700035): test failed; browser-e2e passed |
+| [#38](https://github.com/faiev/ArtClub/pull/38) | `agent/ac-043-operation-deadlines` / `8ab838fae2c83414af29f0cc7b4a72fd0122e46d` | #8 / `agent/bridge-hardening` | 27 ahead / 0 behind | 87 ahead / 198 behind | 7 | [#43622711281](https://github.com/faiev/ArtClub/actions/runs/43622711281): test failed; browser-e2e passed |
+| [#54](https://github.com/faiev/ArtClub/pull/54) | `agent/ac-044-profile-lock` / `5ad306cb282182415cc867f0c9f1582724993eb8` | #38 / `agent/ac-043-operation-deadlines` | 23 ahead / 0 behind | 110 ahead / 198 behind | 6 | [#43622747415](https://github.com/faiev/ArtClub/actions/runs/43622747415): test failed; browser-e2e passed |
+| [#82](https://github.com/faiev/ArtClub/pull/82) | `agent/ac-045-security-hardening` / `f12dcfe237ed64a922eb6f8f5b7a89a4cf06bec5` | #54 / `agent/ac-044-profile-lock` | 18 ahead / 0 behind | 128 ahead / 198 behind | 7 | [#43645701437](https://github.com/faiev/ArtClub/actions/runs/43645701437): test failed; browser-e2e passed |
+| [#86](https://github.com/faiev/ArtClub/pull/86) | `agent/ac-046-capability-contract` / `77cc76ca4b6d75dece3e38f8864f11dc33642055` | #82 / `agent/ac-045-security-hardening` | **diverged: 4 ahead / 2 behind** | 130 ahead / 198 behind | 8 | [#43622831950](https://github.com/faiev/ArtClub/actions/runs/43622831950): test failed; browser-e2e passed |
+| [#92](https://github.com/faiev/ArtClub/pull/92) | `agent/ac-048-resilience-observability` / `d059c6d60e639371102d9560660eff20c5fc97e3` | #86 / `agent/ac-046-capability-contract` | 14 ahead / 0 behind | 144 ahead / 198 behind | 11 | [#43631517622](https://github.com/faiev/ArtClub/actions/runs/43631517622): test failed; browser-e2e passed |
+
+### Important refreshed findings
+
+1. **#86 is no longer a clean child of the current #82 branch tip.** Current #82 branch head is `f12dcfe237ed64a922eb6f8f5b7a89a4cf06bec5`, while #86 compares as diverged (4 commits ahead, 2 behind) against that exact SHA. Its recorded base SHA was `f3aa9d29397e85c39c60f323a5e4ba7306acec72`. Reconcile this parent mismatch before treating #86/#92 as a linear stack.
+2. **The five inherited safe-edit failures are now confirmed from the #82 Actions log**, not just the PR description. Run #43645701437's test job (ID `132602862147`) reports 223 passed / 5 failed:
+   - `tests/safe-edit-conformance.test.js`: stale-project-revision guard property accepted an adversarial stale revision (`true !== false`).
+   - `tests/safe-edit-conformance.test.js`: zero-opacity clear denial property accepted the edit (`true !== false`).
+   - `tests/safe-edit-conformance.test.js`: stale follow-up after replacement was accepted (`true !== false`).
+   - `tests/safe-edit-operations.test.js`: hidden/locked/zero-opacity/non-active denial assertion returned `null` where test expected `undefined`.
+   - `tests/safe-edit-operations.test.js`: stale revision denial assertion returned `null` where test expected `undefined`.
+   Browser E2E passed on the same #82 run. These are Agent 6-owned safety paths; do not edit them.
+3. **Ownership boundary:** #8's cumulative diff includes `agent-bridge/e2e-test.mjs` (Agent 4 shared-file lock) and Agent 6-owned `js/layer-edit-guard.js` / `tests/layer-edit-guard.test.js`, plus historical `index.html` / `js/agent-api.js` changes. #38/#54/#82/#86/#92 direct deltas are bridge files/docs, but inherit #8's ancestry. Current D-028 assignment forbids modifying any of these.
+4. **Historical duplicate ref verified:** `agent/ac-047-export-pixel-adapters` still exists at exactly `77cc76ca4b6d75dece3e38f8864f11dc33642055`, identical to PR #86 head. It has no unique commit/content relative to #86; candidate only for coordinator disposition after external-consumer review. No deletion performed.
+5. All six cumulative comparisons to current main are diverged by 198 commits. The current metadata reports #8 mergeable, but its draft status, full-chain stale base, inherited ownership conflict, and failing exact-head tests mean no PR is recommended for merge now.
+
+### Disposition
+
+- #8: retain parked as parent; coordinator + Agent 6 must reconcile Agent 6 guard/test removals and current-main drift.
+- #38: retain parked as required child of #8; its unique deadline/cancellation work is not independently mergeable.
+- #54: retain parked as required child of #38; its profile-lock work depends on the queue/server parent.
+- #82: retain parked as required child of #54; its five inherited safe-edit failures need Agent 6 diagnosis.
+- #86: retain parked, but first repair its two-commit divergence from the current #82 head; #92 depends on it.
+- #92: retain parked as leaf; it adds observability on top of the preceding bridge stack.
+- `agent/ac-047-export-pixel-adapters`: redundant-ref candidate for coordinator review; do not delete without coordinator decision.
+
+### Execution boundary
+
+Read-only GitHub fetches, branch-ref reads, PR metadata, commit comparisons, Actions run/job reads, and the #82 failed-job log were inspected. No shell/local tests were run. No code, status, branch, PR, workflow, or ref mutation was performed in this recheck.
