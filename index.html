@@ -325,6 +325,7 @@ const ProjectModel = window.ArtClubProject;
 if (!ProjectModel) throw new Error("One Pixel Studio project model failed to load.");
 const STORAGE_KEY = "one-pixel-studio-project-v2";
 const LEGACY_STORAGE_KEY = "one-pixel-studio-project-v1";
+const ACTIVE_PROJECT_KEY = "one-pixel-studio-active-project";
 const DEFAULT_PALETTE = ["#172b3a","#344b55","#53717a","#87a7a0","#d9e2c6","#f4edda","#f5c66d","#ef945e","#e96f55","#b85e62","#856f91","#5e8da8"];
 const PALETTE_SETS = {
   studio: DEFAULT_PALETTE,
@@ -335,6 +336,8 @@ const PALETTE_SETS = {
 let w=24,h=24,pixels=[],palette=DEFAULT_PALETTE.slice(),selected=8,tool="brush",projectName="Untitled artwork",zoom=1;
 let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,saveTimer=null,focusedIndex=0;
 let projectDoc=null;
+let projectStorage=null;
+let activeProjectId=null;
 const grid=$("pixelGrid");
 
 function blank(size){return Array(size*size).fill(null)}
@@ -396,9 +399,10 @@ function syncProjectDocument(){
 function snapshot(){
   return ProjectModel.cloneProject(syncProjectDocument());
 }
-function restore(source){
+function loadProjectIntoEditor(source){
   const doc=ProjectModel.deserializeProject(source);
   projectDoc=doc;
+  activeProjectId=doc.id;
   w=doc.canvas.width;h=doc.canvas.height;
   palette=doc.palette.slice();
   selected=doc.selectedColorIndex;
@@ -407,7 +411,12 @@ function restore(source){
   pixels=activeCel.pixels.slice();
   $("projectName").value=projectName;
   $("gridSize").value=String(w);
-  renderAll();scheduleSave();updateHistoryButtons();
+  undoStack.length=0;redoStack.length=0;drawing=false;
+  renderAll();updateHistoryButtons();
+}
+function restore(source){
+  loadProjectIntoEditor(source);
+  scheduleSave();
 }
 const HISTORY_LIMIT=100;
 function remember(){
@@ -483,12 +492,44 @@ function setZoom(value){
   zoom=Math.max(0.5,Math.min(2,Math.round(value*4)/4));
   applyZoom();
 }
+function readLocalValue(key){
+  try{return localStorage.getItem(key)}catch(_){return null}
+}
+function writeLocalBackup(doc){
+  try{
+    localStorage.setItem(STORAGE_KEY,ProjectModel.serializeProject(doc));
+    localStorage.setItem(ACTIVE_PROJECT_KEY,doc.id);
+    return true;
+  }catch(_){return false}
+}
+async function saveCurrentProject(){
+  const doc=snapshot();
+  const backupSaved=writeLocalBackup(doc);
+  if(projectStorage){
+    await projectStorage.saveProject(doc);
+    activeProjectId=doc.id;
+    return true;
+  }
+  return backupSaved;
+}
+async function persistNow(){
+  clearTimeout(saveTimer);saveTimer=null;
+  try{
+    const saved=await saveCurrentProject();
+    $("saveState").textContent=saved?(projectStorage?"SAVED IN PROJECT LIBRARY":"LOCAL BACKUP ONLY"):"SAVE FAILED · EXPORT JSON";
+    return saved;
+  }catch(error){
+    $("saveState").textContent="SAVE FAILED · EXPORT JSON";
+    console.error("Project save failed:",error);
+    return false;
+  }
+}
 function scheduleSave(){
   $("saveState").textContent="SAVING LOCALLY…";
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(()=>{
-    try{localStorage.setItem(STORAGE_KEY,ProjectModel.serializeProject(snapshot()));$("saveState").textContent="SAVED ON THIS DEVICE"}
-    catch(e){$("saveState").textContent="LOCAL SAVE · UNAVAILABLE"}
+  saveTimer=setTimeout(async()=>{
+    const saved=await persistNow();
+    if(!saved)toast("Could not save this project. Export a JSON backup.");
   },280);
 }
 function toast(message){
@@ -585,12 +626,17 @@ $("projectName").addEventListener("input",e=>{
 $("zoomOut").addEventListener("click",()=>setZoom(zoom-0.25));
 $("zoomIn").addEventListener("click",()=>setZoom(zoom+0.25));
 $("zoomReset").addEventListener("click",()=>setZoom(1));
-$("newProjectBtn").addEventListener("click",()=>{
-  if(!confirm("Start a new blank project? The current canvas will be replaced."))return;
-  remember();w=24;h=24;pixels=blank(24);palette=DEFAULT_PALETTE.slice();selected=8;
+async function createBlankProject(){
+  await persistNow();
+  w=24;h=24;pixels=blank(24);palette=DEFAULT_PALETTE.slice();selected=8;
   projectName="Untitled artwork";$("projectName").value=projectName;$("gridSize").value="24";setZoom(1);
   projectDoc=ProjectModel.createProject({width:w,height:h,name:projectName,palette:palette,selectedColorIndex:selected,pixels:pixels});
+  activeProjectId=projectDoc.id;undoStack.length=0;redoStack.length=0;drawing=false;
   renderAll();syncColorUI();scheduleSave();toast("New canvas ready.");
+}
+$("newProjectBtn").addEventListener("click",async()=>{
+  if(!confirm("Start a new blank project? The current project will be saved in your library."))return;
+  await createBlankProject();
 });
 $("clearBtn").addEventListener("click",()=>{
   if(!confirm("Clear every pixel on this canvas?"))return;
@@ -696,39 +742,170 @@ document.addEventListener("keydown",e=>{
   if(e.key==="]")setZoom(zoom+0.25);
   if(e.key==="0")setZoom(1);
 });
-function init(){
-  let restored=false;
-  try{
-    const currentSave=localStorage.getItem(STORAGE_KEY);
-    const legacySave=currentSave?null:localStorage.getItem(LEGACY_STORAGE_KEY);
-    const raw=currentSave||legacySave;
-    if(raw){
-      // This also migrates the previous flat-canvas save into a v2 document.
-      projectDoc=ProjectModel.deserializeProject(raw);
-      w=projectDoc.canvas.width;h=projectDoc.canvas.height;
-      palette=projectDoc.palette.slice();
-      selected=projectDoc.selectedColorIndex;
-      projectName=projectDoc.name;
-      const activeCel=ProjectModel.getCel(projectDoc)||ProjectModel.ensureCel(projectDoc);
-      pixels=activeCel.pixels.slice();
-      $("projectName").value=projectName;
-      $("gridSize").value=String(w);
-      restored=true;
-    }
-  }catch(error){
-    projectDoc=null;
-    $("saveState").textContent="PROJECT RECOVERY NEEDED";
+async function init(){
+  let localProject=null;
+  const currentSave=readLocalValue(STORAGE_KEY);
+  const legacySave=currentSave?null:readLocalValue(LEGACY_STORAGE_KEY);
+  const raw=currentSave||legacySave;
+  if(raw){
+    try{localProject=ProjectModel.deserializeProject(raw)}
+    catch(error){$("saveState").textContent="PROJECT RECOVERY NEEDED";console.error("Local project could not be opened:",error)}
   }
-  if(!restored){
+
+  try{
+    projectStorage=await window.ArtClubStorage.open({projectModel:ProjectModel});
+  }catch(error){
+    projectStorage=null;
+    console.warn("IndexedDB project library is unavailable:",error);
+  }
+
+  let restoredProject=null;
+  if(projectStorage){
+    try{
+      const preferredId=readLocalValue(ACTIVE_PROJECT_KEY);
+      if(preferredId)restoredProject=await projectStorage.getProject(preferredId);
+
+      if(restoredProject&&localProject&&localProject.id===restoredProject.id){
+        const localTime=Date.parse(localProject.metadata.updatedAt||"")||0;
+        const dbTime=Date.parse(restoredProject.metadata.updatedAt||"")||0;
+        if(localTime>dbTime){
+          await projectStorage.saveProject(localProject);
+          restoredProject=localProject;
+        }
+      }else if(!restoredProject&&localProject){
+        const stored=await projectStorage.getProject(localProject.id);
+        if(!stored){
+          await projectStorage.saveProject(localProject);
+          restoredProject=localProject;
+        }else{
+          const localTime=Date.parse(localProject.metadata.updatedAt||"")||0;
+          const dbTime=Date.parse(stored.metadata.updatedAt||"")||0;
+          restoredProject=localTime>dbTime?localProject:stored;
+          if(restoredProject===localProject)await projectStorage.saveProject(localProject);
+        }
+      }
+
+      if(!restoredProject){
+        const projects=await projectStorage.listProjects();
+        if(projects.length)restoredProject=await projectStorage.getProject(projects[0].id);
+      }
+    }catch(error){
+      console.error("Project library could not be read:",error);
+      $("saveState").textContent="LIBRARY ERROR · BACKUP MODE";
+    }
+  }else{
+    restoredProject=localProject;
+  }
+
+  if(restoredProject){
+    loadProjectIntoEditor(restoredProject);
+    $("saveState").textContent=projectStorage?"PROJECT RESTORED · LIBRARY":"PROJECT RESTORED · LOCAL BACKUP";
+    writeLocalBackup(restoredProject);
+  }else{
     w=24;h=24;palette=DEFAULT_PALETTE.slice();selected=8;
     projectName="Untitled artwork";pixels=demo();
+    projectDoc=ProjectModel.createProject({width:w,height:h,name:projectName,palette:palette,selectedColorIndex:selected,pixels:pixels});
+    activeProjectId=projectDoc.id;
+    $("projectName").value=projectName;
+    renderAll();syncColorUI();
+    if($("saveState").textContent!=="PROJECT RECOVERY NEEDED")$("saveState").textContent=projectStorage?"NEW PROJECT · READY":"LOCAL BACKUP MODE";
+    scheduleSave();
   }
-  $("projectName").value=projectName;
-  renderAll();syncColorUI();
-  if(restored){$("saveState").textContent="PROJECT RESTORED · V2";if(!localStorage.getItem(STORAGE_KEY))scheduleSave();}
-  else if($("saveState").textContent!=="PROJECT RECOVERY NEEDED")$("saveState").textContent="NEW PROJECT · READY";
 }
 init();
+
+async function renderProjectLibrary(){
+  const list=$("projectList"),count=$("projectCount");
+  list.replaceChildren();
+  if(!projectStorage){
+    count.textContent="LOCAL DATABASE UNAVAILABLE";
+    const empty=document.createElement("div");empty.className="project-empty";
+    empty.textContent="This browser could not open IndexedDB. You can keep working with the local backup, but multi-project storage is unavailable. Export your project as JSON.";
+    list.appendChild(empty);return;
+  }
+  try{
+    const projects=await projectStorage.listProjects();
+    count.textContent=projects.length+" PROJECT"+(projects.length===1?"":"S");
+    if(!projects.length){
+      const empty=document.createElement("div");empty.className="project-empty";
+      empty.textContent="Your library is empty. Create a new project or continue drawing; the current project will be saved here automatically.";
+      list.appendChild(empty);return;
+    }
+    for(const record of projects){
+      const entry=document.createElement("div");entry.className="project-entry";
+      const main=document.createElement("div");main.className="project-entry-main";
+      const name=document.createElement("strong");name.textContent=record.name;
+      const meta=document.createElement("span");
+      const date=record.updatedAt?new Date(record.updatedAt).toLocaleString():"Not saved yet";
+      meta.textContent=record.width+" × "+record.height+" PX · SAVED "+date;
+      main.append(name,meta);
+      const actions=document.createElement("div");actions.className="project-entry-actions";
+      const makeButton=(label,handler,extraClass)=>{
+        const button=document.createElement("button");button.type="button";button.className="small-button"+(extraClass?" "+extraClass:"");button.textContent=label;button.addEventListener("click",handler);return button;
+      };
+      actions.appendChild(makeButton("Open",async()=>{
+        if(record.id!==activeProjectId)await persistNow();
+        const doc=await projectStorage.getProject(record.id);
+        if(!doc){toast("That project could not be found.");return}
+        loadProjectIntoEditor(doc);writeLocalBackup(doc);$("saveState").textContent="PROJECT OPENED · SAVING";scheduleSave();
+        $("projectDialog").close();toast("Opened "+doc.name+".");
+      },"primary"));
+      actions.appendChild(makeButton("Duplicate",async()=>{
+        const source=await projectStorage.getProject(record.id);if(!source)return;
+        const copy=ProjectModel.cloneProject(source);
+        copy.id="project-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,9);
+        copy.name=(source.name+" copy").slice(0,100);
+        copy.metadata.createdAt=new Date().toISOString();copy.metadata.updatedAt=copy.metadata.createdAt;
+        await projectStorage.saveProject(copy);await renderProjectLibrary();toast("Project duplicated.");
+      }));
+      actions.appendChild(makeButton("Rename",async()=>{
+        const source=await projectStorage.getProject(record.id);if(!source)return;
+        const next=prompt("Project name",source.name);
+        if(next===null)return;
+        const name=next.trim();if(!name){toast("Project name cannot be empty.");return}
+        source.name=name.slice(0,100);
+        if(source.id===activeProjectId){projectName=source.name;$("projectName").value=projectName;projectDoc.name=projectName}
+        await projectStorage.saveProject(source);
+        if(source.id===activeProjectId)scheduleSave();
+        await renderProjectLibrary();toast("Project renamed.");
+      }));
+      const recovery=await projectStorage.getRecovery(record.id);
+      if(recovery){
+        actions.appendChild(makeButton("Recover",async()=>{
+          if(!confirm("Restore the previous saved version of "+record.name+"? The current saved version will become the recovery copy."))return;
+          const previous=await projectStorage.getRecovery(record.id);if(!previous)return;
+          await projectStorage.saveProject(previous.project);
+          if(record.id===activeProjectId){loadProjectIntoEditor(previous.project);writeLocalBackup(previous.project)}
+          await renderProjectLibrary();toast("Previous version recovered.");
+        }));
+      }
+      actions.appendChild(makeButton("Delete",async()=>{
+        if(!confirm("Permanently delete "+record.name+" from this device?"))return;
+        await projectStorage.deleteProject(record.id);
+        if(record.id===activeProjectId)await createBlankProject();
+        await renderProjectLibrary();toast("Project deleted.");
+      }));
+      entry.append(main,actions);list.appendChild(entry);
+    }
+  }catch(error){
+    console.error("Could not render project library:",error);
+    count.textContent="LIBRARY ERROR";
+    const empty=document.createElement("div");empty.className="project-empty";empty.textContent="The project library could not be read. Your latest local JSON backup may still be available.";list.appendChild(empty);
+  }
+}
+async function openProjectLibrary(){
+  await persistNow();
+  await renderProjectLibrary();
+  const dialog=$("projectDialog");
+  if(typeof dialog.showModal==="function")dialog.showModal();
+  else dialog.setAttribute("open","");
+}
+$("projectLibraryBtn").addEventListener("click",openProjectLibrary);
+$("closeProjectDialog").addEventListener("click",()=>$("projectDialog").close());
+$("dialogNewProjectBtn").addEventListener("click",async()=>{
+  await createBlankProject();
+  $("projectDialog").close();
+});
 })();
 </script>
 </body>
