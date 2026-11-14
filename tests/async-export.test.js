@@ -284,7 +284,7 @@ test("async sprite-sheet aborts during ImageData preparation before calling PNG 
     onProgress(event) {
       if (event.phase === "render") controller.abort();
     }
-  }), "finalization");
+  }), "encoding");
   assert.equal(codecCalled, false);
 });
 
