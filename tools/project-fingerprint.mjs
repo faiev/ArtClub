@@ -508,24 +508,34 @@ function collectBatchFiles(inputPaths, recursive) {
       return;
     }
 
-    let entries;
+    let directory;
+    const entries = [];
     try {
-      entries = fs.readdirSync(normalized).sort(lexicalCompare);
+      directory = fs.opendirSync(normalized);
+      while (true) {
+        const entry = directory.readSync();
+        if (entry === null) break;
+        visitedEntries += 1;
+        if (visitedEntries > MAX_BATCH_DIRECTORY_ENTRIES) {
+          addError(normalized, "BATCH_DIRECTORY_ENTRY_LIMIT", "Directory traversal exceeded " + MAX_BATCH_DIRECTORY_ENTRIES + " entries.");
+          fatalLimit = true;
+          break;
+        }
+        entries.push(entry.name);
+      }
     } catch (error) {
       addError(normalized, "DIRECTORY_READ_ERROR", "Unable to read directory: " + error.message);
       return;
+    } finally {
+      if (directory) {
+        try { directory.closeSync(); } catch {}
+      }
     }
+    entries.sort(lexicalCompare);
 
     for (const entry of entries) {
       if (fatalLimit) break;
-      visitedEntries += 1;
       const child = path.join(normalized, entry);
-      if (visitedEntries > MAX_BATCH_DIRECTORY_ENTRIES) {
-        addError(child, "BATCH_DIRECTORY_ENTRY_LIMIT", "Directory traversal exceeded " + MAX_BATCH_DIRECTORY_ENTRIES + " entries.");
-        fatalLimit = true;
-        break;
-      }
-
       let childStats;
       try {
         childStats = fs.lstatSync(child);
@@ -603,6 +613,7 @@ function inspectBatch(inputPaths, recursive) {
   }
 
   const successful = files.filter((item) => item.ok).map((item) => ({
+    ok: true,
     file: item.file,
     fingerprints: item.report.fingerprints
   }));
