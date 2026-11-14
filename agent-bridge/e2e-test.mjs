@@ -232,6 +232,74 @@ async function run() {
     );
     assert.equal(persistedLayerPixel.color, "#ff8800", "refresh should preserve the visible layer composite");
 
+    // Regression: A is the last good version, B is autosaved, and merely
+    // opening the library must not overwrite A before the user can recover it.
+    page.on("dialog", dialog => dialog.accept());
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 20, y: 20, color: "#aa00aa" })
+    );
+    await page.waitForFunction(
+      () => document.querySelector("#saveState")?.textContent === "SAVED IN PROJECT LIBRARY",
+      null,
+      { timeout: 5_000 }
+    );
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 21, y: 20, color: "#00aaff" })
+    );
+    await page.waitForFunction(
+      () => document.querySelector("#saveState")?.textContent === "SAVED IN PROJECT LIBRARY",
+      null,
+      { timeout: 5_000 }
+    );
+
+    const explicitNoOpSave = await page.evaluate(() => window.onePixelStudio.save());
+    assert.equal(explicitNoOpSave.ok, true, "an explicit clean save should succeed");
+    await page.locator("#projectLibraryBtn").click();
+    await page.getByRole("button", { name: "Recover", exact: true }).first().click();
+    await page.waitForFunction(
+      () => window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color === "#aa00aa",
+      null,
+      { timeout: 5_000 }
+    );
+    let recoveredPixels = await page.evaluate(() => ({
+      a: window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color,
+      b: window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color
+    }));
+    assert.equal(recoveredPixels.a, "#aa00aa", "Recover should restore version A after opening the library");
+    assert.equal(recoveredPixels.b, null, "version B's new pixel should be absent after recovering A");
+
+    // Recovering A must preserve B as the next recovery version. Then a real
+    // edit to C should rotate B into recovery, while opening the library again
+    // remains a no-op and cannot overwrite that snapshot.
+    await page.getByRole("button", { name: "Recover", exact: true }).first().click();
+    await page.waitForFunction(
+      () => window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color === "#00aaff",
+      null,
+      { timeout: 5_000 }
+    );
+    await page.locator("#closeProjectDialog").click();
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 22, y: 20, color: "#cc4400" })
+    );
+    await page.waitForFunction(
+      () => document.querySelector("#saveState")?.textContent === "SAVED IN PROJECT LIBRARY",
+      null,
+      { timeout: 5_000 }
+    );
+    await page.locator("#projectLibraryBtn").click();
+    await page.getByRole("button", { name: "Recover", exact: true }).first().click();
+    await page.waitForFunction(
+      () => window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color === "#00aaff",
+      null,
+      { timeout: 5_000 }
+    );
+    recoveredPixels = await page.evaluate(() => ({
+      b: window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color,
+      c: window.onePixelStudio.get_pixel({ x: 22, y: 20 }).color
+    }));
+    assert.equal(recoveredPixels.b, "#00aaff", "a genuine later save should rotate B into recovery");
+    assert.equal(recoveredPixels.c, null, "recovering B should remove C's unsaved change from the document");
+
     assert.deepEqual(pageErrors, [], "the app should not throw browser runtime errors");
     console.log("Browser E2E passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, real animation playback, onion skin, PNG, IndexedDB library and reload recovery.");
   } finally {
