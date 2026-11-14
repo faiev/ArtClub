@@ -193,9 +193,9 @@ async function run() {
       mimeType: "image/png",
       buffer: Buffer.from("delayed image decode fixture")
     });
-    const imageInputType = await racePage.locator("#imageInput").evaluate(input => input.files[0] && input.files[0].type);
-    assert.equal(imageInputType, "image/png");
     await racePage.waitForFunction(() => window.__safeClearImageProbe.created === 1, null, { timeout: 5000 });
+    const imageProbe = await racePage.evaluate(() => window.__safeClearImageProbe);
+    assert.deepEqual(imageProbe, { created: 1, srcAssigned: 1 });
     await racePage.waitForFunction(() => Boolean(window.__pendingSafeClearImage), null, { timeout: 5000 });
     await racePage.locator("#clearBtn").click();
     await racePage.waitForFunction(() => window.__safeClearSaveProbe.active === 1, null, { timeout: 5000 });
