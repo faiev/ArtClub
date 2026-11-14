@@ -5,10 +5,10 @@ const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const { access } = require("node:fs/promises");
 const path = require("node:path");
-const { pathToFileURL } = require("node:url");
+const { fileURLToPath, pathToFileURL } = require("node:url");
 
 const execFileAsync = promisify(execFile);
-const repositoryRoot = path.resolve(__dirname, "..");
+const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 async function findChromium() {
   const candidates = [
@@ -51,7 +51,7 @@ function extractResult(dom) {
 
 async function main() {
   const chromium = await findChromium();
-  const htmlPath = path.join(__dirname, "layer-safety.browser.html");
+  const htmlPath = path.join(scriptDirectory, "layer-safety.browser.html");
   const url = pathToFileURL(htmlPath).href;
   const { stdout, stderr } = await execFileAsync(chromium, [
     "--headless",
