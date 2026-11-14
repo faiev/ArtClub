@@ -2,21 +2,48 @@
 
 ## Active workstream — UX / accessibility / interaction design
 
-### Phase 1 — AC-049: Canvas navigation and workspace interaction specification
+### Phase 4 — AC-052: Accessibility and interaction audit
 
 - **Status:** IN_PROGRESS
-- **Branch:** `agent/canvas-workspace-spec`
-- **Branch starting base:** `8806de86441b2de79471c74fade8a2caa7fc23c5`
-- **Allowed deliverable:** `docs/ux/CANVAS_WORKSPACE_SPEC.md`
-- **Scope:** Documentation/specification only; do not edit `index.html`, app JS, CSS, existing tests, bridge or workflow. No UI lock is granted.
-- **Dependency reviewed:** Agent 2's AC-034 assignment defines a renderer-independent `js/canvas-viewport.js` utility for pan, zoom, fit/reset, cursor anchor, coordinate transforms, DPR/fractional bounds and deterministic transform state. There is no `js/canvas-viewport.js` on main yet. AC-049 will define the UX contract and stay implementation/API-neutral.
-- **Current source audit:** `index.html` has toolbar zoom buttons and `[`/`]`/0 shortcuts; `applyZoom()` scales the grid relative to the fitted largest canvas side, clamps to 0.5–2 in quarter steps, and labels the default fit-relative scale as 100%. The canvas wrapper is scrollable but there is no explicit pan mode, cursor-anchored zoom, Fit action or minimap. Grid uses pointer capture for edit strokes and `touch-action:none`. Project dimensions are limited to 512 per side.
-- **PR #18 / Agent 2 status:** AC-028 browser harness is submitted, but its dedicated renderer browser suite and benchmark have not yet been executed. Do not assume measured viewport/renderer timings or active renderer integration.
-- **Previous phase AC-026:** `KEYBOARD_SHORTCUTS_PLAN.md` submitted in [PR #20](https://github.com/faiev/ArtClub/pull/20), open/draft/unmerged. It is a checkpoint, not a blocker for AC-049.
-- **Next queue:** (1) complete AC-049 spec and acceptance matrix; (2) AC-050 layer/frame/timeline workflow spec; (3) AC-051 palette/export user-journey spec; (4) AC-052 accessibility audit; (5) AC-053 static interaction prototypes; then AC-054 integrated UX implementation sequence.
-- **Tests:** No tests run yet; AC-049 is documentation-only. Structural/source validation will be recorded on submission.
-- **Blockers:** None for documentation. Live editor UI work remains coordinator-controlled and is explicitly out of scope.
+- **Branch:** `agent/accessibility-audit` (create from latest main after this status commit)
+- **Allowed deliverable:** `docs/ux/ACCESSIBILITY_AUDIT.md`
+- **Scope:** Documentation/audit only. Do not edit `index.html`, application JS/CSS, existing tests, bridge, export modules or workflow. No UI lock is granted.
+- **AC-051 completed:** `docs/ux/PALETTE_EXPORT_SPEC.md` (585 additions) submitted in [PR #35](https://github.com/faiev/ArtClub/pull/35), open/draft/unmerged; PR file list contains only that document. Branch `agent/palette-export-spec`; head `a8fa0234c2c64299c2f62a6da491c0344166a3a3`; base main `11374002871c46ea9b96f6b030807a0a6b7b17db`.
+- **AC-051 validation:** 16-section document fetched and checked against palette parser, current palette UI, GIF exporter, sprite-sheet module and export planner contracts. No app tests run for docs-only work. No palette/export integration claimed.
+- **Next queue:** (1) complete AC-052 audit; (2) AC-053 static interaction prototypes; (3) AC-054 integrated UX implementation sequence.
+- **Tests:** AC-052 uses source verification, static structure/contrast review and documented manual checks; no claim of full WCAG conformance.
+- **Blockers:** None for audit. Production UI changes remain coordinator-controlled.
 - **Last updated:** 2026-11-14.
+
+### Submitted phase — AC-051: Palette and export user journeys
+
+- **Status:** REVIEW
+- **PR:** [#35 — AC-051: Specify palette and export user journeys](https://github.com/faiev/ArtClub/pull/35) (open, draft; GitHub reports mergeable)
+- **Branch:** `agent/palette-export-spec`
+- **Synchronized main base:** `cc7663ef1aa32ca3e9c18cc275aa2867c5ad68aa`
+- **Feature head:** `a8fa0234c2c64299c2f62a6da491c0344166a3a3`
+- **Deliverable:** `docs/ux/PALETTE_EXPORT_SPEC.md` (586 lines, 16 sections; PR diff 585 additions).
+- **Scope boundary:** Documentation only; no palette, exporter, editor UI/API or workflow file changes.
+- **Source review:** Audited the current palette panel and exports in `index.html`; Agent 8's parser/docs (GPL/JASC-PAL/JSON, 1 MiB/4,096-color bounds, strict diagnostics, JASC metadata limits); Agent 3's sprite-sheet and export-plan contracts; merged GIF export docs/API/budgets.
+- **Key product findings:** Current v2 palette stores HEX strings only (not names); current production UI has presets/swatches/custom HEX and PNG 1×/16×/SVG/Project JSON but no palette file or GIF/atlas UI. GIF timing rounds to 10 ms centiseconds, transparency is binary, quantization may change colors; sprite sheet outputs native-resolution PNG plus versioned frame-rectangle metadata.
+- **Validation:** Fetched committed document, verified 16 sections and required format limits/budgets. No application tests run for docs-only work.
+
+### Submitted phase — AC-050: Layer, frame and timeline workflow specification
+
+- **Status:** REVIEW
+- **PR:** [#30 — AC-050: Specify layer, frame and timeline workflows](https://github.com/faiev/ArtClub/pull/30) (open, draft; GitHub reported mergeable)
+- **Branch:** `agent/layer-timeline-spec`; synchronized main `811906b09779b7f22733afe12d177f9e78cdd58d`; head `756467e3ea1975f08447ffe95304720f883dc958`.
+- **Deliverable:** `docs/ux/LAYER_TIMELINE_SPEC.md` (549 lines, 14 sections; PR diff 548 additions).
+- **Scope boundary:** Documentation only; no model, UI, exporter, safety, test, bridge or workflow files changed.
+- **Source review:** v2 layer/frame/cel model, current layer list and frame strip, cel creation/select/add/duplicate/delete/reorder methods; identified missing matrix/thumbnails and opacity compositing gap.
+- **Safety/export alignment:** Agent 6 AC-055 guard and future AC-056 transactions; Agent 3 AC-039/AC-040 stable frame identity/order.
+- **Validation:** Fetched committed document, verified 14 sections and workflow/test matrix; no app tests because docs-only.
+
+### Earlier submitted phase — AC-049
+
+- **PR:** [#24 — AC-049: Specify canvas navigation and workspace interactions](https://github.com/faiev/ArtClub/pull/24), open/draft/unmerged at last verification; stale base, refresh/revalidate before merge.
+- **Branch:** `agent/canvas-workspace-spec`; spec `docs/ux/CANVAS_WORKSPACE_SPEC.md`.
+- **Key handoff:** Fit vs 100%, cursor-anchored zoom, bounded pan, touch/trackpad, responsive workspace, DPR-safe pointer mapping and minimap deferral.
 
 ## Previous task — AC-009
 

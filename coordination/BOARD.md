@@ -19,10 +19,10 @@ This avoids coordinator approval between routine deliverables. It does not wake 
 |---|---|---|---|---|
 | 1 | QA / release reliability | AC-025 audit complete; begin lifecycle/migration QA matrix | AC-025, AC-029–033 | tests/qa/**, QA fixtures, release QA docs/tool |
 | 2 | Rendering / performance | PR #18 harness prepared; execute real-browser assertions/benchmarks, then viewport + adapter | AC-028, AC-034–038 | Canvas renderer, viewport/adapter, renderer browser tests/benchmarks/docs |
-| 3 | Animation / export | PR #11 merged; AC-027 sprite-sheet browser verification/CI, then AC-039–042 | AC-011, AC-027, AC-039–042 | GIF/sprite-sheet modules, export tests, workflow for AC-027 until lock release |
+| 3 | Animation / export | PR #11 merged; PR #3/21 AC-027/039 plus PR #22 AC-040 in progress | AC-011, AC-027, AC-039–042 | GIF/sprite-sheet modules, export tests, workflow for AC-027 until lock release |
 | 4 | Agent API / MCP | Refresh PR #8 and port PR #1's non-duplicative QA assertions; continue AC-043–048 | AC-004, AC-043–048 | AGENT_API.md, agent-bridge/**, js/agent-api.js, bridge-related index.html |
-| 5 | UX / accessibility | PR #20 keyboard spec submitted; continue AC-049–054 | AC-026, AC-049–054 | KEYBOARD_SHORTCUTS_PLAN.md, docs/ux/**, static prototypes |
-| 6 | Editing safety | Sparse-array correction submitted in PR #14; continue AC-055–060 while PR refreshes | AC-015, AC-055–060 | layer guard, safe-edit/import staging modules, tests/docs |
+| 5 | UX / accessibility | PR #20 AC-026 and PR #24 AC-049 submitted; continue AC-050–054 | AC-026, AC-049–054 | KEYBOARD_SHORTCUTS_PLAN.md, docs/ux/**, static prototypes |
+| 6 | Editing safety | PR #14 AC-015 plus stacked PR #23 AC-055; continue AC-056–060 while parent refreshes | AC-015, AC-055–060 | layer guard, safe-edit/import staging modules, tests/docs |
 | 7 | Tile workflows | PR #13 submitted; continue AC-061–066 while PR refreshes | AC-016, AC-061–066 | tile-preview/transform/map modules, tests/docs |
 | 8 | Palette tooling | PR #16 submitted; continue AC-067–073 while PR refreshes | AC-017, AC-067–073 | palette-formats/tools modules, tests/docs |
 | 9 | Project diagnostics | PR #12 submitted; continue AC-074–079 while PR refreshes | AC-018, AC-074–079 | tools/project-inspector, tests/fixtures, diagnostics docs |
@@ -44,22 +44,25 @@ All phase IDs above are authorized by the current assignments. The coordinator n
 | #11 | Animated GIF exporter | **Merged** as `d691bf86cec76c4d5742289b0d97f92e0e7952b8`; exact-head CI run #178 passed 70 Node tests, Chromium editor E2E, full-raster GIF ImageDecoder and MCP |
 | #12 | Project inspector CLI | Open draft; 67 Node tests + Chromium + MCP passed on submitted head; branch is diverged from current main; sync and rerun |
 | #13 | Tile preview | Open draft; 69 Node + Chromium + MCP passed on submitted head; now needs sync/retest after PR #11 main update |
-| #14 | Layer-edit safety guard | Open; indexed own-slot validation rejects sparse/undefined; 71 Node + Chromium + MCP passed on submitted head; sync/retest after PR #11 |
+| #14 | Layer-edit safety guard | Open; latest parent head cited by stacked PR #23 passed 72 Node tests + Chromium/MCP; still diverged from current main and must sync/retest before merge |
 | #15 | Pixel algorithms | Open draft; 79 Node + Chromium + MCP passed on submitted head; diverged substantially from current main; sync and rerun |
 | #16 | GPL/JASC-PAL/JSON palettes | Open; 75 Node + Chromium + MCP passed on submitted head; diverged from current main; sync and rerun |
 | #18 | Canvas renderer browser validation | Open draft; harness/benchmark runner added, but its renderer-specific Chromium checks and timing capture were not executed; main sync + actual execution required |
 | #20 | Keyboard shortcuts/discoverability spec | Open draft; documentation-only spec; behind current main; refresh before coordinator review |
 | #21 | Sprite-sheet grid packing contract | Open; stacked on PR #3, 11 unit tests pass; keep dependency explicit until parent is accepted |
+| #22 | Export planning / JSON manifest | Open; AC-040 planner/tests/docs submitted; verify exact-head CI and current-main sync before review |
+| #23 | Expanded edit-target safety contract | Open; stacked on PR #14; revision/metadata/selection checks added; do not merge before parent #14 |
+| #24 | Canvas navigation/workspace spec | Open; AC-049 documentation-only spec; current-main refresh needed before review |
 
 Merged feature PRs: #6, #10 and #11. Coordination PR #7 is also merged. Do not infer UI integration from isolated modules.
 
 ## Immediate priorities
 
-1. Agent 3 completes AC-027: run the sprite-sheet browser PNG decoder against the 7×7 fixture, wire it into the workflow, then release the workflow lock.
+1. Agent 3 completes AC-027 real-Chromium PNG verification for PR #3 and wires it into the workflow; keep stacked PR #21 and independent PR #22 scoped separately, then release the workflow lock.
 2. Agent 4 refreshes PR #8 to current main, integrates AC-025's useful import/autosave/frame assertions, and reruns Node/Chromium/MCP; continue AC-043 independently.
-3. Agents 6 and 7 refresh PRs #14/#13 after PR #11, rerun required CI and continue their next modules.
-4. Agents 8–10 refresh PRs #16/#12/#15 (large divergence for #15), rerun current-head CI, and continue their next modules.
-5. Agents 1, 2 and 5 continue AC-029, AC-028/034 and AC-049 respectively; no idle on review.
+3. Agent 6 refreshes parent PR #14, validates stacked PR #23 against that exact parent, and continues AC-056–060; do not merge #23 before #14.
+4. Agent 2 executes the AC-028 Chromium raster/benchmark harness, then proceeds to AC-034; Agent 3 retains the workflow lock until AC-027 CI wiring is done.
+5. Agents 1, 5 and 7–10 continue their authorized next phases; refresh stale PR bases and rerun exact-head tests without idling.
 
 ## Shared-file locks
 
@@ -78,6 +81,9 @@ Merged feature PRs: #6, #10 and #11. Coordination PR #7 is also merged. Do not i
 - PR #8 still documents no hard operation timeout/cancellation and no cross-process lock until its follow-on phases implement and test them.
 - PR #18's new renderer-specific Chromium suite/benchmark is not yet executed; existing green editor E2E is not evidence for that harness. PR #3's sprite-sheet browser harness is also not yet executed in real Chromium.
 - PR #21 is stacked on PR #3; do not merge it independently until its parent dependency is accepted or keep the stacked relationship explicit.
+- PR #23 is stacked on PR #14; do not merge it before PR #14, and retest the stacked head after any parent refresh.
+- PR #22's planner validates export contracts without encoding; it must remain deterministic, bounded, immutable and separately tested. Its current-main/CI evidence should be captured before merge.
+- PR #24 is a documentation-only AC-049 spec aligned with Agent 2's AC-034 viewport module; it must not imply that pan/zoom UI exists.
 - Every CI claim must identify the tested commit SHA. Rerun after base changes.
 - Plain JavaScript, deterministic pixels, bounded allocation, local-first behavior and no silent data mutation remain mandatory.
 
