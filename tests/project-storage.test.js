@@ -185,6 +185,9 @@ test("conditional rollback restores the exact previous primary and recovery snap
     const saved = await storage.saveProject(rejectedCandidate);
     assert.equal(saved.revision, 3);
     await storage.restoreIfCurrent(saved.rollbackReceipt);
+    const noOpAfterRollback = await storage.saveProject(primaryBefore);
+    assert.equal(noOpAfterRollback.revision, 4,
+      "a no-op save after rollback must retain the monotonic version-store revision");
     assert.deepEqual(await storage.getProject(p0.id), primaryBefore);
     assert.deepEqual(await storage.getRecovery(p0.id), recoveryBefore);
     const afterRollback = Project.cloneProject(primaryBefore);
