@@ -413,8 +413,10 @@ test("CLI executes a real built-in test run and emits stable machine-readable JS
   const root = makeRoot();
   try {
     const lifecycle = SUITE_MANIFEST.find(suite => suite.name === "lifecycle");
-    put(root, lifecycle.files[1].path,
-      'const test = require("node:test"); test("runner fixture passes", () => {});\n');
+    for (const entry of lifecycle.files) {
+      put(root, entry.path,
+        'const test = require("node:test"); test("runner fixture passes", () => {});\\n');
+    }
     const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../tools/run-qa.mjs");
     const result = spawnSync(process.execPath, [
       script, "--suite", "lifecycle", "--root", root, "--json"
@@ -423,24 +425,23 @@ test("CLI executes a real built-in test run and emits stable machine-readable JS
     assert.equal(result.status, 0, result.stderr);
     const report = JSON.parse(result.stdout);
     const suite = findSuite(report, "lifecycle");
-    assert.equal(suite.status, "partial");
-    assert.equal(suite.files[0].status, "skipped");
+    assert.equal(suite.status, "passed");
+    assert.equal(suite.files[0].status, "passed");
     assert.equal(suite.files[1].status, "passed");
     assert.equal(report.exitCode, 0);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
-
 test("CLI preserves a failing built-in Node test exit code and JSON failure detail", () => {
   const root = makeRoot();
   try {
     const lifecycle = SUITE_MANIFEST.find(suite => suite.name === "lifecycle");
     const target = lifecycle.files[0].path;
     put(root, target, [
-      'import test from "node:test";',
+      'const test = require("node:test");',
       'test("intentional failing QA fixture", () => { throw new Error("expected fixture failure"); });'
-    ].join("\\n"));
+    ].join("\n"));
 
     const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../tools/run-qa.mjs");
     const result = spawnSync(process.execPath, [
@@ -458,7 +459,6 @@ test("CLI preserves a failing built-in Node test exit code and JSON failure deta
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
-
 test("CLI returns non-zero when no selected files can run and prints actual help text", () => {
   const root = makeRoot();
   try {
