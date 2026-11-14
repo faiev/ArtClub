@@ -116,4 +116,13 @@ Run the isolated exporter tests:
 
     node --test tests/sprite-sheet-export.test.js
 
-The tests cover exact RGBA output, visible/selected layer compositing, frame ordering and durations, all three layouts, margin/spacing metadata, transparency/background color, validation and the canvas PNG encoding path.
+Run the real-browser PNG verification after installing the Playwright dependency through the existing `agent-bridge` package:
+
+    cd agent-bridge && npm install --ignore-scripts && cd ..
+    node tests/sprite-sheet-export.browser.mjs
+
+The Playwright runner opens `tests/sprite-sheet-export.browser.html` in headless Chromium. The browser exports a deterministic three-frame grid PNG, decodes the actual Blob using `createImageBitmap`, and compares every RGBA byte against an independent 7×7 expected raster. It also checks PNG signature and dimensions, transparent margins/gutters/cells, explicit frame ordering, grid layout and JSON frame metadata (IDs, names, rectangles and durations). Invalid 513px canvas dimensions, a too-small output-pixel budget and malformed HEX cel data must be rejected.
+
+The browser page/runner are prepared as a standalone command. The shared `.github/workflows/project-tests.yml` browser step remains unchanged while its PR #11 workflow lock is active; wire this runner into CI only after PR #11 merges and the coordinator releases that file lock.
+
+The unit tests cover exact RGBA buffer output, visible/selected layer compositing, frame ordering and durations, all three layouts, margin/spacing metadata, transparency/background color, validation and the canvas PNG encoding path.
