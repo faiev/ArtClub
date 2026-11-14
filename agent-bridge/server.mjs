@@ -177,6 +177,20 @@ async function main() {
 
   registerTool(
     server,
+    "artclub_draw_ellipse",
+    "Draw a pixel ellipse within the inclusive bounding box. Choose outlined or filled mode.",
+    z.object({
+      x1: coordinate, y1: coordinate,
+      x2: coordinate, y2: coordinate,
+      color: color.optional(),
+      filled: z.boolean().optional(),
+      expected_revision: revision
+    }),
+    async args => textResult(await invoke("draw_ellipse", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
     "artclub_fill",
     "Flood-fill the contiguous region containing the selected coordinate.",
     z.object({
@@ -221,7 +235,7 @@ async function main() {
   registerTool(
     server,
     "artclub_execute",
-    "Execute up to 1,000 validated drawing commands as one undoable transaction. Supported types: draw_pixel, erase_pixel, draw_line, draw_rectangle, erase_rectangle, fill, clear_canvas and set_color. Use expected_revision to avoid overwriting newer edits.",
+    "Execute up to 1,000 validated drawing commands as one undoable transaction. Supported types: draw_pixel, erase_pixel, draw_line, draw_rectangle, draw_ellipse, erase_rectangle, fill, clear_canvas and set_color. Use expected_revision to avoid overwriting newer edits.",
     z.object({
       commands: z.array(z.record(z.string(), z.unknown())).min(1).max(1000),
       label: z.string().max(80).optional(),
