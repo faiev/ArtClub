@@ -18,7 +18,9 @@
       "listLayers", "addLayer", "selectLayer", "setLayerVisibility", "setLayerLocked",
       "renameLayer", "moveLayer", "duplicateLayer", "deleteLayer",
       "setSelection", "selectAll", "copySelection", "cutSelection",
-      "pasteSelection", "clearSelection", "deselect", "moveSelection", "transformSelection"
+      "pasteSelection", "clearSelection", "deselect", "moveSelection", "transformSelection",
+      "listFrames", "addFrame", "duplicateFrame", "selectFrame", "deleteFrame",
+      "moveFrame", "setFrameDuration", "renameFrame"
     ];
     const missing = required.filter(function (name) {
       return !adapter || typeof adapter[name] !== "function";
@@ -158,6 +160,30 @@
       },
       transform_selection: function (args) {
         return adapter.transformSelection(args || {});
+      },
+      list_frames: function () {
+        return adapter.listFrames();
+      },
+      add_frame: function (args) {
+        return adapter.addFrame(args || {});
+      },
+      duplicate_frame: function (args) {
+        return adapter.duplicateFrame(args || {});
+      },
+      select_frame: function (args) {
+        return adapter.selectFrame(args || {});
+      },
+      delete_frame: function (args) {
+        return adapter.deleteFrame(args || {});
+      },
+      move_frame: function (args) {
+        return adapter.moveFrame(args || {});
+      },
+      set_frame_duration: function (args) {
+        return adapter.setFrameDuration(args || {});
+      },
+      rename_frame: function (args) {
+        return adapter.renameFrame(args || {});
       }
     });
   }
