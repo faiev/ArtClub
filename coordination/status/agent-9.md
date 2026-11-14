@@ -1,5 +1,56 @@
 # Status — Agent 9
 
+## 2026-11-15 — Ten-agent branch hygiene assignment
+
+- **Task:** Read-only inventory of diagnostics PRs #12/#46/#59/#64/#71/#83/#85/#89 and related branches; map exact heads, parent dependencies, unique files/commits, CI and safe disposition. AC-095 remains paused. No implementation or branch/PR mutations authorized.
+- **Latest main observed immediately before status update:** `88d2b19837b1e5d900773f95760436248455e0e5` (`docs(coordination): add exact renderer branch commit inventory`). The coordinator board blob is `fd52a2810983fd0eb71c1fb2ac0f582081204d15`; the requested section is present.
+- **Branch scope and current refs:** all eight PR head refs were fetched again by branch name and matched these exact SHAs:
+  - #12 `agent/project-inspector` — `dc897d82d438e8a5cb6527d8f3541e65a8f7aadc`
+  - #46 `agent/project-inspector-batch` — `c273fa255207792ee2d9ef22b2a8802de8c5017d`
+  - #59 `agent/project-inspector-diff` — `3a3a858cbec32b8a842de05d30d755167f4a122d`
+  - #64 `agent/project-inspector-diagnostics` — `63e469679148a68c60b5aa09ad53eb55bcd115dd`
+  - #71 `agent/project-inspector-migration-preview` — `7e2481ffb670ab15e1906b579488bcf07ffcc09a`
+  - #83 `agent/project-inspector-ci-report` — `d66f74735582f24021406b87650a31ff9b340e15`
+  - #85 `agent/project-diagnostics-docs` — `41e8539c0a4f30c7be5099c4c7d36d1682b70f8d`
+  - #89 `agent/project-fingerprint` — `16bdc5e7a7853f8e9dd5d544f8b79d28e8459a3e`
+- **Parent/dependency graph:** #12 targets `main`; #46 is based on #12; #59 on #46; #64 on #59; #71 on #64; #83 on #71; #85 on #83; #89 on #85. Each parent/child compare returned ahead-only with zero behind, confirming ancestry. Downstream chain is linear: #12 → #46 → #59 → #64 → #71 → #83 → #85 → #89. All eight PRs were present in the live open-PR search.
+- **Current-main divergence:** all eight feature branches share merge base `573bf6fd8963781613bb43179e9c7d10f49c418e` with main. The latest repeated compare against main `1cc5e5fd57d1ba8b5a2ed21480a71fc86867dced` reported main **95 commits ahead** of each branch; branch-side ahead counts from that merge base were #12 48, #46 80, #59 110, #64 136, #71 159, #83 163, #85 174, #89 182. These are diverged historical stacks, not current-main-ready PRs.
+- **Incremental commits/files by parent comparison:**
+
+| PR | Base branch | Commits ahead of parent | Incremental files in parent comparison |
+|---|---|---:|---|
+| #12 | main | 48 from shared merge base | `tools/project-inspector.mjs`, `tests/project-inspector.test.js`, `docs/project-inspector.md`, six inspector fixtures |
+| #46 | `agent/project-inspector` | 32 | `tools/project-inspector.mjs`, `tests/project-inspector.test.js`, `docs/project-inspector.md` |
+| #59 | `agent/project-inspector-batch` | 30 | same three inspector CLI/test/doc paths |
+| #64 | `agent/project-inspector-diff` | 26 | same three inspector CLI/test/doc paths |
+| #71 | `agent/project-inspector-diagnostics` | 23 | same three inspector CLI/test/doc paths |
+| #83 | `agent/project-inspector-migration-preview` | 4 | same three inspector CLI/test/doc paths |
+| #85 | `agent/project-inspector-ci-report` | 11 | `docs/PROJECT_DIAGNOSTICS.md`, `tests/project-inspector.test.js`, nine `tests/fixtures/project-inspector/diag-*.json` fixtures |
+| #89 | `agent/project-diagnostics-docs` | 8 | `tools/project-fingerprint.mjs`, `tests/project-fingerprint.test.js`, `docs/PROJECT_FINGERPRINTS.md` |
+
+- **Exact-head CI evidence:** fetched workflow-run and job details for each exact head. Both `test` and `browser-e2e` jobs completed successfully on every listed run:
+  - #12 `dc897d82...`: [run 43619270426](https://github.com/faiev/ArtClub/actions/runs/43619270426)
+  - #46 `c273fa25...`: [run 43619291567](https://github.com/faiev/ArtClub/actions/runs/43619291567)
+  - #59 `3a3a858c...`: [run 43619311939](https://github.com/faiev/ArtClub/actions/runs/43619311939)
+  - #64 `63e46967...`: [run 43619348408](https://github.com/faiev/ArtClub/actions/runs/43619348408)
+  - #71 `7e2481ff...`: [run 43619367155](https://github.com/faiev/ArtClub/actions/runs/43619367155)
+  - #83 `d66f7473...`: [run 43619990920](https://github.com/faiev/ArtClub/actions/runs/43619990920)
+  - #85 `41e8539c...`: [run 43621314697](https://github.com/faiev/ArtClub/actions/runs/43621314697)
+  - #89 `16bdc5e7...`: [run 43630959731](https://github.com/faiev/ArtClub/actions/runs/43630959731), reported 303 passed / 0 failed / 0 skipped in PR verification details.
+  These are successful exact-head historical runs, not CI against current main. Combined commit-status queries returned no separate status entries.
+- **Related unrepresented branch:** `agent/project-diagnostics-deep` current head `381230afa60f7e3efdd6c09244bb45a188bc3b56`; no open or closed PR was returned by head-qualified PR search, and no workflow runs were returned for this exact head. Against latest main it is 63 ahead / 238 behind with merge base `b140cbefbcfb3cbe1a2774d1c0025e64efb052ba`; against active #64 branch it is 5 ahead / 221 behind (merge base `3a944a34950c0756a90fed2529d66fbe60af63ce`) and changes the same inspector CLI/test/doc paths. It is not proven merged or redundant. **Retain parked** pending Coordinator's reachability/duplicate-work decision; not a deletion candidate on current evidence.
+- **Disposition recommendation:** retain #12→#89 as a parked, internally dependent diagnostics stack, not an active UI-02 release dependency. Each PR has unique incremental work and all parent links are intact, but every branch is 95 commits behind main; do not retarget or close descendants independently. Revalidate/synchronize only if the Coordinator explicitly reactivates the diagnostics work. Keep `agent/project-diagnostics-deep` parked pending history reconciliation. No branch deletion or PR closure recommendation is currently evidence-safe.
+- **Commands / retrieval actions executed:** no shell commands and no local test commands were run. Read-only GitHub operations: fetch `coordination/BOARD.md`, `coordination/assignments/agent-9.md`, and this status file from `main`; list/search branches; search open/closed PRs; search recent commits; fetch each branch tip by ref; compare each branch to main and its parent; fetch exact-head workflow runs and combined statuses; fetch run jobs; compare the orphan diagnostics branch to main and #12/#64. No local checkout was created.
+- **Changed files:** only `coordination/status/agent-9.md` is updated by this status commit. No code, docs, fixtures, workflow, PR, branch ref or shared file was changed.
+- **Blockers:** current-main divergence (95 commits), linear dependency stack requiring parent-first review, no CI on orphan diagnostics branch, and no authorized local runtime. AC-095 remains paused.
+- **Next 3 actions:**
+  1. Wait for Coordinator's disposition of the diagnostics stack; do not retarget/close/delete any refs independently.
+  2. If reactivated, sync and exact-head revalidate the stack parent-first against the then-current main.
+  3. Keep AC-095 paused until the UI-02 reset is lifted and explicit authorization is given.
+
+
+# Status — Agent 9
+
 ## 2026-11-15 — UI-02A specialist review / diagnostics reconciliation
 
 - **Current task and objective:** Coordinator-requested read-only project-structure / serialization review of PR #96; reconcile the diagnostics PR chain and verify whether AC-079 documentation/fixture corrections are needed. AC-095 remains paused by the 2026-11-15 reset.
