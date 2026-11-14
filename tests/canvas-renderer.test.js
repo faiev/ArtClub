@@ -69,6 +69,21 @@ function createRenderer(bounds, ratio) {
   };
 }
 
+test("public parseColor returns a defensive copy of cached color channels", () => {
+  const expected = [161, 178, 195, 255];
+  const exposed = parseColor("#a1b2c3");
+  exposed[0] = 0;
+  exposed[1] = 0;
+  exposed[2] = 0;
+  exposed[3] = 0;
+
+  assert.deepEqual(parseColor("#A1B2C3"), expected);
+
+  const { renderer } = createRenderer();
+  renderer.render({ width: 1, height: 1, pixels: ["#a1b2c3"], grid: false });
+  assert.deepEqual(Array.from(renderer.imageData.data), expected);
+});
+
 test("parses supported project colors and transparent pixels", () => {
   assert.deepEqual(parseColor("#123456"), [18, 52, 86, 255]);
   assert.deepEqual(parseColor(null), [0, 0, 0, 0]);

@@ -1,97 +1,127 @@
 # Status — Agent 3
 
-- **Task:** AC-027 — Complete real-browser sprite-sheet PNG verification
-- **Status:** IN_PROGRESS — AC-011 synchronized and revalidated; AC-027 browser verification underway
-- **Branch:** `agent/animation-export`
-- **AC-027 base to incorporate:** latest `main` at `56932bb16601ab5f5fd22c1d37bb877b8c06ab3f`
-- **AC-027 starting branch head:** `1cfdb08392c902f12b66d345a93b3ec9742e011d`
-- **PR:** https://github.com/faiev/ArtClub/pull/3
-- **Changed files:** `js/gif-export.js`, `tests/gif-export.test.js`, `tests/gif-export.browser.html`, `tests/gif-export.browser.mjs`, `GIF_EXPORT.md`, `.github/workflows/project-tests.yml`.
-- **PR #11 current verification:** PR remains open, draft and mergeable. Latest head `da81f74ecccf2d74d8a1033e9eee42c98b7845b5`; PR targets `main`. The latest PR workflow run https://github.com/faiev/ArtClub/actions/runs/43605119104 (run #119) completed **success**: Node/model/editor suite **48 passed, 0 failed**; real-browser editor E2E passed; GIF Chromium `ImageDecoder` test passed with native 2×2 dimensions and every RGBA byte matched for both frames (including transparency/disposal overlap); MCP client E2E passed. No merge performed.
-- **GIF test evidence:** Latest CI includes the GIF-specific and repository Node tests: 48/48 passed. The seeded quantization regression and 1,048,576-pixel stress test passed; Chromium checked full-frame RGBA for both frames. Earlier FFmpeg and ImageMagick local inspection of the original 2×2 GIF also passed.
+Updated: 2026-11-15
+Workstream: Animation / export engineering
 
-## Coordinator-directed read-only review — PR #6
+## Current snapshot
+- Coordination source: main.
+- Main snapshot used for this update: 0697c4dc1a4d7fa3bfeaf6364aa6852493843d77.
+- Owned paths: GIF/sprite-sheet exporters, exporter-specific tests/browser runners/docs, own status file.
+- AC-027 shared workflow lock released. Do not edit .github/workflows/project-tests.yml without a new assignment.
+- No authority over production index.html/download UI, Agent API/MCP, bridge or other agents' files.
 
-Reviewed PR https://github.com/faiev/ArtClub/pull/6 at head `77d425c9d2d01c56f7703cf2d68a035a8be44ba5`, base `fe66725f7d010beca7ca60f497778d419e753d7b`. No files on Agent 2's branch were changed.
+## Completed phases and PR ledger
 
-### Findings
+| Phase | Evidence | State |
+|---|---|---|
+| AC-011 GIF exporter | PR #11 merged as d691bf86cec76c4d5742289b0d97f92e0e7952b8 | Merged |
+| AC-027 sprite-sheet browser verification | PR #3 head 2814c9f181febfec8c7339b62d212832f5931b89; exact-head Actions #807 / 43621768235 passed Node and browser-e2e, including Chromium sprite-sheet PNG verification. | Implemented / CI verified on recorded head; draft PR requires root synchronization |
+| AC-039 layouts and metadata | PR #21 head 2232e2000486881809c389a4e0adc7506df8b9c0; parent PR #3 head 2814c9f; compare 10 ahead / 0 behind; 3-file diff. Actions #809 / 43621833789: 248 Node tests passed; browser-e2e passed. | Implemented / CI verified; open draft |
+| AC-040 export planning | PR #22 head e6769b4ca34d93f83fe22b9934cc4825ce438e7c; Actions #808 / 43621800411 passed on recorded head. | Implemented / CI verified on recorded head; independent root branch requires synchronization |
+| AC-041 compatibility / stress corpus | PR #55 head 64549511020b7cfe06864643b66e1a6ce37fa4cc; parent PR #21; compare 15 ahead / 0 behind; 6-file diff. Actions #810 / 43621886981: 257 Node tests passed; browser-e2e passed. | Implemented / CI verified; open draft |
+| AC-042 format guide and gallery | Consolidated PR #68 head 9093343a8a9ff9fa0debfc3e925a80d47e3c37ac; parent PR #55; compare 22 ahead / 0 behind; 14-file diff. Actions #985 / 43633277451: 263 Node tests passed, 0 failed; browser-e2e passed (editor, GIF decoder, PNG decoder/512×512 comparison, MCP E2E). | Implemented / CI verified; open draft |
+| AC-089 async/cancellable exports | PR #74 head 162d8e5425c2337e1a7be7ebe787c4995d1df05e; parent PR #55; compare 28 ahead / 0 behind; 6-file diff. Actions #960 / 43631643050: 276 Node tests passed, 0 failed; browser-e2e passed. Includes 512×512 timer-driven abort during GIF LZW and sprite-sheet raster composition. | Implemented / CI verified; open draft |
+| Phase 6 integration readiness | PR #97 head d1ebd690792d24cca7935391359d854628333a24; parent PR #74; compare 2 ahead / 0 behind; one-file docs-only diff: docs/EXPORT_INTEGRATION.md. | Submitted; open draft; API mapping explicitly pending Agent 4 contract acceptance |
 
-1. **Malformed pixel entries can be silently hidden as transparency (confirmed, low/medium severity).** In `js/canvas-renderer.js` around lines 21–23, `rgba()` uses `color == null`, which treats both explicit `null` and `undefined` as transparent. `render()` checks dimensions and array length but does not validate every entry. A sparse array or an explicit `undefined` therefore renders as a transparent pixel instead of rejecting malformed/corrupt frame data. Suggested correction: distinguish `null` explicitly and reject `undefined`; add sparse-array/undefined tests.
+PR #88 (the smaller duplicate AC-042 fixture/docs PR) is **closed, unmerged, superseded by PR #68**. All five of its files are included in consolidated PR #68 alongside the Tiny Robot visual gallery and pixel-decoding test.
 
-2. **No project canvas-size ceiling in renderer input validation (confirmed safety gap).** `render()` around lines 253–266 accepts any positive integer width/height when an equally long JS array is supplied. It does not enforce ProjectModel's 512×512 per-side limit or a renderer allocation budget before `_resize()` creates ImageData/surfaces. A direct caller can request much larger buffers than the project model can produce. Suggested correction: enforce the project limit or a documented renderer memory budget and test 513×1 plus large-area rejection.
+## Branch dependency chain
 
-3. **Frame/cel isolation is entirely a caller responsibility (contract limitation / test gap).** The renderer API accepts only `{width,height,pixels,onionBefore,onionAfter,...}`; it has no frame ID, cel ID, layer IDs or project validation. It cannot verify that pixels/masks belong to the same active frame or that a caller recomposited visible cels correctly. The architecture doc correctly says frame/layer/visibility changes require a full render. If a caller changes to another frame but supplies only a small dirty rectangle, unchanged regions remain from the previous frame in the cached ImageData/surface. Suggested correction: preserve the full-redraw contract explicitly in integration, optionally accept a frame/composite revision key that forces full invalidation, and add a two-frame switch regression test.
+- PR #3: main → agent/animation-export (head 2814c9f)
+- PR #21: agent/animation-export → agent/export-layout-contract (head 2232e20), 10 ahead / 0 behind
+- PR #55: agent/export-layout-contract → agent/export-compatibility (head 6454951), 15 ahead / 0 behind
+- From PR #55:
+  - PR #68: agent/export-format-gallery (head 9093343), 22 ahead / 0 behind; consolidated AC-042 guide/gallery/fixtures.
+  - PR #74: agent/async-export (head 162d8e5), 28 ahead / 0 behind; AC-089 async exporter.
+    - PR #97: agent/export-integration-readiness (head d1ebd69), 2 ahead / 0 behind; Phase 6 integration-readiness document.
+- PR #22 is a separate export-planning branch based on main.
 
-4. **Onion-skin mask changes are not tracked by invalidation (conditional stale-render hazard).** `_writePixels()` around lines 171–189 folds before/after masks into the raster buffer. However, `_overlaySignature()` around lines 162–169 tracks grid/selection only, not onion masks. If a caller changes `onionBefore`/`onionAfter` and submits a partial dirty rect that does not cover all changed mask positions, stale tints remain elsewhere. The caller can avoid this with a full redraw or a dirty rectangle covering the full changed mask bounds, but the contract is not explicit and no regression test covers it. Suggested correction: explicitly force full redraw on onion-state/frame-neighbor changes or track mask revisions; test enabling/disabling and changing neighboring frames with partial pixel updates.
+PR #74's stale parent snapshot was corrected with non-force merge commit ae46b2d063caf40bd077458ecc34e440e451422a. Its effective diff is exactly six Agent 3 files. PR #68 consolidated the richer Tiny Robot gallery with all five artifacts from the duplicate PR #88; exact-head CI passed. No shared history was force-pushed or rewritten.
 
-5. **DPR below 1 is silently clamped to 1 (minor behavior/coverage gap).** `_resize()` around line 116 uses `Math.max(1, dprCandidate)`. If a browser reports a devicePixelRatio below 1, the renderer allocates at 1× and reports 1 rather than the reported ratio. This may over-allocate backing stores and makes stats inaccurate. Either document a deliberate 1× minimum or support sub-1 DPR; add a 0.75 test.
+## Current integration blockers
 
-### Areas that look correct in current code
+- Current main at this snapshot: 0697c4dc1a4d7fa3bfeaf6364aa6852493843d77.
+- PR #3 root branch comparison: diverged, 25 ahead / 57 behind main. PR base snapshot is older. Coordinator must synchronize carefully, preserving current main's workflow edits and Agent 2 ownership; rerun exact-head CI afterward.
+- PR #22 root branch comparison: diverged, 15 ahead / 57 behind main. Coordinator must synchronize and rerun exact-head CI.
+- PR #21, #55, #68, #74 and #97 are each clean relative to their declared parent branches (0 behind). Do not merge children ahead of parents.
+- Agent 4 capability/API contract PR #86 remains open/draft and unmerged (head 77cc76ca4b6d75dece3e38f8864f11dc33642055). PR #97 intentionally does not define MCP method names/schemas/file-transfer shapes until that contract is accepted.
+- None of these PRs adds production download controls or an Agent API/MCP export adapter. Export modules remain unmerged and no live editor export workflow is claimed.
 
-- Transparent source pixels map to RGBA alpha 0; active opaque pixels correctly take precedence over onion tint.
-- Before/after onion tints are alpha-composited when both masks overlap.
-- Grid and selection are rendered on a separate overlay surface; tests confirm they do not enter the ImageData artwork buffer.
-- Grid/selection signature changes trigger a full redraw, and logical/display-size/DPR/backing-store changes also force a full redraw.
-- Pointer mapping uses CSS client bounds and floor-maps into logical pixel coordinates, rejecting outside positions and invalid bounds.
+## AC-027 workflow lock — released
+The sprite-sheet browser runner is wired into PR #3 and passed on its exact recorded head in Actions #807. Agent 3 released the project-test workflow writer lock on 2026-11-15. Agent 2 may now edit that workflow within Agent 2's own scope. Agent 3 will not modify it without new authorization.
 
-### PR #6 test / evidence gaps
+## Current implementation contract
+- GIF async entry points: encodeGIFAsync / exportGIFAsync.
+- Sprite-sheet async entry points: buildSpriteSheetAsync / renderSpriteSheetPNGAsync / exportSpriteSheetAsync.
+- Async paths use optional AbortSignal, bounded cooperative yields, monotonic structured progress, ExportAbortError with EXPORT_ABORTED, and never expose partial success results.
+- Sync API behavior is preserved; async output bytes/pixels/metadata are tested against sync output.
+- PNG browser codec calls cannot be interrupted in flight; cancellation is observed after codec resolution and the Blob is discarded.
+- AC-042 covers format trade-offs, validation/limits, gallery samples, direct exporter fixtures and reproducible decoding commands.
+- Phase 6 documents future editor/MCP integration boundaries only; no UI/bridge changes were made.
 
-- The 17 renderer tests use fake Canvas contexts. They verify buffer bytes and call arguments but do not verify final browser-composited pixels or actual overlay alignment.
-- No renderer-specific real-browser correctness test exists in this PR; the workflow's browser E2E fails at the unrelated persistence assertion before the MCP step.
-- No test covers a two-frame switch, wrong-frame onion mask, sparse/undefined pixel entry, over-512 input, onion-mask changes during dirty rendering, DPR <1, or fractional CSS display dimensions/border mapping.
-- Benchmark page is a static full-frame microbenchmark (DOM grid vs Canvas full render), not an animation benchmark. PR #6 explicitly reports no timing run and no measured speedup; no performance conclusion is supported yet.
-
-- **Review disposition:** Recommend addressing findings 1 and 2 before integration. Findings 3 and 4 need an explicit, tested frame/onion invalidation contract before animation use. Finding 5 is lower priority but should be documented/tested. This is a review report only, not a code change or merge recommendation.
-- **Last updated:** 2026-11-14 — verified PR #11 and completed read-only review of PR #6.
-
-
-## Coordinator-directed PR #11 corrections
-
-- Coordinator comment requires: (1) replace midpoint-only 5-bit bucket mapping with nearest-palette lookup for the actual source RGB and add Agent 2's deterministic pixel-58 regression; (2) extend Chromium decoding checks to assert dimensions and every RGBA pixel for every frame, including transparent/disposal overlap; (3) reduce peak memory or lower/document the practical export budget and add a stress test.
-- Authorized scope: revise only `agent/gif-export` owned GIF exporter files/tests/docs and the existing GIF browser CI test step. Keep UI/API/MCP integration deferred; do not touch Agent 2 files or PR #3.
-- Starting handoff head: `b4f552f38e3a4557e10d61401af9420843227aae` (6 commits ahead, 0 behind `main`).
-- Latest pre-correction workflow: Node test job passed; GIF browser verification passed; overall workflow failed at the separate pre-existing editor persistence E2E assertion (`agent-bridge/e2e-test.mjs:229`), with MCP skipped.
-
-
-## Coordinator-directed AC-011 corrections — completed
-
-- Replaced 5-bit bucket-midpoint lookup with actual-RGB nearest-palette lookup using a palette k-d tree and a bounded 65,536-entry exact-RGB cache. Added the deterministic Agent 2 LCG regression: the source pixel at index 58 is `#D2384E`, remains in the median-cut palette, and is decoded back as that exact pixel.
-- Expanded the Chromium `ImageDecoder` test to assert every frame's native dimensions and compare the complete RGBA raster for every frame. The second-frame transparency at the prior-frame green pixel verifies disposal clears the previous image; CI reported both rasters equal to the expected values.
-- Reduced maximum selected output from 16,777,216 to 1,048,576 frame pixels and maximum encoded output from 64 MiB to 16 MiB. Kept project source-cel validation separate at 16,777,216 pixels. Added a stress test that encodes four 512×512 frames (exactly the output budget) and rejects a fifth before frame composition. Documented buffer budgeting and exclusions in `GIF_EXPORT.md`.
-- Updated PR #11 description with the corrections and current CI evidence. PR remains draft pending coordinator re-review.
-- Branch is now 10 commits ahead of current `main` and 1 behind because Agent 1's AC-006 recovery fix advanced `main` to `57b4da3cf9be2a9a4b1c98fea942729e42314d54`. No rebase/merge was performed; the successful PR workflow tested the current PR merge context.
-- No UI/API/MCP integration; AC-007 remains queued and was not started.
-- **Last updated:** 2026-11-14 — completed coordinator corrections and verified PR workflow run #119.
-
-
-## AC-011 post-acceptance branch synchronization
-
-- Coordinator accepted AC-011 as an isolated module in PR #11; no UI/API/MCP wiring was authorized.
-- Merged latest `main` into `agent/gif-export` with non-force, expected-head updates. The synchronization preserved the six PR #11 files and brought in main changes. Branch comparison after the last sync: 14 commits ahead, 0 behind; merge base equals current main.
-- Latest main at last verification: `220c2b5033ccd8752dd8e3e357be3fcd8bfc7b7a`.
-- Latest branch head: `1f5c7427d35fb2b09e10cb054dfaa5c637a56426` (merge commit).
-- PR #11 remains open, unmerged and mergeable. It is no longer marked draft by GitHub.
-- Full PR workflow run #138 was created for this exact head: https://github.com/faiev/ArtClub/actions/runs/43606334973. At status update time the run was in progress. Required gates: Node tests, Chromium editor E2E, complete GIF ImageDecoder raster test, MCP E2E.
-- **Next assignment:** AC-027, existing sprite-sheet PR #3 on `agent/animation-export`, begins after this AC-011 current-head workflow completes successfully. Requirements: Chromium decode deterministic PNG fixture, compare full RGBA raster, dimensions, spacing/margins, transparency, frame order and JSON metadata. Keep workflow file locked; prepare page/runner/docs only and do not edit `.github/workflows/project-tests.yml` until coordinator releases it.
-- No AC-007 UI/API integration. No changes to Agent 2 or Agent 4 files.
-- **Last updated:** 2026-11-14 — latest-main sync commit created and current-head workflow #138 started.
+## Next actions / blockers
+1. Coordinator: synchronize/review PR #3 against current main, preserving Agent 2's workflow work, and rerun exact-head CI.
+2. Coordinator: synchronize/review standalone PR #22 against current main and rerun exact-head CI.
+3. Coordinator: review the parent chain #3 → #21 → #55 → (#68, #74 → #97) in dependency order; all remain draft and Agent 3 will not self-merge.
+4. Agent 3: wait for Coordinator review/acceptance of PR #97 and for Agent 4 capability contract PR #86 to be accepted before specifying any MCP adapter mapping. No further exporter phase is authorized in the current assignment.
 
 
-## AC-011 — accepted isolated GIF exporter; latest-main sync complete
+## UI-02A specialist review — PR #96 (2026-11-15)
 
-- Coordinator acceptance is recorded in PR #11 comment `6878897754`; the feature remains an isolated module and no UI/API/MCP integration is authorized.
-- Merged latest main into `agent/gif-export` without force-push. Current main at sync: `56932bb16601ab5f5fd22c1d37bb877b8c06ab3f`; synchronized feature head: `5ebaf81e3285d456e7dcfe172fbc6f37fbe0442b`. Compare: 15 ahead, 0 behind.
-- Exact-head workflow #144: https://github.com/faiev/ArtClub/actions/runs/43606467255 — **success**. Node/model/editor suite **70 passed, 0 failed**; Chromium editor E2E passed; GIF ImageDecoder verification checked both 2×2 frame dimensions and every RGBA byte including disposal transparency; MCP E2E passed.
-- PR #11 description updated with synchronized head and run #144. PR #11 remains open, unmerged and mergeable.
-- No GIF exporter changes since accepted head `da81f74ecccf2d74d8a1033e9eee42c98b7845b5`; sync merge commits only integrate main.
+- Assignment: read-only import/export boundary review requested by Coordinator comment on PR #96.
+- Exact PR head inspected: `7071f9550f94f413f4dd414416a804079ee179c4` (verified from live PR metadata; PR remained open/draft during review).
+- Inspected: PR #96 full changed-file list and `index.html` diff; traced `captureImportTarget()`, `isImportTargetCurrent()`, image `load/error` handlers, `scheduleSave()`, `snapshot()`, `compositePixels()`, and existing PNG/SVG/JSON export paths. Read existing GIF exporter contract on main for boundary context. No exporter/workflow files changed.
 
-## AC-027 — real-browser sprite-sheet PNG verification (active)
+### Finding — MEDIUM: overlapping image imports are ordered by decode completion, not user selection
 
-- Existing PR #3: https://github.com/faiev/ArtClub/pull/3
-- Feature branch: `agent/animation-export`; branch head at assignment fetch: `1cfdb08392c902f12b66d345a93b3ec9742e011d`.
-- Allowed scope: existing sprite-sheet module/tests/docs and new sprite-sheet browser page/runner. Do not edit `index.html`, Agent API, MCP, bridge, other agents' files, or `.github/workflows/project-tests.yml` while PR #11 remains unmerged and the coordinator has not released the workflow lock.
-- Required deterministic Chromium fixture: explicit frame order `f3,f1,f2`, grid layout 2 columns, margin 1 and spacing 1; complete decoded PNG RGBA equality, 7×7 dimensions, transparency in cells/gutters/margins, frame ordering and JSON metadata positions/names/durations.
-- Include browser checks for invalid canvas dimensions and oversized output budget. Keep module native-resolution; no scaling/smoothing.
-- Prepare browser command `node tests/sprite-sheet-export.browser.mjs` and document it, but do not claim CI execution until the browser runner is wired through an authorized workflow or independently run in a real Chromium environment.
-- PR #3 currently open/draft. Previous local evidence only covers 10 Node unit tests and a mocked canvas; prior workflow evidence predates merged PR #10 and is not current.
-- **Last updated:** 2026-11-14 — AC-011 current-main sync and exact-head CI passed; AC-027 started.
+- Location: `index.html:2477-2501` (image input handler and `img.onload`).
+- Each selected image captures the same project/layer/frame/dimensions/revision if another image decode is already pending. There is no per-import generation/token or cancellation of the previous decode.
+- Reproduction: select image A and leave its decode pending; select image B before A resolves; make A's `onload` fire first. A passes `isImportTargetCurrent(target)`, writes its converted pixels, and calls `scheduleSave()` (which increments `documentRevision`). B then fails the revision check and is discarded. Thus the older request wins and the newer user selection is rejected. If B decodes first, B wins. Result depends on decode timing rather than latest user intent.
+- Impact: a stale asynchronous completion can replace the expected image import; this is not a cross-tab persistence finding and does not alter the exporter modules themselves.
+- Suggested fix: maintain a monotonically increasing image-import request ID (or cancel/retire the previous request); capture it with the target and require both target identity and request ID to remain current immediately before pixel publication. Revoke each object URL on every terminal path.
+- Suggested deterministic browser test: hold A and B image decode callbacks; select A then B; resolve A first and assert no mutation/publication; resolve B and assert only B pixels are imported. Also test reverse resolution order and assert B remains the winner.
+
+### Export-boundary result
+
+- No separate exporter regression found in the inspected paths: PNG/SVG rendering reads the current active pixel buffer through `compositePixels()`, while editable JSON export takes `snapshot()`; the image-import handler does not call or mutate GIF/sprite-sheet exporter modules.
+- Import failure/resource cleanup limitation: the object URL is revoked on stale completion, decode error, and normal success, but there is no `try/finally` around the body of `img.onload`; an unexpected exception during canvas conversion/rendering can bypass revocation. Recommend guaranteed cleanup in a finally path (LOW; not reproduced).
+
+### Execution / state
+
+- Tests executed: none. This was a read-only source review; no local checkout/browser runtime was available in this session. No test pass is claimed.
+- PR #96 review recommendation: no approval recommendation (per Coordinator scope). Reported finding is specialist feedback only.
+- Branch/commit: no branch or commit created; no production or exporter files changed.
+- Next actions: (1) post this finding to PR #96; (2) await Coordinator disposition; (3) if requested, re-review the exact revised head and its import race regression test.
+
+
+## 2026-11-15 — Ten-agent branch hygiene assignment
+
+- **Assignment:** read-only dependency inventory for PRs #3/#21/#22/#55/#68/#74/#97, including parent graph, exact-head CI and the historical `.github/workflows/project-tests.yml` lock. No code, branch, PR-state, workflow or shared-file changes.
+- **Main baseline:** live compare endpoint resolved `main` to `3284720224e6545f3a3f123f91663c63292a59d9`. The newly dispatched assignment is in BOARD commit `84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa`; BOARD and assignment files were fetched from `main`.
+- **Current PR/branch dependency inventory:** all seven scoped PRs appear in the current open-PR search. Parent comparisons are current against live branch refs:
+  
+  | PR | Branch | Parent | Current comparison | Current diff summary / disposition |
+  |---|---|---|---|---|
+  | #3 | `agent/animation-export` | `main` | 25 ahead / 84 behind; diverged; merge base `12711ca8de277125b6529c4f4c34826fcc5b7d59` | Sprite-sheet module, browser runner/tests, guide and workflow wiring. Retain as root dependency; not current-main-ready. |
+  | #21 | `agent/export-layout-contract` | #3 | 10 ahead / 0 behind #3; parent head `2814c9f181febfec8c7339b62d212832f5931b89` | Three-file layout/metadata extension: `ANIMATION_EXPORT.md`, `js/sprite-sheet-export.js`, `tests/sprite-sheet-export.test.js`. Retain stacked on #3. |
+  | #22 | `agent/export-planning` | `main` | 15 ahead / 84 behind; diverged; merge base `12711ca8de277125b6529c4f4c34826fcc5b7d59` | `EXPORT_PLAN.md`, `js/export-plan.js`, `tests/export-plan.test.js`. Independent root; retain parked, not current-main-ready. |
+  | #55 | `agent/export-compatibility` | #21 | 15 ahead / 0 behind #21; parent head `2232e2000486881809c389a4e0adc7506df8b9c0` | Compatibility/stress corpus plus GIF/sprite-sheet browser tests and exporter changes. Retain stacked on #21. |
+  | #68 | `agent/export-format-gallery` | #55 | 22 ahead / 0 behind #55; parent head `64549511020b7cfe06864643b66e1a6ce37fa4cc` | 14-file docs/fixture/gallery/test extension. Retain stacked on #55. |
+  | #74 | `agent/async-export` | #55 | 28 ahead / 0 behind #55; parent head `64549511020b7cfe06864643b66e1a6ce37fa4cc` | Six-file async/cancellable exporter extension. Retain stacked on #55. |
+  | #97 | `agent/export-integration-readiness` | #74 | 2 ahead / 0 behind #74; parent head `162d8e5425c2337e1a7be7ebe787c4995d1df05e` | One-file `docs/EXPORT_INTEGRATION.md` proposal. Retain stacked on #74; integration contract is not production integration. |
+
+- **Exact-head verification / CI evidence:**
+  - #3: PR body records `4b1c0ec3f2995c73d5d81661c7129cd7e3cd0222`, Actions [#43610203952](https://github.com/faiev/ArtClub/actions/runs/43610203952) success. However, comparing that recorded SHA to the current `agent/animation-export` ref shows 192 commits ahead; the PR body SHA is not the live branch tip. No current-tip CI can be claimed.
+  - #21: branch tip verified identical to `2232e2000486881809c389a4e0adc7506df8b9c0`; Actions [#43621833789](https://github.com/faiev/ArtClub/actions/runs/43621833789) success (248 Node tests; browser-e2e success).
+  - #22: PR body records `82e900d690b1b71a0bf3d1c9a3d5166aa6156ced`, Actions [#43619772314](https://github.com/faiev/ArtClub/actions/runs/43619772314) success. Current branch ref is 7 commits beyond that SHA; run is not exact-current-tip evidence.
+  - #55: branch tip verified identical to `64549511020b7cfe06864643b66e1a6ce37fa4cc`; Actions [#43621886981](https://github.com/faiev/ArtClub/actions/runs/43621886981) success (257 Node tests; browser-e2e success).
+  - #68: branch tip verified identical to `9093343a8a9ff9fa0debfc3e925a80d47e3c37ac`; Actions [#43633277451](https://github.com/faiev/ArtClub/actions/runs/43633277451) success (263 Node tests; browser-e2e success).
+  - #74: branch tip verified identical to `162d8e5425c2337e1a7be7ebe787c4995d1df05e`; Actions [#43631643050](https://github.com/faiev/ArtClub/actions/runs/43631643050) success (276 Node tests; browser-e2e success).
+  - #97: branch tip verified identical to `d1ebd690792d24cca7935391359d854628333a24`; no PR-triggered workflow run was returned for that SHA. Do not claim CI for #97; its parent #74 has the successful run above.
+- **Unique changes / dependency observations:** #3 is the root sprite-sheet implementation and includes the one-time three-line project workflow wiring. #21 adds the layout/metadata contract. #55 adds compatibility hardening and independent decoder coverage. #68 and #74 are sibling descendants of #55; #97 is a child of #74. #22 is separate from this chain. The current branch comparisons against `main` show #3/#22 are materially behind current main; the children remain internally clean relative to their declared parents, not necessarily mergeable to main.
+- **Workflow lock:** historical AC-027 workflow wiring is present in #3's root diff. The existing Agent 3 status records the lock as explicitly released after the AC-027 browser proof. This assignment explicitly forbids workflow edits; no workflow file was changed.
+- **Commands / tools executed:** fetched `coordination/BOARD.md`, `coordination/assignments/agent-3.md`, and this status file from `main`; searched current branch refs and open PRs; compared `main` and all six parent/child edges; compared recorded PR head SHAs against live branch refs; fetched workflow runs for the seven recorded heads. No shell/git commands were run and no tests were executed locally.
+- **Files changed by this assignment:** `coordination/status/agent-3.md` only. No branch/PR/ref mutation; no new branch or PR; no production/exporter/workflow implementation change.
+- **Blockers / uncertainty:** the GitHub branch-search/compare tools do not expose a direct current branch-tip SHA for every branch. For #3 and #22, PR-body recorded SHAs demonstrably do not equal current branch tips, so exact current-tip CI remains unverified. #97 has no workflow run surfaced. Current main has advanced 84 commits beyond the common merge base of the two root branches; do not rebase/retarget as part of this read-only task.
+- **Disposition recommendation:** retain #3 as a dependency pending coordinator review and a current-tip SHA/CI refresh; retain #21/#55/#68/#74/#97 as their dependency chain (with #68 and #74 as sibling descendants); retain #22 parked as an independent export-planning deliverable. No branch is recommended for deletion and no PR is recommended for closure based on this evidence alone.
+- **Next actions:** (1) Coordinator to obtain live exact branch-tip SHAs and refresh CI for #3 and #22; (2) coordinator to decide whether to sync the two root branches to current main, preserving ownership and revalidating the entire dependent chain; (3) keep #68/#74/#97 behind their parent acceptance gates and do not represent export integration as shipped.

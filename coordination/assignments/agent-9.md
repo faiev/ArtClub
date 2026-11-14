@@ -68,3 +68,7 @@ After AC-079, add a read-only way to identify exact and content-equivalent proje
 - Keep it composable with the existing inspector without modifying that CLI until a separate narrow PR is ready.
 
 **Allowed files:** `tools/project-fingerprint.mjs`, `tests/project-fingerprint.test.js`, fingerprint fixtures and `docs/PROJECT_DIAGNOSTICS.md` / a focused fingerprint doc. Do not modify project-model/storage, existing inspector CLI, index.html, Agent API, bridge, workflow or another agent's tests.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile chain #12 → #46 → #59 → #64 → #71 → #83 → #85 with exact current heads, bases, dependency links, changed files and CI. Complete necessary AC-079 documentation/fixture corrections. Keep AC-095 paused until UI-02 release advances. No model/storage/UI/API/bridge edits.

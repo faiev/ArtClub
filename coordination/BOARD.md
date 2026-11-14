@@ -1,3 +1,86 @@
+# LIVE COORDINATOR VERIFICATION — 2026-11-15 01:46 IST
+
+- Latest authoritative main: `404e412e34e28827e1bac7e66f821c2c15e06f26` (verified via Git ref).
+- Repository metadata: public, default branch `main`; coordinator connection has admin/maintain/push/pull permissions.
+- Open pull requests: **71** (live GitHub API listing, not the earlier 62-PR snapshot).
+- Current coordinator integration branch: `coordinator/ui-02a-safe-clear`, latest commit `64a1d9218bce4231e531b0c1746c04194991433e`; PR [#96](https://github.com/faiev/ArtClub/pull/96) remains open/draft.
+- Exact-head checks for that commit: standard Project model tests run [#43636851524](https://github.com/faiev/ArtClub/actions/runs/43636851524) and dedicated UI-02 safe Clear browser run [#43636851563](https://github.com/faiev/ArtClub/actions/runs/43636851563) were **in progress** at this snapshot. Previous head `f9b8e6d10e1ce2118424943883b2a4f34a854593`: standard CI passed (run #43636595763), dedicated browser failed (run #43636595722).
+- Main deployment: Pages run [#43636441327](https://github.com/faiev/ArtClub/actions/runs/43636441327) succeeded on current main SHA `404e412e34e28827e1bac7e66f821c2c15e06f26`. This is the currently published baseline, not UI-02A (which is not merged).
+- Current acceptance blockers: verify the new exact-head browser run; retain Agent 6's persistence/recovery race concern as unresolved until a deterministic test or sound transaction boundary addresses it. Do not mark UI-02A accepted or live.
+- Active chats by D-028: Coordinator + Agent 1 (QA-only) + Agent 6 (read-only safety review/owned harness). Agents 2–5 and 7–10 remain paused except specifically requested read-only dependency reviews.
+
+---
+
+# DELIVERY RESET — 2026-11-15 (supersedes broad parallel workstream expansion)
+
+**The team is in product-delivery mode. Stop creating isolated modules, speculative tooling, extra prototypes, benchmark-only work, and documentation-only PRs unless the Coordinator explicitly requests them for the current release.**
+
+**Live branch snapshot (2026-11-15 02:38 IST):** 102 branches (102 total across two GitHub API pages) and 72 open PRs. The branch set is not 102 active tasks. 29 non-main branch refs are not the head of any currently open PR and require individual reachability/dependency review before disposition. 3 refs are the only permitted active lanes: `coordinator/ui-02a-safe-clear` (production integration), `agent/qa-ui02a-exact-head-review` (QA), `agent/layer-safety-browser` (safety review). Current main: `90488f58392582420ba980860d57a8403c25ee04`.
+
+
+## One active release lane
+- **P0: UI-02 production editing safety.** Coordinator owns production UI integration. Deliver and verify active-cel/selection Clear, then staged image import, then atomic selection paste. Only one production integration PR is active at a time.
+- Agent 1: QA-only denial/immutability tests and exact-head review for the active UI-02 slice.
+- Agent 6: read-only safety-module review and reproducible test harness for the active UI-02 slice.
+- Agents 2–5 and 7–10: no new feature branches or PRs. Preserve submitted work; do not start the next AC phase. They may perform only specifically requested, read-only dependency/review work.
+- Existing open PRs are **inventory, not active work**. No new PR is accepted unless it directly unblocks or completes the current user-visible release.
+
+## Branch and PR controls
+- Do not create a branch merely because a task is a new AC number.
+- Maximum active feature branches: one coordinator integration branch plus one QA branch and one safety-review branch.
+- Keep historical branches intact during this reset. Do not bulk-delete branches or close PRs until each branch is classified against its PR, unique commits, dependencies and merge state.
+- Coordinator will maintain a branch/PR disposition ledger: merge, retain as dependency, close as superseded, or archive/delete after confirmation.
+- No agent may report a module, spec, test harness or prototype as a shipped application feature.
+
+## Definition of progress
+A task counts as product progress only when a real user workflow is implemented in the production app, tested in a real browser, merged to main, deployed, and verified on the published site. Unit tests, isolated modules, docs, open PRs and green CI are supporting evidence—not product delivery.
+
+## Daily operating rule
+At most three chats need to be active for the current release: Coordinator, Agent 1 QA, Agent 6 safety. The other chats are paused. GitHub cannot wake inactive ChatGPT chats; the user should not be asked to resume ten agents for this one release.
+
+---
+
+# CURRENT COORDINATOR RESET — 2026-11-15
+
+> This live snapshot supersedes older dated board status below. Re-fetch branch heads, PRs and Actions before every merge decision.
+
+- Repository: faiev/ArtClub; source of truth: main.
+- Main observed before this coordination commit: 1c4b1e439b6ac816c0e81ffb94c8dd4324859df2.
+- PR #87 was reviewed and squash-merged by the coordinator as 9296ca08e1e8143bb5b82c0ad48608e9c9a0b344 (one-line AC-091 screenshot-caption correction).
+- UI-00 / AC-091 design prototype is merged (#77). UI-01 production workstation shell is merged (#84) as e22ddb35ebf802b3b719e74a7329effceab28747.
+- Pages deployment for the UI-01 merge succeeded in run #311: https://github.com/faiev/ArtClub/actions/runs/43624328006. A subsequent pre-#87 main deployment succeeded in run #317: https://github.com/faiev/ArtClub/actions/runs/43625434822. Deployment for the #87 main was run #319: https://github.com/faiev/ArtClub/actions/runs/43629304356; it was in progress at the last query. Verify this run's final state before claiming current main is deployed.
+- The open-PR inventory was 62 after #87 merged. This count is a snapshot, not a substitute for live search. Several PRs are stacked and many direct-main PRs are stale after recent main changes. Mergeable metadata alone is insufficient.
+- **Next product release priority: UI-02 editing-safety integration.** The live editor still bypasses accepted safety modules in toolbar Clear, selection clear, image import and selection paste.
+
+## Agent restart directives
+
+| Agent | Current work / exact next action |
+|---|---|
+| 1 — QA | Reconcile PRs #1/#25/#32/#36/#42/#57/#61/#66 with exact current heads and actual test runs. Add denial + immutability coverage under tests/qa/ui02/** for active-cel Clear, selection Clear, staged image import and atomic paste. Review coordinator UI-02 PR. Do not edit production UI, bridge E2E or workflow. |
+| 2 — Renderer | Reconcile #18/#52/#73/#75; #34/#43 are merged. Preserve limitations/negative results in AC-037. Review UI-01 canvas sizing/pointer behavior and deliver UI-03 navigation acceptance criteria. No index.html, renderer switch or workflow edit. |
+| 3 — Export | Reconcile #3/#21/#22/#55/#68/#74. Finish AC-027 real Chromium sprite-sheet PNG verification and exact CI; explicitly release .github/workflows/project-tests.yml only after evidence. No UI/export dialog work. |
+| 4 — MCP | Reconcile #8/#38/#54/#82/#86 and dependency heads. PR #82 reports five failures in Agent 6-owned safe-edit tests; coordinate with Agent 6, do not edit their files, and rerun exact-head full CI. Keep agent-bridge/e2e-test.mjs lock until PR #8 is resolved. No production UI/API lock. |
+| 5 — UX | Reconcile #9/#20/#24/#30/#35/#41/#47/#51. Deliver docs-only UI-02 copy/error/focus/keyboard/accessibility guidance and rank UI-01 follow-ups (focus-visible, aria-pressed/current states, icon consistency, theme-color, label sizing). Remain in docs/ux/**. |
+| 6 — Safety | Reconcile #29 and #40; execute the dedicated #40 browser harness on its current head or report exact environment blocker (not a pass). Read-only review of UI-02 Clear/import/paste. Help isolate failures reported by #82 without changing Agent 4 files. No index.html, model/storage, API, bridge or workflow edit. |
+| 7 — Tile | Sync and exact-head revalidate #13/#28/#58/#65/#67/#79/#81. #80 is merged. Pause new tile feature expansion during UI-02. No shared files or production UI. |
+| 8 — Palette | Reconcile #16/#27/#33/#39/#45/#53/#56/#60/#78. #78 is merged; #16 is absent from current open list and must be checked. Verify #56 base/stack, refresh CI and provide a UI-04 parser/import contract. No UI wiring. |
+| 9 — Diagnostics | Reconcile chain #12 → #46 → #59 → #64 → #71 → #83 → #85, including exact heads/bases/CI. Finish required AC-079 docs/fixture corrections; pause AC-095. No model/storage/UI/API changes. |
+| 10 — Pixel algorithms | Reconcile #15/#37/#44/#50/#69/#70/#72/#76. #31 is merged. Close bounded AC-085 golden-parity gaps where dependencies allow; state remaining gaps honestly. Pause new algorithms during UI-02. No UI/renderer/model/palette/API edits. |
+
+## Coordinator UI-02 sequence
+
+1. UI-02A: guarded immutable active-cel Clear and selection Clear; correct “Clear canvas” copy because current operation affects only the active cel.
+2. UI-02B: stage asynchronous image import, capture target before decode, revalidate before commit, and preserve prior project on decode/validation/storage failure.
+3. UI-02C: atomic selection paste/replace; reject clipped or partial operations.
+4. Add Chromium real-editor tests for denial messages and source/project/pixel/history/storage immutability on hidden, locked, zero-opacity, stale/missing target and invalid-input cases.
+5. Merge narrow exact-head-tested PRs, then verify Pages and inspect the live app.
+
+## Ownership / collaboration
+
+Coordinator is sole writer of index.html and production UI wiring. Agent 1 owns QA paths; Agent 6 owns safety modules and reviews UI integration; Agent 5 owns design/docs only. Agent 3 retains the project-tests workflow lock for AC-027 until explicitly released. Agent 4 retains agent-bridge/e2e-test.mjs while reconciling PR #8. No other file ownership changes are implied.
+
+GitHub coordination files do not wake separate ChatGPT conversations. The user must resume each inactive agent chat after these assignments land; a commit is shared state, not a message delivered to a sleeping chat.
+
 # Art Club coordination board
 
 Coordinator snapshot: 2026-11-14  
@@ -408,3 +491,34 @@ Main release commit: `e22ddb35ebf802b3b719e74a7329effceab28747`. Open PR count b
 - **Visual limitation:** public URL fetching is blocked in the coordinator session. The Pages deployment is verified against the merge commit, but no direct rendered-page screenshot inspection is claimed. Independent visual review at 1440×900 and 1280×800 remains post-release QA.
 - Agent 1's 12-flow task matrix, Agent 2's pointer/responsive review and Agent 5's production visual review were requested on PR #84 but had not appeared in their status files at the time of merge. Follow up by resuming those agent chats; log their manual findings and file narrowly scoped fixes if needed.
 - Current PR inventory at the last check: **62 open**. This release is the first production-visible UI shell milestone; later UI-02 safety/palette/export integrations remain separate work.
+
+## Branch cleanup execution — live snapshot 2026-11-15 02:38 IST
+
+- Freeze remains in force: no new feature branches or PRs for paused workstreams; all new UI-02 work stays on the existing coordinator integration branch unless the coordinator explicitly authorizes one of the two specialist lanes.
+- Open PRs: 72; branch refs: 102; non-main refs not currently used as an open PR head: 29. Open PR branches may be stacked, so an open PR's head is not automatically mergeable or disposable.
+- Keep the three active refs listed in the live snapshot above. Preserve all other refs pending an evidence-based classification of unique commits, PR base dependencies, merge reachability, and any external consumers.
+- Cleanup sequence: (1) map every ref to open/closed/merged PRs and stacked parents; (2) compare each ref tip to main and identify unique commits; (3) mark merged/redundant refs as deletion candidates only when no dependent PR or unique unmerged work remains; (4) delete candidates in small batches and verify the branch count after each batch.
+- **Execution limitation:** the connected GitHub integration exposes branch listing/search and ref updates, but no branch-delete operation; its generic repository fetch is GET-only. Therefore no branch was deleted or force-moved in this session. Do not simulate deletion by moving refs or closing PRs. Use an authorized GitHub branch-delete action/credential for the verified candidate list.
+- Next cleanup target: classify the 29 refs with no open PR head; do not infer that they are stale merely from that fact.
+
+
+## Ten-agent branch hygiene assignments — 2026-11-15
+
+**Dispatch rule:** These are explicit, bounded, read-only assignments to the ten existing specialist agent chats. They do not authorize new feature work, new branches, PR creation, production edits, branch deletion, force-pushes, or PR closure. All work is against the current live repository; use exact SHAs from current GitHub refs, not stale status-file snapshots. Report findings in the agent's existing status file only after the chat is resumed. Do not claim execution until the agent actually responds with evidence. The Coordinator owns the final branch disposition ledger and any deletion operation.
+
+**Common deliverable for Agents 2–5 and 7–10:** For only the listed workstream, produce a branch/PR dependency table covering every relevant open PR and branch: current head SHA, base branch, ahead/behind versus current main or parent, unique commits/files, downstream PR dependants, latest exact-head CI state, and recommendation (retain as active dependency / retain parked / candidate to close after coordinator review / candidate branch for deletion only after merge reachability is proven). Do not modify code, refs, PR state, or shared files. Do not infer stale from age or lack of open PR head. No new branches. Provide exact commands/URLs and evidence.
+
+| Agent | Role / directly responsible owner | Exact assignment and scope | Exclusions / acceptance |
+|---|---|---|---|
+| **1 — QA** | QA / release reliability | **P0 release gate:** Revalidate PR #96 (coordinator/ui-02a-safe-clear) at its current exact head; reconcile PR #98 and QA history #1/#25/#32/#36/#42/#57/#61/#66/#91/#93. Identify the current browser failure root cause, exact-head workflow state, and test-only gap for active-cel/selection Clear denial + immutability. | QA/tests only; no production, storage, bridge, workflow, or branch changes. Acceptance: exact head + run URLs + failing log evidence + pass/fail matrix. |
+| **2 — Renderer** | Renderer / Canvas specialist | Branch/PR dependency inventory for #18/#52/#73/#75/#90 and related renderer branches; classify the renderer chain and any unrepresented renderer refs against current main. | Read-only. No production UI, renderer implementation, workflow, or new AC work. Acceptance: branch table + dependency-safe disposition. |
+| **3 — Export** | Animation/export specialist | Branch/PR dependency inventory for #3/#21/#22/#55/#68/#74/#97, including the stacked export chain and project-tests workflow lock history; identify branches already merged/redundant versus required parents. | Read-only. Do not edit project-tests workflow, export implementation, UI, or PR bases. Acceptance: verified parent graph + exact-head CI + safe disposition. |
+| **4 — MCP / bridge** | Bridge/security specialist | Branch/PR dependency inventory for #8/#38/#54/#82/#86/#92 and bridge-related historical refs; verify stacked parents and any cross-agent file locks. | Read-only; do not edit agent-bridge/e2e-test.mjs, API, workflow, or Agent 6 files. Acceptance: dependency graph + exact-head CI + conflicts/risks. |
+| **5 — UX / accessibility** | UX specialist | Branch/PR inventory for #9/#20/#24/#30/#35/#41/#47/#51/#87/#95; identify accepted/merged docs, superseded prototypes, and any open UX deliverable genuinely required for UI-02. | Docs/review only; no production UI, new prototypes, or new PRs. Acceptance: keep/park/close-candidate rationale and any P0 UX blocker only. |
+| **6 — Safety** | Safe-edit / persistence safety specialist | **P0 integrity gate:** Reconfirm PR #96 P1 cross-tab stale-write and P2 rollback/recovery findings at current exact head. Provide the smallest safe transaction/CAS design and deterministic two-tab IndexedDB + rollback-preservation acceptance tests. Reconcile #29/#40 and safe-edit PR chain #14/#23/#26/#40/#48/#49. | Read-only design/review; no production storage or shared test changes. Acceptance: exact code locations, race sequence, minimal fix contract, deterministic tests, and exact-head evidence. |
+| **7 — Tile** | Tile workflow specialist | Branch/PR dependency inventory for #13/#28/#58/#65/#67/#79/#81 and tile-related refs; distinguish integrated prerequisites from parked feature expansion. | Read-only. No tile module, production UI, or new feature work. Acceptance: branch graph + merge/deletion-candidate rationale. |
+| **8 — Palette** | Palette/color specialist | Branch/PR dependency inventory for #16/#27/#33/#39/#45/#53/#56/#60/#78/#94 and palette-related refs; verify format/corpus dependencies and whether any palette work blocks current UI-02 image import. | Read-only. No palette implementation or UI wiring. Acceptance: dependency graph + specific import blocker (or explicit none) + branch disposition. |
+| **9 — Diagnostics** | Project diagnostics specialist | Branch/PR dependency inventory for #12/#46/#59/#64/#71/#83/#85/#89 and diagnostics refs; map complete stacked chain and classify AC-079/095 work without reviving paused scope. | Read-only. No model/storage/UI/API changes or docs expansion. Acceptance: exact parent graph + unique work + park/close/delete-candidate recommendation. |
+| **10 — Pixel algorithms** | Pixel algorithms specialist | Branch/PR dependency inventory for #15/#31/#37/#44/#50/#69/#70/#72/#76 and pixel refs; verify merged #31 reachability and classify unmerged algorithm PRs as independent reusable work versus current product dependencies. | Read-only. No algorithm changes, UI/renderer/model/palette/API changes. Acceptance: exact-head CI + merge reachability + disposition for every branch. |
+
+**Sequencing:** Agents 1 and 6 are P0 release-gate reviews and may run concurrently because their ownership is disjoint. Agents 2–5 and 7–10 may perform their isolated read-only workstream inventories in parallel. The Coordinator will reconcile the ten reports into one ledger before any PR closure or branch deletion. GitHub does not wake inactive ChatGPT agent chats; the user must resume those chats to execute these assignments. Posting this dispatch is not evidence that any agent has started.
