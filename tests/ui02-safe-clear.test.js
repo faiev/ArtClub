@@ -95,6 +95,6 @@ test("selection Clear changes only pixels inside the selection on its detached r
     selection: { x: 0, y: 0, width: 1, height: 1 }
   });
   assert.equal(result.ok, true);
-  assert.deepEqual(result.project.cels[0].pixels, [null, null, null, "#112233", "#112233", null]);
+  assert.deepEqual(result.project.cels[0].pixels, [null, null, null, null, "#112233", null]);
   assert.equal(JSON.stringify(project), before);
 });

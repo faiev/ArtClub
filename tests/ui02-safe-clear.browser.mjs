@@ -51,8 +51,10 @@ async function run() {
     const context = await browser.newContext();
     const page = await context.newPage();
     const pageErrors = [];
+    const consoleErrors = [];
     let confirmationMessage = "";
     page.on("pageerror", error => pageErrors.push(error.message));
+    page.on("console", message => { if (message.type() === "error") consoleErrors.push(message.text()); });
     page.on("dialog", async dialog => {
       if (dialog.type === "confirm") {
         confirmationMessage = dialog.message();
@@ -74,7 +76,16 @@ async function run() {
 
     assert.equal(await page.locator("#clearBtn").isDisabled(), false);
     await page.locator("#clearBtn").click();
-    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === null);
+    await page.waitForTimeout(500);
+    const clearDiagnostics = await page.evaluate(() => ({
+      pixel: window.onePixelStudio.get_pixel({ x: 0, y: 0 }),
+      toast: document.getElementById("toast").textContent,
+      saveState: document.getElementById("saveState").textContent,
+      busy: document.body.inert
+    }));
+    if (clearDiagnostics.pixel.color !== null) {
+      throw new Error("Active-cel Clear did not commit: " + JSON.stringify({clearDiagnostics,pageErrors,consoleErrors,confirmationMessage}));
+    }
     assert.match(confirmationMessage, /active layer for this frame/i);
     assert.match(confirmationMessage, /Other layers and frames will be preserved/i);
     assert.equal((await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }))).color, "#00ff00",
@@ -124,6 +135,7 @@ async function run() {
     const blockedContext = await browser.newContext();
     await blockedContext.addInitScript(() => {
       try { Object.defineProperty(window, "indexedDB", { configurable: true, value: null }); } catch {}
+      try { if (window.indexedDB) window.indexedDB.open = function () { throw new Error("simulated IndexedDB open failure"); }; } catch {}
       Storage.prototype.setItem = function () { throw new Error("simulated local storage failure"); };
     });
     const blockedPage = await blockedContext.newPage();
