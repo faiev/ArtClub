@@ -1,0 +1,352 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import http from "node:http";
+import path from "node:path";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+
+const require = createRequire(new URL("../agent-bridge/package.json", import.meta.url));
+const { chromium } = require("playwright");
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+function startStaticServer() {
+  const mime = {
+    ".html": "text/html; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".json": "application/json; charset=utf-8"
+  };
+  const server = http.createServer((request, response) => {
+    let pathname;
+    try { pathname = decodeURIComponent(new URL(request.url, "http://127.0.0.1").pathname); }
+    catch { response.writeHead(400).end("Bad request"); return; }
+    if (pathname === "/") pathname = "/index.html";
+    const file = path.resolve(ROOT, "." + pathname);
+    if (file !== ROOT && !file.startsWith(ROOT + path.sep)) {
+      response.writeHead(403).end("Forbidden");
+      return;
+    }
+    fs.readFile(file, (error, data) => {
+      if (error) { response.writeHead(404).end("Not found"); return; }
+      response.writeHead(200, {
+        "content-type": mime[path.extname(file)] || "application/octet-stream",
+        "cache-control": "no-store"
+      });
+      response.end(data);
+    });
+  });
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      resolve({ server, url: "http://127.0.0.1:" + server.address().port + "/" });
+    });
+  });
+}
+
+async function run() {
+  const { server, url } = await startStaticServer();
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    const pageErrors = [];
+    const consoleErrors = [];
+    let confirmationMessage = "";
+    page.on("pageerror", error => pageErrors.push(error.message));
+    page.on("console", message => { if (message.type() === "error") consoleErrors.push(message.text()); });
+    page.on("dialog", async dialog => {
+      if (dialog.type() === "confirm") {
+        confirmationMessage = dialog.message();
+        await dialog.accept();
+      } else {
+        await dialog.dismiss();
+      }
+    });
+    await page.goto(url, { waitUntil: "domcontentloaded" });
+    await page.waitForFunction(() => Boolean(window.onePixelStudio), null, { timeout: 30000 });
+
+    // Two independent pages share one origin and the same real IndexedDB database.
+    const persistenceTab = await context.newPage();
+    await persistenceTab.goto(url, { waitUntil: "domcontentloaded" });
+    await persistenceTab.waitForFunction(() => Boolean(window.ArtClubStorage && window.ArtClubProject), null, { timeout: 30000 });
+    const casProjectId = await page.evaluate(async () => {
+      window.__casStorage = await window.ArtClubStorage.open({ projectModel: window.ArtClubProject });
+      const project = window.ArtClubProject.createProject({
+        width: 2, height: 2, name: "Two-tab CAS", palette: ["#112233", "#445566"]
+      });
+      window.ArtClubProject.getCel(project).pixels[0] = "#112233";
+      await window.__casStorage.saveProject(project);
+      return project.id;
+    });
+    await persistenceTab.evaluate(async id => {
+      window.__casStorage = await window.ArtClubStorage.open({ projectModel: window.ArtClubProject });
+      window.__casStaleProject = await window.__casStorage.getProject(id);
+    }, casProjectId);
+    await page.evaluate(async id => {
+      const current = await window.__casStorage.getProject(id);
+      current.name = "Accepted tab A";
+      window.ArtClubProject.getCel(current).pixels[0] = "#445566";
+      await window.__casStorage.saveProject(current);
+      window.__casRecoveryAfterAcceptedSave = await window.__casStorage.getRecovery(id);
+    }, casProjectId);
+    const staleTabResult = await persistenceTab.evaluate(async id => {
+      const stale = window.__casStaleProject;
+      stale.name = "Rejected stale tab B";
+      window.ArtClubProject.getCel(stale).pixels[1] = "#112233";
+      try {
+        await window.__casStorage.saveProject(stale);
+        return { accepted: true };
+      } catch (error) {
+        return { accepted: false, code: error.code };
+      }
+    }, casProjectId);
+    assert.deepEqual(staleTabResult, { accepted: false, code: "PROJECT_REVISION_CONFLICT" });
+    const crossTabState = await page.evaluate(async id => ({
+      primary: await window.__casStorage.getProject(id),
+      recovery: await window.__casStorage.getRecovery(id)
+    }), casProjectId);
+    assert.equal(crossTabState.primary.name, "Accepted tab A");
+    assert.deepEqual(crossTabState.recovery, await page.evaluate(() => window.__casRecoveryAfterAcceptedSave),
+      "a stale second tab must not rotate or replace the recovery snapshot");
+
+    const rollbackResult = await page.evaluate(async id => {
+      const beforePrimary = await window.__casStorage.getProject(id);
+      const beforeRecovery = await window.__casStorage.getRecovery(id);
+      const candidate = window.ArtClubProject.cloneProject(beforePrimary);
+      candidate.name = "Candidate that will roll back";
+      const saved = await window.__casStorage.saveProject(candidate);
+      await window.__casStorage.restoreIfCurrent(saved.rollbackReceipt);
+      return {
+        primaryRestored: JSON.stringify(await window.__casStorage.getProject(id)) === JSON.stringify(beforePrimary),
+        recoveryRestored: JSON.stringify(await window.__casStorage.getRecovery(id)) === JSON.stringify(beforeRecovery)
+      };
+    }, casProjectId);
+    assert.deepEqual(rollbackResult, { primaryRestored: true, recoveryRestored: true },
+      "conditional rollback must restore the exact primary and recovery pair");
+
+    const rollbackRace = await page.evaluate(async id => {
+      const current = await window.__casStorage.getProject(id);
+      current.name = "Candidate A";
+      const savedA = await window.__casStorage.saveProject(current);
+      window.__rollbackRaceReceipt = savedA.rollbackReceipt;
+      return { revision: savedA.revision };
+    }, casProjectId);
+    await persistenceTab.evaluate(async id => {
+      const current = await window.__casStorage.getProject(id);
+      current.name = "Newer commit from tab B";
+      await window.__casStorage.saveProject(current);
+    }, casProjectId);
+    const newerSnapshot = await persistenceTab.evaluate(async id => ({
+      primary: await window.__casStorage.getProject(id),
+      recovery: await window.__casStorage.getRecovery(id)
+    }), casProjectId);
+    const rollbackConflict = await page.evaluate(async () => {
+      try {
+        await window.__casStorage.restoreIfCurrent(window.__rollbackRaceReceipt);
+        return "restored";
+      } catch (error) {
+        return error.code;
+      }
+    });
+    assert.equal(rollbackConflict, "PROJECT_REVISION_CONFLICT",
+      "a rollback receipt must not overwrite a newer commit from another tab");
+    const afterRollbackConflict = await page.evaluate(async id => ({
+      primary: await window.__casStorage.getProject(id),
+      recovery: await window.__casStorage.getRecovery(id)
+    }), casProjectId);
+    assert.deepEqual(afterRollbackConflict, newerSnapshot,
+      "a failed rollback must leave the newer primary and recovery untouched");
+    await page.evaluate(async id => {
+      await window.__casStorage.deleteProject(id);
+      window.__casStorage.close();
+    }, casProjectId);
+    await persistenceTab.evaluate(() => window.__casStorage.close());
+    await persistenceTab.close();
+
+    const initial = await page.evaluate(() => window.onePixelStudio.get_status());
+    const baseLayerId = initial.active_layer.id;
+    await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 0, y: 0, color: "#ff0000" }));
+    const overlay = await page.evaluate(() => window.onePixelStudio.add_layer({ name: "Preserved overlay" }));
+    const overlayLayerId = overlay.active_layer.id;
+    await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 1, y: 1, color: "#00ff00" }));
+    await page.evaluate(id => window.onePixelStudio.select_layer({ layer_id: id }), baseLayerId);
+
+    assert.equal(await page.locator("#clearBtn").isDisabled(), false);
+    await page.locator("#clearBtn").evaluate(button => {
+      window.__clearClickCount = 0;
+      button.addEventListener("click", () => { window.__clearClickCount += 1; }, true);
+    });
+    await page.locator("#clearBtn").click();
+    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === null);
+    assert.equal((await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }))).color, null);
+    assert.match(confirmationMessage, /active layer for this frame/i);
+    assert.match(confirmationMessage, /Other layers and frames will be preserved/i);
+    assert.equal((await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }))).color, "#00ff00",
+      "clearing the active cel must preserve pixels on another layer");
+    await page.locator("#undoBtn").click();
+    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === "#ff0000");
+    await page.locator("#redoBtn").click();
+    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === null);
+
+    await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 2, y: 2, color: "#ff0000" }));
+    await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 4, y: 4, color: "#0000ff" }));
+    await page.evaluate(() => window.onePixelStudio.set_selection({ x: 2, y: 2, width: 1, height: 1 }));
+    assert.equal(await page.locator("#selectionClearBtn").isDisabled(), false);
+    await page.locator("#selectionClearBtn").click();
+    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 2, y: 2 }).color === null);
+    assert.equal((await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 4, y: 4 }))).color, "#0000ff",
+      "selection Clear must preserve pixels outside the selected rectangle");
+    await page.locator("#undoBtn").click();
+    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 2, y: 2 }).color === "#ff0000");
+    await page.locator("#redoBtn").click();
+    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 2, y: 2 }).color === null);
+
+    await page.evaluate(id => window.onePixelStudio.set_layer_locked({ layer_id: id, locked: true }), baseLayerId);
+    await page.waitForFunction(() => document.getElementById("clearBtn").disabled);
+    assert.equal(await page.locator("#selectionClearBtn").isDisabled(), true);
+    const lockedPixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 4, y: 4 }));
+    assert.equal(lockedPixel.color, "#0000ff", "locked layer content must remain unchanged");
+    const lockedDenial = await page.evaluate(async () => {
+      try { await window.onePixelStudio.clear_selection(); return ""; }
+      catch (error) { return error.message; }
+    });
+    assert.match(lockedDenial, /active selection to clear/i);
+    assert.equal((await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 4, y: 4 }))).color, "#0000ff");
+
+    await page.evaluate(id => window.onePixelStudio.set_layer_locked({ layer_id: id, locked: false }), baseLayerId);
+    await page.evaluate(id => window.onePixelStudio.set_layer_visibility({ layer_id: id, visible: false }), baseLayerId);
+    await page.waitForFunction(() => document.getElementById("clearBtn").disabled);
+    assert.equal(await page.locator("#selectionClearBtn").isDisabled(), true);
+    await page.evaluate(id => window.onePixelStudio.set_layer_visibility({ layer_id: id, visible: true }), baseLayerId);
+    await page.waitForFunction(() => !document.getElementById("clearBtn").disabled);
+
+    assert.deepEqual(pageErrors, [], "safe Clear interactions must not produce page errors");
+    await context.close();
+
+    // A pending autosave must finish before the safe-edit transaction writes.
+    // Delaying both saves makes an overlap observable rather than timing-dependent.
+    const raceContext = await browser.newContext();
+    const racePage = await raceContext.newPage();
+    racePage.on("dialog", async dialog => {
+      if (dialog.type() === "confirm") await dialog.accept();
+      else await dialog.dismiss();
+    });
+    await racePage.addInitScript(() => {
+      Object.defineProperty(window, "ArtClubStorage", {
+        configurable: true,
+        set(api) {
+          const originalOpen = api.open;
+          const probe = window.__safeClearSaveProbe = { active: 0, maxActive: 0, snapshots: [], storageOpened: false };
+          window.__safeClearImageProbe = { created: 0, srcAssigned: 0 };
+          Object.defineProperty(window, "Image", {
+            configurable: true,
+            writable: true,
+            value: function () {
+              window.__safeClearImageProbe.created += 1;
+              const image = { width: 1, height: 1, onload: null, onerror: null };
+              Object.defineProperty(image, "src", {
+                configurable: true,
+                set() {
+                  window.__safeClearImageProbe.srcAssigned += 1;
+                  window.__pendingSafeClearImage = image;
+                }
+              });
+              return image;
+            }
+          });
+          // ArtClubStorage is frozen; wrap it with a fresh object instead of
+          // assigning to the frozen API's open property.
+          const wrappedApi = Object.assign({}, api, {
+            open: async function (...args) {
+              const storage = await originalOpen.apply(api, args);
+              probe.storageOpened = true;
+              const originalSave = storage.saveProject.bind(storage);
+              storage.saveProject = async function (project) {
+                probe.active += 1;
+                probe.maxActive = Math.max(probe.maxActive, probe.active);
+                const snapshot = JSON.parse(JSON.stringify(project));
+                try {
+                  await new Promise(resolve => setTimeout(resolve, 400));
+                  probe.snapshots.push(snapshot);
+                  return await originalSave(project);
+                } finally {
+                  probe.active -= 1;
+                }
+              };
+              return storage;
+            }
+          });
+          Object.defineProperty(window, "ArtClubStorage", { configurable: true, writable: true, value: wrappedApi });
+        }
+      });
+    });
+    await racePage.goto(url, { waitUntil: "domcontentloaded" });
+    await racePage.waitForFunction(() => Boolean(window.onePixelStudio && window.__safeClearSaveProbe), null, { timeout: 30000 });
+    await racePage.waitForFunction(() => window.__safeClearSaveProbe.storageOpened, null, { timeout: 30000 });
+    await racePage.evaluate(() => window.onePixelStudio.draw_pixel({ x: 23, y: 23, color: "#123456" }));
+    await racePage.waitForFunction(() => window.__safeClearSaveProbe.snapshots.length >= 1 && window.__safeClearSaveProbe.active === 0, null, { timeout: 10000 });
+    await racePage.locator("#imageInput").setInputFiles({
+      name: "delayed.png",
+      mimeType: "image/png",
+      buffer: Buffer.from("delayed image decode fixture")
+    });
+    await racePage.waitForFunction(() => window.__safeClearImageProbe.created === 1, null, { timeout: 5000 });
+    const imageProbe = await racePage.evaluate(() => window.__safeClearImageProbe);
+    assert.deepEqual(imageProbe, { created: 1, srcAssigned: 1 });
+    await racePage.waitForFunction(() => Boolean(window.__pendingSafeClearImage), null, { timeout: 5000 });
+    await racePage.locator("#clearBtn").click();
+    await racePage.waitForFunction(() => window.__safeClearSaveProbe.active === 1, null, { timeout: 5000 });
+    await racePage.evaluate(() => window.__pendingSafeClearImage.onload());
+    assert.match(await racePage.locator("#toast").textContent(), /project or edit target changed while the image was loading/i,
+      "an image decode already in flight must be explicitly rejected while safe Clear commits");
+    await racePage.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 23, y: 23 }).color === null, null, { timeout: 10000 });
+    await racePage.waitForFunction(() => window.__safeClearSaveProbe.snapshots.length >= 2 && window.__safeClearSaveProbe.active === 0, null, { timeout: 10000 });
+    const saveProbe = await racePage.evaluate(() => {
+      const probe = window.__safeClearSaveProbe;
+      const finalProject = probe.snapshots[probe.snapshots.length - 1];
+      const cel = finalProject.cels.find(item =>
+        item.layerId === finalProject.activeLayerId && item.frameId === finalProject.activeFrameId);
+      return { maxActive: probe.maxActive, saves: probe.snapshots.length, finalPixel: cel && cel.pixels[23 * 24 + 23] };
+    });
+    assert.equal(saveProbe.maxActive, 1, "autosave and safe Clear persistence must never overlap");
+    assert.equal(saveProbe.finalPixel, null, "the last persisted project must match the cleared editor state");
+    await raceContext.close();
+
+    // With neither IndexedDB nor localStorage persistence available, the safe
+    // transaction must refuse to publish the cleared pixels.
+    const blockedContext = await browser.newContext();
+    await blockedContext.addInitScript(() => {
+      try { Object.defineProperty(window, "indexedDB", { configurable: true, value: null }); } catch {}
+      try { if (window.indexedDB) window.indexedDB.open = function () { throw new Error("simulated IndexedDB open failure"); }; } catch {}
+      Storage.prototype.setItem = function () { throw new Error("simulated local storage failure"); };
+    });
+    const blockedPage = await blockedContext.newPage();
+    let blockedConfirmation = false;
+    blockedPage.on("dialog", async dialog => {
+      if (dialog.type() === "confirm") {
+        blockedConfirmation = true;
+        await dialog.accept();
+      } else await dialog.dismiss();
+    });
+    await blockedPage.goto(url, { waitUntil: "domcontentloaded" });
+    await blockedPage.waitForFunction(() => Boolean(window.onePixelStudio), null, { timeout: 30000 });
+    const beforeFailure = await blockedPage.evaluate(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }));
+    await blockedPage.locator("#clearBtn").click();
+    await blockedPage.waitForFunction(() => document.getElementById("saveState").textContent.includes("SAVE FAILED"));
+    const afterFailure = await blockedPage.evaluate(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }));
+    assert.equal(blockedConfirmation, true);
+    assert.deepEqual(afterFailure, beforeFailure, "storage failure must leave active pixels unchanged");
+    await blockedContext.close();
+
+    console.log("UI-02A browser checks passed: active-cel scope, selection scope, undo/redo, locked/hidden denial, and persistence-failure immutability.");
+  } finally {
+    if (browser) await browser.close();
+    await new Promise(resolve => server.close(resolve));
+  }
+}
+
+run().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});

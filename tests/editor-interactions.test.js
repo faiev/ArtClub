@@ -7,6 +7,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
 const ProjectModel = require("../js/project-model.js");
+const LayerEditGuard = require("../js/layer-edit-guard.js");
+const SafeEditOperations = require("../js/safe-edit-operations.js");
 const AgentAPI = require("../js/agent-api.js");
 
 class FakeClassList {
@@ -71,6 +73,7 @@ class FakeElement {
     return null;
   }
   focus() { this.ownerDocument.activeElement = this; }
+  removeAttribute(name) { delete this.attributes[name]; }
 }
 
 function bootEditor() {
@@ -79,7 +82,9 @@ function bootEditor() {
   assert.ok(match, "the inline editor script should exist");
 
   const elements = new Map();
+  const body = new FakeElement("body");
   const document = {
+    body,
     activeElement: null,
     getElementById(id) {
       if (!elements.has(id)) {
@@ -153,6 +158,8 @@ function bootEditor() {
   const windowObject = {
     ArtClubProject: ProjectModel,
     ArtClubStorage: { async open() { return storageApi; } },
+    ArtClubLayerEditGuard: LayerEditGuard,
+    ArtClubSafeEditOperations: SafeEditOperations,
     ArtClubAgentAPI: AgentAPI
   };
   const context = vm.createContext({

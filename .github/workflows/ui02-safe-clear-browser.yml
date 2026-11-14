@@ -1,0 +1,46 @@
+name: UI-02 safe Clear browser checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "js/layer-edit-guard.js"
+      - "js/safe-edit-operations.js"
+      - "js/project-storage.js"
+      - "tests/project-storage.test.js"
+      - "tests/ui02-safe-clear*"
+      - ".github/workflows/ui02-safe-clear-browser.yml"
+  pull_request:
+    paths:
+      - "index.html"
+      - "js/layer-edit-guard.js"
+      - "js/safe-edit-operations.js"
+      - "js/project-storage.js"
+      - "tests/project-storage.test.js"
+      - "tests/ui02-safe-clear*"
+      - ".github/workflows/ui02-safe-clear-browser.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  ui02-browser:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install Playwright dependencies
+        run: npm install --ignore-scripts
+        working-directory: agent-bridge
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+        working-directory: agent-bridge
+      - name: Run project storage concurrency and rollback tests
+        run: node --test tests/project-storage.test.js
+      - name: Run UI-02 safe Clear browser checks
+        run: node tests/ui02-safe-clear.browser.mjs
