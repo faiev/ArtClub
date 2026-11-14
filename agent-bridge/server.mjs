@@ -337,6 +337,13 @@ async function invokeNow(method, args, scope = {}) {
   } catch (error) {
     if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : error;
     const message = error && error.message ? error.message : String(error);
+    // Playwright serializes browser-page Error objects across the process
+    // boundary but drops custom properties such as .code. Restore the stable
+    // bridge conflict code from the well-known stale-revision message.
+    if (error && typeof error === "object" &&
+        /changed since your last read/i.test(message)) {
+      error.code = "STALE_REVISION";
+    }
     if (targetPage.isClosed() || /target closed|browser has been closed|page crashed/i.test(message)) {
       throw new Error(
         'The browser disconnected during "' + method + '". The operation may have completed; ' +
