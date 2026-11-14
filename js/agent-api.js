@@ -18,7 +18,7 @@
       "listLayers", "addLayer", "selectLayer", "setLayerVisibility", "setLayerLocked",
       "renameLayer", "moveLayer", "duplicateLayer", "deleteLayer",
       "setSelection", "selectAll", "copySelection", "cutSelection",
-      "pasteSelection", "clearSelection", "deselect", "moveSelection"
+      "pasteSelection", "clearSelection", "deselect", "moveSelection", "transformSelection"
     ];
     const missing = required.filter(function (name) {
       return !adapter || typeof adapter[name] !== "function";
@@ -155,6 +155,9 @@
       },
       move_selection: function (args) {
         return adapter.moveSelection(args || {});
+      },
+      transform_selection: function (args) {
+        return adapter.transformSelection(args || {});
       }
     });
   }
