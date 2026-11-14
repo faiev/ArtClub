@@ -1,3 +1,16 @@
+# LIVE COORDINATOR VERIFICATION — 2026-11-15 01:46 IST
+
+- Latest authoritative main: `404e412e34e28827e1bac7e66f821c2c15e06f26` (verified via Git ref).
+- Repository metadata: public, default branch `main`; coordinator connection has admin/maintain/push/pull permissions.
+- Open pull requests: **71** (live GitHub API listing, not the earlier 62-PR snapshot).
+- Current coordinator integration branch: `coordinator/ui-02a-safe-clear`, latest commit `64a1d9218bce4231e531b0c1746c04194991433e`; PR [#96](https://github.com/faiev/ArtClub/pull/96) remains open/draft.
+- Exact-head checks for that commit: standard Project model tests run [#43636851524](https://github.com/faiev/ArtClub/actions/runs/43636851524) and dedicated UI-02 safe Clear browser run [#43636851563](https://github.com/faiev/ArtClub/actions/runs/43636851563) were **in progress** at this snapshot. Previous head `f9b8e6d10e1ce2118424943883b2a4f34a854593`: standard CI passed (run #43636595763), dedicated browser failed (run #43636595722).
+- Main deployment: Pages run [#43636441327](https://github.com/faiev/ArtClub/actions/runs/43636441327) succeeded on current main SHA `404e412e34e28827e1bac7e66f821c2c15e06f26`. This is the currently published baseline, not UI-02A (which is not merged).
+- Current acceptance blockers: verify the new exact-head browser run; retain Agent 6's persistence/recovery race concern as unresolved until a deterministic test or sound transaction boundary addresses it. Do not mark UI-02A accepted or live.
+- Active chats by D-028: Coordinator + Agent 1 (QA-only) + Agent 6 (read-only safety review/owned harness). Agents 2–5 and 7–10 remain paused except specifically requested read-only dependency reviews.
+
+---
+
 # DELIVERY RESET — 2026-11-15 (supersedes broad parallel workstream expansion)
 
 **The team is in product-delivery mode. Stop creating isolated modules, speculative tooling, extra prototypes, benchmark-only work, and documentation-only PRs unless the Coordinator explicitly requests them for the current release.**
