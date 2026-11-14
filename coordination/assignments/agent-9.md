@@ -52,3 +52,23 @@ All phases are authorized. While PR #12 is waiting for review or refreshed CI, b
 
 ## Handoff
 Update only coordination/status/agent-9.md with active phase, branches/PRs, exact test evidence, output schema changes and next 3–5 tasks. Do not merge or self-accept.
+
+## Coordinator-added extension — AC-095: Project fingerprints and duplicate detection
+
+After AC-079, add a read-only way to identify exact and content-equivalent project files without rewriting or normalizing their source documents.
+
+### Deliverable
+- Add `tools/project-fingerprint.mjs` and focused tests under `tests/project-fingerprint.test.js`.
+- Produce two distinct fingerprints: exact source-byte SHA-256 and a versioned semantic fingerprint over a documented canonical projection of the project.
+- Keep project identity separate from content identity. Explicitly document which metadata is excluded (for example project ID/name/timestamps) and which artwork semantics remain significant (canvas, palette ordering, layer/frame ordering and flags, durations, cel presence, transparency and exact pixel values).
+- Compare only compatible canonical versions; do not imply that legacy-generated IDs are source identities.
+- Provide bounded single-file and batch modes, deterministic ordering, malformed/oversized input errors and machine-readable output.
+- Never follow symlinks by default, never write/repair input files, and never infer that approximate similarity means a duplicate.
+- Add tests for byte-identical files, renamed/ID-changed but content-equivalent projects under the stated policy, one-pixel differences, missing cel vs transparent cel, frame-order changes, unsupported versions and source immutability.
+- Keep it composable with the existing inspector without modifying that CLI until a separate narrow PR is ready.
+
+**Allowed files:** `tools/project-fingerprint.mjs`, `tests/project-fingerprint.test.js`, fingerprint fixtures and `docs/PROJECT_DIAGNOSTICS.md` / a focused fingerprint doc. Do not modify project-model/storage, existing inspector CLI, index.html, Agent API, bridge, workflow or another agent's tests.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile chain #12 → #46 → #59 → #64 → #71 → #83 → #85 with exact current heads, bases, dependency links, changed files and CI. Complete necessary AC-079 documentation/fixture corrections. Keep AC-095 paused until UI-02 release advances. No model/storage/UI/API/bridge edits.
