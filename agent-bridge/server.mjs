@@ -15,6 +15,10 @@ import {
   BridgeOperationError,
   SerialOperationQueue
 } from "./operation-queue.mjs";
+import {
+  acquireProfileLock,
+  recoverStaleProfileLock
+} from "./profile-lock.mjs";
 
 function validateAppUrl(value) {
   let url;
@@ -128,6 +132,7 @@ let page;
 let connectionPromise;
 let activeBrowserOperation;
 let shutdownPromise;
+let profileLock;
 const requestScope = new AsyncLocalStorage();
 const operationQueue = new SerialOperationQueue({ maxPending: MAX_PENDING_OPERATIONS });
 const monitoredPages = new WeakSet();
@@ -444,7 +449,9 @@ function registerTool(server, name, description, inputSchema, handler) {
 }
 
 async function main() {
-  await connectToEditor();
+  profileLock = await acquireProfileLock(PROFILE_DIR);
+  try {
+    await connectToEditor();
 
   const server = new McpServer(
     { name: "art-club-pixel-studio", version: "0.3.0" },
@@ -977,6 +984,13 @@ async function main() {
       try { await context?.close(); } catch (error) {
         console.error("[Art Club] Browser shutdown:", error.message);
       }
+      try {
+        await profileLock?.release();
+      } catch (error) {
+        console.error("[Art Club] Profile lock release failed:", error.message);
+      } finally {
+        profileLock = null;
+      }
       if (closeTransport) {
         try { await stdioHandle?.close(); } catch (error) {
           console.error("[Art Club] MCP transport shutdown:", error.message);
@@ -1006,6 +1020,28 @@ async function main() {
   // serveStdio returns a handle immediately; the open stdio transport keeps
   // the process alive while the client is connected. Do not await the handle.
   stdioHandle = serveStdio(() => server);
+  } catch (error) {
+    try {
+      await operationQueue.close({
+        reason: "Bridge startup failed; pending tool operations were cancelled."
+      });
+    } catch (queueError) {
+      console.error("[Art Club] Could not drain startup queue:", queueError.message);
+    }
+    const context = browserContext;
+    browserContext = null;
+    page = null;
+    activeBrowserOperation = null;
+    try { await context?.close(); } catch (closeError) {
+      console.error("[Art Club] Browser cleanup after startup failure:", closeError.message);
+    }
+    try { await profileLock?.release(); } catch (releaseError) {
+      console.error("[Art Club] Profile lock cleanup after startup failure:", releaseError.message);
+    } finally {
+      profileLock = null;
+    }
+    throw error;
+  }
 }
 
 export { main };
@@ -1013,8 +1049,26 @@ export { main };
 const invokedDirectly = process.argv[1] &&
   path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (invokedDirectly) {
-  main().catch(error => {
-    console.error("[Art Club MCP] Startup failed:", error);
-    process.exitCode = 1;
-  });
+  const args = process.argv.slice(2);
+  if (args.includes("--recover-stale-profile-lock")) {
+    if (args.length !== 1) {
+      console.error("[Art Club MCP] Use --recover-stale-profile-lock by itself.");
+      process.exitCode = 2;
+    } else {
+      recoverStaleProfileLock(PROFILE_DIR).then(result => {
+        console.error(
+          "[Art Club] Recovered stale profile lock for " + result.profileDirectory +
+          ". Restart the bridge normally."
+        );
+      }).catch(error => {
+        console.error("[Art Club MCP] Stale profile lock recovery failed:", error);
+        process.exitCode = 1;
+      });
+    }
+  } else {
+    main().catch(error => {
+      console.error("[Art Club MCP] Startup failed:", error);
+      process.exitCode = 1;
+    });
+  }
 }

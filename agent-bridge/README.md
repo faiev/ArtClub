@@ -25,7 +25,7 @@ npx playwright install chromium
 npm start
 ```
 
-The first launch opens a dedicated Chromium profile in `~/.artclub-agent-browser`. The active project library and autosaves are stored in that profile's browser storage. The MCP process stays running while the client is connected. The bridge serializes tool operations, requires a fresh document revision for writes, and reconnects its dedicated editor page after a recoverable browser-page failure. Each request has a deadline and the outstanding-operation queue is bounded.
+The first launch opens a dedicated Chromium profile in `~/.artclub-agent-browser`. The active project library and autosaves are stored in that profile's browser storage. The MCP process stays running while the client is connected. The bridge acquires an exclusive cross-process lock for the canonical profile directory before opening Chromium, serializes tool operations, requires a fresh document revision for writes, and reconnects its dedicated editor page after a recoverable browser-page failure. Each request has a deadline and the outstanding-operation queue is bounded.
 
 Environment options:
 
@@ -111,6 +111,18 @@ Every MCP tool that changes the document requires `expected_revision`. Call `art
 The bridge serializes requests within one MCP server process and checks the revision in the browser immediately before the operation. When two clients send writes through the same server against one revision, only the first can proceed; later stale calls return an error asking the client to read status again. The bridge never silently retries a stale edit. This is a single-writer model for one editor session, not a distributed lock.
 
 The bridge owns one persistent Chromium profile. Do not start two bridge processes with the same `ARTCLUB_PROFILE_DIR`; use one bridge process for one editor session. Separate profile directories are separate local project libraries, not shared concurrent workspaces. Multiple independent bridge processes do not coordinate their write queues.
+
+### One bridge process per browser profile
+
+The bridge uses an exclusive OS filesystem lock in the canonical `ARTCLUB_PROFILE_DIR` before Chromium starts. A second bridge process targeting the same directory is refused with `PROFILE_IN_USE`; this protects the IndexedDB project library from independent process-local queues writing concurrently. Different profile directories remain separate local libraries.
+
+If a bridge exits unexpectedly, the lock file remains. A same-host lock whose PID is no longer running is reported as `STALE_PROFILE_LOCK`; it is not deleted automatically. After verifying that the old process is gone, run this command from the repository root:
+
+```bash
+node agent-bridge/server.mjs --recover-stale-profile-lock
+```
+
+The recovery command rechecks the owner PID and lock identity before removing the stale lock. Locks from another hostname are not reclaimed automatically because their liveness cannot be established. A malformed or symlink lock is rejected for manual inspection. If the separate `.artclub-agent.lock.recovery` marker remains after a crashed recovery command, verify that no recovery process is active and remove that marker manually; the normal bridge refuses to ignore it. If the filesystem cannot provide the atomic hard-link operation used to publish the lock, the bridge fails closed rather than running without profile protection.
 
 If the editor tab is closed, crashes or navigates away, the next tool call attempts to reopen the editor automatically. If the browser disconnects during an operation, its outcome may be uncertain: call `artclub_get_status` before retrying so an already-completed edit is not duplicated.
 

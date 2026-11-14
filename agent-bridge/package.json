@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test:runtime": "node --test operation-queue.test.mjs",
+    "test:runtime": "node --test operation-queue.test.mjs profile-lock.test.mjs",
     "test:e2e": "node e2e-test.mjs",
     "test:mcp": "npm run test:runtime && node mcp-e2e-test.mjs"
   },
