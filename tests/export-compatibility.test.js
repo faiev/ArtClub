@@ -168,7 +168,7 @@ test("keeps median-cut palette overflow and deterministic source colors represen
   assert.ok(encoded.diagnostics.opaquePaletteColors <= 256);
   assert.equal(encoded.metadata.frames[0].frameId, "overflow");
   assert.ok(encoded.bytes.length > 30 && encoded.bytes.length <= GIF.MAX_GIF_BYTES);
-  assert.match(encoded.diagnostics.quantization, /actual nearest palette entry/);
+  assert.match(encoded.diagnostics.quantization, /exact nearest palette entry/);
 });
 
 test("rejects GIF and sprite-sheet over-budget projects before allocating output rasters", () => {
