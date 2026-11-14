@@ -3,7 +3,7 @@
 **Task:** AC-054 — Integrated UX implementation sequence  
 **Owner:** Agent 5 — UX / accessibility / interaction design  
 **Branch:** `agent/ux-implementation-sequence`  
-**Base:** `4192df678b48167eb1f76558a75523138970d7ee`  
+**Last state refresh:** 2026-11-15; verified main snapshot is recorded in the dated status section below.  
 **Status:** Coordinator-facing implementation roadmap. This document does not authorize production UI edits or change any shared-file lock.
 
 ---
@@ -125,6 +125,48 @@ This is a planning snapshot of the latest state reviewed for AC-054. It must be 
 | Pixel-art craft tools | PR #15 / AC-019; PR #31 primitives / AC-080; PR #37 region operations / AC-081; PR #44 color / AC-082; AC-083–086 transforms, dithering, fixtures and contracts | Offer preview/commit flows; do not apply partial results on failure; do not move these tools into the main UI until algorithms are deterministic, bounded and documented |
 | Project diagnostics | PR #12 / AC-018; Agent 9 AC-074–079 batch, diff, deep diagnostics, migration preview and CI reports | Keep the inspector read-only/offline; use as a developer/QA workflow, not as an automatic editor repair feature |
 | Bridge/API adapters | Agent 4 AC-043–048 | Only after shared modules are accepted; require revision tokens, bounded payloads, explicit read/write semantics and separate E2E coverage |
+
+## Current delivery status refresh — 2026-11-15
+
+This section supersedes the pre-release PR snapshot in sections 4.1–4.5 wherever the states below differ. It is based on the GitHub PR metadata and current `main` source checked for this refresh. A PR being open, ready for review or green in CI is not equivalent to an integrated production feature.
+
+### Production release
+
+| Milestone | Verified state | User-visible consequence |
+|---|---|---|
+| UI-00 / AC-091 · PR #77 | Merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610` | The graphite/olive design system, interactive non-production prototype and handoff document are on main under `docs/ux/**`. They remain references, not wired editor controls. |
+| UI-01 · PR #84 | Merged as `e22ddb35ebf802b3b719e74a7329effceab28747` | The production workstation shell is on main. Existing DOM-grid renderer, project model/storage and live commands were preserved. |
+| UI-01 validation/deployment | Post-merge Actions run [#43624328658](https://github.com/faiev/ArtClub/actions/runs/43624328658) passed Node and Chromium/GIF/MCP jobs. GitHub Pages deployment [#43624328006](https://github.com/faiev/ArtClub/actions/runs/43624328006) completed for the merge commit and reported [https://faiev.github.io/ArtClub/](https://faiev.github.io/ArtClub/) as the environment URL. | Deployment is verified against the release commit. This coordination session has not independently inspected a rendered live-page screenshot at desktop/mobile sizes; do not claim manual visual verification. |
+
+### Current module dependencies and integration gates
+
+| Area | Current verified repository/PR state | What is still not shipped |
+|---|---|---|
+| Editing safety / UI-02 | Foundation PRs #14, #23, #26, #48, #49 and conformance PR #62 are merged. | Merged guard/transaction/staging modules do not prove every production mutation path uses them. UI-02 still needs coordinator-owned integration, real Chromium coverage of Clear/import/selection/cel paths, and exact no-mutation assertions. |
+| Canvas navigation / UI-03 | Viewport utility PR #34 merged (`3bd35de8b75adf52945eb58c64407e74c815bcc7`); project-to-renderer adapter PR #43 merged (`79013ee60239dfb4665c34f258dd6d69fdb2dac0`). The isolated renderer workload study PR #73 and integration-readiness demo PR #75 remain open draft. | The production editor still uses the DOM-grid renderer and its original fit-relative zoom factor. The viewport utility is available but not wired into production controls. Renderer migration remains gated on repeatable workload evidence, pointer/DPR parity, accessibility/fallback proof and a coordinator UI lock. |
+| Animation / UI-05 | GIF exporter PR #11 merged (`d691bf86cec76c4d5742289b0d97f92e0e7952b8`). Sprite-sheet PR #3, layout/metadata PR #21, planner PR #22, compatibility/stress PR #55 and async export PR #74 remain open draft. PR #21 is stacked on #3; #55 is stacked on #21; #74 is stacked on #55. | GIF encoding exists as an isolated module, but production editor download UI is not wired. Sprite-sheet/async export is not a shipped editor workflow. Preserve the explicit dependency chain; do not integrate descendants ahead of parents. |
+| Palette / UI-04 | Format parser PR #16 merged (`4198b1e095ad48df59763e7a39853d277f0b0bda`). Palette tools PR #27, color science #33, transformations #39, mapping #45, accessibility #53 and corpus #56 are open and no longer draft; workflow contract #60 remains draft. | Production palette-file import/preview/apply and analysis tools are not yet wired. The current project palette remains HEX-only; imported names are not persisted without a separate model/schema decision. |
+| Agent API / optional MCP integration | PR #8, #38, #54, #82 and #86 remain open draft dependency-chain work at the time of this refresh. | No claim of complete API hardening, capability discovery or bridge integration should be based solely on their submitted code or earlier CI. Confirm current exact-head status and parent order before consuming those contracts. |
+
+### Agent 5 specification and handoff state
+
+- AC-026 shortcut plan: PR #20 remains open draft; the branch is substantially behind main and has not been marked ready.
+- AC-049 workspace specification: PR #24 has been refreshed against current main, its production-source section now describes the merged UI-01 shell and merged viewport utility, and its direct feature diff is only `docs/ux/CANVAS_WORKSPACE_SPEC.md`. It is marked ready for review.
+- AC-050 layer/timeline specification: PR #30 remains open draft.
+- AC-051 palette/export specification: PR #35 remains open draft.
+- AC-052 accessibility audit: PR #41 remains open draft and is a source-based audit, not a live browser/screen-reader conformance result.
+- AC-053 static prototypes: PR #47 remains open draft. The coordinator asked for browser screenshots and a visual review at desktop/compact sizes. Those rendered checks have not been completed in this environment; static source inspection is not a substitute. Keep the PR draft until that visual gate is genuinely completed.
+- AC-054 roadmap: PR #51 contains this dated status refresh. Keep module states separate from production integrations and verify this single-document PR against latest main.
+
+### Current integration order
+
+1. **UI-02 safety integration:** use the merged Agent 6 guard/transaction foundation. Start with Clear and async image import, then selection and cel paths; preserve fail-closed target/revision checks and local recovery. Coordinator owns `index.html`.
+2. **UI-03 navigation:** integrate the accepted viewport utility independently of a renderer replacement. Distinguish Fit from Actual Size (the present “100%” remains fit-relative), maintain browser zoom ownership, and prove logical-pixel pointer mapping after responsive changes.
+3. **UI-04 timeline/layers/palette:** implement only after stable layer/frame/cel mutation and composition contracts are accepted. Expose active/current/locked/visible states programmatically; do not silently allocate missing cels or claim opacity/name persistence the project model does not provide.
+4. **UI-05 export:** maintain the merged GIF encoder as a module dependency; wait for the sprite-sheet/layout/planner/compatibility chain and full browser decode/metadata evidence before exposing a combined export dialog.
+5. **Release QA:** re-run the accessibility audit against the integrated source, including keyboard/browser shortcut routing, focus contrast, control state semantics, reduced-motion playback, live status/error feedback, screen-reader review and responsive layout. Verify the published Pages rendering after every production release.
+
+The exact PR head/base and CI evidence must be rechecked immediately before a coordinator assigns or merges any integration slice. This refresh does not assign production UI ownership to Agent 5.
 
 ## 5. Prioritized implementation sequence
 
