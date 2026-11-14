@@ -119,3 +119,49 @@ Main subsequently advanced with coordination/status and integration-plan changes
 - PR #94 documents/specifies preview and decision behavior; it is not production UI and must not be called a shipped palette import feature.
 - Do not merge or self-accept any Agent 8 PR.
 - **Last updated:** 2026-11-15.
+
+
+## Branch hygiene assignment — 2026-11-15 (Agent 8)
+
+### Scope and source of truth
+- Assignment: branch/PR dependency inventory for #16/#27/#33/#39/#45/#53/#56/#60/#78/#94 and palette-related refs; determine whether any palette work blocks current UI-02 image import.
+- Assignment section: `coordination/BOARD.md`, introduced by commit `84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa`.
+- Latest `main` verified immediately before this report: `416264c512f60966715bd5273425838e3f15fcad`.
+- Branch/PR work was read-only. No code, branch ref, PR state, or other agent file was modified.
+
+### PR / branch dependency inventory
+All listed open PRs target `main`. Ahead/behind figures below are comparisons against the current main SHA above; merge base for #27/#33/#39/#45/#53/#56/#60 is `dafd5471cd9e497ccbe79ae9f158a334910c5c6a`, and for #94 is `1e45961d57cf3422b63c549461000b205e285685`.
+
+| PR | State | Branch @ current head | Ahead / behind | Unique branch files | Exact-head CI |
+|---|---|---|---:|---|---|
+| #16 | Merged | `agent/palette-formats` @ `8a0208a152c9963331b4335d2aaee728da86711d` | 0 / 106 | No diff vs main; merged scope was `js/palette-formats.js`, `tests/palette-formats.test.js`, `docs/palette-formats.md` | Run [43618468770](https://github.com/faiev/ArtClub/actions/runs/43618468770): test + browser-e2e success |
+| #27 | Open | `agent/palette-tools` @ `563a6860c7c00a23ab07006c8d9af3f6a322891c` | 16 / 53 | `docs/palette-tools.md`, `js/palette-tools.js`, `tests/palette-tools.test.js` | [43630281119](https://github.com/faiev/ArtClub/actions/runs/43630281119): test + browser-e2e success |
+| #33 | Open | `agent/palette-color-science` @ `cd19add75749f45dcf26a9e17b42b57a99dfd9cd` | 13 / 53 | `docs/palette-color-science.md`, `js/palette-color-science.js`, `tests/palette-color-science.test.js` | [43630311769](https://github.com/faiev/ArtClub/actions/runs/43630311769): test + browser-e2e success |
+| #39 | Open | `agent/palette-transformations` @ `60c0dfd91ef03abc9cb23c17601ac6890502ef06` | 12 / 53 | `docs/palette-transformations.md`, `js/palette-transformations.js`, `tests/palette-transformations.test.js` | [43630321786](https://github.com/faiev/ArtClub/actions/runs/43630321786): test + browser-e2e success |
+| #45 | Open | `agent/palette-mapping` @ `d51ea72dcbf2f0d5592300b642863bff05e14da8` | 10 / 53 | `docs/palette-mapping.md`, `js/palette-mapping.js`, `tests/palette-mapping.test.js` | [43630354746](https://github.com/faiev/ArtClub/actions/runs/43630354746): test + browser-e2e success |
+| #53 | Open | `agent/palette-accessibility` @ `bd8e5464dc3b61c4ad03caf76e01c84a776a12f2` | 9 / 53 | `docs/palette-accessibility.md`, `js/palette-accessibility.js`, `tests/palette-accessibility.test.js` | [43630362709](https://github.com/faiev/ArtClub/actions/runs/43630362709): test + browser-e2e success |
+| #56 | Open | `agent/palette-corpus` @ `2a1e3ed9643a634985d7da53e6ac4f55fe627bba` | 8 / 53 | `docs/palette-format-corpus.md`, 12 GPL/JASC-PAL/JSON fixtures, `tests/palette-formats-corpus.test.js` (14 files total) | [43630398610](https://github.com/faiev/ArtClub/actions/runs/43630398610): test + browser-e2e success |
+| #60 | Open draft | `agent/palette-workflow-contract` @ `77a687942178b141b1534220c70678596048492b` | 8 / 53 | `docs/PALETTE_WORKFLOW.md` | No workflow run found; documentation-only, so no application CI expected |
+| #78 | Merged | `agent/palette-distance-bounded-v2` @ `46487e8fc3e5241a01fcef1c807b3f1ae0696585` | 0 / 126 | No diff vs main; merged scope was `js/palette-distance.js`, `tests/palette-distance.test.js`, `docs/palette-distance.md` | Run [43618272887](https://github.com/faiev/ArtClub/actions/runs/43618272887): test + browser-e2e success |
+| #94 | Open | `agent/ui04-palette-parser-acceptance` @ `492d03d1cdf56c6cec844993255b52485154e125` | 5 / 38 | `docs/PALETTE_IMPORT_ACCEPTANCE.md`, `tests/palette-import-contract.test.js` | [43632053864](https://github.com/faiev/ArtClub/actions/runs/43632053864): test + browser-e2e success |
+
+GitHub Actions run-job inspection confirmed both jobs completed successfully for every listed code-bearing exact-head run. These are historical exact-head results; because the feature branches are now behind current main, they are not current-main validation. #60 is documentation-only. No CI was rerun in this assignment.
+
+### Additional palette-named refs and historical dependencies
+- `agent/palette-distance` @ `e38a12b9a5d160da1f7e6f93709592d9cbbe966d`: 4 ahead / 216 behind; diff is `docs/palette-distance.md`, `js/palette-distance.js`, `tests/palette-distance.test.js`. Associated with closed/superseded PR #63; historical run [43614579167](https://github.com/faiev/ArtClub/actions/runs/43614579167) succeeded. Not merge-reachable from main; keep parked until coordinator verifies its unique commits are fully superseded by #78.
+- `agent/palette-distance-bounded` @ `563cdc9c59a679fdc4334d54ff93616dba83da16`: 3 ahead / 145 behind; same three palette-distance paths; no distinct active PR or workflow run found. Compared with #78's v2 branch, v2 is 19 ahead / 3 behind, so this older ref is not fully represented by the merged branch history. Keep parked; not a deletion candidate without content/reachability review.
+- `agent/palette-export-spec` @ `cbc74d707aa8fe925a9428e6a126e4fefcd9e95d`: 7 ahead / 29 behind; only `docs/ux/PALETTE_EXPORT_SPEC.md`. This is Agent 5's PR #35/workstream, not Agent 8 ownership; excluded from Agent 8 disposition.
+- Palette branch search returned 13 palette-named refs in total: the ten assigned PR branches plus the two historical distance branches above and Agent 5's export-spec branch.
+
+### Dependency and disposition findings
+- #56 was historically stacked on #16, but its current PR description says it was retargeted to `main` after #16 merged. Its current compare is against main; no active parent dependency remains.
+- #78 superseded closed PR #63. #78's current branch is fully reachable from main (0 ahead); the older #63/distance refs are not, so do not delete them solely because #78 merged.
+- #27/#33/#39/#45/#53 are independent utility branches; no downstream Agent 8 PR dependants were found. #60 is a standalone workflow document. #94 is a docs/tests acceptance contract, not production integration.
+- **UI-02 image import blocker: NONE found.** Current coordinator integration branch `coordinator/ui-02a-safe-clear` resolves to `7071f9550f94f413f4dd414416a804079ee179c4`. Its `index.html` source (blob `a65bdd8be6a28f4d08924420198279b7822d1df6`) still maps decoded image pixels to the existing palette using in-page squared-RGB distance at lines 2494–2495. It does not depend on the Agent 8 palette utility modules or UI-04 palette-file parser contract. #94 concerns palette-file import acceptance, not image import. The current image conversion remains nearest-existing-palette/lossy, but none of the listed palette PRs is required to unblock UI-02B.
+- **Disposition:** retain open #27/#33/#39/#45/#53/#56/#60/#94 parked for coordinator review; #16/#78 branches are deletion candidates only after coordinator review because their tips are fully reachable from main and their PRs are merged; keep the two older distance refs parked pending proof of supersession; do not touch Agent 5's #35 branch. No PR closure or branch deletion is recommended/executed by this agent.
+
+### Commands / evidence / changes
+- No local shell commands or tests were run. This was read-only GitHub API inspection: fetch `main` and coordination files; search commits, PRs (open/closed and by head), and palette branches; fetch branch-tip commits; compare each branch to `main` and the two distance branches to #78; inspect commit workflow runs, combined statuses and workflow jobs; fetch current UI-02 integration branch and inspect its `index.html` import code.
+- Exact current `main` SHA at the start of this inventory: `495842cef440aec553f2def7b362ee586843c4b7`. (This value was confirmed by the compare API's base commit. It may advance as other agents update their status files.)
+- No code files, branch refs, PR states, CI workflows, or other agents' status files changed. Only this Agent 8 status file is updated by this report.
+- **Next action:** await coordinator disposition; do not sync/close/delete any branch or reopen feature work without explicit authorization.
