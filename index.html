@@ -1078,13 +1078,6 @@ async function commitSafeEditResult(result,previousProject,target,successMessage
       if(!writeLocalBackup(nextProject))throw new Error("Local backup storage is unavailable.");
       persisted=true;
     }
-    const targetStillCurrent=documentRevision===target.revision&&projectDoc&&
-      projectDoc.id===target.projectId&&
-      projectDoc.activeLayerId===target.layerId&&
-      projectDoc.activeFrameId===target.frameId;
-    if(!targetStillCurrent){
-      throw new Error("The edit target changed during its serialized save. The safe edit was not published.");
-    }
     remember();
     published=true;
     loadProjectIntoEditor(nextProject,false);
