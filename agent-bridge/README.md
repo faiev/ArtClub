@@ -76,11 +76,18 @@ Treat the capability document as authoritative for the current bridge process. E
 
 The current bridge does not expose sprite-sheet/GIF tools, palette-format tools or project-diagnostics tools. The capability flags explicitly report those as unavailable rather than implying that standalone modules in the repository are wired into MCP.
 
+## Bridge health and diagnostics
+
+Call `artclub_get_bridge_diagnostics` to inspect the local bridge process without reading or changing artwork. It reports connection/reconnect counts, page-close/crash/navigation and browser-disconnect counters, bounded queue totals, current queue depth and the most recent sanitized lifecycle event. It does not expose the browser profile path, page URL, credentials, project contents or environment values. Queue counters are process-lifetime aggregates and reset when the bridge restarts.
+
+The integration suite deliberately closes the editor page, navigates it away and disconnects Chromium, then verifies that the next editor request reconnects. A mutation whose outcome is uncertain is never automatically replayed; inspect project state before retrying.
+
 ## Available tools
 
 | Tool | Purpose |
 |---|---|
 | `artclub_get_capabilities` | Read protocol, tool access, limits, deadline/cancellation and feature availability |
+| `artclub_get_bridge_diagnostics` | Read redacted connection/reconnect state, browser lifecycle counters and aggregate queue metrics |
 | `artclub_get_status` | Read project, dimensions, palette, revision and undo state |
 | `artclub_get_canvas` | Read all pixels in row-major order |
 | `artclub_get_pixel` | Inspect one coordinate |
