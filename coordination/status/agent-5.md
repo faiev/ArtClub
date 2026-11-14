@@ -23,7 +23,7 @@
 ### Active follow-up — AC-091 screenshot-caption precision
 
 - **Branch:** `agent/ac091-screenshot-caption-fix`
-- **Feature/source head before this status snapshot:** `5634fccecd6976611543c025663ff73390f7c6cd` (non-force merge commit after syncing the status update; current comparison is 3 commits ahead / 0 behind).
+- **Latest branch head:** `6b0cc361eed64bf935145af6dc72f9dbc38878a6` (non-force sync commit; main at sync `2c69a407452def9bd90849b215dca2abc1d29d6d`; comparison 4 ahead / 0 behind; single changed file).
 - **PR:** [#87 — docs(ux): correct phone capture state description](https://github.com/faiev/ArtClub/pull/87), open; one file, one insertion / one deletion.
 - **Diff:** Only `docs/ux/DESIGN_SYSTEM.md`; changes 390×844 screenshot description to say the inspector drawer is open.
 - **Validation:** Verified the incorrect sentence in main, applied the exact correction and compared against the status-update base; main-to-branch contains only the design-system document. Docs-only change; no application tests run.
