@@ -1,26 +1,58 @@
 # AC-028 — Real-browser renderer validation and benchmark
 
-**Status:** Browser harness authored; real Chromium execution and timing capture are pending. Do not interpret the existing benchmark page or this document as measured performance evidence.
+**Status:** Real Chromium raster validation passed; one renderer-only benchmark run captured. No general speedup or application-level claim is made.
 
-## Scope
+## Browser correctness validation
 
-This validates the isolated `CanvasPixelRenderer` in a real Chromium runtime. It does not switch the editor away from its DOM renderer and does not claim the Canvas implementation is faster end-to-end.
+Executed the seven AC-028 assertions in real Chromium **144.0.7559.96**, at **device-pixel ratio 1.5**, using a Playwright-controlled browser:
 
-The Playwright runner covers:
+1. Native-size complete RGBA equality, including transparency — passed.
+2. Enlarged nearest-neighbor complete raster equality — passed.
+3. Grid/selection overlay isolation from the exact artwork ImageData buffer — passed.
+4. Pointer mapping with fractional CSS bounds and DPR 1.5 — passed.
+5. `frameId` and `compositeRevision` full-frame invalidation — passed.
+6. Onion-mask mutation and stale-tint clearing — passed.
+7. Sparse/undefined pixels and onion masks rejected before visible/buffer mutation — passed.
 
-1. Complete native-size RGBA raster equality, including transparent pixels.
-2. Complete enlarged raster equality using nearest-neighbor scaling.
-3. Grid and selection overlay isolation from the artwork `ImageData` buffer.
-4. Pointer mapping with fractional CSS bounds and a 1.5 device-pixel ratio.
-5. Full redraw behavior on `frameId` and `compositeRevision` changes, checked against every visible raster byte.
-6. Onion-mask changes and stale-tint clearing, checked against every visible raster byte.
-7. Sparse/undefined pixel and onion-mask rejection before visible or renderer-buffer mutation.
+**Result: 7 passed, 0 failed, 0 page errors.**
 
-The benchmark runner opens the existing `benchmarks/renderer-benchmark.html` and captures DOM-grid versus Canvas timings at 32, 64, 128, 256 and 512. It reports warm-up count, multiple raw samples, median, nearest-rank p95, browser version, device-pixel ratio, user agent, platform, hardware concurrency, CPU model, logical CPU count and available-memory metadata.
+The translucent onion tint is checked exactly in the renderer's ImageData and for exact clearing. Chromium's final visible Canvas readback can vary by one RGB unit from premultiplied-alpha round-trip quantization; that displayed tint check permits at most ±1 RGB unit while requiring exact alpha 89. Opaque artwork raster checks remain byte-for-byte exact.
 
-## Run locally
+Execution in this container used Python Playwright with the system Chromium executable because the repository's Node Playwright dependency was unavailable locally. The committed `tests/canvas-renderer.browser.mjs` remains the reproducible repository runner; the existing project workflow does not yet invoke it, and its workflow file remains under Agent 3's lock.
 
-From the repository root, install the existing bridge dependency and Chromium once:
+## Renderer-only DOM versus Canvas benchmark
+
+One real Chromium run was completed at all assigned sizes. Method: **2 warm-ups** and **5 measured samples per renderer**; DOM-first and Canvas-first order alternated. Median and nearest-rank p95 are calculated from raw samples.
+
+| Size | DOM median / p95 (ms) | Canvas median / p95 (ms) | DOM/Canvas median ratio |
+|---|---:|---:|---:|
+| 32×32 | 17.1 / 19.6 | 2.1 / 4.6 | 8.143× |
+| 64×64 | 43.8 / 72.1 | 3.2 / 5.5 | 13.687× |
+| 128×128 | 149.0 / 164.2 | 5.1 / 7.3 | 29.216× |
+| 256×256 | 608.8 / 738.1 | 8.0 / 10.4 | 76.100× |
+| 512×512 | 2667.5 / 2989.5 | 22.8 / 54.1 | 116.996× |
+
+Raw sample arrays and full environment metadata are committed in [renderer-browser-validation-report.json](renderer-browser-validation-report.json).
+
+### Environment
+
+- Chromium: 144.0.7559.96 (HeadlessChrome), Linux x86_64
+- Device-pixel ratio: 1.5
+- CPU: Intel Xeon Platinum 8573C; 3 logical CPUs exposed to this container
+- Reported host memory: approximately 5.81 GiB
+- Runner: local ChatGPT execution container, not GitHub Actions
+
+### Interpretation limits
+
+- This is **one renderer-only microbenchmark run**, not a representative cross-device study and not an end-to-end editor benchmark.
+- DOM timing includes creating one accessible div per pixel, appending through a DocumentFragment, replacing the grid and forcing layout. Canvas timing includes pixel conversion, drawing the raster/grid overlay and a one-pixel readback.
+- It excludes editor compositing, brush/fill processing, pointer latency, frame scheduling, accessibility interactions and application-model costs.
+- The ratio is a descriptive result for this exact runner and workload, not a general performance guarantee. More devices/runs and dense/sparse/dirty/onion workloads are needed for wider conclusions.
+- The DOM renderer remains the active application renderer. AC-012 integration is still separately gated by AC-034–AC-038 and coordinator UI ownership.
+
+## Reproduction
+
+From the repository root:
 
 ```sh
 cd agent-bridge
@@ -29,23 +61,10 @@ npx playwright install chromium
 node ../tests/canvas-renderer.browser.mjs
 ```
 
-The runner starts a temporary static server and shuts it down on completion. The script defaults to one warm-up and three measured samples per renderer to keep the 512×512 DOM baseline bounded. Override with `ARTCLUB_BENCHMARK_WARMUPS` and `ARTCLUB_BENCHMARK_SAMPLES`; samples are clamped to 3–15 and warm-ups to 1–5. The benchmark prints its complete JSON report, including raw samples, to stdout.
+The committed runner defaults to one warm-up and three measured samples per renderer; override with `ARTCLUB_BENCHMARK_WARMUPS` and `ARTCLUB_BENCHMARK_SAMPLES`. The benchmark page itself supports query parameters such as `?samples=7&warmup=2`.
 
-## Interpretation
+The recorded measurement above used two warm-ups and five measured samples in the local Python Playwright harness, using the same production renderer and benchmark page. The committed Node runner was not invoked in this container.
 
-- These are renderer-only synchronous microbenchmarks. They exclude editor compositing, brush/fill work, pointer latency, frame scheduling, accessibility interactions and application-model costs.
-- Compare only runs with documented browser, OS, CPU, memory, power mode and device-pixel ratio. A single runner is not representative evidence of a general speedup.
-- A passing renderer browser suite establishes the tested pixels and invalidation behavior in that Chromium version; it does not authorize renderer UI integration.
-- The DOM renderer remains the active application renderer. AC-012 remains separately queued and requires coordinator approval and a UI file lock.
+## Integration boundary
 
-## Execution record
-
-| Item | Result |
-|---|---|
-| Main base | `6759e751074e16eaf328fe5a073318bcc2bc2ba6` |
-| Browser test execution | Not yet run in this environment |
-| Benchmark measurements | Not yet captured |
-| Chromium version / runner hardware | Pending execution |
-| Workflow integration | Deferred; `.github/workflows/project-tests.yml` remains locked by Agent 3 during PR #11 reconciliation |
-
-No timing values are stated until the Playwright runner completes on a real browser.
+The Canvas renderer remains isolated and the DOM renderer stays active. No `index.html`, project-model, Agent API, MCP or workflow changes were made. AC-012 is not started.
