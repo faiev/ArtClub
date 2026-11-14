@@ -147,12 +147,13 @@ function bootEditor() {
     },
     async deleteProject(id) { projectDb.delete(id); recoveryDb.delete(id); }
   };
+  const windowObject = {
+    ArtClubProject: ProjectModel,
+    ArtClubStorage: { async open() { return storageApi; } }
+  };
   const context = vm.createContext({
     document,
-    window: {
-      ArtClubProject: ProjectModel,
-      ArtClubStorage: { async open() { return storageApi; } }
-    },
+    window: windowObject,
     localStorage: {
       getItem(key) { return storage.has(key) ? storage.get(key) : null; },
       setItem(key, value) { storage.set(key, String(value)); }
@@ -164,7 +165,7 @@ function bootEditor() {
     console
   });
   vm.runInContext(match[1], context, { filename: "index.html:inline-editor.js" });
-  return new Promise(resolve => setImmediate(() => resolve({
+  return windowObject.OnePixelStudioReady.then(() => ({
     document,
     grid,
     storage,
@@ -172,7 +173,7 @@ function bootEditor() {
       return toolButtons.find(button => button.dataset.tool === name);
     },
     cell(index) { return grid.children[index]; }
-  })));
+  }));
 }
 
 test("editor script parses and initializes a real pixel grid", async () => {
