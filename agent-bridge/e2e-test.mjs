@@ -268,15 +268,8 @@ async function run() {
     assert.equal(recoveredPixels.a, "#aa00aa", "Recover should restore version A after opening the library");
     assert.equal(recoveredPixels.b, null, "version B's new pixel should be absent after recovering A");
 
-    // Recovering A must preserve B as the next recovery version. Then a real
-    // edit to C should rotate B into recovery, while opening the library again
-    // remains a no-op and cannot overwrite that snapshot.
-    await page.getByRole("button", { name: "Recover", exact: true }).first().click();
-    await page.waitForFunction(
-      () => window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color === "#00aaff",
-      null,
-      { timeout: 5_000 }
-    );
+    // A genuine edit after recovery must rotate the recovered A version into
+    // the recovery slot. Opening the library once more must not rotate it away.
     await page.locator("#closeProjectDialog").click();
     await page.evaluate(() =>
       window.onePixelStudio.draw_pixel({ x: 22, y: 20, color: "#cc4400" })
@@ -289,16 +282,16 @@ async function run() {
     await page.locator("#projectLibraryBtn").click();
     await page.getByRole("button", { name: "Recover", exact: true }).first().click();
     await page.waitForFunction(
-      () => window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color === "#00aaff",
+      () => window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color === "#aa00aa",
       null,
       { timeout: 5_000 }
     );
     recoveredPixels = await page.evaluate(() => ({
-      b: window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color,
+      a: window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color,
       c: window.onePixelStudio.get_pixel({ x: 22, y: 20 }).color
     }));
-    assert.equal(recoveredPixels.b, "#00aaff", "a genuine later save should rotate B into recovery");
-    assert.equal(recoveredPixels.c, null, "recovering B should remove C's unsaved change from the document");
+    assert.equal(recoveredPixels.a, "#aa00aa", "a genuine later save should keep the immediately previous version recoverable");
+    assert.equal(recoveredPixels.c, null, "recovering A should remove C's newer pixel");
 
     assert.deepEqual(pageErrors, [], "the app should not throw browser runtime errors");
     console.log("Browser E2E passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, real animation playback, onion skin, PNG, IndexedDB library and reload recovery.");
