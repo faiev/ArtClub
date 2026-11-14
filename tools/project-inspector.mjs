@@ -1656,14 +1656,33 @@ function buildMigrationPreview(data, filePath, sourceBytes, sourceHash) {
     { field: "metadata.createdAt", previewValue: "fixed epoch marker" },
     { field: "metadata.updatedAt", previewValue: "fixed epoch marker" }
   ];
-  const discardedFields = [
-    { source: "app", reason: "legacy application marker is not part of the v2 schema" }
-  ];
+  const legacySourceFields = new Set([
+    "app", "version", "w", "h", "projectName", "palette", "selected", "pixels"
+  ]);
+  const discardedFields = [];
+  if (Object.prototype.hasOwnProperty.call(data, "app")) {
+    discardedFields.push({
+      source: "app",
+      reason: "legacy application marker is not part of the v2 schema"
+    });
+  }
+  const unrecognizedFields = Object.keys(data)
+    .filter((field) => !legacySourceFields.has(field))
+    .sort(lexicalCompare);
+  for (const field of unrecognizedFields) {
+    discardedFields.push({
+      source: field,
+      reason: "field is not consumed by the current legacy-to-v2 project model migration"
+    });
+  }
   const warnings = [
     "All preview IDs are deterministic placeholders derived from the source-byte hash; they are not persisted identities.",
     "Migration timestamps use a fixed epoch marker for deterministic previews and are not represented as source timestamps.",
     "The preview is a report only. No source or destination file is written."
   ];
+  if (unrecognizedFields.length > 0) {
+    warnings.push("Unrecognized legacy source fields are listed as discarded and are not copied into the normalized preview.");
+  }
   if (!data.projectName) {
     warnings.push("Legacy source has no projectName; the project model supplied its default project name.");
   }
