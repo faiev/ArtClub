@@ -16,8 +16,13 @@
   const MAX_DIMENSION = 512;
   const MAX_FRAMES = 256;
   const MAX_LAYERS = 32;
-  const MAX_TOTAL_PIXELS = 16 * 1024 * 1024;
-  const MAX_GIF_BYTES = 64 * 1024 * 1024;
+  // The exporter retains composed RGBA-like integer pixels and indexed pixels.
+  // Cap selected output to 1,048,576 pixels (four 512×512 frames) to keep
+  // those core buffers near 5 MiB before palette and encoded-output buffers.
+  const MAX_TOTAL_PIXELS = 1024 * 1024;
+  const MAX_PROJECT_CEL_PIXELS = 16 * 1024 * 1024;
+  const MAX_RGB_LOOKUP_CACHE = 65536;
+  const MAX_GIF_BYTES = 16 * 1024 * 1024;
   const TRANSPARENT = 0xffffffff;
   const HEX = /^#[0-9a-fA-F]{6}$/;
   const HISTOGRAM_SIZE = 1 << 15;
@@ -90,8 +95,8 @@
         throw new Error("Each cel must contain exactly width × height pixels.");
       }
       sourceCelPixels += cel.pixels.length;
-      if (sourceCelPixels > MAX_TOTAL_PIXELS) {
-        throw new Error("Project exceeds the GIF export pixel-data safety limit.");
+      if (sourceCelPixels > MAX_PROJECT_CEL_PIXELS) {
+        throw new Error("Project exceeds the GIF export source cel-data safety limit.");
       }
       for (let i = 0; i < cel.pixels.length; i += 1) {
         const color = cel.pixels[i];
@@ -311,11 +316,77 @@
     return { r: Math.round(point.r), g: Math.round(point.g), b: Math.round(point.b) };
   }
 
+  function buildPaletteSearchTree(palette) {
+    const entries = palette.map(function (color, index) {
+      return { color: color, index: index };
+    });
+
+    function build(items) {
+      if (!items.length) return null;
+      let minR = 255, minG = 255, minB = 255;
+      let maxR = 0, maxG = 0, maxB = 0;
+      items.forEach(function (item) {
+        minR = Math.min(minR, item.color.r); maxR = Math.max(maxR, item.color.r);
+        minG = Math.min(minG, item.color.g); maxG = Math.max(maxG, item.color.g);
+        minB = Math.min(minB, item.color.b); maxB = Math.max(maxB, item.color.b);
+      });
+      const ranges = [maxR - minR, maxG - minG, maxB - minB];
+      let axis = 0;
+      if (ranges[1] > ranges[axis]) axis = 1;
+      if (ranges[2] > ranges[axis]) axis = 2;
+      const channel = ["r", "g", "b"][axis];
+      items.sort(function (a, b) {
+        return a.color[channel] - b.color[channel] || a.index - b.index;
+      });
+      const middle = Math.floor(items.length / 2);
+      return {
+        entry: items[middle],
+        axis: axis,
+        left: build(items.slice(0, middle)),
+        right: build(items.slice(middle + 1))
+      };
+    }
+
+    return build(entries);
+  }
+
+  function nearestPaletteIndex(color, tree) {
+    const red = color >>> 16;
+    const green = (color >>> 8) & 255;
+    const blue = color & 255;
+    const channels = [red, green, blue];
+    let bestIndex = 0;
+    let bestDistance = Infinity;
+
+    function visit(node) {
+      if (!node) return;
+      const candidate = node.entry.color;
+      const dr = red - candidate.r;
+      const dg = green - candidate.g;
+      const db = blue - candidate.b;
+      const distance = dr * dr + dg * dg + db * db;
+      if (distance < bestDistance || (distance === bestDistance && node.entry.index < bestIndex)) {
+        bestDistance = distance;
+        bestIndex = node.entry.index;
+      }
+
+      const axisName = ["r", "g", "b"][node.axis];
+      const delta = channels[node.axis] - candidate[axisName];
+      const near = delta <= 0 ? node.left : node.right;
+      const far = delta <= 0 ? node.right : node.left;
+      visit(near);
+      if (delta * delta <= bestDistance) visit(far);
+    }
+
+    visit(tree);
+    return bestIndex;
+  }
+
   function buildPalette(frames, colorInfo) {
     const maximum = colorInfo.hasTransparency ? 255 : 256;
     let palette;
     let exactMap = null;
-    let lookup = null;
+    let searchTree = null;
     let quantized = false;
 
     if (!colorInfo.overflow) {
@@ -326,25 +397,7 @@
     } else {
       quantized = true;
       palette = medianCut(makeHistogram(frames), maximum);
-      lookup = new Uint8Array(HISTOGRAM_SIZE);
-      for (let index = 0; index < HISTOGRAM_SIZE; index += 1) {
-        const red = (((index >>> 10) & 31) << 3) + 4;
-        const green = (((index >>> 5) & 31) << 3) + 4;
-        const blue = ((index & 31) << 3) + 4;
-        let nearest = 0;
-        let nearestDistance = Infinity;
-        for (let p = 0; p < palette.length; p += 1) {
-          const dr = red - palette[p].r;
-          const dg = green - palette[p].g;
-          const db = blue - palette[p].b;
-          const distance = dr * dr + dg * dg + db * db;
-          if (distance < nearestDistance) {
-            nearestDistance = distance;
-            nearest = p;
-          }
-        }
-        lookup[index] = nearest;
-      }
+      searchTree = buildPaletteSearchTree(palette);
     }
 
     const transparentIndex = colorInfo.hasTransparency ? palette.length : null;
@@ -352,7 +405,7 @@
     return {
       colors: palette,
       exactMap: exactMap,
-      lookup: lookup,
+      searchTree: searchTree,
       quantized: quantized,
       transparentIndex: transparentIndex,
       colorTableEntries: colorTableEntries,
@@ -368,6 +421,7 @@
 
   function toIndexedFrames(frames, palette) {
     const output = [];
+    const colorCache = palette.searchTree ? new Map() : null;
     let transparentPixelCount = 0;
     frames.forEach(function (frame) {
       const indexes = new Uint8Array(frame.pixels.length);
@@ -379,11 +433,12 @@
         } else if (palette.exactMap) {
           indexes[i] = palette.exactMap.get(color);
         } else {
-          const red = color >>> 16;
-          const green = (color >>> 8) & 255;
-          const blue = color & 255;
-          const bucket = ((red >>> 3) << 10) | ((green >>> 3) << 5) | (blue >>> 3);
-          indexes[i] = palette.lookup[bucket];
+          let paletteIndex = colorCache.get(color);
+          if (paletteIndex === undefined) {
+            paletteIndex = nearestPaletteIndex(color, palette.searchTree);
+            if (colorCache.size < MAX_RGB_LOOKUP_CACHE) colorCache.set(color, paletteIndex);
+          }
+          indexes[i] = paletteIndex;
         }
       }
       output.push({
@@ -577,7 +632,7 @@
       opaquePaletteColors: palette.colors.length,
       colorTableEntries: palette.colorTableEntries,
       quantization: palette.quantized
-        ? "5-bit-per-channel RGB histogram followed by weighted median-cut; nearest-palette mapping without dithering"
+        ? "5-bit-per-channel RGB histogram followed by weighted median-cut; each source RGB maps to its exact nearest palette entry by squared RGB distance (bounded cache + k-d tree), without dithering"
         : "Exact RGB palette; no color quantization",
       transparency: palette.transparentIndex === null
         ? "No transparent pixels in selected frames"
