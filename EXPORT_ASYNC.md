@@ -88,7 +88,7 @@ PNG rendering copies the RGBA bytes into ImageData in chunks. The following brow
 - `putImageData`, which copies the prepared ImageData into the canvas.
 - `toBlob` or `OffscreenCanvas.convertToBlob`, which encodes the PNG.
 
-The browser does not expose an interruptible form of these calls through this API. A signal raised while PNG encoding is in progress is observed immediately after the codec resolves; the Blob is then discarded and the operation rejects at `finalization`. This is not mid-codec cancellation.
+The browser does not expose an interruptible form of these calls through this API. Cancellation during the cooperative ImageData preparation is reported at `encoding`. A signal raised while PNG encoding is in progress is observed immediately after the codec resolves; the Blob is then discarded and the operation rejects at `finalization`. This is not mid-codec cancellation.
 
 GIF LZW byte generation is implemented in JavaScript and yields between chunks. Small bounded operations such as median-cut splitting, construction of the palette search tree, final GIF headers and the final PNG metadata mapping are synchronous.
 
