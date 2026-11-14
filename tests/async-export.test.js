@@ -181,8 +181,11 @@ test("async GIF rejects malformed inputs and output budgets before returning out
   await assert.rejects(GIF.encodeGIFAsync(malformed), /valid HEX/);
 
   const tooLarge = makeLargeSingleFrameProject();
-  tooLarge.frames.push({ id: "f2", name: "Second", durationMs: 100 });
-  tooLarge.cels.push({ layerId: "layer-1", frameId: "f2", pixels: tooLarge.cels[0].pixels });
+  for (let index = 1; index < 5; index += 1) {
+    const frameId = "f" + (index + 1);
+    tooLarge.frames.push({ id: frameId, name: "Frame " + (index + 1), durationMs: 100 });
+    tooLarge.cels.push({ layerId: "layer-1", frameId: frameId, pixels: tooLarge.cels[0].pixels });
+  }
   await assert.rejects(GIF.encodeGIFAsync(tooLarge), /too large|Maximum total export pixels/i);
 });
 
