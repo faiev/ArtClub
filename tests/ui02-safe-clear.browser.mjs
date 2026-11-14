@@ -75,13 +75,24 @@ async function run() {
     await page.evaluate(id => window.onePixelStudio.select_layer({ layer_id: id }), baseLayerId);
 
     assert.equal(await page.locator("#clearBtn").isDisabled(), false);
+    await page.locator("#clearBtn").evaluate(button => {
+      window.__clearClickCount = 0;
+      button.addEventListener("click", () => { window.__clearClickCount += 1; }, true);
+    });
     await page.locator("#clearBtn").click();
     await page.waitForTimeout(500);
     const clearDiagnostics = await page.evaluate(() => ({
       pixel: window.onePixelStudio.get_pixel({ x: 0, y: 0 }),
       toast: document.getElementById("toast").textContent,
       saveState: document.getElementById("saveState").textContent,
-      busy: document.body.inert
+      busy: document.body.inert,
+      clickCount: window.__clearClickCount,
+      button: document.getElementById("clearBtn").outerHTML,
+      activeLayer: window.onePixelStudio.get_status().active_layer,
+      activeCel: JSON.parse(window.onePixelStudio.export_project()).cels.find(cel =>
+        cel.layerId === window.onePixelStudio.get_status().active_layer.id &&
+        cel.frameId === window.onePixelStudio.get_status().active_frame.id
+      )?.pixels?.slice(0, 4)
     }));
     if (clearDiagnostics.pixel.color !== null) {
       throw new Error("Active-cel Clear did not commit: " + JSON.stringify({clearDiagnostics,pageErrors,consoleErrors,confirmationMessage}));
