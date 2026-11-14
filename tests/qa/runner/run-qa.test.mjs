@@ -415,7 +415,7 @@ test("CLI executes a real built-in test run and emits stable machine-readable JS
     const lifecycle = SUITE_MANIFEST.find(suite => suite.name === "lifecycle");
     for (const entry of lifecycle.files) {
       put(root, entry.path,
-        'const test = require("node:test"); test("runner fixture passes", () => {});\\n');
+        'const test = require("node:test"); test("runner fixture passes", () => {});\n');
     }
     const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../tools/run-qa.mjs");
     const result = spawnSync(process.execPath, [
