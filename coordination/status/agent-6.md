@@ -131,3 +131,85 @@ PR: [#96 — UI-02A safe Clear integration](https://github.com/faiev/ArtClub/pul
 4. Re-run exact-head checks after later branch synchronization and tie evidence to the tested SHA.
 5. Do not edit production `index.html`, CSS, project model/storage, Agent API/bridge, exporter/renderer, another agent's tests or shared workflow. Do not start AC-093; no Agent 6 phase beyond AC-092 is authorized.
 - **Last updated:** 2026-11-15; main snapshot `855a93f652f1d550c86234686262bbdf7d77a820`; PR #40 sync CI run #43635587023 passed both jobs; PR #96 browser run #43635230723 failed and review comments #6883427881 / #6883442136 were posted.
+
+
+---
+
+# Ten-agent branch hygiene assignment — 2026-11-15 (Agent 6)
+
+## Scope and source snapshot
+- Read `coordination/BOARD.md` section **“Ten-agent branch hygiene assignments — 2026-11-15”**, plus the current Agent 6 assignment and this status file from `main`.
+- Current `main` exact SHA: `84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa`.
+- Assignment: P0 read-only integrity review of PR #96; supply the smallest safe transaction/CAS design and deterministic two-tab IndexedDB + rollback-preservation tests; reconcile #29/#40 and safe-edit chain #14/#23/#26/#40/#48/#49.
+- No code, PR, ref, workflow, or other status-file changes authorized. No such changes made.
+
+## Exact current refs and branch comparisons
+
+| Item | Exact current ref/head | Comparison against current main | Changed-file scope / state |
+|---|---|---:|---|
+| PR #96 `coordinator/ui-02a-safe-clear` | `7071f9550f94f413f4dd414416a804079ee179c4` | 26 ahead / 13 behind; merge base `95e9a83efc0d024b4aa4abde709768db2b9a82b9` | Live PR file listing includes 10 files: `.github/workflows/ui02-safe-clear-browser.yml`, `index.html`, `tests/editor-interactions.test.js`, `tests/ui02-safe-clear.browser.mjs`, `tests/ui02-safe-clear.test.js`, plus `coordination/BOARD.md`, `coordination/assignments/agent-1.md`, `coordination/assignments/agent-6.md`, `coordination/status/agent-1.md`, `coordination/status/agent-6.md`. The five coordination files are outside the intended production slice and require coordinator reconciliation before acceptance. |
+| PR #29 `agent/safe-edit-path-audit` | `c5f27591506eb9584e8489dc6b83a3eaf978e531` | 17 ahead / 12 behind; merge base `e7bcd76a7413fcb4f9e373ade67d71651da0064a` | One file only: `docs/SAFE_EDIT_PATH_AUDIT.md`. Open; docs/source-audit deliverable. PR body still cites old head `293c8bb42ad77cba813903f0a2580add2b66d1ae`; the branch ref now resolves to `c5f2759...`. No Actions runs are associated with current head. |
+| PR #40 `agent/layer-safety-browser` | `2b900a79c4094b274db6c8611c101cbf75c7adc6` | 28 ahead / 12 behind; merge base `e7bcd76a7413fcb4f9e373ade67d71651da0064a` | Four Agent 6 files only: `docs/layer-edit-safety.md`, `tests/layer-safety.browser.html`, `tests/layer-safety.browser.mjs`, `tests/layer-safety.browser.test.js`. Open/draft. |
+
+PR #40 is **not stacked on PR #29**: comparing `agent/safe-edit-path-audit` → `agent/layer-safety-browser` yields 28 ahead / 17 behind with the same merge base `e7bcd76...`; #40's own diff is the four harness/docs files above. Both branches are now 12 commits behind current main and require non-force synchronization plus exact-head revalidation before acceptance. Do not treat either as deletable from age or branch status.
+
+## PR #96 — confirmed P1/P2 persistence integrity findings
+
+Reviewed current branch source at exact ref `7071f9550f94f413f4dd414416a804079ee179c4`.
+
+### P1 — stale cross-tab write can replace newer persisted project
+- `index.html:1075`: `commitSafeEditResult()` calls `await projectStorage.saveProject(nextProject)` with no expected persisted revision/token.
+- `js/project-storage.js:82–134`: `saveProject()` opens a readwrite transaction over `PROJECTS` and `RECOVERY`, reads the previous primary, rotates it to recovery when content differs, then unconditionally writes the candidate. Transaction serialization does not reject a stale candidate.
+- Repro sequence: Tab A and Tab B both load persisted P0/version V0. A commits P1. B, still holding P0, commits candidate P2. B reads current P1 and writes P2, replacing A's newer primary; P1 is only demoted to the one-slot recovery record and can be lost on a subsequent save. A per-tab `documentRevision` check does not protect against another tab's write.
+
+### P2 — post-persist rollback rotates the failed candidate into recovery
+- `index.html:1080–1085`: the candidate is persisted before it is published to the live editor.
+- `index.html:1086–1089`: publication is marked as begun before `loadProjectIntoEditor(nextProject,false)` completes.
+- `index.html:1096–1105`: on a publication exception, the catch path restores in-memory state and calls ordinary `projectStorage.saveProject(previousProject)`.
+- That ordinary save treats the rejected candidate as the previous primary and writes it to `RECOVERY`, replacing the pre-existing recovery snapshot. It is not an exact rollback of the prior primary+recovery pair.
+
+### Smallest safe transaction/CAS contract
+1. Give every persisted primary record an explicit monotonically increasing storage revision (separate from `updatedAt`). A read/load returns both the project and its persisted revision token. Every writer, including autosave and safe edit, must supply the token it read; do not silently fall back to unconditional writes for existing projects.
+2. In one IndexedDB `readwrite` transaction spanning `PROJECTS` and `RECOVERY`, read the current primary and compare its revision with the caller's expected token. On mismatch, perform **no writes** and return a typed stale-write conflict. On match, preserve the exact prior primary as recovery, write the candidate with revision+1, and return the new token plus an opaque rollback receipt containing exact prior primary and recovery records.
+3. Replace ordinary-save rollback with `restoreIfCurrent(receipt)`: in one transaction, verify the current primary still has the exact revision committed by that receipt; only then restore/delete the prior primary and prior recovery exactly as captured. If another tab has since committed, return a rollback conflict and leave both stores untouched. Never use ordinary `saveProject(previousProject)` as rollback.
+4. Publish the candidate only after CAS succeeds. If publication fails, use the receipt's conditional restore. If restore conflicts, reload current persisted state and surface an explicit recovery-conflict error; do not overwrite a newer tab's work with the stale in-memory snapshot.
+
+The CAS compare and both store writes must be in the same IndexedDB transaction. A preflight read followed by a later write transaction is not sufficient.
+
+### Deterministic acceptance tests required
+- **Two independent contexts / stale writer:** seed primary P0 with revision V0 and recovery R0; open two separate browser contexts against the same IndexedDB database; both read V0. Context A saves P1 with expected V0 and receives V1. Context B attempts P2 with expected V0 and must receive conflict. Assert primary remains P1 and recovery remains byte-for-byte R0. Reload B, save with V1, then assert primary P2 and recovery P1.
+- **Publication failure / exact rollback:** seed primary P0 and recovery R0; CAS-save P1 and capture receipt; inject a deterministic throw after persistence but before/during live publication. Conditional restore must return primary P0 and recovery R0 exactly (compare canonical serialized records, including metadata), not place P1 in recovery.
+- **Concurrent writer wins over rollback:** after P1 commits and before injected publication failure rollback, another context commits P2 using the new token. The P1 receipt rollback must conflict and leave P2 plus its recovery unchanged. Assert no stale rollback overwrites P2.
+- For all three, capture and compare primary record, recovery record, visible project JSON, pixel raster, undo/redo history and revision tokens before/after each rejected/conflicting operation. Use explicit barriers/promises, not sleeps, to control interleaving.
+
+## Safe-edit PR chain reconciliation
+
+| PR / phase | Recorded commit | Reachability / current disposition |
+|---|---|---|
+| #14 AC-015 guard | merged as `b53708dd73a4a0d00a7fdd2c79048054a2024295` | Verified ancestor of current main (compare from merge SHA to main: 0 behind). |
+| #23 AC-055 expanded guard | merged as `8ae25528af84c8fa4808ad375e4053e0f934eb14` | Verified ancestor of current main (0 behind). |
+| #26 AC-056 immutable operations | merged as `fc0c36e8e59108f21a9bb90886d053d6dfe02153` | Verified ancestor of current main (0 behind). |
+| #29 AC-057 mutation-path audit | current branch head `c5f27591506eb9584e8489dc6b83a3eaf978e531` | Open; docs-only; 17 ahead / 12 behind; no current-head CI. |
+| #40 AC-058 browser harness | current branch head `2b900a79c4094b274db6c8611c101cbf75c7adc6` | Open/draft; four owned files; 28 ahead / 12 behind. |
+| #48 AC-059 import staging | merged as `103b5c488c262a0c34807d38361f193895e1e7db` | Verified ancestor of current main (0 behind). |
+| #49 AC-060 integration contract | merged as `87c15b08d41653e255922e3961698608ab991708` | Verified ancestor of current main (0 behind); docs only. |
+
+The five merge commits above were individually compared to current main; each is an ancestor (merge base equals the tested merge SHA, behind=0). #48's own description explicitly leaves persistence rollback to integration; #49 documents the revision/rollback contract but does not implement storage CAS. #29 and #40 are parallel, not a parent-child chain. The accepted guard/transaction modules are present on main; PR #96's production integration still lacks the persistence boundary.
+
+## Exact-head CI evidence
+- PR #96 head `7071f9550f94f413f4dd414416a804079ee179c4`:
+  - Dedicated UI-02 browser workflow [#43637386209](https://github.com/faiev/ArtClub/actions/runs/43637386209): success; `ui02-browser` job completed and the “Run UI-02 safe Clear browser checks” step passed.
+  - Standard Project workflow [#43637386219](https://github.com/faiev/ArtClub/actions/runs/43637386219): success; both `browser-e2e` and `test` jobs completed successfully.
+  - These runs are exact for the PR head, but the branch is now 13 commits behind main. They do not test cross-tab CAS or exact rollback/recovery preservation.
+- PR #40 head `2b900a79c4094b274db6c8611c101cbf75c7adc6`:
+  - Standard Project workflow [#43639272626](https://github.com/faiev/ArtClub/actions/runs/43639272626): success; `browser-e2e` and `test` jobs passed.
+  - This workflow does **not** invoke `node tests/layer-safety.browser.mjs`; the dedicated AC-058 browser runner remains unexecuted / not proven passing.
+- PR #29 head `c5f27591506eb9584e8489dc6b83a3eaf978e531`: no Actions runs returned for this exact commit; its one-file deliverable is documentation-only.
+- No local shell commands or tests were executed in this read-only GitHub review. Evidence gathered via GitHub file/ref/compare/Actions reads only.
+
+## Blockers / recommendation
+- Keep PR #96 draft and do not accept UI-02A until persisted-revision CAS, conditional exact rollback, and the three deterministic tests above are implemented and pass on the synchronized exact head. The currently green CI is not coverage of these two findings.
+- Coordinator must reconcile the five out-of-scope coordination files appearing in PR #96's live file list and synchronize the branch with current main before final review.
+- Keep #29 parked pending coordinator review and non-force sync; its documentation does not change production behavior.
+- Keep #40 draft until its dedicated runner is actually invoked on a working Node/Chromium environment and exact-head evidence is recorded; standard E2E is not a substitute.
+- No branch deletion, force-push, PR closure, merge, workflow change, PR comment, production edit, or non-owned file edit was performed.
