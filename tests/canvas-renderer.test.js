@@ -127,12 +127,14 @@ test("canvas resizing forces a full redraw even when a dirty rectangle is suppli
   assert.deepEqual(result.lastDirtyRect, { x: 0, y: 0, width: 3, height: 2 });
 });
 
-test("grid and selection are drawn on a separate overlay surface", () => {
+test("grid and selection render on a display-resolution overlay surface", () => {
   const { renderer, surfaces } = createRenderer({ left: 0, top: 0, width: 90, height: 60 }, 1);
   renderer.render({
     width: 3, height: 2, pixels: Array(6).fill(null), grid: true,
     selection: { x: 1, y: 0, width: 2, height: 2 }
   });
+  assert.equal(surfaces[1].width, 90);
+  assert.equal(surfaces[1].height, 60);
   assert.equal(surfaces[1].context.strokeCount, 1);
   assert.equal(surfaces[1].context.strokeRectCount, 1);
   assert.ok(surfaces[1].context.calls.some(call => call[0] === "clearRect"));
