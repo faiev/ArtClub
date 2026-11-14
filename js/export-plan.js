@@ -35,12 +35,13 @@
 
   function assertUniqueIds(items, label) {
     const ids = new Set();
-    items.forEach(function (item) {
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
       if (!isObject(item) || typeof item.id !== "string" || !item.id || ids.has(item.id)) {
         throw new Error(label + " IDs must be present and unique.");
       }
       ids.add(item.id);
-    });
+    }
     return ids;
   }
 
@@ -66,17 +67,20 @@
 
     const frameIds = assertUniqueIds(project.frames, "Frame");
     const layerIds = assertUniqueIds(project.layers, "Layer");
-    project.frames.forEach(function (frame) {
+    for (let index = 0; index < project.frames.length; index += 1) {
+      const frame = project.frames[index];
       if (typeof frame.name !== "string" || !frame.name.trim()) throw new Error("Every frame needs a name.");
       assertInteger(frame.durationMs, "Frame duration", 10, 60000);
-    });
-    project.layers.forEach(function (layer) {
+    }
+    for (let index = 0; index < project.layers.length; index += 1) {
+      const layer = project.layers[index];
       if (typeof layer.visible !== "boolean") throw new Error("Layer visibility must be boolean.");
-    });
+    }
 
     const celKeys = new Set();
     let sourceCelPixels = 0;
-    project.cels.forEach(function (cel) {
+    for (let celIndex = 0; celIndex < project.cels.length; celIndex += 1) {
+      const cel = project.cels[celIndex];
       if (!isObject(cel) || !layerIds.has(cel.layerId) || !frameIds.has(cel.frameId)) {
         throw new Error("Every cel must reference an existing layer and frame.");
       }
@@ -90,13 +94,13 @@
       if (sourceCelPixels > MAX_SOURCE_CEL_PIXELS) {
         throw new Error("Project exceeds the export planner source cel-data safety limit.");
       }
-      for (let i = 0; i < cel.pixels.length; i += 1) {
-        const color = cel.pixels[i];
+      for (let pixelIndex = 0; pixelIndex < cel.pixels.length; pixelIndex += 1) {
+        const color = cel.pixels[pixelIndex];
         if (color !== null && (typeof color !== "string" || !HEX.test(color))) {
           throw new Error("Cel pixels must be transparent or valid #RRGGBB colors.");
         }
       }
-    });
+    }
 
     return {
       width: width,
