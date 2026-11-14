@@ -331,7 +331,7 @@ export async function runQASuites(options = {}) {
   }
 
   const selectedSuites = suiteName === "all"
-    ? SUITE_MANIFEST
+    ? SUITE_MANIFEST.slice()
     : [SUITES_BY_NAME.get(suiteName)];
   if (fileOwner && suiteName === "all") {
     // A file-only invocation narrows the run to its owning suite.
