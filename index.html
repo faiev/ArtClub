@@ -812,7 +812,7 @@ async function init(){
     scheduleSave();
   }
 }
-init();
+window.OnePixelStudioReady = init();
 
 async function renderProjectLibrary(){
   const list=$("projectList"),count=$("projectCount");
