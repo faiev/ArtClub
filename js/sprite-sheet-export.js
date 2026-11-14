@@ -29,12 +29,13 @@
 
   function assertUniqueIds(items, label) {
     const ids = new Set();
-    items.forEach(function (item) {
+    for (let index = 0; index < items.length; index += 1) {
+      const item = items[index];
       if (!item || typeof item.id !== "string" || !item.id || ids.has(item.id)) {
         throw new Error(label + " IDs must be present and unique.");
       }
       ids.add(item.id);
-    });
+    }
     return ids;
   }
 
@@ -60,16 +61,23 @@
 
     const frameIds = assertUniqueIds(project.frames, "Frame");
     const layerIds = assertUniqueIds(project.layers, "Layer");
-    project.frames.forEach(function (frame) {
-      if (typeof frame.name !== "string" || !frame.name.trim()) throw new Error("Every frame needs a name.");
+    for (let index = 0; index < project.frames.length; index += 1) {
+      const frame = project.frames[index];
+      if (!frame || typeof frame.name !== "string" || !frame.name.trim()) {
+        throw new Error("Every frame needs a name.");
+      }
       assertInteger(frame.durationMs, "Frame duration", 10, 60000);
-    });
-    project.layers.forEach(function (layer) {
-      if (typeof layer.visible !== "boolean") throw new Error("Layer visibility must be boolean.");
-    });
+    }
+    for (let index = 0; index < project.layers.length; index += 1) {
+      const layer = project.layers[index];
+      if (!layer || typeof layer.visible !== "boolean") {
+        throw new Error("Layer visibility must be boolean.");
+      }
+    }
 
     const celKeys = new Set();
-    project.cels.forEach(function (cel) {
+    for (let celIndex = 0; celIndex < project.cels.length; celIndex += 1) {
+      const cel = project.cels[celIndex];
       if (!cel || !layerIds.has(cel.layerId) || !frameIds.has(cel.frameId)) {
         throw new Error("Every cel must reference an existing layer and frame.");
       }
@@ -79,12 +87,13 @@
       if (!Array.isArray(cel.pixels) || cel.pixels.length !== width * height) {
         throw new Error("Each cel must contain exactly width × height pixels.");
       }
-      cel.pixels.forEach(function (color) {
+      for (let pixelIndex = 0; pixelIndex < cel.pixels.length; pixelIndex += 1) {
+        const color = cel.pixels[pixelIndex];
         if (color !== null && (typeof color !== "string" || !HEX.test(color))) {
           throw new Error("Cel pixels must be transparent or valid HEX colors.");
         }
-      });
-    });
+      }
+    }
 
     return { width: width, height: height, frameIds: frameIds, layerIds: layerIds };
   }
@@ -270,10 +279,83 @@
     };
   }
 
-  function buildMetadata(sheet, imageFilename) {
-    if (!sheet || sheet.format !== FORMAT || !(sheet.rgba instanceof Uint8ClampedArray)) {
-      throw new Error("A sprite sheet built by this exporter is required.");
+  function validateBuiltSheet(sheet) {
+    if (!isPlainObject(sheet) || sheet.format !== FORMAT || sheet.version !== VERSION) {
+      throw new Error("A version 1 sprite sheet built by this exporter is required.");
     }
+    assertInteger(sheet.width, "Sprite sheet width", 1, MAX_CANVAS_SIDE);
+    assertInteger(sheet.height, "Sprite sheet height", 1, MAX_CANVAS_SIDE);
+    const outputPixels = sheet.width * sheet.height;
+    if (!Number.isSafeInteger(outputPixels) || outputPixels > MAX_EXPORT_PIXELS) {
+      throw new Error("Sprite sheet exceeds the maximum output pixel budget.");
+    }
+    if (!(sheet.rgba instanceof Uint8ClampedArray) || sheet.rgba.length !== outputPixels * 4) {
+      throw new Error("Sprite sheet RGBA buffer length must equal width × height × 4.");
+    }
+    assertInteger(sheet.frameWidth, "Source frame width", 1, MAX_DIMENSION);
+    assertInteger(sheet.frameHeight, "Source frame height", 1, MAX_DIMENSION);
+    if (!["horizontal", "vertical", "grid"].includes(sheet.layout)) {
+      throw new Error("Sprite sheet layout metadata is invalid.");
+    }
+    assertInteger(sheet.columns, "Grid columns", 1, MAX_FRAMES);
+    assertInteger(sheet.rows, "Grid rows", 1, MAX_FRAMES);
+    assertInteger(sheet.margin, "Margin", 0, 4096);
+    assertInteger(sheet.spacing, "Spacing", 0, 4096);
+    if (sheet.backgroundColor !== null &&
+        (typeof sheet.backgroundColor !== "string" || !HEX.test(sheet.backgroundColor))) {
+      throw new Error("Sprite sheet background color metadata is invalid.");
+    }
+    if (!Array.isArray(sheet.frames) || sheet.frames.length < 1 ||
+        sheet.frames.length > MAX_FRAMES || sheet.frameCount !== sheet.frames.length) {
+      throw new Error("Sprite sheet frame count metadata is invalid.");
+    }
+    if (sheet.columns * sheet.rows < sheet.frames.length) {
+      throw new Error("Sprite sheet grid capacity is smaller than its frame count.");
+    }
+
+    const expectedWidth = sheet.margin * 2 + sheet.columns * sheet.frameWidth +
+      Math.max(0, sheet.columns - 1) * sheet.spacing;
+    const expectedHeight = sheet.margin * 2 + sheet.rows * sheet.frameHeight +
+      Math.max(0, sheet.rows - 1) * sheet.spacing;
+    if (sheet.width !== expectedWidth || sheet.height !== expectedHeight) {
+      throw new Error("Sprite sheet dimensions do not match its layout metadata.");
+    }
+    if (sheet.layout === "horizontal" &&
+        (sheet.rows !== 1 || sheet.columns !== sheet.frames.length)) {
+      throw new Error("Horizontal sprite sheet layout metadata is inconsistent.");
+    }
+    if (sheet.layout === "vertical" &&
+        (sheet.columns !== 1 || sheet.rows !== sheet.frames.length)) {
+      throw new Error("Vertical sprite sheet layout metadata is inconsistent.");
+    }
+
+    for (let index = 0; index < sheet.frames.length; index += 1) {
+      const frame = sheet.frames[index];
+      if (!isPlainObject(frame) || frame.index !== index ||
+          typeof frame.frameId !== "string" || !frame.frameId ||
+          typeof frame.name !== "string" || !frame.name.trim()) {
+        throw new Error("Sprite sheet frame " + index + " identity metadata is invalid.");
+      }
+      if (!Number.isInteger(frame.x) || !Number.isInteger(frame.y) ||
+          frame.x < 0 || frame.y < 0 ||
+          frame.width !== sheet.frameWidth || frame.height !== sheet.frameHeight ||
+          frame.x + frame.width > sheet.width || frame.y + frame.height > sheet.height) {
+        throw new Error("Sprite sheet frame rectangle is outside the output sheet.");
+      }
+      const column = index % sheet.columns;
+      const row = Math.floor(index / sheet.columns);
+      const expectedX = sheet.margin + column * (sheet.frameWidth + sheet.spacing);
+      const expectedY = sheet.margin + row * (sheet.frameHeight + sheet.spacing);
+      if (frame.x !== expectedX || frame.y !== expectedY) {
+        throw new Error("Sprite sheet frame rectangle does not match its grid position.");
+      }
+      assertInteger(frame.durationMs, "Frame duration", 10, 60000);
+    }
+    return sheet;
+  }
+
+  function buildMetadata(sheet, imageFilename) {
+    validateBuiltSheet(sheet);
     return {
       format: FORMAT,
       version: VERSION,
@@ -341,9 +423,7 @@
 
   async function renderSpriteSheetPNG(sheet, options) {
     options = options || {};
-    if (!sheet || sheet.format !== FORMAT || !(sheet.rgba instanceof Uint8ClampedArray)) {
-      throw new Error("A sprite sheet built by this exporter is required.");
-    }
+    validateBuiltSheet(sheet);
     const canvasFactory = options.canvasFactory || defaultCanvasFactory;
     const canvas = canvasFactory(sheet.width, sheet.height);
     if (!canvas || typeof canvas.getContext !== "function") throw new Error("Canvas factory must return a canvas-like object.");
