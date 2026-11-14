@@ -2536,6 +2536,9 @@ async function commitImportedProject(stagedProject,target,previousProject){
   try{
     if(persistInFlight)await persistInFlight;
     if(projectStorage){
+      await projectStorage.saveProject(previousProject);
+      activeProjectId=previousProject.id;
+      writeLocalBackup(previousProject);
       const saved=await projectStorage.saveProject(imported);
       rollbackReceipt=saved.rollbackReceipt;
       persisted=true;
