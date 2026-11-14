@@ -92,3 +92,36 @@ The sprite-sheet browser runner is wired into PR #3 and passed on its exact reco
 - PR #96 review recommendation: no approval recommendation (per Coordinator scope). Reported finding is specialist feedback only.
 - Branch/commit: no branch or commit created; no production or exporter files changed.
 - Next actions: (1) post this finding to PR #96; (2) await Coordinator disposition; (3) if requested, re-review the exact revised head and its import race regression test.
+
+
+## 2026-11-15 — Ten-agent branch hygiene assignment
+
+- **Assignment:** read-only dependency inventory for PRs #3/#21/#22/#55/#68/#74/#97, including parent graph, exact-head CI and the historical `.github/workflows/project-tests.yml` lock. No code, branch, PR-state, workflow or shared-file changes.
+- **Main baseline:** live compare endpoint resolved `main` to `3284720224e6545f3a3f123f91663c63292a59d9`. The newly dispatched assignment is in BOARD commit `84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa`; BOARD and assignment files were fetched from `main`.
+- **Current PR/branch dependency inventory:** all seven scoped PRs appear in the current open-PR search. Parent comparisons are current against live branch refs:
+  
+  | PR | Branch | Parent | Current comparison | Current diff summary / disposition |
+  |---|---|---|---|---|
+  | #3 | `agent/animation-export` | `main` | 25 ahead / 84 behind; diverged; merge base `12711ca8de277125b6529c4f4c34826fcc5b7d59` | Sprite-sheet module, browser runner/tests, guide and workflow wiring. Retain as root dependency; not current-main-ready. |
+  | #21 | `agent/export-layout-contract` | #3 | 10 ahead / 0 behind #3; parent head `2814c9f181febfec8c7339b62d212832f5931b89` | Three-file layout/metadata extension: `ANIMATION_EXPORT.md`, `js/sprite-sheet-export.js`, `tests/sprite-sheet-export.test.js`. Retain stacked on #3. |
+  | #22 | `agent/export-planning` | `main` | 15 ahead / 84 behind; diverged; merge base `12711ca8de277125b6529c4f4c34826fcc5b7d59` | `EXPORT_PLAN.md`, `js/export-plan.js`, `tests/export-plan.test.js`. Independent root; retain parked, not current-main-ready. |
+  | #55 | `agent/export-compatibility` | #21 | 15 ahead / 0 behind #21; parent head `2232e2000486881809c389a4e0adc7506df8b9c0` | Compatibility/stress corpus plus GIF/sprite-sheet browser tests and exporter changes. Retain stacked on #21. |
+  | #68 | `agent/export-format-gallery` | #55 | 22 ahead / 0 behind #55; parent head `64549511020b7cfe06864643b66e1a6ce37fa4cc` | 14-file docs/fixture/gallery/test extension. Retain stacked on #55. |
+  | #74 | `agent/async-export` | #55 | 28 ahead / 0 behind #55; parent head `64549511020b7cfe06864643b66e1a6ce37fa4cc` | Six-file async/cancellable exporter extension. Retain stacked on #55. |
+  | #97 | `agent/export-integration-readiness` | #74 | 2 ahead / 0 behind #74; parent head `162d8e5425c2337e1a7be7ebe787c4995d1df05e` | One-file `docs/EXPORT_INTEGRATION.md` proposal. Retain stacked on #74; integration contract is not production integration. |
+
+- **Exact-head verification / CI evidence:**
+  - #3: PR body records `4b1c0ec3f2995c73d5d81661c7129cd7e3cd0222`, Actions [#43610203952](https://github.com/faiev/ArtClub/actions/runs/43610203952) success. However, comparing that recorded SHA to the current `agent/animation-export` ref shows 192 commits ahead; the PR body SHA is not the live branch tip. No current-tip CI can be claimed.
+  - #21: branch tip verified identical to `2232e2000486881809c389a4e0adc7506df8b9c0`; Actions [#43621833789](https://github.com/faiev/ArtClub/actions/runs/43621833789) success (248 Node tests; browser-e2e success).
+  - #22: PR body records `82e900d690b1b71a0bf3d1c9a3d5166aa6156ced`, Actions [#43619772314](https://github.com/faiev/ArtClub/actions/runs/43619772314) success. Current branch ref is 7 commits beyond that SHA; run is not exact-current-tip evidence.
+  - #55: branch tip verified identical to `64549511020b7cfe06864643b66e1a6ce37fa4cc`; Actions [#43621886981](https://github.com/faiev/ArtClub/actions/runs/43621886981) success (257 Node tests; browser-e2e success).
+  - #68: branch tip verified identical to `9093343a8a9ff9fa0debfc3e925a80d47e3c37ac`; Actions [#43633277451](https://github.com/faiev/ArtClub/actions/runs/43633277451) success (263 Node tests; browser-e2e success).
+  - #74: branch tip verified identical to `162d8e5425c2337e1a7be7ebe787c4995d1df05e`; Actions [#43631643050](https://github.com/faiev/ArtClub/actions/runs/43631643050) success (276 Node tests; browser-e2e success).
+  - #97: branch tip verified identical to `d1ebd690792d24cca7935391359d854628333a24`; no PR-triggered workflow run was returned for that SHA. Do not claim CI for #97; its parent #74 has the successful run above.
+- **Unique changes / dependency observations:** #3 is the root sprite-sheet implementation and includes the one-time three-line project workflow wiring. #21 adds the layout/metadata contract. #55 adds compatibility hardening and independent decoder coverage. #68 and #74 are sibling descendants of #55; #97 is a child of #74. #22 is separate from this chain. The current branch comparisons against `main` show #3/#22 are materially behind current main; the children remain internally clean relative to their declared parents, not necessarily mergeable to main.
+- **Workflow lock:** historical AC-027 workflow wiring is present in #3's root diff. The existing Agent 3 status records the lock as explicitly released after the AC-027 browser proof. This assignment explicitly forbids workflow edits; no workflow file was changed.
+- **Commands / tools executed:** fetched `coordination/BOARD.md`, `coordination/assignments/agent-3.md`, and this status file from `main`; searched current branch refs and open PRs; compared `main` and all six parent/child edges; compared recorded PR head SHAs against live branch refs; fetched workflow runs for the seven recorded heads. No shell/git commands were run and no tests were executed locally.
+- **Files changed by this assignment:** `coordination/status/agent-3.md` only. No branch/PR/ref mutation; no new branch or PR; no production/exporter/workflow implementation change.
+- **Blockers / uncertainty:** the GitHub branch-search/compare tools do not expose a direct current branch-tip SHA for every branch. For #3 and #22, PR-body recorded SHAs demonstrably do not equal current branch tips, so exact current-tip CI remains unverified. #97 has no workflow run surfaced. Current main has advanced 84 commits beyond the common merge base of the two root branches; do not rebase/retarget as part of this read-only task.
+- **Disposition recommendation:** retain #3 as a dependency pending coordinator review and a current-tip SHA/CI refresh; retain #21/#55/#68/#74/#97 as their dependency chain (with #68 and #74 as sibling descendants); retain #22 parked as an independent export-planning deliverable. No branch is recommended for deletion and no PR is recommended for closure based on this evidence alone.
+- **Next actions:** (1) Coordinator to obtain live exact branch-tip SHAs and refresh CI for #3 and #22; (2) coordinator to decide whether to sync the two root branches to current main, preserving ownership and revalidating the entire dependent chain; (3) keep #68/#74/#97 behind their parent acceptance gates and do not represent export integration as shipped.
