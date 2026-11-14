@@ -1,34 +1,56 @@
 # Agent 5 — UX / product
 
-## READY — AC-009: Turn the UX audit into an implementation-ready roadmap
+## ASSIGNED — AC-026: Keyboard shortcut and command-discoverability specification
 
-The UX audit is already on main as `UX_AUDIT.md`. You do not need to wait for a review PR to begin planning from it.
+Your AC-009 UX implementation roadmap was submitted in PR #9:
+https://github.com/faiev/ArtClub/pull/9
+
+The coordinator accepted the documentation deliverable for review. You are assigned the next independent planning task from AC-013.
 
 ### Branch
-Use `agent/ux-implementation-plan`, created from current main commit `fe66725f7d010beca7ca60f497778d419e753d7b`. Do not edit `UX_AUDIT.md`.
+
+Use the dedicated branch:
+`agent/keyboard-shortcuts-plan`
+
+It was created from current main commit:
+`57b4da3cf9be2a9a4b1c98fea942729e42314d54`
 
 ### Work
-Read the full `UX_AUDIT.md` and inspect source for the findings that matter most. Produce `UX_IMPLEMENTATION_PLAN.md`.
 
-For the five highest-impact problems:
-1. State the user problem and current reproduction/workflow.
-2. Separate source-verified facts from assumptions requiring browser validation.
-3. Define the exact target behavior and acceptance criteria.
-4. Identify impacted files/modules and dependencies.
-5. Specify unit/browser/accessibility tests.
-6. Estimate scope as S/M/L and recommend order.
-7. Call out conflicts with current agent file ownership.
+Inspect the existing keyboard handlers and create `KEYBOARD_SHORTCUTS_PLAN.md`.
 
-Include a short phase plan: correctness/safety first, workflow usability second, optional polish last. Avoid vague recommendations such as "make it cleaner".
+Define an implementation-ready shortcut and discoverability system, including:
 
-### Initial audit findings to investigate
-The audit's executive summary flags: Clear/import interacting with hidden or locked layers; lack of canvas pan and usable large-canvas navigation; DOM-per-pixel rendering scale; missing game-ready animation delivery; and discoverability/feedback gaps. Validate these against the actual current code before turning them into tasks.
+1. Current keyboard handlers and existing shortcut behavior.
+2. A proposed shortcut map for common tools, undo/redo, selection, layer/frame navigation and playback.
+3. Windows/Linux/macOS modifier policy.
+4. Browser and operating-system reserved shortcut conflicts; never silently intercept browser-reserved combinations.
+5. Focus rules for text inputs, dialogs, menus and editable controls.
+6. Conflict handling and how users can discover shortcuts through help or command reference UI.
+7. Keyboard-only interaction and accessibility expectations.
+8. An acceptance-test matrix covering each shortcut, platform modifier, focus context and conflict case.
+9. Phased implementation order and affected file ownership.
 
-### File scope
-Only `UX_IMPLEMENTATION_PLAN.md` and its tests/checklist if needed. Do not modify app source.
+### Scope and constraints
+
+- Documentation/specification only.
+- Allowed application file: `KEYBOARD_SHORTCUTS_PLAN.md`.
+- Do not modify `index.html`, application JavaScript, CSS or existing tests.
+- Do not implement a command palette or shortcut UI in this task.
+- Respect the coordinator's shared-file ownership rules.
+- Do not self-assign UI implementation.
 
 ### Acceptance criteria
-Five or more concrete implementation tasks, each with priority, acceptance criteria, dependencies, test plan, scope and file ownership. Mark any unverified behavior for live validation.
+
+- Every proposed shortcut has a defined action and context.
+- Platform modifier behavior is explicit.
+- Browser/OS reserved combinations are identified and left untouched.
+- Text-input and dialog focus conflicts are resolved.
+- The acceptance-test matrix is specific enough for a later implementation agent.
+- The plan identifies integration files and ownership conflicts.
 
 ### Handoff
-Commit to `agent/ux-implementation-plan`, open a draft PR and update only `coordination/status/agent-5.md`.
+
+Commit to `agent/keyboard-shortcuts-plan`, open a draft PR against main, and update only `coordination/status/agent-5.md`.
+
+Do not merge or mark the task ACCEPTED/DONE.
