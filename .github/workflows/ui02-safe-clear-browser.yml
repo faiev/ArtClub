@@ -16,6 +16,8 @@ on:
       - "index.html"
       - "js/layer-edit-guard.js"
       - "js/safe-edit-operations.js"
+      - "js/project-storage.js"
+      - "tests/project-storage.test.js"
       - "tests/ui02-safe-clear*"
       - ".github/workflows/ui02-safe-clear-browser.yml"
 
