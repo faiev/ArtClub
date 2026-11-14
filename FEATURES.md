@@ -56,7 +56,7 @@ This inventory was checked against the current `index.html` in the repository. I
 - Zoom controls, project naming and a responsive three-panel layout.
 - Static image import, reduced to the current canvas and mapped to the nearest palette color.
 - PNG export at native size and 16× scale, SVG export and JSON project export/import.
-- Browser-local autosave using local storage.
+- IndexedDB project library with autosave, one previous-save recovery copy per project and a localStorage fallback backup.
 
 ### Available now: local project library and agent access
 
@@ -65,7 +65,7 @@ This inventory was checked against the current `index.html` in the repository. I
 - Keep one previous saved version per project for recovery.
 - Restore the active project after a refresh; keep a local JSON backup where browser storage allows it.
 - Versioned browser Agent API and local stdio MCP bridge for AI agents.
-- Agent tools can inspect the visible composite, draw, fill, erase, batch edits, manage layers, undo/redo, save, import/export projects and return PNG previews.
+- Agent tools can inspect the visible composite, draw, fill, erase, batch edits, manage layers and rectangular selections, transform selected pixels, undo/redo, save, import/export projects and return PNG previews.
 
 ### Important gaps
 
@@ -74,16 +74,16 @@ This inventory was checked against the current `index.html` in the repository. I
 | Layers | Core editing implemented | Opacity controls, merge down and drag-to-reorder are still missing |
 | Frames and timeline | Not implemented | No animation workflow |
 | Playback and onion skin | Not implemented | Cannot create or inspect frame-to-frame motion |
-| Selection and transforms | Not implemented | Cannot move, copy, flip, rotate or scale a selected part |
+| Selection and transforms | Rectangular selection implemented | Move, copy, cut, paste, clear, flip H/V and rotate 90° work; lasso, invert, freeform and scaling remain missing |
 | Polygon and freeform shape tools | Not implemented | Other than line, rectangle and ellipse, freeform geometry is still missing |
-| Custom rectangular canvas | Not implemented | Users are restricted to a short list of square sizes |
+| Custom rectangular canvas | Implemented | 1–512 px per side; nine-point canvas anchoring and crop/expand without resampling remain missing |
 | Sprite-sheet export | Not implemented | No direct game-engine animation asset workflow |
 | Animated GIF export | Not implemented | No shareable animated output |
 | Durable project library | Implemented with IndexedDB | Local to this browser profile; export JSON for portability |
 | Crash recovery | Basic previous-save recovery implemented | One previous saved version is kept per project; this is not a multi-version history or cloud backup |
 | Advanced pixel-art tools | Not implemented | No symmetry, dithering, outline, shading or tile preview tools |
 
-**Key conclusion:** the app now has a reliable multi-layer static-sprite foundation and an AI-agent interface, but it is not yet a complete pixel-art studio. Animation, selection/transforms, layer opacity/merge, and game-ready sprite-sheet export remain major product gaps.
+**Key conclusion:** the app now has a reliable multi-layer static-sprite foundation, rectangular selection/transforms and an AI-agent interface, but it is not yet a complete pixel-art studio. Animation, advanced selection, layer opacity/merge and game-ready sprite-sheet export remain major product gaps.
 
 ### Implementation log
 
@@ -154,6 +154,22 @@ This inventory was checked against the current `index.html` in the repository. I
 
 **Still outstanding in F-105:** opacity slider/rendering, merge down, drag-to-reorder and layer groups.
  
+
+
+#### Step B2 — Rectangular selection and pixel transforms (implemented)
+
+- Added a rectangular marquee tool with a visible, non-exporting selection border and coordinate/size readout.
+- Added select all, deselect, copy, cut, paste and clear-selection operations.
+- Selected regions can be moved with the mouse; clipboard paste starts at the selection origin or canvas origin.
+- Drawing and flood fill are constrained to the active selection.
+- Added horizontal/vertical flips and 90° clockwise/counter-clockwise rotation of selected active-layer pixels. Quarter-turn rotation swaps the selection width and height and is rejected if the result would extend beyond the canvas.
+- Added keyboard shortcuts for selection, copy/cut/paste, select-all, deselect and delete.
+- Exposed selection creation, copy/cut/paste, move, clear, deselect and transforms through the browser Agent API and MCP tools. Selection changes participate in revision checks; selected pixels are edited in undoable transactions.
+
+**Verified:** editor interaction tests cover marquee bounds, clipboard operations, movement, selection-constrained drawing, flip/rotate pixel mappings, undo and edge rejection. Chromium E2E and MCP client E2E cover the agent selection and transform paths.
+
+**Still outstanding in F-104:** lasso/freeform and invert selection, scale/rotate by arbitrary angles, and floating selection previews.
+
 
 ---
 
@@ -421,7 +437,7 @@ Requirements:
 
 **Acceptance criteria:** an MCP-connected agent can inspect a canvas, draw a sprite in a batch, request a PNG preview, correct the result, undo/redo and save the editable project. Human mouse drawing and agent edits must share the same pixels and history.
 
-**Current implementation:** browser Agent API v1 and local Playwright-backed MCP bridge are implemented. The browser app currently exposes one editable layer and one frame; layer/frame-aware agent commands are deferred until those features exist in the UI.
+**Current implementation:** browser Agent API v1 and local Playwright-backed MCP bridge are implemented. Agents can inspect and edit the visible composite, manage layers, create/move/transform rectangular selections, and use the same undo/save flow as a human editor. The app currently exposes one animation frame; timeline and frame-aware operations are deferred.
 
 ---
 
