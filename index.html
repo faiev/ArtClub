@@ -291,7 +291,10 @@ input[type=color]{width:40px;height:36px}
 (function(){
 "use strict";
 const $ = id => document.getElementById(id);
-const STORAGE_KEY = "one-pixel-studio-project-v1";
+const ProjectModel = window.ArtClubProject;
+if (!ProjectModel) throw new Error("One Pixel Studio project model failed to load.");
+const STORAGE_KEY = "one-pixel-studio-project-v2";
+const LEGACY_STORAGE_KEY = "one-pixel-studio-project-v1";
 const DEFAULT_PALETTE = ["#172b3a","#344b55","#53717a","#87a7a0","#d9e2c6","#f4edda","#f5c66d","#ef945e","#e96f55","#b85e62","#856f91","#5e8da8"];
 const PALETTE_SETS = {
   studio: DEFAULT_PALETTE,
@@ -639,7 +642,7 @@ $("imageInput").addEventListener("change",e=>{
 });
 $("demoBtn").addEventListener("click",()=>{
   if(!confirm("Restore the starter artwork? Your current canvas will be replaced."))return;
-  remember();w=24;h=24;palette=DEFAULT_PALETTE.slice();selected=8;pixels=demo();$("gridSize").value="24";renderAll();scheduleSave();toast("Starter artwork restored.");
+  remember();w=24;h=24;palette=DEFAULT_PALETTE.slice();selected=8;pixels=demo();projectName="Untitled artwork";$("projectName").value=projectName;$("gridSize").value="24";projectDoc=ProjectModel.createProject({width:w,height:h,name:projectName,palette:palette,selectedColorIndex:selected,pixels:pixels});renderAll();scheduleSave();toast("Starter artwork restored.");
 });
 document.addEventListener("keydown",e=>{
   const tag=document.activeElement&&document.activeElement.tagName;
@@ -658,7 +661,9 @@ document.addEventListener("keydown",e=>{
 function init(){
   let restored=false;
   try{
-    const raw=localStorage.getItem(STORAGE_KEY);
+    const currentSave=localStorage.getItem(STORAGE_KEY);
+    const legacySave=currentSave?null:localStorage.getItem(LEGACY_STORAGE_KEY);
+    const raw=currentSave||legacySave;
     if(raw){
       // This also migrates the previous flat-canvas save into a v2 document.
       projectDoc=ProjectModel.deserializeProject(raw);
@@ -682,7 +687,7 @@ function init(){
   }
   $("projectName").value=projectName;
   renderAll();syncColorUI();
-  if(restored)$("saveState").textContent="PROJECT RESTORED · V2";
+  if(restored){$("saveState").textContent="PROJECT RESTORED · V2";if(!localStorage.getItem(STORAGE_KEY))scheduleSave();}
   else if($("saveState").textContent!=="PROJECT RECOVERY NEEDED")$("saveState").textContent="NEW PROJECT · READY";
 }
 init();
