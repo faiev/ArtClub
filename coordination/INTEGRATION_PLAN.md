@@ -199,3 +199,22 @@ The coordinator has accepted the AC-091 visual direction for production work und
 - **Status:** draft, not merged. Visual review at 1440×900 and 1280×800, Agent 1 task-based QA review, Agent 2 canvas sizing review and Agent 5 design review remain requested. Do not claim publication until merged and the Pages deployment is inspected.
 
 The PR branch must be synchronized with coordination-only main advances before final merge review; re-run CI on the resulting exact head. UI-02 safety wiring, renderer replacement, the synthetic cel matrix and new export UI are explicitly outside this first shell slice.
+
+
+## UI-01 live coordinator update — 2026-11-14 (exact-head revalidation)
+
+- [PR #84](https://github.com/faiev/ArtClub/pull/84) is now **ready for review** (not merged). Current tested branch head: `129d168bcbfb73653612de515706574533766426`; base main: `e5a1cc9223b463e284847791e59622dfc59290c4`; diff: 7 commits ahead / 0 behind, two changed files only.
+- Exact-head Actions run [#43622060710](https://github.com/faiev/ArtClub/actions/runs/43622060710) passed both jobs: Node/editor tests and real Chromium E2E, including GIF ImageDecoder and MCP client integration.
+- The initial drawing regression on the first candidate was corrected by constraining `#pixelGrid` to the available canvas viewport while preserving its inline project aspect ratio. The earlier exact-head run #43621240342 also passed; run #43622060710 is the latest validation after the branch sync.
+- Review assignments appended to `coordination/assignments/agent-1.md`, `agent-2.md` and `agent-5.md`: Agent 1 must execute/report the 12-flow QA matrix; Agent 2 must review viewport/pointer sizing and responsive behavior; Agent 5 must review visual-system fidelity and reconcile its own AC-091 prototype handoff. Those reviews are requested, not yet received.
+- **Visual limitation:** Actions run #43622060710 produced no screenshot artifacts. Automated functional E2E is green, but independent screenshots at 1440×900 and 1280×800 have not yet been inspected. The PR is open for specialist review and is not approved for merge until the visual/QA gate is complete.
+- Production `index.html` on main remains unchanged at blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no published UI change is claimed. After review and merge, GitHub Pages deployment and the live URL must be inspected.
+
+This update supersedes the earlier UI-01 status that referenced head `29e348...` / run #43620892261 and the draft state. Do not treat prior runs as validation of a newer head.
+
+## UI-01 exact-head update — 2026-11-14
+
+- The review branch was synchronized non-force with the latest assignment/board/plan coordination commits. Current tested head: `15afac17d1598b46479877266fbf65f8351d35af`; current main base at this sync: `1116ddaef1670208ce0b1000acce389dfc43d116`; comparison: 8 commits ahead / 0 behind; changed-file scope remains `index.html` plus `tests/ui-workstation-shell.test.js`.
+- Exact-head workflow [#43622262911](https://github.com/faiev/ArtClub/actions/runs/43622262911) completed successfully. Node/editor and Chromium jobs passed; the browser job's real editor E2E, animated GIF decoder and MCP client steps all passed.
+- PR #84 is ready for review, not merged. Agent 1/2/5 review tasks are now written to their assignment files. Their independent review findings have not yet arrived, and no visual screenshot artifact was produced by Actions.
+- Current production `index.html` on main is still unchanged. Do not claim Pages publication until a later merge and deployment inspection.
