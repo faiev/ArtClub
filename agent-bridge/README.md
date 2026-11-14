@@ -104,11 +104,13 @@ Transparent cells are returned as `null`. A color is a six-digit `#RRGGBB` value
 
 Every MCP tool that changes the document requires `expected_revision`. Call `artclub_get_status` immediately before editing and pass the returned `revision` with the write. Read status again after each successful write; the revision changes as the document changes.
 
-The bridge serializes requests from its MCP connection and checks the revision in the browser immediately before the operation. When two calls target the same revision, only the first can proceed; later stale calls return an error asking the agent to read status again. The bridge never silently retries a stale edit.
+The bridge serializes requests within one MCP server process and checks the revision in the browser immediately before the operation. When two clients send writes through the same server against one revision, only the first can proceed; later stale calls return an error asking the client to read status again. The bridge never silently retries a stale edit. This is a single-writer model for one editor session, not a distributed lock.
 
-The bridge owns one persistent Chromium profile. Do not start two bridge processes with the same `ARTCLUB_PROFILE_DIR`; use one bridge process for one editor session. Separate profile directories are separate local project libraries, not shared concurrent workspaces.
+The bridge owns one persistent Chromium profile. Do not start two bridge processes with the same `ARTCLUB_PROFILE_DIR`; use one bridge process for one editor session. Separate profile directories are separate local project libraries, not shared concurrent workspaces. Multiple independent bridge processes do not coordinate their write queues.
 
-If the editor tab is closed, crashes or navigates away, the next tool call attempts to reopen the editor automatically. If the browser disconnects during an operation, its outcome may be uncertain: call `artclub_get_status` before retrying so an already-completed edit is not duplicated.
+If the editor tab is closed, crashes or navigates away, the next tool call attempts to reopen the editor automatically. If the browser disconnects during an operation, its outcome may be uncertain: call `artclub_get_status` before retrying so an already-completed edit is not duplicated. The bridge currently has no hard per-operation timeout or cancellation primitive for a hanging `page.evaluate`; a stuck evaluation can hold the serialized queue. Restart the bridge only after accounting for a possibly completed in-flight write.
+
+Tool-handler failures include text content and structured error details: `{ ok: false, error: { tool, name, message } }`. Invalid arguments rejected by the MCP SDK's input-schema validation may use the SDK's own error response instead.
 
 Read-only array results are returned in object envelopes for structured MCP clients: `{ palette }`, `{ layers }` and `{ projects }`. Project JSON export returns `{ project_json }`; PNG export includes MIME type and dimensions in structured content alongside the image block.
 
@@ -129,6 +131,10 @@ Example batch:
 ```
 
 For safe collaborative work, call `artclub_get_status` before editing and pass its `revision` as `expected_revision`. The `42` in the sample is illustrative; always use the current revision returned by your own status read. If the human or another operation changed the canvas since that read, Art Club rejects the stale batch instead of silently overwriting the newer edit. A batch is one undoable transaction.
+
+## Future export integration
+
+Sprite-sheet and GIF encoders should remain standalone JavaScript modules that consume the versioned project data. Add browser Agent API methods that call those shared encoders, then expose thin MCP wrappers that return their generated output. Do not duplicate encoding or frame-processing logic inside `server.mjs`.
 
 ## Agent workflow recommendation
 
