@@ -174,7 +174,27 @@ const frames = studio.list_frames();
 
 Frame methods: `list_frames`, `add_frame`, `duplicate_frame`, `select_frame`, `delete_frame`, `move_frame`, `set_frame_duration` and `rename_frame`. Durations are integer milliseconds from 10 to 60,000. A project must retain at least one frame. Frame switching and frame edits participate in undo/redo, autosave and revision protection.
 
-The current timeline is for editing and organization. Real-time playback, onion skin, frame thumbnails and sprite-sheet/GIF export are not implemented yet.
+## Playback preview and onion skin
+
+Agents can preview a multi-frame sequence without changing the selected editing frame.
+
+```js
+await studio.set_playback_mode({ mode: "pingpong" }); // "loop", "once" or "pingpong"
+await studio.set_onion_skin({ enabled: true });
+
+const playing = await studio.play();
+console.log(playing.playback);
+// { playing: true, previewing: true, preview_frame_id, mode, onion_skin }
+
+await studio.pause();          // keep the preview frame visible
+await studio.stop_playback();  // return to the selected editing frame
+```
+
+The editor also exposes MCP tools `artclub_play_animation`, `artclub_pause_animation`, `artclub_stop_animation_preview`, `artclub_set_playback_mode` and `artclub_set_onion_skin`.
+
+While playback is running, drawing and structural edit commands are rejected. Once paused, an edit safely returns to the selected editing frame first. `get_status`, `get_canvas` and `get_pixel` continue to report the selected editing frame, not a transient preview frame. Onion-skin overlays are tinted visual guides only; they never change cel pixels or exports.
+
+**Still outstanding:** adjustable onion-skin opacity/range, frame thumbnails, sprite-sheet export, PNG sequences and animated GIF export.
 
 ## Batches and transactions
 
