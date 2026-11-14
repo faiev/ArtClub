@@ -1,61 +1,56 @@
-# Status — Agent 6
+# Status — Agent 6: Editing safety
 
-- **Task:** AC-015 — Layer editing safety guard
-- **Status:** REVIEW
-- **Branch:** `agent/layer-safety`
-- **Latest application base merged:** `56932bb16601ab5f5fd22c1d37bb877b8c06ab3f`
-- **Feature head tested:** `adb54668ebd4507e55dc6144b73a91b85f20afbe`
-- **Merge commit:** `adb54668ebd4507e55dc6144b73a91b85f20afbe` (two parents; latest main was second parent)
-- **PR:** [#14 — AC-015: Add isolated layer-edit safety guard](https://github.com/faiev/ArtClub/pull/14) — open, ready for review
-- **Diff against merged base:** 3 assigned application files only; 5 commits ahead, 0 behind at final synchronization.
-- **Subsequent main activity:** main advanced after synchronization through worker status-only updates; no application/workflow files changed in those commits. Current observed main at status write: `92a9b7e5646e6ec791e8cea7879da549a6558ccf`.
+- **Overall state:** IN_PROGRESS
+- **Current phase:** AC-092 — seeded adversarial/property-style safe-edit conformance
+- **Current branch:** `agent/safe-edit-conformance`
+- **Current head:** `166f77ee8ff31d40a39b6423b2ef785f77338bef`
+- **Stacked parent:** AC-060 / `agent/safe-edit-integration-contract` at `2e7a19ce843a3c659206c1bcb82825ded08a606a`
+- **PR:** [#62](https://github.com/faiev/ArtClub/pull/62) — draft
+- **Coordination source:** `main` at `05bfd94345b603b439f026d8e605f7874cbfb4fc`
+- **Assignment confirmation:** latest Agent 6 assignment on this main head includes AC-092.
 
-## Coordinator-requested correction
+## Delivered phases and evidence
 
-- Replaced sparse-skipping `.some()` cel validation with indexed validation over every expected pixel slot.
-- Requires every expected index to be an own/present array entry.
-- Each value must be explicit `null` or a valid `#RRGGBB` string.
-- Sparse holes and explicit `undefined` return `CEL_INVALID`.
-- Denial path is non-mutating.
-- Added regression tests for sparse hole, explicit undefined, and valid null/HEX values. Both rejection tests assert that the project buffer and own-slot shape remain unchanged.
+| Phase | PR | Deliverable | Last verified CI evidence |
+|---|---|---|---|
+| AC-015 | [#14](https://github.com/faiev/ArtClub/pull/14) | Sparse-safe layer/cel edit guard | 84 Node tests; Chromium editor E2E and MCP passed on a preceding synchronized head |
+| AC-055 | [#23](https://github.com/faiev/ArtClub/pull/23) | Opacity, metadata, selection and revision checks | 96 Node tests; Chromium editor E2E and MCP passed on a preceding synchronized head |
+| AC-056 | [#26](https://github.com/faiev/ArtClub/pull/26) | Immutable clear/patch/replace transaction helpers | 109 Node tests; Chromium editor E2E and MCP passed on a preceding synchronized head |
+| AC-057 | [#29](https://github.com/faiev/ArtClub/pull/29) | Read-only editor mutation-path audit | Documentation-only; no application tests claimed |
+| AC-058 | [#40](https://github.com/faiev/ArtClub/pull/40) | Dedicated safety browser denial harness | 113 Node tests; standard Chromium editor E2E and MCP passed. **Dedicated harness page itself has not yet been run** |
+| AC-059 | [#48](https://github.com/faiev/ArtClub/pull/48) | Project/image import staging | 127 Node tests; Chromium editor E2E and MCP passed on a preceding synchronized head |
+| AC-060 | [#49](https://github.com/faiev/ArtClub/pull/49) | Safe-edit integration/ownership contract | Documentation-only; no application integration claimed |
 
-## Files changed
+The dependent branches were synchronized with the updated parent chain using non-force, two-parent merge commits. These historical CI counts apply to the exact previous heads tested; rerun after any subsequent branch/base updates before merge.
 
-- `js/layer-edit-guard.js`
-- `tests/layer-edit-guard.test.js`
-- `docs/layer-edit-safety.md`
+## AC-092 implementation in progress
 
-No other files changed. No UI/API/MCP integration was performed.
+Files added:
+- `tests/safe-edit-conformance.test.js`
+- `docs/SAFE_EDIT_CONFORMANCE.md`
 
-## Local tests
+The suite uses five fixed 32-bit seeds, bounded 1–8 px canvases, 2–3 layers and frames, and 16 iterations per seeded property. It covers guard accept/deny behavior, structural/pixel/raster immutability, detached transaction outputs, preservation of unrelated cels, deterministic outputs, stage-import → guard → edit sequences, selection clear → patch, replacement → stale follow-up, image RGBA staging and invalid import candidates.
 
-Runtime: Node.js 22.16.0.
+`SAFE_EDIT_SEED=<unsigned-32-bit>` selects a reproducible seed. Assertion messages include the seed, iteration, operation and a compact minimal-case descriptor. No dependency was added.
 
-- `node --check /tmp/artclub-agent6/js/layer-edit-guard.js` — passed.
-- `node --check /tmp/artclub-agent6/tests/layer-edit-guard.test.js` — passed.
-- `node --test /tmp/artclub-agent6/tests/layer-edit-guard.test.js` — **13 passed, 0 failed**.
+## Current CI status
 
-## GitHub Actions revalidation
+- Latest run: [395](https://github.com/faiev/ArtClub/actions/runs/43612771352) — completed / failure on head `166f77ee8ff31d40a39b6423b2ef785f77338bef`.
+- Local execution of AC-092 focused tests is still to be recorded; do not infer a pass until the Node command result is available.
 
-Run #149 — [workflow run](https://github.com/faiev/ArtClub/actions/runs/43606501403), exact feature head `adb54668ebd4507e55dc6144b73a91b85f20afbe`.
+## Known blockers / risks
 
-- Node project job: `node --test tests/*.test.js` — **71 passed, 0 failed**.
-- The same Node job completed `node --check agent-bridge/server.mjs` successfully.
-- Browser setup: `npm install --ignore-scripts` — passed.
-- Chromium setup: `npx playwright install --with-deps chromium` — passed.
-- Real browser editor E2E: `npm run test:e2e` — passed. Log confirms mouse drawing, undo/redo, agent batch, layers, custom canvas, animation playback, onion skin, PNG, IndexedDB library and reload recovery.
-- MCP client integration: `npm run test:mcp` — passed. Log confirms drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
-- Both workflow jobs concluded `success`.
+- AC-058's custom `node tests/layer-safety.browser.mjs` page is not invoked by the current shared workflow. The local Chromium executable hung even on a minimal headless page. The standard Chromium editor E2E passing is not evidence that this dedicated harness ran.
+- Do not edit `.github/workflows/project-tests.yml`; Agent 3 owns that workflow lock during exporter verification.
+- No shared UI/API/storage integration is authorized. `index.html` remains coordinator-controlled; Agent 4 owns Agent API/bridge files.
+- AC-015–060 remain isolated modules/contracts; toolbar Clear and image import are not yet wired to them in the live editor.
 
-## Remaining risks / limitations
+## Ranked next actions
 
-- This remains an isolated guard library. It is not wired into the live editor, browser Agent API or MCP bridge.
-- Toolbar Clear and image import remain unprotected until the separately assigned integration work is authorized and its shared-file locks are granted.
-- Local focused tests ran on Node 22.16.0; GitHub Actions ran on Node 24.
-- No application integration or user-facing bug fix is claimed.
-
-## Handoff
-
-Coordinator: review PR #14 and accept or return the corrected AC-015 deliverable. Agent 6 does not merge, self-accept or mark the task DONE.
+1. Run `node --check tests/safe-edit-conformance.test.js` and `node --test tests/safe-edit-conformance.test.js`; fix any property failures and capture exact totals.
+2. Run the same focused suite with a selected `SAFE_EDIT_SEED` to verify deterministic replay.
+3. Verify full PR CI (Node, Chromium and MCP) on the exact AC-092 head; update the draft PR with evidence and mark reviewable only after results pass.
+4. Complete AC-058's dedicated browser-page execution when a working Chromium runtime or authorized workflow step is available; do not claim it from the standard editor E2E.
+5. Keep all integration work queued until the coordinator grants the relevant shared-file locks.
 
 - **Last updated:** 2026-11-14.
