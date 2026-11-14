@@ -138,6 +138,18 @@ test("rejects explicit undefined cel pixels without mutating the project", () =>
   assert.deepEqual(Object.keys(project.cels[0].pixels), keysBefore);
 });
 
+test("rejects malformed HEX pixels without mutating the project", () => {
+  const project = makeProject();
+  project.cels[0].pixels[0] = "#12345g";
+  const before = JSON.stringify(project);
+
+  const result = Guard.resolveEditableTarget(project);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, Guard.REASONS.CEL_INVALID);
+  assert.equal(JSON.stringify(project), before);
+});
+
 test("accepts explicit null and valid HEX cel pixel values", () => {
   const project = makeProject();
   project.cels[0].pixels = [null, "#123456", null, "#abcdef", null, "#000000"];

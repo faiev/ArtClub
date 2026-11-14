@@ -109,6 +109,6 @@ Run the focused suite with:
 node --test tests/layer-edit-guard.test.js
 ```
 
-The tests cover successful active targets, explicit active IDs, missing layers, hidden layers, locked layers, inactive layer IDs, missing cels, malformed documents/buffers, sparse pixel holes, explicit `undefined`, valid `null`/HEX pixels, duplicate cels and structured thrown errors.
+The tests cover successful active targets, explicit active IDs, missing layers, hidden layers, locked layers, inactive layer IDs, missing cels, malformed documents/buffers, sparse pixel holes, explicit `undefined`, malformed HEX colors, valid `null`/HEX pixels, non-mutation on denial, duplicate cels and structured thrown errors.
 
 This is an isolated contract library, not a live editor fix. No browser verification or integration behavior is claimed in this deliverable.
