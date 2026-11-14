@@ -132,7 +132,7 @@ The following is the recommended order for production UI slices. It is not an as
 
 ### Phase A — Safety, focus and command foundation
 
-<badge color="danger">P0 · Correctness and data safety</badge>
+**P0 · Correctness and data safety**
 
 **Slice A1 — Keyboard/focus routing and accessible state**
 
@@ -163,7 +163,7 @@ The following is the recommended order for production UI slices. It is not an as
 
 ### Phase B — Editing foundation and workspace
 
-<badge color="info">P1 · Core editing usability</badge>
+**P1 · Core editing usability**
 
 **Slice B1 — Canvas navigation and responsive workspace**
 
@@ -194,7 +194,7 @@ The following is the recommended order for production UI slices. It is not an as
 
 ### Phase C — Palette and delivery workflows
 
-<badge color="info">P1 · Production workflows</badge>
+**P1 · Production workflows**
 
 **Slice C1 — Palette import, editing and export**
 
@@ -222,7 +222,7 @@ The following is the recommended order for production UI slices. It is not an as
 
 ### Phase D — Optional creative tools
 
-<badge color="secondary">P2 · Extend after core workflows</badge>
+**P2 · Extend after core workflows**
 
 **Slice D1 — Seamless tile workflows**
 
