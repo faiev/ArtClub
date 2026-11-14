@@ -15,7 +15,7 @@
 
 **The team is in product-delivery mode. Stop creating isolated modules, speculative tooling, extra prototypes, benchmark-only work, and documentation-only PRs unless the Coordinator explicitly requests them for the current release.**
 
-**Inventory snapshot (2026-11-15):** 101 branches (100 on the first page plus `main` on page 2) and 71 open PRs. This is a cleanup backlog, not 71 active tasks. Existing branch/PR ownership must be classified before closure or deletion.
+**Live branch snapshot (2026-11-15 02:38 IST):** 102 branches (102 total across two GitHub API pages) and 72 open PRs. The branch set is not 102 active tasks. 29 non-main branch refs are not the head of any currently open PR and require individual reachability/dependency review before disposition. 3 refs are the only permitted active lanes: `coordinator/ui-02a-safe-clear` (production integration), `agent/qa-ui02a-exact-head-review` (QA), `agent/layer-safety-browser` (safety review). Current main: `90488f58392582420ba980860d57a8403c25ee04`.
 
 
 ## One active release lane
@@ -491,3 +491,12 @@ Main release commit: `e22ddb35ebf802b3b719e74a7329effceab28747`. Open PR count b
 - **Visual limitation:** public URL fetching is blocked in the coordinator session. The Pages deployment is verified against the merge commit, but no direct rendered-page screenshot inspection is claimed. Independent visual review at 1440×900 and 1280×800 remains post-release QA.
 - Agent 1's 12-flow task matrix, Agent 2's pointer/responsive review and Agent 5's production visual review were requested on PR #84 but had not appeared in their status files at the time of merge. Follow up by resuming those agent chats; log their manual findings and file narrowly scoped fixes if needed.
 - Current PR inventory at the last check: **62 open**. This release is the first production-visible UI shell milestone; later UI-02 safety/palette/export integrations remain separate work.
+
+## Branch cleanup execution — live snapshot 2026-11-15 02:38 IST
+
+- Freeze remains in force: no new feature branches or PRs for paused workstreams; all new UI-02 work stays on the existing coordinator integration branch unless the coordinator explicitly authorizes one of the two specialist lanes.
+- Open PRs: 72; branch refs: 102; non-main refs not currently used as an open PR head: 29. Open PR branches may be stacked, so an open PR's head is not automatically mergeable or disposable.
+- Keep the three active refs listed in the live snapshot above. Preserve all other refs pending an evidence-based classification of unique commits, PR base dependencies, merge reachability, and any external consumers.
+- Cleanup sequence: (1) map every ref to open/closed/merged PRs and stacked parents; (2) compare each ref tip to main and identify unique commits; (3) mark merged/redundant refs as deletion candidates only when no dependent PR or unique unmerged work remains; (4) delete candidates in small batches and verify the branch count after each batch.
+- **Execution limitation:** the connected GitHub integration exposes branch listing/search and ref updates, but no branch-delete operation; its generic repository fetch is GET-only. Therefore no branch was deleted or force-moved in this session. Do not simulate deletion by moving refs or closing PRs. Use an authorized GitHub branch-delete action/credential for the verified candidate list.
+- Next cleanup target: classify the 29 refs with no open PR head; do not infer that they are stale merely from that fact.
