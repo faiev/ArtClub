@@ -47,3 +47,31 @@ test("browser harness page contains every required denial and saved-state assert
     assert.ok(html.includes(expected), "missing browser assertion: " + expected);
   }
 });
+
+test("Chromium candidate discovery prioritizes explicit and Playwright paths without duplicates", async () => {
+  const { getChromiumCandidates } = await import("./layer-safety.browser.mjs");
+  assert.deepEqual(
+    getChromiumCandidates("/opt/custom/chromium", "/home/runner/.cache/ms-playwright/chromium/chrome"),
+    [
+      "/opt/custom/chromium",
+      "/home/runner/.cache/ms-playwright/chromium/chrome",
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable"
+    ]
+  );
+});
+
+test("Chromium candidate discovery tolerates missing optional Playwright and removes duplicates", async () => {
+  const { getChromiumCandidates } = await import("./layer-safety.browser.mjs");
+  assert.deepEqual(
+    getChromiumCandidates("/usr/bin/chromium", null),
+    [
+      "/usr/bin/chromium",
+      "/usr/bin/chromium-browser",
+      "/usr/bin/google-chrome",
+      "/usr/bin/google-chrome-stable"
+    ]
+  );
+});
