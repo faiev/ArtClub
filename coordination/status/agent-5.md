@@ -2,18 +2,31 @@
 
 ## Active workstream — UX / accessibility / interaction design
 
-### Phase 4 — AC-052: Accessibility and interaction audit
+### Phase 5 — AC-053: Static interaction prototypes and design patterns
 
 - **Status:** IN_PROGRESS
-- **Branch:** `agent/accessibility-audit` (create from latest main after this status commit)
-- **Allowed deliverable:** `docs/ux/ACCESSIBILITY_AUDIT.md`
-- **Scope:** Documentation/audit only. Do not edit `index.html`, application JS/CSS, existing tests, bridge, export modules or workflow. No UI lock is granted.
-- **AC-051 completed:** `docs/ux/PALETTE_EXPORT_SPEC.md` (585 additions) submitted in [PR #35](https://github.com/faiev/ArtClub/pull/35), open/draft/unmerged; PR file list contains only that document. Branch `agent/palette-export-spec`; head `a8fa0234c2c64299c2f62a6da491c0344166a3a3`; base main `11374002871c46ea9b96f6b030807a0a6b7b17db`.
-- **AC-051 validation:** 16-section document fetched and checked against palette parser, current palette UI, GIF exporter, sprite-sheet module and export planner contracts. No app tests run for docs-only work. No palette/export integration claimed.
-- **Next queue:** (1) complete AC-052 audit; (2) AC-053 static interaction prototypes; (3) AC-054 integrated UX implementation sequence.
-- **Tests:** AC-052 uses source verification, static structure/contrast review and documented manual checks; no claim of full WCAG conformance.
-- **Blockers:** None for audit. Production UI changes remain coordinator-controlled.
+- **Branch:** `agent/ux-prototypes` (create from latest main after this status commit)
+- **Allowed deliverables:** self-contained static HTML/CSS prototypes under `docs/ux/prototypes/` for shortcut reference, canvas workspace navigation, layer/timeline panel, and palette import/export dialogs.
+- **Scope:** Static prototypes only. Do not edit production `index.html`, app JS/CSS, existing tests, bridge, export modules or workflow. Clearly label all prototypes as non-production and not wired into the editor.
+- **AC-052 completed:** `docs/ux/ACCESSIBILITY_AUDIT.md` (609 lines, 14 findings) submitted in [PR #41](https://github.com/faiev/ArtClub/pull/41), open/draft/unmerged; only the audit document is changed. Branch `agent/accessibility-audit`; head `5f66531de9ac55b62b808742a267a932527504f5`; synchronized main base `b825ae16b79e90d3bc5fd27fe865ec8da163ee7a`; 4 ahead/0 behind at submission.
+- **AC-052 validation:** Fetched committed audit; verified 14 IDs, severity summary, source/reproduction/target/validation structure, remediation order and manual/automated checklists. Preliminary contrast calculations include alpha-composited focus color; no live browser/SR or formal WCAG audit was run, and no conformance claim is made.
+- **Next phase:** AC-054 integrated UX implementation sequence after the four static prototypes are submitted.
+- **Tests:** AC-053 is static HTML/CSS only. Validate each prototype is self-contained, uses no external assets/services, includes non-production labels, and has keyboard/focus/semantics appropriate to the prototype.
+- **Blockers:** None. No production UI lock is granted.
 - **Last updated:** 2026-11-14.
+
+### Submitted phase — AC-052: Accessibility and interaction audit
+
+- **Status:** REVIEW
+- **PR:** [#41 — AC-052: Audit accessibility and editor interactions](https://github.com/faiev/ArtClub/pull/41) (open, draft; mergeability pending current GitHub calculation)
+- **Branch:** `agent/accessibility-audit`
+- **Synchronized main base:** `b825ae16b79e90d3bc5fd27fe865ec8da163ee7a`
+- **Feature head:** `5f66531de9ac55b62b808742a267a932527504f5`
+- **Deliverable:** `docs/ux/ACCESSIBILITY_AUDIT.md` (609 lines; 14 findings).
+- **Key findings:** Global shortcuts intercept native input Undo/browser Save; focus indicators and some small labels have low calculated contrast; canvas grid has flat gridcell structure and can create 262,144 cell nodes; active/selected states and glyph-only controls need accessible semantics; palette removal is right-click-only; save state lacks a live region; fallback dialogs lack explicit focus management; reduced-motion CSS does not govern JS playback; zoom status and form errors need stronger accessible feedback.
+- **Positive foundations:** HTML language, main landmark, native controls/labels, grid coordinate labels and arrow/activate behavior, labelled native dialogs, toast status region, reduced-motion CSS for transitions.
+- **Validation:** Fetched document from branch, verified the audit structure and 14 findings; static color pair calculations recorded; no browser, keyboard-only or screen-reader session, no formal WCAG review and no application tests.
+- **Scope boundary:** Audit only; no production code/tests/bridge/workflow changes.
 
 ### Submitted phase — AC-051: Palette and export user journeys
 
