@@ -18,7 +18,7 @@ test("editor inline JavaScript parses without syntax errors", () => {
 test("brush pointer handler has a defined undo snapshot function", () => {
   assert.match(
     html,
-    /function remember\(\)\s*\{\s*undoStack\.push\(snapshot\(\)\);/
+    /function remember\(\)\s*\{\s*(?:if\(isPlaying\|\|playbackFrameId\)resetPlayback\(\);\s*)?undoStack\.push\(snapshot\(\)\);/
   );
   assert.match(
     html,
