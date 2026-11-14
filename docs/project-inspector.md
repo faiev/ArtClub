@@ -30,6 +30,14 @@ Print a machine-readable comparison:
 
     node tools/project-inspector.mjs --compare --json before.json after.json
 
+Run supplemental deep diagnostics and risk scoring:
+
+    node tools/project-inspector.mjs --diagnostics project.json
+
+Print machine-readable deep diagnostics:
+
+    node tools/project-inspector.mjs --diagnostics --json project.json
+
 Show command help:
 
     node tools/project-inspector.mjs --help
@@ -100,6 +108,44 @@ Pixel arrays are compared by linear row-major index. A present transparent slot 
 Canvas dimensions may change while a cel remains matched by IDs. The comparison reports canvas-field changes and compares the overlapping/missing row-major pixel indexes; it does not attempt to resample or align artwork.
 
 A valid identical comparison returns exit code 0 and `identical: true`. Differences are informational and also return exit code 0. Invalid inputs or comparison failures return a nonzero exit code and a stable error code. The human report presents the same major counts without printing large buffers.
+
+## Deep diagnostics and risk scoring
+
+Run `--diagnostics` for supplemental structural and risk checks on one project file. The mode parses the source once, runs the existing project model's validation, and separately emits additional findings. It never repairs, rewrites, fills, removes or normalizes source data.
+
+The JSON output keeps authoritative model validation separate:
+
+- `ok`: whether the input could be read and parsed and a diagnostic report was produced.
+- `schema.checked`: whether the project model was able to evaluate the document.
+- `schema.valid`: the result from `Project.validateProject()` (or the model's legacy deserializer followed by validation); null when reading/parsing prevented validation.
+- `schema.errors`: exact model validation messages. These remain the authority for whether the project conforms to the current project format.
+- `diagnostics`: supplemental checks with stable `code`, `severity`, JSON-style `path`, `message` and `source: "supplemental"`.
+- `summary`: total diagnostics by severity.
+- `risk`: a 0–100 score and level (`low`, `moderate`, `high` or `critical`).
+
+Current supplemental checks include:
+
+| Diagnostic code | What it detects |
+|---|---|
+| `UNSUPPORTED_FORMAT`, `UNSUPPORTED_VERSION` | Format/version values not supported by the current project model |
+| `CANVAS_WIDTH_INVALID`, `CANVAS_HEIGHT_INVALID` | Non-integer, zero, negative or over-limit dimensions |
+| `LAYER_ID_DUPLICATE`, `FRAME_ID_DUPLICATE` | Duplicate identifiers within their respective collections |
+| `CEL_LAYER_REFERENCE_INVALID`, `CEL_FRAME_REFERENCE_INVALID` | Cel references to a missing layer or frame |
+| `CEL_PAIR_DUPLICATE` | Multiple cels for the same layer/frame pair |
+| `ACTIVE_LAYER_MISSING`, `ACTIVE_FRAME_MISSING` | Active identifiers that do not resolve to a current layer/frame |
+| `PIXEL_ARRAY_NOT_ARRAY`, `PIXEL_ARRAY_SHORT`, `PIXEL_ARRAY_LONG`, `PIXEL_ARRAY_HOLE` | Missing, malformed, truncated or overlong cel pixel arrays |
+| `PIXEL_COLOR_INVALID` | Pixel values that are neither null nor six-digit HEX |
+| `DOCUMENT_BYTE_LIMIT`, `DOCUMENT_PIXEL_BUDGET_EXCEEDED`, `DOCUMENT_EXPECTED_PIXEL_BUDGET_EXCEEDED` | Input byte size or actual/expected pixel-slot budgets beyond inspector/model limits |
+| `PALETTE_COLOR_DUPLICATE`, `PALETTE_ENTRY_UNUSED` | Duplicate case-insensitive HEX entries or palette entries not found in cel pixels |
+| `PIXEL_COLOR_NOT_IN_PALETTE` | Valid HEX pixel colors absent from the declared palette |
+
+An explicit JSON `null` pixel is transparent and is not a sparse-array hole. JSON text cannot directly encode JavaScript array holes; a shortened pixel array is reported as `PIXEL_ARRAY_SHORT`, while a hole check remains in place for any sparse array representation encountered by the diagnostic code. No missing values are filled.
+
+Severity contributes to the risk score using fixed weights: critical 60, high 25, medium 10, low 3, info 0. Scores are capped at 100. A single critical diagnostic therefore raises the risk level to critical. Palette anomalies are warnings and do not, by themselves, make a model-valid document schema-invalid.
+
+The command exits nonzero when the input cannot be read/parsed or when `schema.valid` is false. Supplemental warnings do not override the model's schema result. A project can therefore be model-valid while still carrying medium/low risk findings. Conversely, an invalid project stays schema-invalid even if a supplemental check does not identify the same issue.
+
+An oversized file is rejected before parsing and returns a structured report with `schema.checked: false`, `schema.valid: null`, and a `DOCUMENT_BYTE_LIMIT` diagnostic. Unsupported versions and malformed structures that can still be parsed return both the model's schema errors and independent supplemental findings.
 
 ## Validation and safety
 
