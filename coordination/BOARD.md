@@ -3,7 +3,7 @@
 Coordinator snapshot: 2026-11-14  
 Repository: faiev/ArtClub  
 Coordination source: main  
-Last coordinator roadmap commit: 47702ed8c004af71e7dcdb2dd6125bf22923fe17
+Workstream assignments and autonomy protocol: updated on main
 
 > This board tracks ten continuous workstreams. A PR awaiting review is not a reason for an agent to stop.
 
