@@ -66,6 +66,104 @@ async function run() {
     await page.goto(url, { waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => Boolean(window.onePixelStudio), null, { timeout: 30000 });
 
+    // Two independent pages share one origin and the same real IndexedDB database.
+    const persistenceTab = await context.newPage();
+    await persistenceTab.goto(url, { waitUntil: "domcontentloaded" });
+    await persistenceTab.waitForFunction(() => Boolean(window.ArtClubStorage && window.ArtClubProject), null, { timeout: 30000 });
+    const casProjectId = await page.evaluate(async () => {
+      window.__casStorage = await window.ArtClubStorage.open({ projectModel: window.ArtClubProject });
+      const project = window.ArtClubProject.createProject({
+        width: 2, height: 2, name: "Two-tab CAS", palette: ["#112233", "#445566"]
+      });
+      window.ArtClubProject.getCel(project).pixels[0] = "#112233";
+      await window.__casStorage.saveProject(project);
+      return project.id;
+    });
+    await persistenceTab.evaluate(async id => {
+      window.__casStorage = await window.ArtClubStorage.open({ projectModel: window.ArtClubProject });
+      window.__casStaleProject = await window.__casStorage.getProject(id);
+    }, casProjectId);
+    await page.evaluate(async id => {
+      const current = await window.__casStorage.getProject(id);
+      current.name = "Accepted tab A";
+      window.ArtClubProject.getCel(current).pixels[0] = "#445566";
+      await window.__casStorage.saveProject(current);
+      window.__casRecoveryAfterAcceptedSave = await window.__casStorage.getRecovery(id);
+    }, casProjectId);
+    const staleTabResult = await persistenceTab.evaluate(async id => {
+      const stale = window.__casStaleProject;
+      stale.name = "Rejected stale tab B";
+      window.ArtClubProject.getCel(stale).pixels[1] = "#112233";
+      try {
+        await window.__casStorage.saveProject(stale);
+        return { accepted: true };
+      } catch (error) {
+        return { accepted: false, code: error.code };
+      }
+    }, casProjectId);
+    assert.deepEqual(staleTabResult, { accepted: false, code: "PROJECT_REVISION_CONFLICT" });
+    const crossTabState = await page.evaluate(async id => ({
+      primary: await window.__casStorage.getProject(id),
+      recovery: await window.__casStorage.getRecovery(id)
+    }), casProjectId);
+    assert.equal(crossTabState.primary.name, "Accepted tab A");
+    assert.deepEqual(crossTabState.recovery, await page.evaluate(() => window.__casRecoveryAfterAcceptedSave),
+      "a stale second tab must not rotate or replace the recovery snapshot");
+
+    const rollbackResult = await page.evaluate(async id => {
+      const beforePrimary = await window.__casStorage.getProject(id);
+      const beforeRecovery = await window.__casStorage.getRecovery(id);
+      const candidate = window.ArtClubProject.cloneProject(beforePrimary);
+      candidate.name = "Candidate that will roll back";
+      const saved = await window.__casStorage.saveProject(candidate);
+      await window.__casStorage.restoreIfCurrent(saved.rollbackReceipt);
+      return {
+        primaryRestored: JSON.stringify(await window.__casStorage.getProject(id)) === JSON.stringify(beforePrimary),
+        recoveryRestored: JSON.stringify(await window.__casStorage.getRecovery(id)) === JSON.stringify(beforeRecovery)
+      };
+    }, casProjectId);
+    assert.deepEqual(rollbackResult, { primaryRestored: true, recoveryRestored: true },
+      "conditional rollback must restore the exact primary and recovery pair");
+
+    const rollbackRace = await page.evaluate(async id => {
+      const current = await window.__casStorage.getProject(id);
+      current.name = "Candidate A";
+      const savedA = await window.__casStorage.saveProject(current);
+      window.__rollbackRaceReceipt = savedA.rollbackReceipt;
+      return { revision: savedA.revision };
+    }, casProjectId);
+    await persistenceTab.evaluate(async id => {
+      const current = await window.__casStorage.getProject(id);
+      current.name = "Newer commit from tab B";
+      await window.__casStorage.saveProject(current);
+    }, casProjectId);
+    const newerSnapshot = await persistenceTab.evaluate(async id => ({
+      primary: await window.__casStorage.getProject(id),
+      recovery: await window.__casStorage.getRecovery(id)
+    }), casProjectId);
+    const rollbackConflict = await page.evaluate(async () => {
+      try {
+        await window.__casStorage.restoreIfCurrent(window.__rollbackRaceReceipt);
+        return "restored";
+      } catch (error) {
+        return error.code;
+      }
+    });
+    assert.equal(rollbackConflict, "PROJECT_REVISION_CONFLICT",
+      "a rollback receipt must not overwrite a newer commit from another tab");
+    const afterRollbackConflict = await page.evaluate(async id => ({
+      primary: await window.__casStorage.getProject(id),
+      recovery: await window.__casStorage.getRecovery(id)
+    }), casProjectId);
+    assert.deepEqual(afterRollbackConflict, newerSnapshot,
+      "a failed rollback must leave the newer primary and recovery untouched");
+    await page.evaluate(async id => {
+      await window.__casStorage.deleteProject(id);
+      window.__casStorage.close();
+    }, casProjectId);
+    await persistenceTab.evaluate(() => window.__casStorage.close());
+    await persistenceTab.close();
+
     const initial = await page.evaluate(() => window.onePixelStudio.get_status());
     const baseLayerId = initial.active_layer.id;
     await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 0, y: 0, color: "#ff0000" }));
