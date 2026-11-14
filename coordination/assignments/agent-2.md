@@ -1,49 +1,60 @@
-# Agent 2 — Rendering / performance
+# Agent 2 — Rendering / performance / canvas navigation
 
-## AC-010 — Canvas renderer prototype
+## Continuous workstream: finish the Canvas rendering pipeline as a tested subsystem
 
-Your AC-010 implementation has been accepted as an isolated prototype and merged:
+AC-010's Canvas renderer prototype is merged in PR #6. It is not yet the active editor renderer. Your assignment now covers browser verification, measurable performance evidence and independent navigation infrastructure. Do not wait for each PR to be reviewed before starting the next phase.
 
-- PR #6: https://github.com/faiev/ArtClub/pull/6
-- Merge commit: `1ba0aaee597d5bf11083c97a03a312c7ee434530`
-- CI run #43605014989 passed: 58 Node tests, Chromium editor E2E and MCP E2E.
+### Phase 0 — AC-028: Real-browser renderer validation
+Branch: agent/renderer-browser-validation (already created; sync latest main first).
+Create tests/canvas-renderer.browser.html, tests/canvas-renderer.browser.mjs and benchmarks/renderer-browser-validation.md. Use real Chromium to check:
+- exact full-raster output for known pixel arrays;
+- native and enlarged nearest-neighbor scaling and alpha;
+- grid/selection overlays never alter artwork pixels;
+- mapping under fractional CSS sizes and DPR;
+- frame/composite revisions force full redraw;
+- onion-mask changes remove stale tint;
+- malformed/sparse buffers fail before visible output mutation.
+Capture DOM-grid versus Canvas measurements at 32, 64, 128, 256 and 512 with warm-ups, repeated samples, median, p95, raw samples, browser version and runner details. No performance claim from a single runner.
 
-The active editor still uses the DOM renderer. No AC-012 integration is authorized, and no performance speedup is claimed because the renderer benchmark has not yet been measured.
+### Phase 1 — AC-034: Canvas viewport and navigation utility
+Build a renderer-independent pure module js/canvas-viewport.js with tests:
+- pan, zoom, fit-to-canvas, reset and bounded zoom;
+- cursor-anchored zoom that preserves the logical point under the cursor;
+- screen-to-canvas and canvas-to-screen coordinate conversion;
+- device-pixel-ratio and fractional CSS-size handling;
+- clamp/pan behavior for tiny and large canvases;
+- deterministic transform state, serialization and invalid input rejection.
+No UI wiring is authorized. Provide a clear integration contract for a later editor owner.
 
-## NEW ASSIGNMENT — AC-028: Real-browser renderer validation and benchmark capture
+### Phase 2 — AC-035: Renderer state adapter and invalidation contract
+Build js/canvas-renderer-adapter.js with tests and docs. Convert a v2 project/frame/layer state into renderer inputs deterministically. Track frame/composite revisions so layer order, visibility, opacity, active frame and onion neighbors cannot accidentally use a dirty partial update. Validate stale/mismatched frame data. Do not modify project-model.js, index.html or agent API.
 
-### Branch
-`agent/renderer-browser-validation`
+### Phase 3 — AC-036: Browser visual and accessibility inspection pack
+Expand the browser harness to cover:
+- pointer mapping at 1x, 1.25x, 1.5x and 2x display scale;
+- keyboard focus boundaries and overlay pointer transparency;
+- selection/grid visibility and high-contrast colors;
+- resize, browser zoom and backing-store recreation;
+- teardown, repeated mount/unmount and memory cleanup.
+Create docs/RENDERER_BROWSER_VALIDATION.md with a reproducible manual checklist and screenshots/evidence references (do not fabricate screenshots or results).
 
-Branch was created from main at `1ba0aaee597d5bf11083c97a03a312c7ee434530`. Main has since advanced with the merged coordination system; merge the latest main into this branch before implementation, without force-pushing.
+### Phase 4 — AC-037: Large-canvas performance characterization
+Extend the benchmark protocol for sparse and dense canvases, frequent small dirty updates, full redraws, overlays and onion skin. Record raw results in benchmark artifacts and distinguish renderer-only timings from full-editor timings. Include memory estimates and variance. If a workload is slower, document it rather than hiding it.
 
-This dedicated branch already exists.
+### Phase 5 — AC-038: Integration readiness package
+Produce docs/CANVAS_RENDERER_INTEGRATION.md and a small isolated demo page showing how viewport + adapter + renderer compose without changing the live editor. Define fallback behavior, pointer contract, keyboard accessibility, resize lifecycle and test gates. Do not modify index.html until coordinator grants a UI lock.
 
-### Goal
-Add a repeatable real-browser validation suite for the isolated Canvas renderer and collect benchmark measurements with explicit environment metadata.
+## Ownership
+- js/canvas-viewport.js and tests/canvas-viewport.test.js
+- js/canvas-renderer-adapter.js and tests/canvas-renderer-adapter.test.js
+- tests/canvas-renderer.browser.*
+- benchmarks/renderer-*.*
+- docs for renderer/viewport validation and integration
 
-### Files
-- `tests/canvas-renderer.browser.html`
-- `tests/canvas-renderer.browser.mjs`
-- `benchmarks/renderer-browser-validation.md`
-- `benchmarks/renderer-benchmark.html` only if the existing harness needs a focused correction.
-- `.github/workflows/project-tests.yml` only after the coordinator releases this file lock following PR #11 integration. Until then, develop the browser harness and docs without editing the workflow file.
+Agent 3 currently owns .github/workflows/project-tests.yml while PR #11 is being reconciled. Prepare browser harnesses and docs without editing that workflow until released. Do not touch index.html, project model, Agent API or bridge.
 
-### Required checks
-1. Real Chromium rendering: compare complete ImageData/output pixels against exact known input buffers.
-2. Transparency and nearest-neighbor scaling at native and enlarged display sizes.
-3. Grid/selection overlay must not contaminate artwork pixels.
-4. Pointer-to-logical-pixel mapping at fractional CSS dimensions and DPR.
-5. Frame/composite revision change forces full redraw.
-6. Onion mask change and clearing removes stale tints.
-7. Invalid/sparse pixel inputs fail before visible output or render buffer mutation.
-8. Run DOM-grid versus Canvas measurements at 32, 64, 128, 256 and 512 dimensions; include warm-up, multiple samples, median, p95, raw samples, browser version and runner/hardware details.
+## Working rules
+All phases are authorized. PRs are checkpoints, not stop points. Use a new branch for each independent deliverable after opening the current PR. Keep main synced without force-push. No speedup or UI-integration claim without evidence.
 
-### Limits
-- Do not change `index.html`, editor UI, project model, Agent API or MCP bridge.
-- Do not claim a general speedup from one CI runner.
-- Report renderer-only measurements separately from the existing editor's full render costs.
-- Keep the current DOM renderer as the active application renderer.
-
-### Handoff
-Open a new draft PR from `agent/renderer-browser-validation`, report exact test commands and measured results, and update only `coordination/status/agent-2.md`.
+## Handoff
+Update only coordination/status/agent-2.md with active phase, branches/PRs, exact test results, benchmark raw-data locations and next 3–5 tasks. Do not merge or self-accept.

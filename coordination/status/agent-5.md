@@ -2,19 +2,21 @@
 
 ## Current assignment — AC-026: Keyboard shortcut and command-discoverability specification
 
-- **Status:** IN_PROGRESS
+- **Status:** REVIEW
 - **Branch:** `agent/keyboard-shortcuts-plan`
-- **Base:** `183cadbfea023a966fdc57267fef7367bb893ea5`
-- **Current branch comparison:** identical to main (0 ahead / 0 behind) at task start; branch fast-forwarded from the previous assigned base without force.
+- **Feature document commit:** `22f3ad53310c6fc0b1ff394898e35c7b42f21592`
+- **Latest branch sync:** will be reconciled with the final AC-026 status handoff commit before PR #20 is opened
+- **PR:** [#20 — AC-026: Specify keyboard shortcuts and command discoverability](https://github.com/faiev/ArtClub/pull/20) (open, draft; GitHub reports mergeable)
 - **Allowed deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md` only.
-- **Scope:** Documentation/specification only. No application JS, HTML, CSS or test files; no command-palette or shortcut UI implementation.
+- **Scope:** Documentation/specification only. No application JS, HTML, CSS, tests, command-palette or shortcut UI implementation.
 - **Coordinator source:** `main`; PR #7 is merged.
 - **Source inspection:** Current `index.html` keyboard handling at lines 1865–1894 (pixel-grid arrow/Space/Enter behavior), 2073–2092 (document keydown handler), static shortcut legend at lines 293–300. Current handler uses Ctrl OR Meta, handles Undo and Save before text-input guard, does not exclude dialogs/contenteditable, includes B/E/G/I/M tools, Mod+C/X/V/A/D, Delete/Backspace selection clear, Escape, [, ], 0 zoom. Layer/frame navigation and playback shortcuts are not currently implemented.
-- **Discoverability finding:** Static legend labels only Command glyphs, is hidden at mobile breakpoints, and omits navigation/playback. Existing `tests/editor-interactions.test.js` contains no keyboard shortcut tests; README has no shortcut reference.
-- **Branch sync:** The assigned branch was initially 81 commits behind, with no branch-only commits. It was safely fast-forwarded to main; after main advanced again, it was updated once more to `183cadbfea023a966fdc57267fef7367bb893ea5` using a non-force update. Verified comparison: identical to main.
-- **Tests:** Not run yet. This assignment is a documentation-only specification; acceptance validation will be structural review of the document, coverage of the required test matrix and source references.
-- **Blockers:** None. The shared UI lock does not block a documentation-only deliverable.
-- **Next action:** Complete the implementation-ready shortcut/discoverability specification, commit it on this branch, open a draft PR and report precise document validation.
+- **Discoverability findings:** Static legend labels only Command glyphs, is hidden at mobile breakpoints, and omits navigation/playback. Existing `tests/editor-interactions.test.js` contains no keyboard shortcut tests; README has no shortcut reference.
+- **Deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md`, 368 lines; 13 main sections. Includes current behavior, shortcut map, Ctrl/Command policy, browser/OS reserved conflicts, focus rules, keyboard-only accessibility, responsive discoverability, acceptance-test matrix, phased order and file ownership.
+- **Validation:** Fetched the committed document back from the feature branch and verified all assignment topics/sections. PR #17 and PR #19 were closed unmerged after their changed-file lists picked up status-file updates committed to main after PR creation. PR #20 is the clean-base replacement. Application tests are not run for this documentation-only task; the specification defines implementation-level tests.
+- **Branch synchronization:** No force updates. The feature branch is synchronized with the latest main tree using a two-parent merge commit before PR #20 is opened.
+- **Blockers:** None.
+- **Next action:** Coordinator review of PR #20. No implementation or command-palette work is self-assigned.
 - **Last updated:** 2026-11-14.
 
 ## Previous task — AC-009
