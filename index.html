@@ -201,7 +201,9 @@ input[type=color]{width:40px;height:36px}
       <button class="tool" data-tool="eyedropper" title="Eyedropper (I)"><span class="glyph">⌖</span>Pick</button>
       <button class="tool" data-tool="line" title="Line"><span class="glyph">／</span>Line</button>
       <button class="tool" data-tool="rect" title="Rectangle"><span class="glyph">□</span>Rect</button>
+      <button class="tool" data-tool="ellipse" title="Ellipse"><span class="glyph">◯</span>Ellipse</button>
     </div>
+    <label class="check-row hidden" id="shapeFillOption"><input type="checkbox" id="shapeFillToggle"> Filled shape</label>
     <div class="rule"></div>
     <div class="size-area"><label class="field-label" for="gridSize">Canvas dimensions</label><select id="gridSize"><option value="16">16 × 16 · Tiny</option><option value="24" selected>24 × 24 · Small</option><option value="32">32 × 32 · Medium</option><option value="48">48 × 48 · Large</option><option value="64">64 × 64 · Detailed</option></select></div>
     <div class="rule"></div>
@@ -481,8 +483,9 @@ function renderAll(){renderGrid();renderPalette();renderStats();updateHistoryBut
 function setTool(name){
   tool=name;
   document.querySelectorAll(".tool").forEach(b=>b.classList.toggle("active",b.dataset.tool===name));
+  $("shapeFillOption").classList.toggle("hidden",name!=="rect"&&name!=="ellipse");
   $("activeToolCaption").textContent=name.toUpperCase()+" TOOL";
-  $("toolMeta").textContent=name.toUpperCase()+" · "+(name==="eraser"?"ERASE":name==="eyedropper"?"PICK":name==="fill"?"AREA": "1 PX");
+  $("toolMeta").textContent=name.toUpperCase()+" · "+(name==="eraser"?"ERASE":name==="eyedropper"?"PICK":name==="fill"?"AREA":(name==="rect"||name==="ellipse")&&$("shapeFillToggle").checked?"FILLED":"1 PX");
 }
 function applyZoom(){
   const size=Math.round(560*zoom);
@@ -565,10 +568,87 @@ function line(x0,y0,x1,y1,c){
   let dx=Math.abs(x1-x0),sx=x0<x1?1:-1,dy=-Math.abs(y1-y0),sy=y0<y1?1:-1,err=dx+dy;
   while(true){paint(y0*w+x0,c);if(x0===x1&&y0===y1)break;const e2=2*err;if(e2>=dy){err+=dy;x0+=sx}if(e2<=dx){err+=dx;y0+=sy}}
 }
-function drawRectangle(x0,y0,x1,y1,c){
+function shapeLineIndices(x0,y0,x1,y1){
+  const indices=[];
+  let dx=Math.abs(x1-x0),sx=x0<x1?1:-1,dy=-Math.abs(y1-y0),sy=y0<y1?1:-1,err=dx+dy;
+  while(true){
+    indices.push(y0*w+x0);
+    if(x0===x1&&y0===y1)break;
+    const e2=2*err;
+    if(e2>=dy){err+=dy;x0+=sx}
+    if(e2<=dx){err+=dx;y0+=sy}
+  }
+  return indices;
+}
+function rectangleIndices(x0,y0,x1,y1,filled){
   const minX=Math.min(x0,x1),maxX=Math.max(x0,x1),minY=Math.min(y0,y1),maxY=Math.max(y0,y1);
-  for(let x=minX;x<=maxX;x++){paint(minY*w+x,c);paint(maxY*w+x,c)}
-  for(let y=minY;y<=maxY;y++){paint(y*w+minX,c);paint(y*w+maxX,c)}
+  const indices=new Set();
+  if(filled){
+    for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)indices.add(y*w+x);
+  }else{
+    for(let x=minX;x<=maxX;x++){indices.add(minY*w+x);indices.add(maxY*w+x)}
+    for(let y=minY;y<=maxY;y++){indices.add(y*w+minX);indices.add(y*w+maxX)}
+  }
+  return [...indices];
+}
+function ellipseIndices(x0,y0,x1,y1,filled){
+  const minX=Math.min(x0,x1),maxX=Math.max(x0,x1),minY=Math.min(y0,y1),maxY=Math.max(y0,y1);
+  if(minX===maxX&&minY===maxY)return [minY*w+minX];
+  if(minX===maxX)return shapeLineIndices(minX,minY,minX,maxY);
+  if(minY===maxY)return shapeLineIndices(minX,minY,maxX,minY);
+  const cx=(minX+maxX)/2,cy=(minY+maxY)/2,rx=(maxX-minX)/2,ry=(maxY-minY)/2;
+  const indices=new Set();
+  for(let y=minY;y<=maxY;y++){
+    const ny=(y-cy)/ry;
+    const span=rx*Math.sqrt(Math.max(0,1-ny*ny));
+    const left=Math.max(minX,Math.ceil(cx-span));
+    const right=Math.min(maxX,Math.floor(cx+span));
+    if(filled){for(let x=left;x<=right;x++)indices.add(y*w+x)}
+    else{
+      indices.add(y*w+Math.max(minX,Math.min(maxX,Math.round(cx-span))));
+      indices.add(y*w+Math.max(minX,Math.min(maxX,Math.round(cx+span))));
+    }
+  }
+  if(!filled){
+    for(let x=minX;x<=maxX;x++){
+      const nx=(x-cx)/rx;
+      const span=ry*Math.sqrt(Math.max(0,1-nx*nx));
+      indices.add(Math.max(minY,Math.min(maxY,Math.round(cy-span)))*w+x);
+      indices.add(Math.max(minY,Math.min(maxY,Math.round(cy+span)))*w+x);
+    }
+  }
+  return [...indices];
+}
+function shapeIndices(name,x0,y0,x1,y1,filled){
+  if(name==="line")return shapeLineIndices(x0,y0,x1,y1);
+  if(name==="rect")return rectangleIndices(x0,y0,x1,y1,filled);
+  if(name==="ellipse")return ellipseIndices(x0,y0,x1,y1,filled);
+  return [];
+}
+function drawRectangle(x0,y0,x1,y1,c,filled){
+  rectangleIndices(x0,y0,x1,y1,Boolean(filled)).forEach(index=>paint(index,c));
+}
+function drawEllipse(x0,y0,x1,y1,c,filled){
+  ellipseIndices(x0,y0,x1,y1,Boolean(filled)).forEach(index=>paint(index,c));
+}
+let shapePreviewIndices=[];
+function clearShapePreview(){
+  shapePreviewIndices.forEach(index=>{
+    const cell=grid.children[index];
+    if(cell)cell.style.backgroundColor=pixels[index]||"transparent";
+  });
+  shapePreviewIndices=[];
+}
+function updateShapePreview(point){
+  clearShapePreview();
+  const indices=shapeIndices(tool,strokeStart.x,strokeStart.y,point.x,point.y,
+    (tool==="rect"||tool==="ellipse")&&$("shapeFillToggle").checked);
+  const color=palette[selected]||"#000000";
+  indices.forEach(index=>{
+    const cell=grid.children[index];
+    if(cell)cell.style.backgroundColor=color;
+  });
+  shapePreviewIndices=indices;
 }
 
 function agentColor(value){
@@ -764,6 +844,7 @@ grid.addEventListener("pointerdown",e=>{
   remember();drawing=true;strokeStart=p;strokeLast=p;
   if(tool==="brush")paint(p.i,palette[selected]);
   else if(tool==="eraser")paint(p.i,null);
+  else if(tool==="line"||tool==="rect"||tool==="ellipse")updateShapePreview(p);
   grid.setPointerCapture(e.pointerId);
   renderStats();
 });
@@ -772,15 +853,23 @@ grid.addEventListener("pointermove",e=>{
   if(tool==="brush"||tool==="eraser"){
     if(strokeLast)line(strokeLast.x,strokeLast.y,p.x,p.y,tool==="eraser"?null:palette[selected]);
     strokeLast=p;renderStats();
+  }else if(tool==="line"||tool==="rect"||tool==="ellipse"){
+    strokeLast=p;updateShapePreview(p);
   }
 });
 grid.addEventListener("pointerup",e=>{
   if(!drawing)return;const p=getCell(e)||strokeLast||strokeStart;
-  if(tool==="line"&&p)line(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected]);
-  if(tool==="rect"&&p)drawRectangle(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected]);
-  drawing=false;strokeStart=null;strokeLast=null;renderStats();scheduleSave();
+  if(tool==="line"&&p){clearShapePreview();line(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected]);}
+  if(tool==="rect"&&p){clearShapePreview();drawRectangle(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected],$("shapeFillToggle").checked);}
+  if(tool==="ellipse"&&p){clearShapePreview();drawEllipse(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected],$("shapeFillToggle").checked);}
+  drawing=false;strokeStart=null;strokeLast=null;renderGrid();renderStats();scheduleSave();
 });
-grid.addEventListener("pointercancel",()=>{drawing=false;strokeStart=null;strokeLast=null;scheduleSave()});
+grid.addEventListener("pointercancel",()=>{
+  if(tool==="line"||tool==="rect"||tool==="ellipse"){
+    clearShapePreview();if(undoStack.length)undoStack.pop();updateHistoryButtons();
+  }
+  drawing=false;strokeStart=null;strokeLast=null;scheduleSave();
+});
 grid.addEventListener("keydown",e=>{
   const current=document.activeElement;
   if(!current||!current.classList.contains("pixel-cell"))return;
@@ -814,6 +903,7 @@ $("projectName").addEventListener("input",e=>{
 $("zoomOut").addEventListener("click",()=>setZoom(zoom-0.25));
 $("zoomIn").addEventListener("click",()=>setZoom(zoom+0.25));
 $("zoomReset").addEventListener("click",()=>setZoom(1));
+$("shapeFillToggle").addEventListener("change",()=>setTool(tool));
 async function createBlankProject(persistCurrent=true){
   if(persistCurrent)await persistNow();
   w=24;h=24;pixels=blank(24);palette=DEFAULT_PALETTE.slice();selected=8;
