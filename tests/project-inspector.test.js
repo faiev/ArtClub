@@ -941,3 +941,124 @@ test("migration preview explicitly reports unrecognized legacy fields as discard
     /Unrecognized legacy source fields/.test(warning)));
   assert.deepEqual(fs.readFileSync(file), original);
 });
+
+
+function runCiArtifactReport(filePath, options = []) {
+  return spawnSync(process.execPath, [CLI, ...options, "--ci-report", filePath], {
+    encoding: "utf8",
+    maxBuffer: 4 * 1024 * 1024
+  });
+}
+
+test("CI artifact report emits a stable versioned project summary and preserves source bytes", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "valid-v2.json");
+  const original = fs.readFileSync(file);
+
+  const first = runCiArtifactReport(file);
+  const second = runCiArtifactReport(file, ["--json"]);
+  assert.equal(first.status, 0, first.stderr);
+  assert.equal(second.status, 0, second.stderr);
+  const report = JSON.parse(first.stdout);
+  assert.deepEqual(JSON.parse(second.stdout), report);
+  assert.equal(report.artifactType, "application/vnd.one-pixel-studio.project-inspection+json");
+  assert.equal(report.artifactSchemaVersion, 1);
+  assert.equal(report.tool.mode, "ci-report");
+  assert.equal(report.status, "valid");
+  assert.equal(report.input.path, file);
+  assert.equal(report.input.byteCount, original.length);
+  assert.equal(report.input.sourceFormat, "one-pixel-studio");
+  assert.equal(report.input.sourceVersion, 2);
+  assert.equal(report.projectSummary.name, "Inspector fixture");
+  assert.deepEqual(report.projectSummary.canvas, { width: 4, height: 3 });
+  assert.equal(report.projectSummary.layerCount, 2);
+  assert.equal(report.validation.checked, true);
+  assert.equal(report.validation.valid, true);
+  assert.deepEqual(report.validation.errors, []);
+  assert.ok(Array.isArray(report.diagnostics));
+  assert.equal(report.counts.diagnostics, report.diagnostics.length);
+  assert.equal(report.counts.totalFindings, report.diagnostics.length);
+  assert.equal(report.exitCode, 0);
+  assert.match(report.exitCodePolicy.zero, /authoritative project-model validation passed/);
+  assert.equal(report.readOnly.inputModified, false);
+  assert.equal(report.readOnly.outputWritten, false);
+  assert.deepEqual(fs.readFileSync(file), original);
+});
+
+test("CI artifact report keeps legacy model-generated identities out of the source summary", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "valid-legacy.json");
+  const original = fs.readFileSync(file);
+
+  const result = runCiArtifactReport(file);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.status, "valid");
+  assert.equal(report.input.sourceFormat, "legacy-single-canvas");
+  assert.equal(report.input.sourceVersion, 1);
+  assert.equal(report.projectSummary.migratedInMemory, true);
+  assert.equal(report.projectSummary.id, null);
+  assert.ok(report.projectSummary.layers.every((layer) => layer.id === null));
+  assert.ok(report.projectSummary.frames.every((frame) => frame.id === null));
+  assert.deepEqual(fs.readFileSync(file), original);
+});
+
+test("CI artifact report preserves validation failures and supplemental diagnostic paths", (t) => {
+  const directory = temporaryDirectory(t);
+  const source = JSON.parse(fs.readFileSync(path.join(FIXTURES, "valid-v2.json"), "utf8"));
+  source.cels[0].pixels = source.cels[0].pixels.slice(0, 2);
+  const file = writeDiagnosticProject(directory, "invalid-artifact.json", source);
+  const original = fs.readFileSync(file);
+
+  const result = runCiArtifactReport(file);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.status, "invalid");
+  assert.equal(report.validation.checked, true);
+  assert.equal(report.validation.valid, false);
+  assert.ok(report.validation.errors.length > 0);
+  assert.ok(report.diagnostics.some((item) =>
+    item.code === "PIXEL_ARRAY_SHORT" && item.path === "$.cels[0].pixels"));
+  assert.ok(report.counts.critical >= 1);
+  assert.equal(report.exitCode, 1);
+  assert.equal(report.projectSummary, null);
+  assert.deepEqual(fs.readFileSync(file), original);
+});
+
+test("CI artifact report describes unreadable and malformed inputs without inventing a project summary", (t) => {
+  const directory = temporaryDirectory(t);
+  const malformed = copyFixture(directory, "malformed-json.json");
+  const malformedBytes = fs.readFileSync(malformed);
+  const invalidJson = runCiArtifactReport(malformed);
+  assert.equal(invalidJson.status, 1);
+  const malformedReport = JSON.parse(invalidJson.stdout);
+  assert.equal(malformedReport.status, "incomplete");
+  assert.equal(malformedReport.validation.checked, false);
+  assert.equal(malformedReport.validation.valid, null);
+  assert.equal(malformedReport.projectSummary, null);
+  assert.equal(malformedReport.input.byteCount, malformedBytes.length);
+  assert.ok(malformedReport.diagnostics.some((item) => item.code === "JSON_PARSE_ERROR"));
+  assert.equal(malformedReport.exitCode, 1);
+
+  const missing = runCiArtifactReport(path.join(directory, "missing.json"));
+  assert.equal(missing.status, 1);
+  const missingReport = JSON.parse(missing.stdout);
+  assert.equal(missingReport.status, "incomplete");
+  assert.equal(missingReport.input.byteCount, null);
+  assert.equal(missingReport.validation.checked, false);
+  assert.equal(missingReport.exitCode, 1);
+});
+
+test("CI artifact report rejects incompatible modes and missing file arguments", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "valid-v2.json");
+  const conflict = spawnSync(process.execPath, [CLI, "--ci-report", "--diagnostics", file], {
+    encoding: "utf8"
+  });
+  assert.equal(conflict.status, 2);
+  assert.match(conflict.stderr, /INVALID_ARGUMENT/);
+
+  const missing = spawnSync(process.execPath, [CLI, "--ci-report"], { encoding: "utf8" });
+  assert.equal(missing.status, 2);
+  assert.match(missing.stderr, /INVALID_ARGUMENT/);
+});
