@@ -89,3 +89,6 @@ Review only the canvas/viewport layout and responsive behavior:
 **Boundaries:** read-only review. Do not modify `index.html`, production CSS, project model, Agent 4 bridge files, Agent 3 workflow, or shared browser E2E. Do not change AC-038 demo scope to force production renderer adoption.
 
 Update `coordination/status/agent-2.md` with the review result and next 3–5 actions.
+
+## Coordinator restart directive — 2026-11-15
+Reconcile #18/#52/#73/#75 (and merged #34/#43) with current exact heads/base/CI. Preserve negative small-dirty-update results and distinguish renderer-only from production-editor timings. Review UI-01 canvas sizing/pointer behavior, then deliver UI-03 fit/actual-size/cursor-zoom/pan/DPR acceptance criteria. No index.html, model/storage, API/bridge or workflow edits.
