@@ -66,6 +66,7 @@ async function run() {
     await page.waitForFunction(() => Boolean(window.onePixelStudio), null, { timeout: 30_000 });
 
     const initialStatus = await page.evaluate(() => window.onePixelStudio.get_status());
+    const initialFrameId = initialStatus.active_frame.id;
     assert.equal(initialStatus.protocol, "one-pixel-studio-agent");
     assert.equal(initialStatus.canvas.width, 24);
     assert.equal(initialStatus.canvas.height, 24);
@@ -218,20 +219,6 @@ async function run() {
     assert.equal(pausedState.playback.playing, false);
     assert.equal(pausedState.active_frame.id, frameTwoId);
     await page.evaluate(() => window.onePixelStudio.stop_playback());
-
-    // The reload assertions below inspect pixels from the original editing
-    // frame. Playback leaves the selected frame unchanged, so explicitly
-    // return to that frame before saving the project snapshot.
-    await page.evaluate(
-      id => window.onePixelStudio.select_frame({ frame_id: id }),
-      reopenedStatus.active_frame.id
-    );
-    const frameBeforeReload = await page.evaluate(() => window.onePixelStudio.get_status());
-    assert.equal(
-      frameBeforeReload.active_frame.id,
-      reopenedStatus.active_frame.id,
-      "the original editing frame should be selected before reload persistence is tested"
-    );
     await page.evaluate(() => window.onePixelStudio.save());
 
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -239,12 +226,85 @@ async function run() {
     const afterReload = await page.evaluate(() => window.onePixelStudio.get_status());
     assert.equal(afterReload.project_id, firstProjectId, "refresh should restore the active project");
     assert.equal(afterReload.layers.length, 2, "refresh should preserve the layer stack");
+    // The tested red pixel and composite were drawn on the first frame.
+    // The last selected editing frame before reload was frame two.
+    await page.evaluate(id =>
+      window.onePixelStudio.select_frame({ frame_id: id }), initialFrameId
+    );
     const afterReloadPixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }));
     assert.equal(afterReloadPixel.color, "#ff0000", "refresh should preserve saved pixels");
     const persistedLayerPixel = await page.evaluate(() =>
       window.onePixelStudio.get_pixel({ x: 2, y: 2 })
     );
     assert.equal(persistedLayerPixel.color, "#ff8800", "refresh should preserve the visible layer composite");
+
+    // Regression: A is the last good version, B is autosaved, and merely
+    // opening the library must not overwrite A before the user can recover it.
+    page.on("dialog", dialog => dialog.accept());
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 20, y: 20, color: "#aa00aa" })
+    );
+    await page.waitForFunction(
+      () => document.querySelector("#saveState")?.textContent === "SAVED IN PROJECT LIBRARY",
+      null,
+      { timeout: 5_000 }
+    );
+    // Keep the pre-edit composite baseline: the lower layer may already have
+    // a color at either test coordinate, so recovery should restore that exact
+    // visible color rather than necessarily making the pixel transparent.
+    const versionABaseline = await page.evaluate(() => ({
+      b: window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color,
+      c: window.onePixelStudio.get_pixel({ x: 22, y: 20 }).color
+    }));
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 21, y: 20, color: "#00aaff" })
+    );
+    await page.waitForFunction(
+      () => document.querySelector("#saveState")?.textContent === "SAVED IN PROJECT LIBRARY",
+      null,
+      { timeout: 5_000 }
+    );
+
+    const explicitNoOpSave = await page.evaluate(() => window.onePixelStudio.save());
+    assert.equal(explicitNoOpSave.ok, true, "an explicit clean save should succeed");
+    await page.locator("#projectLibraryBtn").click();
+    await page.getByRole("button", { name: "Recover", exact: true }).first().click();
+    await page.waitForFunction(
+      expected => window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color === expected,
+      versionABaseline.b,
+      { timeout: 5_000 }
+    );
+    let recoveredPixels = await page.evaluate(() => ({
+      a: window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color,
+      b: window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color
+    }));
+    assert.equal(recoveredPixels.a, "#aa00aa", "Recover should restore version A after opening the library");
+    assert.equal(recoveredPixels.b, versionABaseline.b, "Recover should restore the pre-B composite at the edited pixel");
+
+    // A genuine edit after recovery must rotate the recovered A version into
+    // the recovery slot. Opening the library once more must not rotate it away.
+    await page.locator("#closeProjectDialog").click();
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 22, y: 20, color: "#cc4400" })
+    );
+    await page.waitForFunction(
+      () => document.querySelector("#saveState")?.textContent === "SAVED IN PROJECT LIBRARY",
+      null,
+      { timeout: 5_000 }
+    );
+    await page.locator("#projectLibraryBtn").click();
+    await page.getByRole("button", { name: "Recover", exact: true }).first().click();
+    await page.waitForFunction(
+      expected => window.onePixelStudio.get_pixel({ x: 22, y: 20 }).color === expected,
+      versionABaseline.c,
+      { timeout: 5_000 }
+    );
+    recoveredPixels = await page.evaluate(() => ({
+      a: window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color,
+      c: window.onePixelStudio.get_pixel({ x: 22, y: 20 }).color
+    }));
+    assert.equal(recoveredPixels.a, "#aa00aa", "a genuine later save should keep the immediately previous version recoverable");
+    assert.equal(recoveredPixels.c, versionABaseline.c, "recovering A should restore the pre-C composite at the edited pixel");
 
     assert.deepEqual(pageErrors, [], "the app should not throw browser runtime errors");
     console.log("Browser E2E passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, real animation playback, onion skin, PNG, IndexedDB library and reload recovery.");
