@@ -59,6 +59,23 @@ node --test tests/qa/release/qa-release-check.test.js
 node --test tests/qa/renderer/canvas-renderer-contract.test.js
 ```
 
+### Deterministic QA suite runner — AC-087
+
+The explicit runner manifest is maintained in `tools/run-qa.mjs`. It executes only named files under `tests/qa/**`; it does not discover arbitrary tests elsewhere in the repository.
+
+```bash
+node --test tests/qa/runner/run-qa.test.mjs
+node tools/run-qa.mjs --suite runner --json
+node tools/run-qa.mjs --suite all
+node tools/run-qa.mjs --suite all --json
+node tools/run-qa.mjs --suite browser --include-browser
+```
+
+Interpretation:
+- Missing manifest entries are reported as `not-run` and cause exit code 2. Review the JSON/report and resolve or explicitly account for every missing suite; do not treat code 2 as a green all-suite run.
+- A browser entry that exists but is not explicitly enabled is reported as `skipped`; an absent browser entry is `not-run`.
+- `--include-browser` is an explicit opt-in. Install the documented Playwright/Chromium prerequisites separately; the runner never installs dependencies or launches a browser by surprise.
+- CI must run the focused runner test and verify the real `--suite all` JSON/report on the exact tested SHA. The root-only `node --test tests/*.test.js` glob does not discover this nested test.
 ### Standalone project lifecycle browser harness
 
 ```bash
@@ -80,7 +97,7 @@ The standard workflow currently uses the non-recursive glob `node --test tests/*
 | QA-005 | Medium | PR #16 palette-format PR and its contract tests are not yet on main. | Pending merge/revalidation |
 | QA-006 | Medium | PR #1 frame-aware assertions overlap the shared bridge E2E owned by Agent 4. | AC-025 keep/drop audit handed to Agent 4; do not edit bridge E2E |
 | QA-007 | Medium | A green baseline browser workflow does not prove QA-owned nested harnesses ran unless the workflow log names the exact runner. | Evidence rule; verify run URL and tested SHA |
-| QA-008 | Medium | `parseColor()` returns the internal cached RGBA array from the renderer's `COLORS` map. A caller can mutate a channel and corrupt later parsing/rendering of that same color. | PR #61 QA TODO; suggested defensive-copy fix handed to Agent 2. Renderer implementation remains unchanged. |
+| QA-008 | Medium | `parseColor()` originally exposed the internal cached RGBA array, allowing callers to corrupt later parsing/rendering of that color. | Agent 2's PR #90 adds a defensive-copy public wrapper while preserving the private renderer cache; verify after merge. |
 
 ## Evidence rules
 
