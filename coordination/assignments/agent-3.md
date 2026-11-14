@@ -1,47 +1,43 @@
-# Agent 3 — Animation / export
+# Agent 3 — Animation / export engineering
 
-## AC-011 — Standalone animated GIF exporter
+## Continuous workstream: deliver a complete, independently verifiable export subsystem
 
-Your coordinator-requested GIF corrections are implemented, and CI run #43605119104 passed:
-- 48 Node/model/editor tests.
-- Real Chromium editor E2E.
-- GIF ImageDecoder verification of native dimensions and every RGBA byte across both frames.
-- MCP client E2E.
+You own GIF and sprite-sheet export. Work through every phase below. Do not stop after PR #11 is accepted or after PR #3's browser test is submitted.
 
-PR #11:
-https://github.com/faiev/ArtClub/pull/11
+### Phase 0 — AC-011: Reconcile accepted GIF exporter
+PR #11: https://github.com/faiev/ArtClub/pull/11
+Sync agent/gif-export with latest main without force-pushing. Preserve the actual-RGB nearest palette lookup, full-raster ImageDecoder test and 1,048,576-pixel output budget. Rerun Node 24, Chromium editor E2E, GIF decoder and MCP E2E on the new head. Update the PR description/status. Do not merge.
 
-Latest feature head:
-`da81f74ecccf2d74d8a1033e9eee42c98b7845b5`
+### Phase 1 — AC-027: Real-browser sprite-sheet PNG verification
+PR #3: https://github.com/faiev/ArtClub/pull/3
+Sync agent/animation-export with latest main. Add Chromium PNG decode verification that compares every RGBA pixel and checks:
+- exact dimensions, frame order and per-frame rectangles;
+- horizontal/vertical/grid layouts if supported;
+- spacing, margins, transparent padding and background behavior;
+- JSON metadata frame names, durations and rectangle coordinates;
+- malformed and oversized projects rejected before large allocation.
+Keep PR #3 independent from PR #11.
 
-The coordinator accepted the isolated GIF implementation. Do not add UI/API/MCP integration.
+### Phase 2 — AC-039: Expand sprite-sheet layout and metadata contract
+Extend the sprite-sheet module with deterministic configurable layouts: horizontal strip, vertical strip and bounded grid; explicit margin, spacing, row/column packing and optional frame ordering. Define a versioned metadata schema with source frame IDs/names/durations and exact output rectangles. Preserve nearest-neighbor pixel fidelity and input immutability. Add round-trip/contract tests and docs. Do not add UI.
 
-### Immediate handoff: reconcile PR #11 with latest main
+### Phase 3 — AC-040: Export profiles and selection planning
+Create a pure export-planning helper for selected frame ranges, custom frame order, loop settings, timing policy, layout dimensions and output-size estimates. Validate all limits before encoding. Provide stable diagnostics and JSON manifest generation. Keep this helper separate from the editor UI and API.
 
-PR #6 has now merged to main as:
-`1ba0aaee597d5bf11083c97a03a312c7ee434530`
+### Phase 4 — AC-041: Export compatibility and stress suite
+Add deterministic fixtures for transparent/opaque projects, maximum dimensions, empty/missing cels, palette overflow, odd frame durations, long animations and malformed metadata. Add stress tests around the documented pixel/byte limits and ensure rejection happens before expensive composition where practical. Add independent decoder checks for output files; never rely only on the encoder's own parser.
 
-Your GIF branch is now behind main. Merge latest main into `agent/gif-export` without force-pushing, preserve the quantization/full-raster/memory corrections, and rerun the complete Node, Chromium, GIF ImageDecoder and MCP workflow on the new head. Update PR #11 description and your status file with the exact new head and CI run. Do not merge it yourself.
+### Phase 5 — AC-042: Export developer documentation and example gallery
+Create docs/EXPORT_FORMATS.md and small synthetic example files/fixtures documenting PNG atlas, JSON metadata and GIF timing/transparency trade-offs. Include exact commands to decode/inspect outputs with browser or standard tools. Do not check in copyrighted art or huge binary artifacts.
 
-## NEXT ASSIGNMENT — AC-027: Complete sprite-sheet PNG browser verification (PR #3)
+### Phase 6 — Future integration readiness
+Prepare docs/EXPORT_INTEGRATION.md describing a single exporter contract usable by download UI and Agent API/MCP without duplicating encoding logic. List required UI controls, progress/error feedback, cancellation and output size guards. Do not edit index.html or bridge/API files until the coordinator grants locks and Agent 4's contract is accepted.
 
-After PR #11's branch reconciliation is complete, resume the existing sprite-sheet branch:
+## Ownership and lock
+Own js/gif-export.js, js/sprite-sheet-export.js, exporter-specific tests, browser export harnesses and export documentation. You currently own .github/workflows/project-tests.yml changes for PR #11 reconciliation. Release that lock explicitly in your status when done; until then no other agent may edit the workflow. Do not edit bridge files or index.html.
 
-`agent/animation-export`
+## Working rules
+Every phase is pre-authorized. Opening one PR does not end the workstream. Keep PRs narrow and start the next independent phase while review/merge is pending. Use separate branches for PR #11, PR #3 and later helper modules as necessary.
 
-PR #3:
-https://github.com/faiev/ArtClub/pull/3
-
-Update it against latest main without discarding work. Add a real-browser PNG verification that:
-- Exports a deterministic multi-frame fixture.
-- Decodes the PNG in Chromium.
-- Compares every RGBA pixel against expected sheet data.
-- Checks dimensions, spacing/margins, transparency, frame ordering and JSON metadata correspondence.
-- Rejects invalid/oversized inputs as documented.
-
-Files may include the existing sprite-sheet module/tests/docs plus new browser test files. Coordinate any workflow-file edit with the coordinator first: do not touch `.github/workflows/project-tests.yml` while its current base changes are being reconciled. You may prepare the test page/runner and document the exact command meanwhile.
-
-Do not edit `index.html`, Agent API or MCP. Do not wire UI download controls.
-
-### Handoff
-Keep PR #11 and PR #3 separate. Update only your own status file. Report exact commit SHAs, browser verification and CI evidence. Never merge your own PRs.
+## Handoff
+Update only coordination/status/agent-3.md. Track phases, branch/PR links, tested SHAs, CI runs, workflow lock state and next 3–5 tasks. Do not merge or self-accept.

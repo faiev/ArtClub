@@ -1,27 +1,25 @@
 # Status — Agent 7
 
-- **Task:** AC-016 — Seamless tile preview engine
+- **Task:** AC-016 — Sync current main and rerun full CI for tiled preview
 - **Status:** REVIEW
 - **Role:** Tile workflows
-- **Branch:** `agent/tile-preview`
-- **Base:** `fe66725f7d010beca7ca60f497778d419e753d7b`
-- **Commit:** `142b4e1cc1f605ff69bc7911676266b3c0ff607e`
-- **Pull request:** https://github.com/faiev/ArtClub/pull/13 (draft, open)
-- **Files changed:**
-  - `js/tile-preview.js`
-  - `tests/tile-preview.test.js`
-  - `docs/tile-preview.md`
-- **Implementation:** Deterministic row-major repeat preview; edge-strip extraction; exact opposing-edge seam diagnostics with coordinates and values; `null` transparency; input/dimension/repeat/output-size validation; browser-global and CommonJS module.
-- **Local commands and results:**
-  - `node --check /tmp/artclub-agent7/js/tile-preview.js` — passed.
-  - `node --check /tmp/artclub-agent7/tests/tile-preview.test.js` — passed.
-  - `node --test /tmp/artclub-agent7/tests/tile-preview.test.js` — 11 passed, 0 failed.
-  - Full local repository suite not run: this environment could not resolve `raw.githubusercontent.com` when attempting to obtain the full checkout. No local browser test claimed.
-- **GitHub Actions run #110:**
-  - `test` — passed. The repository workflow's Node model/editor-interaction test command and bridge syntax check completed successfully.
-  - `browser-e2e` — failed at the existing refresh/persistence assertion in unchanged `agent-bridge/e2e-test.mjs:229`: expected `#ff0000`, received `null` ("refresh should preserve saved pixels"). The MCP integration step was skipped after that failure. This PR changes none of the bridge, persistence, or e2e files, and the new module is not wired into the application.
-- **Integration boundary:** No Canvas/DOM/UI/Agent API/persistence/export integration; preview buffer is transient and must not be saved into project cels or exports. No browser UI verification is claimed.
-- **Known limitations/risks:** Seam checks compare corresponding opposing border values and diagnose only; they do not repair seams. Preview allocations are capped by exported `LIMITS`. The repository browser-e2e failure needs coordinator/QA triage independently.
-- **Coordinator decision required:** None to review AC-016. After acceptance, AC-021 can be scheduled with an explicit UI/renderer file lock.
-- **Blockers:** None for this deliverable.
-- **Last updated:** 2026-11-14 — implementation submitted for review.
+- **Feature branch:** `agent/tile-preview`
+- **Latest main incorporated:** `220c2b5033ccd8752dd8e3e357be3fcd8bfc7b7a`
+- **Original implementation commit:** `142b4e1cc1f605ff69bc7911676266b3c0ff607e`
+- **First main sync commit:** `d54b3e5899e57607bd61e4c13c9717dd7540318b`
+- **Final head after later coordination-only main updates:** `0aafc29aff13505ceabd288b3b5d1ab793ce35d7`
+- **Pull request:** https://github.com/faiev/ArtClub/pull/13 (open, draft)
+- **Files changed in PR:** `js/tile-preview.js`, `tests/tile-preview.test.js`, `docs/tile-preview.md` only.
+- **Main comparison:** `main...agent/tile-preview` is ahead by 3 and behind by 0 at final sync; PR diff is exactly the three assigned files.
+- **Local isolated evidence from original implementation:** `node --check js/tile-preview.js`, `node --check tests/tile-preview.test.js`, `node --test tests/tile-preview.test.js` — 11 passed, 0 failed.
+- **Current-head GitHub Actions:** run #137, https://github.com/faiev/ArtClub/actions/runs/43606323497 — fully passed on `0aafc29aff13505ceabd288b3b5d1ab793ce35d7`.
+  - `node --test tests/*.test.js` — 69 passed, 0 failed, 0 skipped.
+  - `node --check agent-bridge/server.mjs` — passed.
+  - `npm run test:e2e` — passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, animation playback, onion skin, PNG, IndexedDB library and reload recovery.
+  - `npm run test:mcp` — passed: drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
+- **Earlier stale-base issue:** run #110 failed at the refresh/persistence assertion before PR #10 was on the branch base. Current-main runs #122 and #137 pass the persistence/reload E2E.
+- **Integration boundary:** No Canvas, DOM, UI, renderer, Agent API, persistence, bridge or export wiring. Preview output is transient and must not be saved to project cels or included in exports.
+- **Known limitations:** Diagnostics compare corresponding opposing edge values and report mismatches; they do not repair seams. Output size is bounded by exported `LIMITS`.
+- **Blockers:** None for AC-016.
+- **Coordinator decision required:** Review PR #13. No merge or AC-021 UI integration performed.
+- **Last updated:** 2026-11-14 — final current-main CI passed; submitted for coordinator review.

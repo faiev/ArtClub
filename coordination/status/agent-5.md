@@ -1,22 +1,29 @@
 # Status — Agent 5
 
-- **Task:** AC-009 — Turn UX audit into implementation-ready roadmap
+## Current assignment — AC-026: Keyboard shortcut and command-discoverability specification
+
 - **Status:** REVIEW
-- **Branch:** `agent/ux-implementation-plan`
-- **Base:** `fe66725f7d010beca7ca60f497778d419e753d7b`
-- **Commit:** `17e258a44a257d89556a80fb7977ef32a36d50ba`
-- **PR:** [#9 — AC-009: Add implementation-ready UX roadmap](https://github.com/faiev/ArtClub/pull/9) (draft; not merged)
-- **Deliverable:** `UX_IMPLEMENTATION_PLAN.md` (647 lines).
-- **Plan scope:** Eight prioritized tasks: safe Clear, safe image import, Canvas 2D renderer integration, canvas pan/zoom, sprite-sheet/GIF export UI, visual timeline/cel workflows, AI-agent onboarding, and interaction/feedback polish.
-- **Required details:** Each task includes user problem/current workflow, source facts vs browser-validation assumptions, exact proposed behavior, acceptance criteria, affected files, dependencies/ownership conflicts, scope estimate and test plan.
-- **Branch comparison:** 1 commit ahead of main, 0 behind; only `UX_IMPLEMENTATION_PLAN.md` is added.
-- **Source review:** Full `UX_AUDIT.md` read; inspected current main `index.html`, `js/project-model.js`, `js/project-storage.js`, `tests/editor-interactions.test.js`, `agent-bridge/e2e-test.mjs`, README and FEATURES; inspected Agent 2's renderer branch and Agent 3's sprite-sheet exporter branch.
-- **Tests / validation:** Documentation-only check: fetched the committed plan from the feature branch; verified 647 lines, all eight task IDs, and presence of acceptance criteria, affected-file lists and test plans. No application tests were run because no application source or test files changed.
-- **Known validation limits:** No live-browser usability/accessibility session or performance benchmark was run by Agent 5. The plan explicitly leaves these as future task acceptance evidence and makes no unmeasured performance claims.
-- **Coordination:** Respects ownership for Agent 1's persistence/E2E files, Agent 2's renderer files, Agent 3's export modules and Agent 4's bridge/API/shared UI. Calls out the `index.html` integration lock and recommends serialized implementation.
-- **Blockers:** None to submit AC-009. Actual implementation work described by the roadmap requires future coordinator assignments and release of shared-file ownership.
-- **Next handoff:** Coordinator reviews PR #9 and accepts or returns the plan with specific changes. Agent 5 has not merged the PR and has not self-assigned a follow-up.
+- **Branch:** `agent/keyboard-shortcuts-plan`
+- **Feature document commit:** `22f3ad53310c6fc0b1ff394898e35c7b42f21592`
+- **Latest branch sync:** will be reconciled with the final AC-026 status handoff commit before PR #20 is opened
+- **PR:** [#20 — AC-026: Specify keyboard shortcuts and command discoverability](https://github.com/faiev/ArtClub/pull/20) (open, draft; GitHub reports mergeable)
+- **Allowed deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md` only.
+- **Scope:** Documentation/specification only. No application JS, HTML, CSS, tests, command-palette or shortcut UI implementation.
+- **Coordinator source:** `main`; PR #7 is merged.
+- **Source inspection:** Current `index.html` keyboard handling at lines 1865–1894 (pixel-grid arrow/Space/Enter behavior), 2073–2092 (document keydown handler), static shortcut legend at lines 293–300. Current handler uses Ctrl OR Meta, handles Undo and Save before text-input guard, does not exclude dialogs/contenteditable, includes B/E/G/I/M tools, Mod+C/X/V/A/D, Delete/Backspace selection clear, Escape, [, ], 0 zoom. Layer/frame navigation and playback shortcuts are not currently implemented.
+- **Discoverability findings:** Static legend labels only Command glyphs, is hidden at mobile breakpoints, and omits navigation/playback. Existing `tests/editor-interactions.test.js` contains no keyboard shortcut tests; README has no shortcut reference.
+- **Deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md`, 368 lines; 13 main sections. Includes current behavior, shortcut map, Ctrl/Command policy, browser/OS reserved conflicts, focus rules, keyboard-only accessibility, responsive discoverability, acceptance-test matrix, phased order and file ownership.
+- **Validation:** Fetched the committed document back from the feature branch and verified all assignment topics/sections. PR #17 and PR #19 were closed unmerged after their changed-file lists picked up status-file updates committed to main after PR creation. PR #20 is the clean-base replacement. Application tests are not run for this documentation-only task; the specification defines implementation-level tests.
+- **Branch synchronization:** No force updates. The feature branch is synchronized with the latest main tree using a two-parent merge commit before PR #20 is opened.
+- **Blockers:** None.
+- **Next action:** Coordinator review of PR #20. No implementation or command-palette work is self-assigned.
 - **Last updated:** 2026-11-14.
+
+## Previous task — AC-009
+
+- **Deliverable:** `UX_IMPLEMENTATION_PLAN.md`, PR #9.
+- **Outcome:** Coordinator board records `REVIEW_ACCEPTED`; eight UX tasks were specified. No implementation work was self-assigned.
+- **Previous coordinator integration report:** See the historical handoff below.
 
 ## Coordinator-directed integration review — 2026-11-14
 

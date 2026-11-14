@@ -3,40 +3,59 @@
 - **Task:** AC-015 — Layer editing safety guard
 - **Status:** REVIEW
 - **Branch:** `agent/layer-safety`
-- **Base:** `fe66725f7d010beca7ca60f497778d419e753d7b`
-- **Commit:** `7ef446f21121d73c8fd49835be5c8cfee95c1c26`
-- **PR:** [#14 — AC-015: Add isolated layer-edit safety guard](https://github.com/faiev/ArtClub/pull/14) (draft, open)
-- **Files changed:** `js/layer-edit-guard.js`, `tests/layer-edit-guard.test.js`, `docs/layer-edit-safety.md`
-- **Diff:** 3 added files; 420 insertions; branch is 1 commit ahead and 0 behind assigned base.
+- **Latest application base merged:** `56932bb16601ab5f5fd22c1d37bb877b8c06ab3f`
+- **Feature head tested:** `adb54668ebd4507e55dc6144b73a91b85f20afbe`
+- **Merge commit:** `adb54668ebd4507e55dc6144b73a91b85f20afbe` (two parents; latest main was second parent)
+- **PR:** [#14 — AC-015: Add isolated layer-edit safety guard](https://github.com/faiev/ArtClub/pull/14) — open, ready for review
+- **Diff against merged base:** 3 assigned application files only; 5 commits ahead, 0 behind at final synchronization.
+- **Subsequent main activity:** main advanced after synchronization through worker status-only updates; no application/workflow files changed in those commits. Current observed main at status write: `92a9b7e5646e6ec791e8cea7879da549a6558ccf`.
 
-## Implementation
+## Coordinator-requested correction
 
-- Added a browser-global/CommonJS plain-JavaScript guard with `resolveEditableTarget()` and `assertEditableTarget()`.
-- Denial codes distinguish missing/ambiguous/inactive layers, hidden/locked layers, malformed metadata/documents, inactive/missing frames, and missing/ambiguous/malformed cels.
-- The guard never creates missing cels or mutates the project.
-- Documented the current path audit and integration contract for Clear, image import and Agent API edits.
-- No editor/UI/API/bridge integration was performed; existing Clear and image-import bypasses remain live until a coordinator-assigned integration task.
+- Replaced sparse-skipping `.some()` cel validation with indexed validation over every expected pixel slot.
+- Requires every expected index to be an own/present array entry.
+- Each value must be explicit `null` or a valid `#RRGGBB` string.
+- Sparse holes and explicit `undefined` return `CEL_INVALID`.
+- Denial path is non-mutating.
+- Added regression tests for sparse hole, explicit undefined, and valid null/HEX values. Both rejection tests assert that the project buffer and own-slot shape remain unchanged.
 
-## Test evidence
+## Files changed
 
-Local commands executed on Node.js 22.16.0:
+- `js/layer-edit-guard.js`
+- `tests/layer-edit-guard.test.js`
+- `docs/layer-edit-safety.md`
+
+No other files changed. No UI/API/MCP integration was performed.
+
+## Local tests
+
+Runtime: Node.js 22.16.0.
+
 - `node --check /tmp/artclub-agent6/js/layer-edit-guard.js` — passed.
 - `node --check /tmp/artclub-agent6/tests/layer-edit-guard.test.js` — passed.
-- `node --test /tmp/artclub-agent6/tests/layer-edit-guard.test.js` — 10 passed, 0 failed.
+- `node --test /tmp/artclub-agent6/tests/layer-edit-guard.test.js` — **13 passed, 0 failed**.
 
-GitHub Actions run #111 on commit `7ef446f`:
-- `test` job: passed; complete project test command `node --test tests/*.test.js`; 45 passed, 0 failed.
-- `browser-e2e` job: in progress at last verification; setup had not yet reached Chromium tests. No browser result is claimed.
+## GitHub Actions revalidation
+
+Run #149 — [workflow run](https://github.com/faiev/ArtClub/actions/runs/43606501403), exact feature head `adb54668ebd4507e55dc6144b73a91b85f20afbe`.
+
+- Node project job: `node --test tests/*.test.js` — **71 passed, 0 failed**.
+- The same Node job completed `node --check agent-bridge/server.mjs` successfully.
+- Browser setup: `npm install --ignore-scripts` — passed.
+- Chromium setup: `npx playwright install --with-deps chromium` — passed.
+- Real browser editor E2E: `npm run test:e2e` — passed. Log confirms mouse drawing, undo/redo, agent batch, layers, custom canvas, animation playback, onion skin, PNG, IndexedDB library and reload recovery.
+- MCP client integration: `npm run test:mcp` — passed. Log confirms drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
+- Both workflow jobs concluded `success`.
 
 ## Remaining risks / limitations
 
-- This is an isolated guard library, not an application fix.
-- Toolbar Clear and image import still bypass the current protection because this PR does not edit shared UI code.
-- The guard has not been browser-integrated or browser-verified.
-- Local runtime was Node 22.16.0; repository documentation recommends Node 24+ for full project checks. CI's Node 24 unit-test job passed.
+- This remains an isolated guard library. It is not wired into the live editor, browser Agent API or MCP bridge.
+- Toolbar Clear and image import remain unprotected until the separately assigned integration work is authorized and its shared-file locks are granted.
+- Local focused tests ran on Node 22.16.0; GitHub Actions ran on Node 24.
+- No application integration or user-facing bug fix is claimed.
 
 ## Handoff
 
-Coordinator: review PR #14 and decide/assign the follow-up integration owner for Clear, image import and Agent API mutation boundaries. Agent 6 does not merge, self-accept or mark the task DONE.
+Coordinator: review PR #14 and accept or return the corrected AC-015 deliverable. Agent 6 does not merge, self-accept or mark the task DONE.
 
 - **Last updated:** 2026-11-14.
