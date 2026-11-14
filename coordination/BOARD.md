@@ -3,7 +3,7 @@
 Coordinator snapshot: 2026-11-14  
 Repository: [faiev/ArtClub](https://github.com/faiev/ArtClub)  
 Default branch / coordination source: `main`  
-Current main commit: `f0c470392fe4411ca79b1d17bfe72e928af3be00`
+PR #7 merge commit: `f0c470392fe4411ca79b1d17bfe72e928af3be00`
 
 > Coordinator owns this board. Workers update only their own status files.
 
