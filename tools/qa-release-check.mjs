@@ -168,10 +168,10 @@ function inspectCoordination(root, checks) {
   const branch = git(root, ["branch", "--show-current"]);
   const head = git(root, ["rev-parse", "HEAD"]);
   const originMain = git(root, ["rev-parse", "refs/remotes/origin/main"]);
-  if (!branch || !head) {
+  if (!head) {
     addCheck(checks, "git-checkout", "skipped", "Checkout is not a readable Git working tree.");
   } else {
-    addCheck(checks, "git-checkout", "pass", "Read local branch and HEAD.", { branch, head });
+    addCheck(checks, "git-checkout", "pass", "Read local branch and HEAD.", { branch: branch || "(detached HEAD)", head });
     if (branch === "main" && originMain && head !== originMain) {
       addCheck(checks, "local-main-freshness", "warn", "Local main differs from local origin/main.", { head, originMain });
     } else if (branch === "main" && originMain) {
@@ -187,12 +187,17 @@ export function checkReleaseReadiness(options = {}) {
   const checks = [];
 
   for (const relativePath of REQUIRED_FILES) {
-    const exists = fs.existsSync(path.join(root, relativePath));
+    let isFile = false;
+    try {
+      isFile = fs.statSync(path.join(root, relativePath)).isFile();
+    } catch {
+      isFile = false;
+    }
     addCheck(
       checks,
       "required-file:" + relativePath,
-      exists ? "pass" : "fail",
-      exists ? "Required file exists: " + relativePath : "Required file is missing: " + relativePath
+      isFile ? "pass" : "fail",
+      isFile ? "Required file exists: " + relativePath : "Required file is missing or is not a regular file: " + relativePath
     );
   }
 
