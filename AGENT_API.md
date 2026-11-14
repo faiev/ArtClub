@@ -95,6 +95,40 @@ Available layer methods: `list_layers`, `add_layer`, `select_layer`, `set_layer_
 
 The layer panel and agent API share one project stack. Drawing commands target the active visible, unlocked layer. Pixel and canvas read operations return the composite of visible layers. Layer actions participate in undo/redo, autosave and revision protection; deleting the final remaining layer is rejected.
 
+## Rectangular selection and transforms
+
+Selections use canvas-pixel coordinates and apply to the active layer. The selection border is an editor overlay; it is not part of the pixel data or exported image.
+
+```js
+let status = studio.get_status();
+status = await studio.set_selection({
+  x: 5, y: 4, width: 8, height: 6,
+  expected_revision: status.revision
+});
+
+// Copy/cut/paste are local editor clipboard operations.
+await studio.copy_selection();
+await studio.cut_selection();
+await studio.paste_selection();
+
+// Pixel edits and fills are constrained to the selected rectangle.
+await studio.draw_pixel({ x: 6, y: 5, color: "#f5c66d" });
+await studio.move_selection({ dx: 2, dy: 0 });
+
+// Exact transforms of the selected active-layer pixels.
+await studio.transform_selection({ operation: "flip_h" });
+await studio.transform_selection({ operation: "flip_v" });
+await studio.transform_selection({ operation: "rotate_cw" });
+// or "rotate_ccw"
+
+await studio.clear_selection();
+await studio.deselect();
+```
+
+Available selection methods: `set_selection`, `select_all`, `copy_selection`, `cut_selection`, `paste_selection`, `clear_selection`, `deselect`, `move_selection` and `transform_selection`.
+
+The rectangle must be a positive integer size fully inside the canvas. A quarter-turn swaps selection width and height; the API rejects the operation if the rotated rectangle would extend beyond the canvas. Selection changes increment the document revision so agents can reject stale operations. The clipboard is local to the open editor page and is not stored in the project file.
+
 ## Batches and transactions
 
 For sprite construction, batch related operations so the artist can undo the whole pass:
@@ -145,4 +179,4 @@ The project library uses browser-local IndexedDB. JSON export is the portable ba
 
 ## Current limits
 
-The editor currently exposes editable layers but still only one animation frame. Layer-aware agent commands share the visible stack and active cel. Frame/timeline editing is not yet available.
+The editor exposes editable layers and rectangular selection/transforms, but still only one animation frame. Layer- and selection-aware agent commands share the active document. Frame/timeline editing is not yet available.
