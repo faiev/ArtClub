@@ -38,3 +38,25 @@ The whole specification pack is pre-authorized. Submit a PR for the shortcut spe
 
 ## Handoff
 Update only coordination/status/agent-5.md with completed specs, PRs/branches, audit evidence, prototypes and the next 3–5 actions. Do not merge or self-accept.
+
+## Coordinator-added extension — AC-091: Professional workstation design system and interactive prototype
+
+The six specification phases are submitted. The next UX deliverable is a serious, high-fidelity workstation prototype informed by those specifications and the coordinator's product critique. This is a design project, not permission to redesign production `index.html`.
+
+### Design objective
+Make One Pixel Studio feel like a credible pixel-art workstation, not a promotional website, generic SaaS dashboard or playful component demo. Use established creative-software interaction conventions while preserving the product's own identity.
+
+### Required deliverables
+1. `docs/ux/DESIGN_SYSTEM.md`: semantic color tokens, typography, spacing, density, radii, borders, icon rules, selection/focus/disabled/error states and component behavior.
+2. `docs/ux/prototypes/workstation.html` plus self-contained CSS/JS (no external runtime dependencies): a genuinely interactive prototype, not just static cards or a screenshot.
+3. A full desktop workspace at 1440×900 and a compact layout at 1280×800; include a narrower responsive state and document which panels collapse or move.
+4. Show menu/document tabs, contextual tool options, a consistent tool rail, dominant canvas viewport, docked inspector, real layer-by-frame/cel matrix, timeline/playback/status information, palette and import/export dialogs.
+5. Implement believable interactions: tool selection changes contextual options; frame/layer selection updates active state; timeline playback state changes; panels collapse/resize; dialogs open/close; keyboard focus is visible and navigation is usable.
+6. Use original synthetic pixel-art samples and real text/data. No emoji icons, external stock imagery, large marketing hero, gradient/glow, oversized rounded cards, decorative floating art or indiscriminate accent buttons.
+7. Provide a design rationale and a comparison checklist against the current production UI and the Agent 5 interaction specifications. Label all non-production behavior honestly.
+8. Capture genuine prototype screenshots at the stated viewport sizes and include a task-based review checklist for drawing, changing frame/layer, importing and exporting.
+
+### Visual review standard
+Use restrained graphite surfaces, quiet typography, disciplined alignment, compact but legible controls, precise separators and a restrained accent system. Artwork—not the chrome—must carry the color. The result should resemble carefully designed professional creative software, not a childlike mock UI. Do not imitate Aseprite pixel-for-pixel.
+
+**Allowed files:** `docs/ux/DESIGN_SYSTEM.md` and `docs/ux/prototypes/**`, including local CSS/JS/assets created specifically for the prototype. No index.html, production app CSS/JS, shared tests, bridge, workflow or actual editor integration. Agent 5 may use JavaScript inside the standalone prototype only.
