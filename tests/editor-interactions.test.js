@@ -230,19 +230,19 @@ test("layers composite in order and visibility reveals lower-layer pixels", asyn
   editor.document.getElementById("addLayerBtn").emit("click");
   let rows = editor.document.getElementById("layerList").children;
   assert.equal(rows.length, 2);
-  assert.match(rows[1].children[0].textContent, /Layer 2/);
+  assert.match(rows[0].children[0].textContent, /Layer 2/);
 
   await editor.agent.draw_pixel({ x: 2, y: 2, color: "#ff0000" });
   assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#ff0000");
 
   // Select the bottom layer and paint a different color under the red pixel.
-  rows[0].children[0].emit("click");
+  rows[1].children[0].emit("click");
   await editor.agent.draw_pixel({ x: 2, y: 2, color: "#0000ff" });
   assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#ff0000");
 
   // Hide the top layer; the blue lower-layer pixel should become visible.
   rows = editor.document.getElementById("layerList").children;
-  rows[1].children[1].children[0].emit("click");
+  rows[0].children[1].children[0].emit("click");
   assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#0000ff");
 
   // Undo the visibility toggle and the top-layer red pixel is visible again.
@@ -255,7 +255,7 @@ test("locked layers reject both human and agent drawing", async () => {
   const editor = await bootEditor();
   editor.document.getElementById("addLayerBtn").emit("click");
   let rows = editor.document.getElementById("layerList").children;
-  rows[1].children[1].children[1].emit("click");
+  rows[0].children[1].children[1].emit("click");
 
   const status = editor.agent.get_status();
   assert.equal(status.active_layer.locked, true);
