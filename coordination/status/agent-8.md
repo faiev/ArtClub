@@ -165,3 +165,25 @@ GitHub Actions run-job inspection confirmed both jobs completed successfully for
 - Exact current `main` SHA at the start of this inventory: `495842cef440aec553f2def7b362ee586843c4b7`. (This value was confirmed by the compare API's base commit. It may advance as other agents update their status files.)
 - No code files, branch refs, PR states, CI workflows, or other agents' status files changed. Only this Agent 8 status file is updated by this report.
 - **Next action:** await coordinator disposition; do not sync/close/delete any branch or reopen feature work without explicit authorization.
+
+
+### Comparison refresh addendum — latest main after parallel status commits
+The initial table above was captured while main was at `495842cef440aec553f2def7b362ee586843c4b7`. Main advanced during the multi-agent inventory. I re-ran every comparison against the newer main immediately before this addendum; the refreshed base is `13f43f70e1119a27984f388f8970d89282dc77a6`. **These refreshed ahead/behind values supersede the earlier table values** (branch heads and changed-file lists are unchanged).
+
+| PR / ref | Branch | Ahead / behind vs refreshed main |
+|---|---|---:|
+| #16 merged | `agent/palette-formats` | 0 / 112 |
+| #27 open | `agent/palette-tools` | 16 / 60 |
+| #33 open | `agent/palette-color-science` | 13 / 60 |
+| #39 open | `agent/palette-transformations` | 12 / 60 |
+| #45 open | `agent/palette-mapping` | 10 / 60 |
+| #53 open | `agent/palette-accessibility` | 9 / 60 |
+| #56 open | `agent/palette-corpus` | 8 / 60 |
+| #60 open draft | `agent/palette-workflow-contract` | 8 / 61 |
+| #78 merged | `agent/palette-distance-bounded-v2` | 0 / 134 |
+| #94 open | `agent/ui04-palette-parser-acceptance` | 5 / 46 |
+| #63 closed legacy | `agent/palette-distance` | 4 / 225 |
+| Legacy bounded ref | `agent/palette-distance-bounded` | 3 / 154 |
+| Agent 5 #35 (out of scope) | `agent/palette-export-spec` | 7 / 38 |
+
+All refreshed comparisons still use base branch `main`. The two merged refs remain fully reachable (0 ahead); the eight open refs and two legacy distance refs retain unique commits and should remain parked pending coordinator disposition. This refresh changes no recommendation.
