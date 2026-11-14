@@ -286,6 +286,7 @@ input[type=color]{width:40px;height:36px}
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+<script src="./js/project-model.js"></script>
 <script>
 (function(){
 "use strict";
@@ -300,7 +301,7 @@ const PALETTE_SETS = {
 };
 let w=24,h=24,pixels=[],palette=DEFAULT_PALETTE.slice(),selected=8,tool="brush",projectName="Untitled artwork",zoom=1;
 let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,saveTimer=null,focusedIndex=0;
-let savedProject=null;
+let projectDoc=null;
 const grid=$("pixelGrid");
 
 function blank(size){return Array(size*size).fill(null)}
@@ -324,18 +325,56 @@ function demo(){
   rect(a,s,8,19,15,19,c[1]);a[20*s+9]=c[3];a[20*s+14]=c[3];
   return a;
 }
-function snapshot(){return {w,h,pixels:pixels.slice(),palette:palette.slice(),selected,projectName}}
-function remember(){
-  undoStack.push(snapshot());
-  if(undoStack.length>60)undoStack.shift();
-  redoStack=[];
-  updateHistoryButtons();
+function resamplePixels(source, oldWidth, oldHeight, newWidth, newHeight){
+  const output=Array(newWidth*newHeight).fill(null);
+  if(!Array.isArray(source)||source.length!==oldWidth*oldHeight)return output;
+  for(let y=0;y<newHeight;y++)for(let x=0;x<newWidth;x++){
+    const oldX=Math.min(oldWidth-1,Math.floor(x*oldWidth/newWidth));
+    const oldY=Math.min(oldHeight-1,Math.floor(y*oldHeight/newHeight));
+    output[y*newWidth+x]=source[oldY*oldWidth+oldX];
+  }
+  return output;
 }
-function restore(s){
-  w=s.w;h=s.h;pixels=s.pixels.slice();palette=s.palette.slice();selected=Math.min(s.selected,palette.length-1);
-  projectName=typeof s.projectName==="string"&&s.projectName.trim()?s.projectName:"Untitled artwork";
+function syncProjectDocument(){
+  if(!projectDoc){
+    projectDoc=ProjectModel.createProject({
+      width:w,height:h,name:projectName,palette:palette,
+      selectedColorIndex:selected,pixels:pixels
+    });
+  }else{
+    const oldWidth=projectDoc.canvas.width,oldHeight=projectDoc.canvas.height;
+    if(oldWidth!==w||oldHeight!==h){
+      projectDoc.cels.forEach(cel=>{
+        cel.pixels=resamplePixels(cel.pixels,oldWidth,oldHeight,w,h);
+      });
+      projectDoc.canvas.width=w;
+      projectDoc.canvas.height=h;
+    }
+    projectDoc.name=projectName;
+    projectDoc.palette=palette.slice();
+    projectDoc.selectedColorIndex=selected;
+    let activeCel=ProjectModel.getCel(projectDoc);
+    if(!activeCel)activeCel=ProjectModel.ensureCel(projectDoc);
+    activeCel.pixels=pixels.slice();
+    projectDoc.metadata.updatedAt=new Date().toISOString();
+  }
+  return projectDoc;
+}
+function snapshot(){
+  return ProjectModel.cloneProject(syncProjectDocument());
+}
+function restore(source){
+  const doc=ProjectModel.deserializeProject(source);
+  projectDoc=doc;
+  w=doc.canvas.width;h=doc.canvas.height;
+  palette=doc.palette.slice();
+  selected=doc.selectedColorIndex;
+  projectName=doc.name;
+  const activeCel=ProjectModel.getCel(doc)||ProjectModel.ensureCel(doc);
+  pixels=activeCel.pixels.slice();
   $("projectName").value=projectName;
-  $("gridSize").value=String(w);renderAll();scheduleSave();updateHistoryButtons();
+  $("gridSize").value=String(w);
+  renderAll();scheduleSave();updateHistoryButtons();
 }
 function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());}
 function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());}
@@ -408,7 +447,7 @@ function scheduleSave(){
   $("saveState").textContent="SAVING LOCALLY…";
   clearTimeout(saveTimer);
   saveTimer=setTimeout(()=>{
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot()));$("saveState").textContent="SAVED ON THIS DEVICE"}
+    try{localStorage.setItem(STORAGE_KEY,ProjectModel.serializeProject(snapshot()));$("saveState").textContent="SAVED ON THIS DEVICE"}
     catch(e){$("saveState").textContent="LOCAL SAVE · UNAVAILABLE"}
   },280);
 }
@@ -561,16 +600,18 @@ $("svgBtn").addEventListener("click",()=>{
   const svg='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" shape-rendering="crispEdges">\n'+shapes.join("\n")+'\n</svg>';
   download(safeFilename()+"-"+w+"x"+h+".svg","image/svg+xml;charset=utf-8",svg);toast("Crisp vector SVG exported.");
 });
-$("jsonBtn").addEventListener("click",()=>{download(safeFilename()+"-project.json","application/json",JSON.stringify({app:"One Pixel Studio",version:1,...snapshot()},null,2));toast("Project file exported.")});
+$("jsonBtn").addEventListener("click",()=>{download(safeFilename()+"-project.json","application/json",ProjectModel.serializeProject(snapshot()));toast("Editable project exported.")});
 $("importProjectBtn").addEventListener("click",()=>$("projectInput").click());
 $("projectInput").addEventListener("change",async e=>{
   const file=e.target.files[0];if(!file)return;
   try{
-    const data=JSON.parse(await file.text());
-    if(![16,24,32,48,64].includes(data.w)||data.h!==data.w||!Array.isArray(data.pixels)||data.pixels.length!==data.w*data.h||!Array.isArray(data.palette)||!data.palette.length)throw new Error("Invalid project structure");
-    if(data.palette.some(c=>!/^#[0-9a-fA-F]{6}$/.test(c))||data.pixels.some(c=>c!==null&&!/^#[0-9a-fA-F]{6}$/.test(c)))throw new Error("Invalid color data");
-    remember();restore({w:data.w,h:data.h,pixels:data.pixels,palette:data.palette,selected:Number.isInteger(data.selected)?data.selected:0,projectName:data.projectName});toast("Project opened.");
-  }catch(err){toast("Could not open that project file.")}
+    const imported=ProjectModel.deserializeProject(await file.text());
+    remember();
+    restore(imported);
+    toast("Project opened · "+imported.layers.length+" layer(s), "+imported.frames.length+" frame(s).");
+  }catch(err){
+    toast(err&&err.message?err.message:"Could not open that project file.");
+  }
   e.target.value="";
 });
 $("importImageBtn").addEventListener("click",()=>$("imageInput").click());
@@ -618,15 +659,31 @@ function init(){
   let restored=false;
   try{
     const raw=localStorage.getItem(STORAGE_KEY);
-    if(raw){const data=JSON.parse(raw);if([16,24,32,48,64].includes(data.w)&&data.h===data.w&&Array.isArray(data.pixels)&&data.pixels.length===data.w*data.h&&Array.isArray(data.palette)&&data.palette.length&&data.palette.every(c=>/^#[0-9a-fA-F]{6}$/.test(c))&&data.pixels.every(c=>c===null||/^#[0-9a-fA-F]{6}$/.test(c))){
-      w=data.w;h=data.h;pixels=data.pixels;palette=data.palette;selected=Math.min(Number(data.selected)||0,palette.length-1);
-      projectName=typeof data.projectName==="string"&&data.projectName.trim()?data.projectName:"Untitled artwork";
-      $("projectName").value=projectName;$("gridSize").value=String(w);restored=true;
-    }}
-  }catch(e){}
-  if(!restored)pixels=demo();
+    if(raw){
+      // This also migrates the previous flat-canvas save into a v2 document.
+      projectDoc=ProjectModel.deserializeProject(raw);
+      w=projectDoc.canvas.width;h=projectDoc.canvas.height;
+      palette=projectDoc.palette.slice();
+      selected=projectDoc.selectedColorIndex;
+      projectName=projectDoc.name;
+      const activeCel=ProjectModel.getCel(projectDoc)||ProjectModel.ensureCel(projectDoc);
+      pixels=activeCel.pixels.slice();
+      $("projectName").value=projectName;
+      $("gridSize").value=String(w);
+      restored=true;
+    }
+  }catch(error){
+    projectDoc=null;
+    $("saveState").textContent="PROJECT RECOVERY NEEDED";
+  }
+  if(!restored){
+    w=24;h=24;palette=DEFAULT_PALETTE.slice();selected=8;
+    projectName="Untitled artwork";pixels=demo();
+  }
   $("projectName").value=projectName;
-  renderAll();syncColorUI();$("saveState").textContent=restored?"SAVED PROJECT · RESTORED":"LOCAL SAVE · READY";
+  renderAll();syncColorUI();
+  if(restored)$("saveState").textContent="PROJECT RESTORED · V2";
+  else if($("saveState").textContent!=="PROJECT RECOVERY NEEDED")$("saveState").textContent="NEW PROJECT · READY";
 }
 init();
 })();
