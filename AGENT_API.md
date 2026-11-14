@@ -53,7 +53,9 @@ The bridge serializes tool calls within one MCP server process. If two clients s
 
 Tool-handler failures return both an MCP text error and structured content with `ok: false` and `error: { tool, name, message }`. Input-schema failures may be rejected by the MCP SDK before the handler runs, so their error shape is SDK-controlled.
 
-The bridge has no hard per-operation timeout or cancellation mechanism for a page evaluation. A hung editor evaluation can hold the serialized queue; restart the bridge only after considering that an in-flight mutation may already have completed. After a disconnect, call `get_status` before attempting any retry.
+Each MCP request has a request ID, a per-tool deadline and cancellation support from the MCP request signal. Timeout/cancellation errors include a machine-readable code and an `outcome_uncertain` flag. Work cancelled while still queued is removed and never runs. For an active browser evaluation, the bridge closes the editor page to interrupt it and keeps the serial queue slot occupied until Playwright confirms the evaluation has unwound; later operations cannot overtake a potentially committed mutation. Clients must call `get_status` and inspect the project before deciding whether to retry.
+
+The outstanding-operation queue is bounded. Serialized JSON input and output are limited by configurable UTF-8 byte caps. During graceful shutdown, the bridge rejects queued calls, aborts and drains active work, then closes the browser context and MCP server. A page evaluation that does not settle after page teardown can still delay final shutdown; the bridge does not claim to roll back an in-flight mutation.
 
 ## Drawing operations
 

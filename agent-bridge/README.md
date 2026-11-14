@@ -25,13 +25,17 @@ npx playwright install chromium
 npm start
 ```
 
-The first launch opens a dedicated Chromium profile in `~/.artclub-agent-browser`. The active project library and autosaves are stored in that profile's browser storage. The MCP process stays running while the client is connected. The bridge serializes tool operations, requires a fresh document revision for writes, and reconnects its dedicated editor page after a recoverable browser-page failure.
+The first launch opens a dedicated Chromium profile in `~/.artclub-agent-browser`. The active project library and autosaves are stored in that profile's browser storage. The MCP process stays running while the client is connected. The bridge serializes tool operations, requires a fresh document revision for writes, and reconnects its dedicated editor page after a recoverable browser-page failure. Each request has a deadline and the outstanding-operation queue is bounded.
 
 Environment options:
 
 - `ARTCLUB_URL`: editor URL; defaults to `https://faiev.github.io/ArtClub/`.
 - `ARTCLUB_HEADLESS=1`: run Chromium without a visible window.
-- `ARTCLUB_PROFILE_DIR`: choose a different persistent browser profile directory
+- `ARTCLUB_PROFILE_DIR`: choose a different persistent browser profile directory.
+- `ARTCLUB_DEFAULT_TOOL_DEADLINE_MS`: default deadline for tools without a specific override (default 30,000 ms).
+- `ARTCLUB_MAX_TOOL_DEADLINE_MS`: maximum configured tool deadline (default 120,000 ms).
+- `ARTCLUB_MAX_PENDING_OPERATIONS`: maximum active plus queued operations (default 64).
+- `ARTCLUB_MAX_TOOL_INPUT_BYTES` / `ARTCLUB_MAX_TOOL_OUTPUT_BYTES`: serialized JSON payload limits (defaults 8 MiB and 16 MiB).
 
 `ARTCLUB_URL` must use HTTPS, except that plain HTTP is accepted for loopback development URLs (`localhost`, `127.0.0.1` or `::1`). URLs containing embedded credentials are rejected. Only point it at an Art Club deployment you trust: the bridge calls the `window.onePixelStudio` API exposed by that page, so a custom HTTPS origin is part of your local trust boundary.
 
@@ -108,7 +112,11 @@ The bridge serializes requests within one MCP server process and checks the revi
 
 The bridge owns one persistent Chromium profile. Do not start two bridge processes with the same `ARTCLUB_PROFILE_DIR`; use one bridge process for one editor session. Separate profile directories are separate local project libraries, not shared concurrent workspaces. Multiple independent bridge processes do not coordinate their write queues.
 
-If the editor tab is closed, crashes or navigates away, the next tool call attempts to reopen the editor automatically. If the browser disconnects during an operation, its outcome may be uncertain: call `artclub_get_status` before retrying so an already-completed edit is not duplicated. The bridge currently has no hard per-operation timeout or cancellation primitive for a hanging `page.evaluate`; a stuck evaluation can hold the serialized queue. Restart the bridge only after accounting for a possibly completed in-flight write.
+If the editor tab is closed, crashes or navigates away, the next tool call attempts to reopen the editor automatically. If the browser disconnects during an operation, its outcome may be uncertain: call `artclub_get_status` before retrying so an already-completed edit is not duplicated.
+
+Each MCP request receives a request ID and per-tool deadline. Timeout/cancellation errors carry a machine-readable code, request ID and `outcome_uncertain` flag. A request cancelled before execution is removed from the queue and never runs. When an active browser evaluation times out or is cancelled, the bridge closes the editor page to interrupt it but **does not release the serial queue slot until Playwright reports that the evaluation has unwound**. A later mutation therefore cannot overtake an operation that may already have committed. Read status and inspect the project before retrying.
+
+The queue is bounded; a full queue rejects new work with `QUEUE_FULL` rather than growing without limit. Input and output limits are measured from their serialized JSON representation in UTF-8 bytes. During shutdown, queued requests are rejected, active work is cancelled and drained, and only then are the browser context and MCP server closed. A browser evaluation that fails to settle after page teardown can still delay shutdown; the bridge does not claim rollback for an uncertain write.
 
 Tool-handler failures include text content and structured error details: `{ ok: false, error: { tool, name, message } }`. Invalid arguments rejected by the MCP SDK's input-schema validation may use the SDK's own error response instead.
 

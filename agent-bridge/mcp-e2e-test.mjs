@@ -59,7 +59,12 @@ async function run() {
     ...process.env,
     ARTCLUB_URL: url,
     ARTCLUB_HEADLESS: "1",
-    ARTCLUB_PROFILE_DIR: profileDir
+    ARTCLUB_PROFILE_DIR: profileDir,
+    NODE_ENV: "test",
+    ARTCLUB_TEST_HOLD_POINTS: "23,22;22,21",
+    ARTCLUB_TEST_HOLD_MS: "1000",
+    ARTCLUB_TEST_TIMEOUT_POINT: "22,21",
+    ARTCLUB_TEST_TIMEOUT_MS: "100"
   };
 
   // Invalid editor URLs must fail before Chromium launches.
@@ -582,7 +587,78 @@ async function run() {
     assert.equal(staleWrite.structuredContent.error.tool, "artclub_draw_pixel");
     assert.match(staleWrite.structuredContent.error.message, /changed since your last read/i);
 
-    console.log("MCP E2E passed: structured reads, structured errors, revision-guarded writes, concurrency rejection, layers, selections, animation, export/import, PNG preview, save and input validation.");
+    // Client cancellation during a post-mutation hold must cancel the caller
+    // promptly, close the in-flight page, and keep the serial lane fenced until
+    // Playwright reports the evaluation has unwound.
+    const beforeCancel = await callTool({ name: "artclub_get_status", arguments: {} });
+    const cancelRevision = beforeCancel.structuredContent.revision;
+    const cancelController = new AbortController();
+    const cancelledMutation = rawCallTool({
+      name: "artclub_draw_pixel",
+      arguments: {
+        x: 23, y: 22, color: "#c0ffee",
+        expected_revision: cancelRevision
+      }
+    }, { signal: cancelController.signal });
+    const queuedAfterCancel = rawCallTool({
+      name: "artclub_draw_pixel",
+      arguments: {
+        x: 22, y: 22, color: "#2211aa",
+        expected_revision: cancelRevision
+      }
+    });
+    await new Promise(resolve => setTimeout(resolve, 125));
+    cancelController.abort(new Error("AC-043 cancellation test"));
+    await assert.rejects(cancelledMutation);
+    const afterCancelQueued = await queuedAfterCancel;
+    if (afterCancelQueued.isError) {
+      assert.match(afterCancelQueued.structuredContent.error.message, /changed since your last read|revision/i);
+    } else {
+      const queuedPixel = await callTool({ name: "artclub_get_pixel", arguments: { x: 22, y: 22 } });
+      assert.equal(queuedPixel.structuredContent.color, "#2211aa");
+    }
+    const afterCancelStatus = await callTool({ name: "artclub_get_status", arguments: {} });
+    assert.ok(Number.isSafeInteger(afterCancelStatus.structuredContent.revision));
+    const cancelledPixel = await callTool({ name: "artclub_get_pixel", arguments: { x: 23, y: 22 } });
+    assert.equal(cancelledPixel.structuredContent.color, "#c0ffee", "the test hold commits and saves before cancellation");
+    
+    // An active operation deadline returns an uncertain-outcome error with a
+    // request ID. A later queued request must wait for browser teardown and can
+    // only run against the state observed after the in-flight evaluation ends.
+    const beforeTimeout = await callTool({ name: "artclub_get_status", arguments: {} });
+    const timeoutRevision = beforeTimeout.structuredContent.revision;
+    const timedMutation = rawCallTool({
+      name: "artclub_draw_pixel",
+      arguments: {
+        x: 22, y: 21, color: "#deadbe",
+        expected_revision: timeoutRevision
+      }
+    });
+    const queuedAfterTimeout = rawCallTool({
+      name: "artclub_draw_pixel",
+      arguments: {
+        x: 21, y: 21, color: "#bb22cc",
+        expected_revision: timeoutRevision
+      }
+    });
+    const timeoutResult = await timedMutation;
+    assert.equal(timeoutResult.isError, true);
+    assert.equal(timeoutResult.structuredContent.error.code, "OPERATION_TIMEOUT");
+    assert.equal(timeoutResult.structuredContent.error.outcome_uncertain, true);
+    assert.ok(timeoutResult.structuredContent.error.request_id);
+    const afterTimeoutQueued = await queuedAfterTimeout;
+    if (afterTimeoutQueued.isError) {
+      assert.match(afterTimeoutQueued.structuredContent.error.message, /changed since your last read|revision/i);
+    } else {
+      const queuedPixel = await callTool({ name: "artclub_get_pixel", arguments: { x: 21, y: 21 } });
+      assert.equal(queuedPixel.structuredContent.color, "#bb22cc");
+    }
+    const afterTimeoutStatus = await callTool({ name: "artclub_get_status", arguments: {} });
+    assert.ok(Number.isSafeInteger(afterTimeoutStatus.structuredContent.revision));
+    const timedPixel = await callTool({ name: "artclub_get_pixel", arguments: { x: 22, y: 21 } });
+    assert.equal(timedPixel.structuredContent.color, "#deadbe", "the timed mutation may already have committed before the deadline");
+
+    console.log("MCP E2E passed: structured reads/errors, revision checks, FIFO concurrency, cancellation, deadline fencing, layers, selections, animation, export/import and PNG.");
   } finally {
     await client.close().catch(() => {});
     await new Promise(resolve => staticServer.close(resolve));

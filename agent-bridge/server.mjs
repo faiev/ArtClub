@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { AsyncLocalStorage } from "node:async_hooks";
+import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
@@ -8,6 +10,11 @@ import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { chromium } from "playwright";
 import * as z from "zod/v4";
+import {
+  assertJsonByteLimit,
+  BridgeOperationError,
+  SerialOperationQueue
+} from "./operation-queue.mjs";
 
 function validateAppUrl(value) {
   let url;
@@ -37,6 +44,71 @@ const PROFILE_DIR = process.env.ARTCLUB_PROFILE_DIR ||
   path.join(os.homedir(), ".artclub-agent-browser");
 const HEADLESS = process.env.ARTCLUB_HEADLESS === "1";
 
+function boundedIntegerEnv(name, fallback, min, max) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === "") return fallback;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < min || value > max) {
+    throw new Error(name + " must be an integer from " + min + " to " + max + ".");
+  }
+  return value;
+}
+
+function parseTestPoint(value) {
+  if (!TEST_MODE || !value) return null;
+  const parts = value.split(",").map(Number);
+  if (parts.length !== 2 || parts.some(number => !Number.isSafeInteger(number) || number < 0)) {
+    throw new Error("Test point values must use the x,y format.");
+  }
+  return { x: parts[0], y: parts[1] };
+}
+
+const TEST_MODE = process.env.NODE_ENV === "test";
+const MAX_TOOL_INPUT_BYTES = boundedIntegerEnv(
+  "ARTCLUB_MAX_TOOL_INPUT_BYTES", 8 * 1024 * 1024, 1_024, 32 * 1024 * 1024
+);
+const MAX_TOOL_OUTPUT_BYTES = boundedIntegerEnv(
+  "ARTCLUB_MAX_TOOL_OUTPUT_BYTES", 16 * 1024 * 1024, 1_024, 64 * 1024 * 1024
+);
+const MAX_PENDING_OPERATIONS = boundedIntegerEnv(
+  "ARTCLUB_MAX_PENDING_OPERATIONS", 64, 1, 512
+);
+const DEFAULT_TOOL_DEADLINE_MS = boundedIntegerEnv(
+  "ARTCLUB_DEFAULT_TOOL_DEADLINE_MS", 30_000, 100, 300_000
+);
+const MAX_TOOL_DEADLINE_MS = boundedIntegerEnv(
+  "ARTCLUB_MAX_TOOL_DEADLINE_MS", 120_000, 100, 300_000
+);
+const TOOL_DEADLINES_MS = new Map([
+  ["artclub_get_status", 10_000],
+  ["artclub_get_pixel", 10_000],
+  ["artclub_get_canvas", 30_000],
+  ["artclub_execute", 45_000],
+  ["artclub_save", 30_000],
+  ["artclub_open_project", 60_000],
+  ["artclub_export_project", 45_000],
+  ["artclub_import_project", 90_000],
+  ["artclub_export_png", 25_000]
+]);
+const TEST_HOLD_POINTS = TEST_MODE && process.env.ARTCLUB_TEST_HOLD_POINTS
+  ? process.env.ARTCLUB_TEST_HOLD_POINTS.split(";").map(parseTestPoint)
+  : [];
+const TEST_HOLD_MS = TEST_HOLD_POINTS.length
+  ? boundedIntegerEnv("ARTCLUB_TEST_HOLD_MS", 1_000, 1, 5_000)
+  : 0;
+const TEST_TIMEOUT_POINT = parseTestPoint(process.env.ARTCLUB_TEST_TIMEOUT_POINT);
+const TEST_TIMEOUT_MS = TEST_TIMEOUT_POINT
+  ? boundedIntegerEnv("ARTCLUB_TEST_TIMEOUT_MS", 100, 50, 5_000)
+  : 0;
+
+function getToolDeadlineMs(name, args) {
+  if (TEST_TIMEOUT_POINT && name === "artclub_draw_pixel" &&
+      args?.x === TEST_TIMEOUT_POINT.x && args?.y === TEST_TIMEOUT_POINT.y) {
+    return TEST_TIMEOUT_MS;
+  }
+  return Math.min(TOOL_DEADLINES_MS.get(name) ?? DEFAULT_TOOL_DEADLINE_MS, MAX_TOOL_DEADLINE_MS);
+}
+
 const REVISION_GUARDED_METHODS = new Set([
   "draw_pixel", "draw_line", "draw_rectangle", "draw_ellipse", "fill",
   "erase_pixel", "erase_rectangle", "set_color", "execute",
@@ -54,7 +126,10 @@ const REVISION_GUARDED_METHODS = new Set([
 let browserContext;
 let page;
 let connectionPromise;
-let operationQueue = Promise.resolve();
+let activeBrowserOperation;
+let shutdownPromise;
+const requestScope = new AsyncLocalStorage();
+const operationQueue = new SerialOperationQueue({ maxPending: MAX_PENDING_OPERATIONS });
 const monitoredPages = new WeakSet();
 const crashedPages = new WeakSet();
 
@@ -133,30 +208,91 @@ async function connectToEditor() {
   }
 }
 
-async function readyPage() {
+function throwIfAborted(signal) {
+  if (signal?.aborted) {
+    throw signal.reason instanceof Error
+      ? signal.reason
+      : new BridgeOperationError("OPERATION_CANCELLED", "The request was cancelled.");
+  }
+}
+
+async function interruptBrowserOperation(requestId) {
+  const active = activeBrowserOperation;
+  if (active && active.requestId === requestId) {
+    activeBrowserOperation = null;
+    if (page === active.page) page = null;
+    try { await active.page.close({ runBeforeUnload: false }); } catch {}
+    return;
+  }
+
+  // Cancellation during startup/reconnect must also fence the shared connection
+  // promise. Wait for a late context to appear, then close it before releasing
+  // the serial queue slot.
+  const pendingConnection = connectionPromise;
+  if (pendingConnection) {
+    const context = browserContext;
+    browserContext = null;
+    page = null;
+    try { await context?.close(); } catch {}
+    try { await pendingConnection; } catch {}
+    const lateContext = browserContext;
+    if (lateContext) {
+      browserContext = null;
+      page = null;
+      try { await lateContext.close(); } catch {}
+    }
+  }
+}
+
+async function readyPage(signal) {
+  throwIfAborted(signal);
   if (page && !page.isClosed()) {
     try {
       const ready = await page.evaluate(() =>
         Boolean(window.onePixelStudio &&
           typeof window.onePixelStudio.get_status === "function")
       );
-      if (ready) return page;
-    } catch {
+      if (ready) {
+        throwIfAborted(signal);
+        return page;
+      }
+    } catch (error) {
+      if (signal?.aborted) throw signal.reason || error;
       // The page may have been closed, crashed or navigated away. Reconnect below.
     }
   }
 
   await connectToEditor();
+  throwIfAborted(signal);
   if (!page || page.isClosed()) {
     throw new Error("The Art Club browser page could not be restored.");
   }
   return page;
 }
 
-async function invokeNow(method, args) {
-  const targetPage = await readyPage();
+async function invokeNow(method, args, scope = {}) {
+  const { requestId = "internal", signal } = scope;
+  throwIfAborted(signal);
+  const targetPage = await readyPage(signal);
+  throwIfAborted(signal);
+  const operation = { requestId, page: targetPage };
+  activeBrowserOperation = operation;
+  const abortListener = () => {
+    void interruptBrowserOperation(requestId).catch(error => {
+      console.error("[Art Club] Could not interrupt cancelled browser operation:", error.message);
+    });
+  };
+  signal?.addEventListener("abort", abortListener, { once: true });
+
+  const holdPoint = method === "draw_pixel"
+    ? TEST_HOLD_POINTS.find(point => args?.x === point.x && args?.y === point.y)
+    : null;
+  const testHoldMs = holdPoint ? TEST_HOLD_MS : 0;
+
   try {
-    return await targetPage.evaluate(async ({ methodName, payload, requiresRevision }) => {
+    return await targetPage.evaluate(async ({
+      methodName, payload, requiresRevision, holdAfterMutationMs
+    }) => {
       const api = window.onePixelStudio;
       if (!api) throw new Error("Art Club Agent API is not ready in this tab.");
       const fn = api[methodName];
@@ -174,13 +310,22 @@ async function invokeNow(method, args) {
           throw new Error("The project changed since your last read. Call artclub_get_status again, review the updated state, and retry with its revision.");
         }
       }
-      return await fn(payload);
+      const result = await fn(payload);
+      // Test-only post-commit hold: it exercises cancellation after a mutation
+      // may already have occurred rather than only cancelling before dispatch.
+      if (holdAfterMutationMs > 0) {
+        if (typeof api.save === "function") await api.save();
+        await new Promise(resolve => setTimeout(resolve, holdAfterMutationMs));
+      }
+      return result;
     }, {
       methodName: method,
       payload: args === undefined ? null : args,
-      requiresRevision: REVISION_GUARDED_METHODS.has(method)
+      requiresRevision: REVISION_GUARDED_METHODS.has(method),
+      holdAfterMutationMs: testHoldMs
     });
   } catch (error) {
+    if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : error;
     const message = error && error.message ? error.message : String(error);
     if (targetPage.isClosed() || /target closed|browser has been closed|page crashed/i.test(message)) {
       throw new Error(
@@ -190,16 +335,17 @@ async function invokeNow(method, args) {
       );
     }
     throw error;
+  } finally {
+    signal?.removeEventListener("abort", abortListener);
+    if (activeBrowserOperation === operation) activeBrowserOperation = null;
   }
 }
 
 function invoke(method, args) {
-  // MCP clients may issue tool calls concurrently. Serialize the bridge's view of
-  // the editor so each revision check and operation completes before the next starts.
-  const operation = () => invokeNow(method, args);
-  const pending = operationQueue.then(operation, operation);
-  operationQueue = pending.catch(() => {});
-  return pending;
+  const scope = requestScope.getStore();
+  if (!scope) return invokeNow(method, args);
+  throwIfAborted(scope.signal);
+  return invokeNow(method, args, scope);
 }
 
 function textResult(value) {
@@ -213,27 +359,86 @@ function textResult(value) {
   return result;
 }
 
+function attachRequestId(result, requestId) {
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    throw new Error("MCP tool handlers must return a result object.");
+  }
+  const response = {
+    ...result,
+    _meta: { ...(result._meta || {}), request_id: requestId }
+  };
+  if (response.structuredContent && typeof response.structuredContent === "object" &&
+      !Array.isArray(response.structuredContent)) {
+    response.structuredContent = {
+      ...response.structuredContent,
+      request_id: requestId
+    };
+  }
+  return response;
+}
+
+function structuredToolError(name, error, requestId) {
+  const message = error && error.message ? error.message : String(error);
+  return {
+    content: [{
+      type: "text",
+      text: name + " failed [" + requestId + "]: " + message
+    }],
+    structuredContent: {
+      ok: false,
+      error: {
+        tool: name,
+        name: error && error.name ? error.name : "Error",
+        code: error && typeof error.code === "string" ? error.code : "TOOL_FAILED",
+        request_id: requestId,
+        outcome_uncertain: Boolean(error && error.outcomeUncertain),
+        message
+      }
+    },
+    _meta: { request_id: requestId },
+    isError: true
+  };
+}
+
 function registerTool(server, name, description, inputSchema, handler) {
-  server.registerTool(name, { description, inputSchema }, async args => {
+  server.registerTool(name, { description, inputSchema }, async (args, context) => {
+    const requestId = randomUUID();
+    const input = args || {};
     try {
-      return await handler(args || {});
-    } catch (error) {
-      const message = error && error.message ? error.message : String(error);
-      return {
-        content: [{
-          type: "text",
-          text: name + " failed: " + message
-        }],
-        structuredContent: {
-          ok: false,
-          error: {
-            tool: name,
-            name: error && error.name ? error.name : "Error",
-            message
+      assertJsonByteLimit(input, MAX_TOOL_INPUT_BYTES, {
+        code: "INPUT_TOO_LARGE",
+        label: "Tool input",
+        toolName: name,
+        requestId
+      });
+      const result = await operationQueue.run(
+        ({ signal }) => requestScope.run(
+          { requestId, toolName: name, signal },
+          async () => {
+            const value = await handler(input);
+            assertJsonByteLimit(value, MAX_TOOL_OUTPUT_BYTES, {
+              code: "OUTPUT_TOO_LARGE",
+              label: "Tool output",
+              toolName: name,
+              requestId
+            });
+            return value;
           }
-        },
-        isError: true
-      };
+        ),
+        {
+          requestId,
+          toolName: name,
+          timeoutMs: getToolDeadlineMs(name, input),
+          signal: context?.mcpReq?.signal,
+          onAbort: () => interruptBrowserOperation(requestId)
+        }
+      );
+      return attachRequestId(result, requestId);
+    } catch (error) {
+      if (context?.mcpReq?.signal?.aborted) {
+        console.error("[Art Club] MCP request cancelled:", name, requestId);
+      }
+      return structuredToolError(name, error, requestId);
     }
   });
 }
@@ -242,7 +447,7 @@ async function main() {
   await connectToEditor();
 
   const server = new McpServer(
-    { name: "art-club-pixel-studio", version: "0.2.0" },
+    { name: "art-club-pixel-studio", version: "0.3.0" },
     { maxToolInputElements: 12_000 }
   );
 
@@ -720,7 +925,7 @@ async function main() {
     server,
     "artclub_import_project",
     "Import a versioned Art Club project from a JSON string. This replaces the active editor document after preserving the current project.",
-    z.object({ project_json: z.string().min(2).max(20_000_000), expected_revision: revision }),
+    z.object({ project_json: z.string().min(2).max(MAX_TOOL_INPUT_BYTES), expected_revision: revision }),
     async args => {
       let project;
       try { project = JSON.parse(args.project_json); }
@@ -761,17 +966,36 @@ async function main() {
   );
 
   const shutdown = async () => {
-    const context = browserContext;
-    browserContext = null;
-    page = null;
-    try { await context?.close(); } catch (error) {
-      console.error("[Art Club] Browser shutdown:", error.message);
-    }
+    if (shutdownPromise) return shutdownPromise;
+    shutdownPromise = (async () => {
+      await operationQueue.close({
+        reason: "The MCP server is shutting down; pending tool requests were cancelled."
+      });
+      const context = browserContext;
+      browserContext = null;
+      page = null;
+      activeBrowserOperation = null;
+      try { await context?.close(); } catch (error) {
+        console.error("[Art Club] Browser shutdown:", error.message);
+      }
+      try { await server.close(); } catch (error) {
+        console.error("[Art Club] MCP shutdown:", error.message);
+      }
+    })();
+    return shutdownPromise;
   };
-  process.once("SIGINT", () => { void shutdown(); });
-  process.once("SIGTERM", () => { void shutdown(); });
+  process.once("SIGINT", () => {
+    void shutdown().catch(error => console.error("[Art Club] Shutdown failed:", error.message));
+  });
+  process.once("SIGTERM", () => {
+    void shutdown().catch(error => console.error("[Art Club] Shutdown failed:", error.message));
+  });
 
-  await serveStdio(() => server);
+  try {
+    await serveStdio(() => server);
+  } finally {
+    await shutdown();
+  }
 }
 
 export { main };
