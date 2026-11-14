@@ -483,6 +483,46 @@ async function main() {
 
   registerTool(
     server,
+    "artclub_play_animation",
+    "Start the active sprite animation preview using the selected playback mode.",
+    z.object({}),
+    async () => textResult(await invoke("play"))
+  );
+
+  registerTool(
+    server,
+    "artclub_pause_animation",
+    "Pause the animation preview without changing the selected editing frame.",
+    z.object({}),
+    async () => textResult(await invoke("pause"))
+  );
+
+  registerTool(
+    server,
+    "artclub_stop_animation_preview",
+    "Stop the preview and return the canvas to the selected editing frame.",
+    z.object({}),
+    async () => textResult(await invoke("stop_playback"))
+  );
+
+  registerTool(
+    server,
+    "artclub_set_playback_mode",
+    'Choose "loop", "once" or "pingpong" animation preview mode.',
+    z.object({ mode: z.enum(["loop", "once", "pingpong"]) }),
+    async args => textResult(await invoke("set_playback_mode", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_set_onion_skin",
+    "Toggle tinted previous/next frame overlays while editing. Onion skin never changes artwork pixels or exports.",
+    z.object({ enabled: z.boolean() }),
+    async args => textResult(await invoke("set_onion_skin", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
     "artclub_undo",
     "Undo one editing transaction.",
     z.object({}),
