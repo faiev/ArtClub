@@ -55,6 +55,12 @@ export class SerialOperationQueue {
   #closed = false;
   #maxPending;
   #idleWaiters = [];
+  #metrics = {
+    accepted: 0, completed: 0, failed: 0, cancelled: 0, timedOut: 0,
+    rejectedFull: 0, rejectedClosed: 0, totalQueueWaitMs: 0,
+    totalExecutionMs: 0, maxObservedOutstanding: 0,
+    lastRequestId: null, lastActivityAt: null
+  };
 
   constructor(options = {}) {
     this.#maxPending = options.maxPending ?? 64;
@@ -74,6 +80,9 @@ export class SerialOperationQueue {
       return Promise.reject(new TypeError("timeoutMs must be a positive safe integer."));
     }
     if (this.#closed) {
+      this.#metrics.rejectedClosed += 1;
+      this.#metrics.lastRequestId = requestId;
+      this.#metrics.lastActivityAt = Date.now();
       return Promise.reject(new BridgeOperationError(
         "SERVER_SHUTTING_DOWN",
         "The bridge is shutting down and no new operations are accepted.",
@@ -81,6 +90,9 @@ export class SerialOperationQueue {
       ));
     }
     if (options.signal?.aborted) {
+      this.#metrics.cancelled += 1;
+      this.#metrics.lastRequestId = requestId;
+      this.#metrics.lastActivityAt = Date.now();
       return Promise.reject(new BridgeOperationError(
         "OPERATION_CANCELLED",
         "The client cancelled " + toolName + " before it entered the operation queue.",
@@ -88,6 +100,9 @@ export class SerialOperationQueue {
       ));
     }
     if (this.#pending.length + (this.#active ? 1 : 0) >= this.#maxPending) {
+      this.#metrics.rejectedFull += 1;
+      this.#metrics.lastRequestId = requestId;
+      this.#metrics.lastActivityAt = Date.now();
       return Promise.reject(new BridgeOperationError(
         "QUEUE_FULL",
         "The bridge operation queue is full; retry after an earlier request finishes.",
@@ -115,6 +130,8 @@ export class SerialOperationQueue {
       finished: false,
       callerSettled: false,
       abortError: null,
+      enqueuedAt: Date.now(),
+      startedAt: null,
       resolveCaller,
       rejectCaller
     };
@@ -138,6 +155,13 @@ export class SerialOperationQueue {
     }, timeoutMs);
 
     this.#pending.push(operation);
+    this.#metrics.accepted += 1;
+    this.#metrics.lastRequestId = requestId;
+    this.#metrics.lastActivityAt = Date.now();
+    this.#metrics.maxObservedOutstanding = Math.max(
+      this.#metrics.maxObservedOutstanding,
+      this.#pending.length + (this.#active ? 1 : 0)
+    );
     this.#pump();
     return callerPromise;
   }
@@ -165,6 +189,13 @@ export class SerialOperationQueue {
       cause
     });
     operation.abortError = error;
+    if (code === "OPERATION_TIMEOUT") this.#metrics.timedOut += 1;
+    else this.#metrics.cancelled += 1;
+    this.#metrics.lastRequestId = operation.requestId;
+    this.#metrics.lastActivityAt = Date.now();
+    if (!operation.started) {
+      this.#metrics.totalQueueWaitMs += Math.max(0, Date.now() - operation.enqueuedAt);
+    }
     operation.controller.abort(error);
 
     if (operation.started) {
@@ -200,6 +231,10 @@ export class SerialOperationQueue {
 
       this.#active = operation;
       operation.started = true;
+      operation.startedAt = Date.now();
+      this.#metrics.totalQueueWaitMs += Math.max(0, operation.startedAt - operation.enqueuedAt);
+      this.#metrics.lastRequestId = operation.requestId;
+      this.#metrics.lastActivityAt = operation.startedAt;
 
       Promise.resolve()
         .then(() => {
@@ -213,10 +248,20 @@ export class SerialOperationQueue {
           });
         })
         .then(
-          value => this.#settleCaller(operation, null, value),
-          error => this.#settleCaller(operation, error)
+          value => {
+            if (!operation.abortError) this.#metrics.completed += 1;
+            this.#settleCaller(operation, null, value);
+          },
+          error => {
+            if (!operation.abortError) this.#metrics.failed += 1;
+            this.#settleCaller(operation, error);
+          }
         )
         .finally(() => {
+          if (operation.startedAt !== null) {
+            this.#metrics.totalExecutionMs += Math.max(0, Date.now() - operation.startedAt);
+          }
+          this.#metrics.lastActivityAt = Date.now();
           operation.finished = true;
           this.#cleanup(operation);
           if (this.#active === operation) this.#active = null;
@@ -259,6 +304,31 @@ export class SerialOperationQueue {
       queued: this.#pending.length,
       closed: this.#closed,
       maxPending: this.#maxPending
+    };
+  }
+
+  getMetrics() {
+    const stats = this.getStats();
+    return {
+      active: stats.active,
+      queued: stats.queued,
+      closed: stats.closed,
+      max_pending: stats.maxPending,
+      active_request_id: this.#active?.requestId || null,
+      accepted: this.#metrics.accepted,
+      completed: this.#metrics.completed,
+      failed: this.#metrics.failed,
+      cancelled: this.#metrics.cancelled,
+      timed_out: this.#metrics.timedOut,
+      rejected_full: this.#metrics.rejectedFull,
+      rejected_closed: this.#metrics.rejectedClosed,
+      total_queue_wait_ms: this.#metrics.totalQueueWaitMs,
+      total_execution_ms: this.#metrics.totalExecutionMs,
+      max_observed_outstanding: this.#metrics.maxObservedOutstanding,
+      last_request_id: this.#metrics.lastRequestId,
+      last_activity_at: this.#metrics.lastActivityAt === null
+        ? null
+        : new Date(this.#metrics.lastActivityAt).toISOString()
     };
   }
 }
