@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Art Club renderer benchmark</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 24px; color: #202c30; font: 14px/1.5 system-ui, sans-serif; }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  p { max-width: 900px; color: #596660; }
+  #status { margin: 18px 0; font-weight: 650; }
+  button { border: 1px solid #aeb8ad; border-radius: 6px; padding: 8px 12px; background: #fff; color: inherit; }
+  button:disabled { opacity: 0.45; }
+  table { width: 100%; max-width: 1120px; border-collapse: collapse; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #dce0d8; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  #stage { position: absolute; left: -10000px; top: 0; width: 560px; height: 560px; overflow: hidden; }
+  #dom-grid { display: grid; width: 560px; height: 560px; gap: 1px; background: #e2e7df; }
+  #canvas-grid { display: block; width: 560px; height: 560px; image-rendering: pixelated; }
+  pre { max-width: 1120px; overflow: auto; white-space: pre-wrap; background: #f4f5ef; padding: 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Art Club renderer benchmark</h1>
+<p>
+  This compares the editor's current full-grid DOM strategy (one accessible div per pixel,
+  populated through a document fragment) with the isolated Canvas 2D prototype. This is a
+  local browser microbenchmark, not a claim about end-to-end editor latency.
+</p>
+<p>
+  The default run measures 32×32 through 512×512, with two warm-up passes and five measured
+  samples per renderer. Add query parameters such as ?samples=7&amp;warmup=2&amp;max=256 to
+  change the run. Save the raw JSON report with browser and machine details.
+</p>
+<div id="status">Preparing benchmark…</div>
+<button id="download" type="button" disabled>Download JSON report</button>
+<table id="results">
+  <thead>
+    <tr>
+      <th>Canvas</th><th>Pixels</th><th>Samples</th>
+      <th>DOM median (ms)</th><th>DOM p95 (ms)</th>
+      <th>Canvas median (ms)</th><th>Canvas p95 (ms)</th><th>DOM / Canvas</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<pre id="raw"></pre>
+<div id="stage"><div id="dom-grid"></div><canvas id="canvas-grid"></canvas></div>
+<script src="../js/canvas-renderer.js"></script>
+<script>
+(function () {
+  "use strict";
+  const params = new URLSearchParams(location.search);
+  const requestedMax = Number(params.get("max")) || 512;
+  const maxSize = Math.min(512, Math.max(32, requestedMax));
+  const sampleCount = Math.min(15, Math.max(3, Number(params.get("samples")) || 5));
+  const warmupCount = Math.min(5, Math.max(1, Number(params.get("warmup")) || 2));
+  const sizes = [32, 64, 128, 256, 512].filter(size => size <= maxSize);
+  const domGrid = document.getElementById("dom-grid");
+  const canvas = document.getElementById("canvas-grid");
+  const status = document.getElementById("status");
+  const tbody = document.querySelector("#results tbody");
+  const raw = document.getElementById("raw");
+  const download = document.getElementById("download");
+
+  function makePixels(size) {
+    const colors = ["#e96f55", "#253e50", "#b8cc76", "#e4b85d"];
+    const pixels = new Array(size * size);
+    for (let i = 0; i < pixels.length; i++) {
+      pixels[i] = (i * 17 + Math.floor(i / size) * 13) % 7 < 3
+        ? colors[(i + Math.floor(i / size)) % colors.length]
+        : null;
+    }
+    return pixels;
+  }
+
+  function renderDom(size, pixels) {
+    domGrid.style.gridTemplateColumns = "repeat(" + size + ", minmax(0,1fr))";
+    domGrid.style.gridTemplateRows = "repeat(" + size + ", minmax(0,1fr))";
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < pixels.length; i++) {
+      const cell = document.createElement("div");
+      cell.className = "pixel-cell";
+      cell.tabIndex = -1;
+      cell.dataset.index = String(i);
+      cell.setAttribute("role", "gridcell");
+      cell.setAttribute("aria-label", "Pixel " + (i % size + 1) + ", " +
+        (Math.floor(i / size) + 1) + ", " + (pixels[i] || "transparent"));
+      cell.style.backgroundColor = pixels[i] || "transparent";
+      fragment.appendChild(cell);
+    }
+    domGrid.replaceChildren(fragment);
+    return domGrid.getBoundingClientRect().height;
+  }
+
+  function median(values) {
+    const sorted = values.slice().sort((a, b) => a - b);
+    const middle = Math.floor(sorted.length / 2);
+    return sorted.length % 2
+      ? sorted[middle]
+      : (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+
+  function percentile(values, fraction) {
+    const sorted = values.slice().sort((a, b) => a - b);
+    const index = Math.max(0, Math.ceil(fraction * sorted.length) - 1);
+    return sorted[index];
+  }
+
+  function rounded(value) {
+    return Number(value.toFixed(3));
+  }
+
+  function measureDom(size, pixels) {
+    const start = performance.now();
+    renderDom(size, pixels);
+    const elapsed = performance.now() - start;
+    domGrid.replaceChildren();
+    return elapsed;
+  }
+
+  function measureCanvas(renderer, state) {
+    const start = performance.now();
+    renderer.render(state);
+    // Readback forces pending Canvas 2D work to complete before the timer stops.
+    renderer.context.getImageData(0, 0, 1, 1);
+    return performance.now() - start;
+  }
+
+  function nextFrame() {
+    return new Promise(resolve => requestAnimationFrame(resolve));
+  }
+
+  async function run() {
+    const results = [];
+    for (const size of sizes) {
+      status.textContent = "Preparing " + size + " × " + size + "…";
+      await nextFrame();
+      const pixels = makePixels(size);
+      const state = { width: size, height: size, pixels: pixels, grid: true };
+      const renderer = new ArtClubCanvasRenderer.CanvasPixelRenderer(canvas, {
+        displayWidth: 560,
+        displayHeight: 560,
+        devicePixelRatio: window.devicePixelRatio || 1
+      });
+      const domSamples = [];
+      const canvasSamples = [];
+
+      for (let warmup = 0; warmup < warmupCount; warmup++) {
+        if (warmup % 2 === 0) {
+          measureDom(size, pixels);
+          measureCanvas(renderer, state);
+        } else {
+          measureCanvas(renderer, state);
+          measureDom(size, pixels);
+        }
+        await nextFrame();
+      }
+
+      for (let sample = 0; sample < sampleCount; sample++) {
+        status.textContent = "Measuring " + size + " × " + size +
+          " — sample " + (sample + 1) + " of " + sampleCount + "…";
+        let domTime;
+        let canvasTime;
+        if (sample % 2 === 0) {
+          domTime = measureDom(size, pixels);
+          canvasTime = measureCanvas(renderer, state);
+        } else {
+          canvasTime = measureCanvas(renderer, state);
+          domTime = measureDom(size, pixels);
+        }
+        domSamples.push(domTime);
+        canvasSamples.push(canvasTime);
+        await nextFrame();
+      }
+
+      renderer.destroy();
+      const domMedian = median(domSamples);
+      const canvasMedian = median(canvasSamples);
+      const result = {
+        size: size + "×" + size,
+        width: size,
+        height: size,
+        pixels: size * size,
+        sampleCount: sampleCount,
+        domMedianMs: rounded(domMedian),
+        domP95Ms: rounded(percentile(domSamples, 0.95)),
+        canvasMedianMs: rounded(canvasMedian),
+        canvasP95Ms: rounded(percentile(canvasSamples, 0.95)),
+        domOverCanvas: canvasMedian > 0 ? rounded(domMedian / canvasMedian) : null,
+        domSamplesMs: domSamples.map(rounded),
+        canvasSamplesMs: canvasSamples.map(rounded)
+      };
+      results.push(result);
+
+      const row = document.createElement("tr");
+      const values = [
+        result.size,
+        result.pixels.toLocaleString(),
+        result.sampleCount,
+        result.domMedianMs,
+        result.domP95Ms,
+        result.canvasMedianMs,
+        result.canvasP95Ms,
+        result.domOverCanvas === null ? "n/a" : result.domOverCanvas + "×"
+      ];
+      values.forEach((value, index) => {
+        const cell = document.createElement("td");
+        cell.textContent = String(value);
+        row.appendChild(cell);
+      });
+      tbody.appendChild(row);
+    }
+
+    const report = {
+      benchmark: "Art Club DOM-grid versus isolated Canvas 2D renderer",
+      completedAt: new Date().toISOString(),
+      environment: {
+        userAgent: navigator.userAgent,
+        platform: navigator.platform || null,
+        devicePixelRatio: window.devicePixelRatio || 1,
+        hardwareConcurrency: navigator.hardwareConcurrency || null,
+        deviceMemoryGb: navigator.deviceMemory || null
+      },
+      methodology: {
+        warmupRunsPerRenderer: warmupCount,
+        measuredSamplesPerRenderer: sampleCount,
+        order: "DOM-first and Canvas-first alternate per sample",
+        dom: "Create one accessible div per pixel in a DocumentFragment, replace grid children, and force layout by reading grid bounds.",
+        canvas: "Convert the logical pixel array, draw the raster and overlay, then read one pixel back to force pending Canvas 2D work to complete.",
+        percentile: "p95 uses the nearest-rank method (ceil(0.95 × sample count)).",
+        scope: "Synchronous renderer work only; not end-to-end editor interaction, input latency, compositing, or application-model costs."
+      },
+      results: results
+    };
+    raw.textContent = JSON.stringify(report, null, 2);
+    download.disabled = false;
+    download.addEventListener("click", function () {
+      const file = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(file);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "art-club-renderer-benchmark.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    }, { once: true });
+    status.textContent = "Benchmark complete. Download and retain the JSON report with the exact browser and machine details.";
+    document.documentElement.dataset.benchmarkComplete = "true";
+  }
+
+  run().catch(error => {
+    status.textContent = "Benchmark failed: " + error.message;
+    raw.textContent = error.stack || String(error);
+    document.documentElement.dataset.benchmarkComplete = "false";
+  });
+})();
+</script>
+</body>
+</html>
