@@ -65,3 +65,24 @@ The new guard validates every active-cel pixel slot with indexed own-property ch
 ## Ownership and limits
 
 This is a read-only source audit. It does not modify \`index.html\`, project model/storage, Agent API, bridge files, or tests. It does not claim browser behavior beyond what is established by source inspection. The actual fixes require separate coordinator-authorized UI/API file locks; the assigned Agent 6 phases stop at isolated modules, tests, browser harness and integration documentation.
+
+
+## Current-main revalidation — UI-01 production shell
+
+**Revalidated against:** `main` commit `1c4b1e439b6ac816c0e81ffb94c8dd4324859df2`  
+**Production source blob:** `index.html` `4645281c1aad8580529e7feb99cd299a88543913`  
+**Method:** read-only source inspection of the current merged production editor after UI-01. This addendum supersedes the older `index.html` line references above for the paths listed here.
+
+The UI-01 workstation shell changed the layout and moved handlers, but the audited editing-safety gaps remain in the current production source:
+
+| Current source location | Path | Revalidated finding |
+|---|---|---|
+| `index.html:830–833` | `isActiveLayerEditable()` | The helper still accepts a layer when it exists, is unlocked and visible. It does not reject zero opacity. |
+| `index.html:1022–1029` | `clearSelectedPixels()` | Selection clear checks the older boolean helper before mutating pixels; it still has no expected-revision token or immutable transaction boundary. |
+| `index.html:1031–1046` | `pasteSelection()` | Paste checks the older boolean helper, then clips the clipboard to fit and mutates the active pixel buffer in place. A partial out-of-bounds paste is truncated rather than denied. |
+| `index.html:2246–2249` | Toolbar Clear | The handler confirms, then calls `remember()` and assigns `pixels=blank(w,h)`. It does not call `isActiveLayerEditable()`, the AC-055 guard or AC-056 transaction helper. It also has no revision check. |
+| `index.html:2310–2331` | Image import | The change handler creates an object URL and defers conversion/commit to `img.onload`. The callback reads mutable `w`, `h` and `palette`, then calls `remember()` and assigns `pixels=next`. It does not capture layer/frame IDs or a revision at start, and it does not revalidate the target at commit. |
+
+The production `index.html` contains no reference to `ArtClubLayerEditGuard` or `ArtClubSafeEditOperations`. Therefore the guard, transaction and import-staging modules remain isolated contracts: UI-01 did not integrate them, and neither Toolbar Clear nor image import is fixed by the UI redesign.
+
+**Conclusion:** AC-057's two primary bypass findings remain current after UI-01. UI-02 should retain the coordinator-owned integration order: toolbar/selection clear, asynchronous import capture and commit-time revalidation, then selection paste/replace. Integration must commit a complete validated state, preserve source state on denial, and cover the actual UI workflow in Chromium. This revalidation is documentation-only; no production source, model/storage, Agent API, bridge, workflow or test file was changed.
