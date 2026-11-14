@@ -72,11 +72,11 @@ let project=null,renderer=null,viewportState=null,rendererOptions=null,observer=
 function buildProject(){
  const Model=window.ArtClubProject;
  const p=Model.createProject({width:32,height:24,name:"Viewport integration sample",palette:["#253e50","#e96f55","#b8cc76","#e4b85d","#f5f2ea"]});
- p.canvas.background="#f5f2ea";
+ p.canvas.background=null;
  const w=p.canvas.width,h=p.canvas.height;
  function pattern(offset){const px=new Array(w*h).fill(null);for(let y=3;y<h-3;y++)for(let x=3;x<w-3;x++)if((x+y+offset)%9===0||(x-offset)%7===0)px[y*w+x]="#253e50";return px;}
  Model.getCel(p).pixels=pattern(0);
- const accent=Model.makeLayer("Accent marks");accent.opacity=.78;p.layers.push(accent);p.activeLayerId=accent.id;
+ const accent=Model.makeLayer("Accent marks");p.layers.push(accent);p.activeLayerId=accent.id;
  const a1=Model.ensureCel(p,accent.id,p.activeFrameId);
  for(let y=6;y<15;y++)for(let x=8;x<24;x++)if((x+y)%4===0)a1.pixels[y*w+x]="#e96f55";
  const f2=Model.makeFrame("Frame 2",120),f3=Model.makeFrame("Frame 3",160);p.frames.push(f2,f3);
@@ -101,7 +101,7 @@ function renderFallback(){
  catch(error){status.textContent="Fallback compositor failed";summary.textContent=error.message;return;}
  fallback.replaceChildren();fallback.style.display="grid";fallback.style.gridTemplateColumns="repeat("+w+",minmax(0,1fr))";fallback.style.gridTemplateRows="repeat("+h+",minmax(0,1fr))";
  fallback.style.width=(w*viewportState.scale)+"px";fallback.style.height=(h*viewportState.scale)+"px";fallback.style.left=viewportState.offsetX+"px";fallback.style.top=viewportState.offsetY+"px";
- pixels.forEach((color,i)=>{const cell=document.createElement("div");cell.className="pixel-cell";cell.setAttribute("role","gridcell");cell.setAttribute("aria-label","Pixel "+(i%w+1)+", "+(Math.floor(i/w)+1)+", "+(color||"transparent"));cell.style.backgroundColor=color||"transparent";fallback.appendChild(cell);});
+ pixels.forEach((color,i)=>{const cell=document.createElement("div");cell.className="pixel-cell";cell.setAttribute("role","gridcell");cell.setAttribute("aria-label","Pixel "+(i%w+1)+", "+(Math.floor(i/w)+1)+", "+(color||"transparent"));cell.style.backgroundColor=color||project.canvas.background||"transparent";fallback.appendChild(cell);});
  fallback.hidden=false;canvas.hidden=true;
 }
 function applyViewport(){
@@ -124,6 +124,7 @@ function fit(){setState(window.ArtClubCanvasViewport.fitToCanvas(viewportState,2
 function actual(){setState(window.ArtClubCanvasViewport.zoomAt(viewportState,1,viewportState.viewWidth/2,viewportState.viewHeight/2));}
 function zoom(factor,x,y){setState(window.ArtClubCanvasViewport.zoomBy(viewportState,factor,x,y));}
 function pointerMove(e){
+ if(!project||!viewportState)return;
  if(panId===e.pointerId&&lastPointer){const dx=e.clientX-lastPointer.x,dy=e.clientY-lastPointer.y;lastPointer={x:e.clientX,y:e.clientY};setState(window.ArtClubCanvasViewport.panBy(viewportState,dx,dy));return;}
  const b=view.getBoundingClientRect(),p=window.ArtClubCanvasViewport.screenToCanvas(viewportState,e.clientX-b.left,e.clientY-b.top);
  coord.textContent=p.x>=0&&p.y>=0&&p.x<project.canvas.width&&p.y<project.canvas.height?"Pixel: "+(Math.floor(p.x)+1)+", "+(Math.floor(p.y)+1):"Pixel: —";
