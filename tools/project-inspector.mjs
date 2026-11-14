@@ -43,6 +43,7 @@ function usage() {
     "  --compare     Compare two projects without modifying either file.",
     "  --diagnostics Run supplemental deep diagnostics and risk scoring.",
     "  --migration-preview Show a deterministic, read-only legacy-to-v2 preview.",
+    "  --ci-report   Emit a versioned JSON artifact report for CI.",
     "  --help        Show this help message.",
     "",
     "Single-file and batch inspection accept v2 documents and legacy single-canvas documents.",
