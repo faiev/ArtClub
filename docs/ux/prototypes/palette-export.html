@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Palette Import and Export Prototype — One Pixel Studio</title>
+<style>
+:root{--paper:#f2f0e9;--ink:#202c30;--muted:#697571;--line:#d8ddd5;--panel:#fffefa;--lime:#d8f06f;--coral:#e97960;--blue:#426b84;--soft:#f1f4e7;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);min-height:100vh}:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.shell{max-width:1180px;margin:auto;padding:22px 26px 38px}
+header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);padding-bottom:15px;gap:12px}
+.brand{font-weight:850;letter-spacing:.15em;font-size:12px}.proof{font:700 9px ui-monospace,monospace;letter-spacing:.1em;color:#6c5a4c;background:#f4e9dc;border:1px solid #e6d6c5;padding:7px 10px;border-radius:99px}
+.intro{padding:24px 0 18px}.kicker{font:700 10px ui-monospace,monospace;color:var(--muted);letter-spacing:.14em;text-transform:uppercase}
+h1{font-size:32px;letter-spacing:-.055em;margin:7px 0}.intro p{max-width:760px;margin:0;color:var(--muted);font-size:12px;line-height:1.6}
+.columns{display:grid;grid-template-columns:1fr .88fr;gap:14px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:17px;box-shadow:0 10px 26px rgba(32,44,48,.05)}
+.panelhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px;border-bottom:1px solid #e7eae3;padding-bottom:11px;margin-bottom:13px}
+h2{font-size:14px;letter-spacing:-.02em;margin:0}.step{font:10px ui-monospace,monospace;color:var(--muted)}
+label{display:block;color:#4f5b55;font-size:11px;margin-bottom:6px}
+input,select{font:inherit;color:var(--ink);background:#fff;border:1px solid #d6ddd3;border-radius:7px;padding:9px 10px;width:100%;min-height:38px}
+.fileline{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:7px;padding:9px 11px;font-size:10px;color:var(--ink)}
+button.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+button:disabled{opacity:.4;cursor:not-allowed}
+.meta{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0}
+.meta span{border:1px solid var(--line);background:#f6f7f2;border-radius:5px;padding:6px 8px;font:10px ui-monospace,monospace;color:#52605a}
+.swatches{display:grid;grid-template-columns:repeat(6,1fr);gap:7px;margin:13px 0}
+.swatch{height:46px;border:1px solid rgba(32,44,48,.18);border-radius:7px;position:relative}
+.swatch b{position:absolute;left:5px;right:5px;bottom:4px;font:8px ui-monospace,monospace;text-shadow:0 1px 2px rgba(0,0,0,.5);color:#fff}
+.duplicate{outline:2px dashed var(--coral);outline-offset:2px}
+.warning{padding:11px 12px;border-left:3px solid var(--coral);background:#f8eee8;color:#5e5149;font-size:10px;line-height:1.55;margin:12px 0}
+.success{padding:10px 12px;border-left:3px solid #89a26d;background:#f0f4e8;color:#465540;font-size:10px;line-height:1.5;margin:12px 0}
+.option{display:flex;gap:8px;align-items:flex-start;margin:10px 0;font-size:11px;color:var(--ink)}
+.option input{width:auto;min-height:auto;margin-top:1px}
+.actions{display:flex;justify-content:flex-end;gap:7px;margin-top:15px;flex-wrap:wrap}
+.export-item{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #e9ece5;align-items:center}
+.export-item:last-child{border-bottom:0}.export-item strong{font-size:12px}.export-item small{display:block;font-size:10px;color:var(--muted);margin-top:3px;line-height:1.45}
+.preview{margin-top:14px;padding:12px;background:#f5f6f0;border:1px solid #e1e6dc;border-radius:9px}
+.previewbar{display:flex;justify-content:space-between;gap:8px;align-items:center;font:10px ui-monospace,monospace;color:var(--muted)}
+.atlas{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:9px}
+.atlas span{height:48px;background:conic-gradient(#fafbf7 25%,#dfe5dc 0 50%,#fafbf7 0 75%,#dfe5dc 0);background-size:12px 12px;border:1px solid #cbd3c8}
+.loss{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.loss div{background:#f6f7f2;border:1px solid #e6eae1;border-radius:7px;padding:9px}
+.loss strong{display:block;font-size:10px}.loss small{font-size:9px;color:var(--muted);line-height:1.5}
+footer{padding-top:17px;color:var(--muted);font:10px ui-monospace,monospace}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+@media(max-width:850px){.columns{grid-template-columns:1fr}}
+@media(max-width:480px){.shell{padding:14px}.swatches{grid-template-columns:repeat(4,1fr)}.fileline{grid-template-columns:1fr}.loss{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header><div class="brand">ONE PIXEL / Studio</div><span class="proof">STATIC PROTOTYPE · NOT PRODUCTION</span></header>
+<main>
+<section class="intro"><div class="kicker">Palette &amp; delivery / 04</div><h1>Import with confidence. Export with context.</h1><p>The preview separates file validation from the decision to change the project. Format limitations, duplicate colors and file budgets are shown before Apply or Download.</p></section>
+<div class="columns">
+<section class="panel" aria-labelledby="import-title">
+<div class="panelhead"><h2 id="import-title">Import palette</h2><span class="step">01 / REVIEW</span></div>
+<div class="fileline"><div><label for="palette-file">Local palette file</label><input id="palette-file" type="text" value="forest-evening.gpl" readonly aria-label="Selected local palette file"></div><button type="button">Choose file…</button></div>
+<div class="meta"><span>Detected · GPL</span><span>24 entries</span><span>22 unique</span><span>2 duplicates</span></div>
+<div style="font-size:11px;font-weight:750">Parsed swatches · original file order</div>
+<div class="swatches" aria-label="Palette color preview">
+<div class="swatch" role="img" aria-label="Palette color #172B3A" style="background:#172b3a"><b>#172B3A</b></div><div class="swatch" role="img" aria-label="Palette color #344B55" style="background:#344b55"><b>#344B55</b></div><div class="swatch" role="img" aria-label="Palette color #53717A" style="background:#53717a"><b>#53717A</b></div><div class="swatch" role="img" aria-label="Palette color #87A7A0" style="background:#87a7a0"><b>#87A7A0</b></div><div class="swatch" role="img" aria-label="Palette color #D9E2C6" style="background:#d9e2c6"><b style="color:#202c30;text-shadow:none">#D9E2C6</b></div><div class="swatch" role="img" aria-label="Palette color #F4EDDA" style="background:#f4edda"><b style="color:#202c30;text-shadow:none">#F4EDDA</b></div>
+<div class="swatch" role="img" aria-label="Palette color #F5C66D" style="background:#f5c66d"><b style="color:#202c30;text-shadow:none">#F5C66D</b></div><div class="swatch" role="img" aria-label="Palette color #EF945E" style="background:#ef945e"><b style="color:#202c30;text-shadow:none">#EF945E</b></div><div class="swatch duplicate" role="img" aria-label="Duplicate palette entry #E96F55, first duplicate" style="background:#e96f55"><b>#E96F55</b></div><div class="swatch" role="img" aria-label="Palette color #B85E62" style="background:#b85e62"><b>#B85E62</b></div><div class="swatch" role="img" aria-label="Palette color #856F91" style="background:#856f91"><b>#856F91</b></div><div class="swatch duplicate" role="img" aria-label="Duplicate palette entry #E96F55, second duplicate" style="background:#e96f55"><b>#E96F55</b></div>
+</div>
+<div class="warning"><strong>Metadata loss:</strong> the current project format stores palette swatches as HEX values only. Imported GPL color names and Columns metadata are visible in this preview but will not be persisted into the current project model.</div>
+<div class="meta"><span>2 duplicate entries highlighted</span><span>0 invalid rows</span><span>Names · 24 present</span></div>
+<fieldset style="border:0;padding:0;margin:0"><legend style="font-size:11px;font-weight:750;margin-bottom:8px">Apply to current project</legend>
+<label class="option"><input type="radio" name="merge" checked><span><strong>Replace palette</strong><br><small style="color:var(--muted)">Artwork pixels remain unchanged; missing used colors are reported.</small></span></label>
+<label class="option"><input type="radio" name="merge"><span><strong>Append all</strong><br><small style="color:var(--muted)">Keep current swatches, then append all imported entries in order.</small></span></label>
+<label class="option"><input type="radio" name="merge"><span><strong>Add unique colors</strong><br><small style="color:var(--muted)">Skip duplicates and show the exact skipped entries before applying.</small></span></label>
+</fieldset>
+<div class="actions"><button type="button">Cancel</button><button class="primary" type="button">Apply palette</button></div>
+<p style="font-size:9px;color:var(--muted);line-height:1.5">Static preview: no local file is read and no project state is changed.</p>
+</section>
+<section class="panel" aria-labelledby="export-title">
+<div class="panelhead"><h2 id="export-title">Export center</h2><span class="step">02 / PREFLIGHT</span></div>
+<div class="export-item"><div><strong>Palette backup</strong><small>GPL preserves available names · JASC-PAL is RGB-only · JSON preserves supported metadata.</small></div><button type="button">Review</button></div>
+<div class="export-item"><div><strong>Current frame · PNG</strong><small>64 × 64 px · 1× · transparent background · nearest-neighbor pixels.</small></div><button type="button">Preview</button></div>
+<div class="export-item"><div><strong>Sprite sheet · PNG + JSON</strong><small>All 4 frames · horizontal · native size · 2 px spacing · timeline order.</small></div><button type="button">Preview</button></div>
+<div class="export-item"><div><strong>Animated GIF</strong><small>4 frames · 120/160/240/400 ms · infinite loop · binary transparency.</small></div><button type="button">Preview</button></div>
+<div class="preview" aria-label="Static sprite-sheet preview">
+<div class="previewbar"><strong>ATLAS PREVIEW</strong><span>264 × 64 px · 4 frame rectangles</span></div>
+<div class="atlas"><span></span><span></span><span></span><span></span></div>
+</div>
+<div class="loss"><div><strong>GIF timing</strong><small>Delays use 10 ms units. A 145 ms source frame encodes as 150 ms.</small></div><div><strong>Transparency</strong><small>GIF supports binary transparency, not partial alpha. Palette overflow may quantize colors.</small></div><div><strong>Budget</strong><small>Selected frame pixels ≤ 1,048,576; encoded GIF ≤ 16 MiB.</small></div><div><strong>Metadata</strong><small>Atlas JSON records stable frame ID, order, rectangle and source duration.</small></div></div>
+<div class="warning"><strong>Before download:</strong> review frame order, effective timing, transparent gutters, quantization mode and exact filenames. No silent scaling or dropped frames.</div>
+<div style="margin-top:12px"><label for="filename">Output filename</label><input id="filename" value="forest-evening-anim.gif"></div>
+<div class="actions"><button type="button">Back</button><button class="primary" type="button">Export selected</button></div>
+</section>
+</div>
+</main>
+<footer>ONE PIXEL STUDIO · LOCAL FILE FLOW · NON-PRODUCTION PROTOTYPE</footer>
+</div>
+</body>
+</html>
