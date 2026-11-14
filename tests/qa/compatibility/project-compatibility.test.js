@@ -127,6 +127,22 @@ test("rejects missing references, duplicate IDs, invalid HEX, metadata and durat
   duplicateFrame.frames.push(repeatedFrame);
   assert.match(errorsOf(duplicateFrame), /Frame IDs must be present and unique\./);
 
+  const duplicateCelPair = makeBoundaryProject({ id: "qa-duplicate-cel-pair" });
+  duplicateCelPair.cels.push({ ...duplicateCelPair.cels[0], pixels: duplicateCelPair.cels[0].pixels.slice() });
+  assert.match(errorsOf(duplicateCelPair), /A layer\/frame pair cannot contain duplicate cels\./);
+
+  const wrongCelLength = makeBoundaryProject({ id: "qa-wrong-cel-length" });
+  wrongCelLength.cels[0].pixels.pop();
+  assert.match(errorsOf(wrongCelLength), /Each cel must contain exactly width × height pixels\./);
+
+  const negativeSelectionIndex = makeBoundaryProject({ id: "qa-negative-selection-index" });
+  negativeSelectionIndex.selectedColorIndex = -1;
+  assert.match(errorsOf(negativeSelectionIndex), /Selected palette index is invalid\./);
+
+  const excessiveSelectionIndex = makeBoundaryProject({ id: "qa-high-selection-index" });
+  excessiveSelectionIndex.selectedColorIndex = excessiveSelectionIndex.palette.length;
+  assert.match(errorsOf(excessiveSelectionIndex), /Selected palette index is invalid\./);
+
   const invalidPalette = makeBoundaryProject({ id: "qa-invalid-palette" });
   invalidPalette.palette[0] = "#12GG00";
   assert.match(errorsOf(invalidPalette), /Palette must contain 1–256 valid HEX colors\./);
