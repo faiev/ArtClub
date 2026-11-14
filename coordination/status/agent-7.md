@@ -1,25 +1,17 @@
 # Status — Agent 7
 
-- **Task:** AC-016 — Sync current main and rerun full CI for tiled preview
-- **Status:** REVIEW
+- **Active task:** AC-062 — Tile-map data model
+- **Status:** IN_PROGRESS
 - **Role:** Tile workflows
-- **Feature branch:** `agent/tile-preview`
-- **Latest main incorporated:** `220c2b5033ccd8752dd8e3e357be3fcd8bfc7b7a`
-- **Original implementation commit:** `142b4e1cc1f605ff69bc7911676266b3c0ff607e`
-- **First main sync commit:** `d54b3e5899e57607bd61e4c13c9717dd7540318b`
-- **Final head after later coordination-only main updates:** `0aafc29aff13505ceabd288b3b5d1ab793ce35d7`
-- **Pull request:** https://github.com/faiev/ArtClub/pull/13 (open, draft)
-- **Files changed in PR:** `js/tile-preview.js`, `tests/tile-preview.test.js`, `docs/tile-preview.md` only.
-- **Main comparison:** `main...agent/tile-preview` is ahead by 3 and behind by 0 at final sync; PR diff is exactly the three assigned files.
-- **Local isolated evidence from original implementation:** `node --check js/tile-preview.js`, `node --check tests/tile-preview.test.js`, `node --test tests/tile-preview.test.js` — 11 passed, 0 failed.
-- **Current-head GitHub Actions:** run #137, https://github.com/faiev/ArtClub/actions/runs/43606323497 — fully passed on `0aafc29aff13505ceabd288b3b5d1ab793ce35d7`.
-  - `node --test tests/*.test.js` — 69 passed, 0 failed, 0 skipped.
-  - `node --check agent-bridge/server.mjs` — passed.
-  - `npm run test:e2e` — passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, animation playback, onion skin, PNG, IndexedDB library and reload recovery.
-  - `npm run test:mcp` — passed: drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
-- **Earlier stale-base issue:** run #110 failed at the refresh/persistence assertion before PR #10 was on the branch base. Current-main runs #122 and #137 pass the persistence/reload E2E.
-- **Integration boundary:** No Canvas, DOM, UI, renderer, Agent API, persistence, bridge or export wiring. Preview output is transient and must not be saved to project cels or included in exports.
-- **Known limitations:** Diagnostics compare corresponding opposing edge values and report mismatches; they do not repair seams. Output size is bounded by exported `LIMITS`.
-- **Blockers:** None for AC-016.
-- **Coordinator decision required:** Review PR #13. No merge or AC-021 UI integration performed.
-- **Last updated:** 2026-11-14 — final current-main CI passed; submitted for coordinator review.
+- **Branch:** `agent/tile-map`
+- **Base:** Latest main at branch creation/sync for this phase
+- **Commit:** `34d42403b6c284e580cb5c24d2925ec55f981d84`
+- **Pull request:** PR #58 — draft, open for coordinator review
+- **Files in this PR:** `js/tile-map.js`, `tests/tile-map.test.js`, `docs/tile-map.md`
+- **Implementation:** Bounded row-major tile map; unique tile definitions; null empty cells; strict validation; create/resize/place/erase/move/duplicate; rectangular copy/paste; canonical deterministic JSON serialization and validated deserialization. Edits are immutable and return fresh maps.
+- **Local test evidence:** 16 focused tests passed on the fuller local implementation. The GitHub-transfer source was streamlined after that run, so those local results are not being claimed as a test of the exact committed blob. Exact-head CI remains authoritative for the committed revision.
+- **Integration boundary:** Pure data model only; no editor UI, renderer, project storage/model, Agent API, bridge or export wiring.
+- **Risks/limitations:** Clipboard data contains tile IDs rather than pixel payloads; all referenced definitions must exist in the destination map. Paste and move overwrite behavior is explicit. Tile-map storage is bounded by exported limits.
+- **Blockers:** No code blocker. Need confirm full CI on the submitted head before moving to REVIEW.
+- **Next action:** Inspect PR #58's current-head Node/Chromium/MCP CI; fix any committed-source failure, then update PR and set status to REVIEW.
+- **Last updated:** 2026-11-14 — AC-062 implementation committed and PR submitted.
