@@ -24,6 +24,15 @@ const REQUIRED_PATHS = [
   "tests/qa/compatibility/gif-export-contract.test.js",
   "tests/qa/browser/project-lifecycle.html",
   "tests/qa/browser/project-lifecycle.mjs",
+const REQUIRED_QA_COMMANDS = [
+  "node --test tests/qa/lifecycle/project-lifecycle.test.js",
+  "node --test tests/qa/lifecycle/editor-switch-contract.test.js",
+  "node --test tests/qa/compatibility/project-compatibility.test.js",
+  "node --test tests/qa/compatibility/gif-export-contract.test.js",
+  "node --test tests/qa/release/qa-release-check.test.js",
+  "node tests/qa/browser/project-lifecycle.mjs"
+];
+
   "tests/qa/release/qa-release-check.test.js",
   "docs/QA_MATRIX.md",
   "docs/RELEASE_CHECKLIST.md",
@@ -44,6 +53,7 @@ const REQUIRED_PATHS = [
 const WORKFLOW = [
   "node --test tests/*.test.js",
   "node --check agent-bridge/server.mjs",
+  "npx playwright install --with-deps chromium",
   "npm run test:e2e",
   "node tests/gif-export.browser.mjs",
   "npm run test:mcp"
@@ -138,6 +148,23 @@ test("complete local fixture passes required-file checks but warns about nested 
     assert.ok(nested.details.includes("tests/qa/release/qa-release-check.test.js"));
     const browser = report.checks.find(check => check.id === "lifecycle-browser-ci");
     assert.equal(browser.status, "warn");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("reports a missing bridge test script even when the package file exists", () => {
+  const root = temporaryRoot();
+  try {
+    populateCompleteFixture(root);
+    writeFile(root, "agent-bridge/package.json", JSON.stringify({
+      name: "artclub-bridge-fixture",
+      scripts: { "test:e2e": "node e2e-test.mjs" }
+    }));
+    const report = checkReleaseReadiness({ root });
+    assert.equal(report.checks.find(check => check.id === "bridge-script:test:e2e").status, "pass");
+    assert.equal(report.checks.find(check => check.id === "bridge-script:test:mcp").status, "fail");
+    assert.equal(report.ok, false);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
