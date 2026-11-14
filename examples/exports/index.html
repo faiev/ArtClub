@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tiny Robot — export format gallery</title>
+  <style>
+    :root { color-scheme: light; --ink: #253047; --paper: #f5f7fb; --line: #dbe2ec; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 system-ui, sans-serif; }
+    main { max-width: 940px; margin: 0 auto; padding: 36px 22px 56px; }
+    h1, h2 { line-height: 1.15; letter-spacing: -.025em; }
+    h1 { font-size: clamp(2rem, 5vw, 3.2rem); margin: 0 0 10px; }
+    h2 { font-size: 1.35rem; margin: 0 0 12px; }
+    p { max-width: 68ch; }
+    .lede { color: #526078; font-size: 1.08rem; margin: 0 0 28px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+    figure, section { margin: 0; padding: 18px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+    figure img { display: block; max-width: 100%; height: auto; margin: 12px auto; image-rendering: pixelated; }
+    .atlas { width: min(100%, 304px); }
+    .gif { width: 192px; min-height: 192px; object-fit: contain; }
+    figcaption { color: #526078; font-size: .92rem; }
+    .checker { background-color: #fff; background-image: linear-gradient(45deg,#e8edf4 25%,transparent 25%),linear-gradient(-45deg,#e8edf4 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e8edf4 75%),linear-gradient(-45deg,transparent 75%,#e8edf4 75%); background-size: 16px 16px; background-position: 0 0,0 8px,8px -8px,-8px 0; border-radius: 8px; }
+    a { color: #1d5ec9; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .meta span { border: 1px solid var(--line); padding: 3px 8px; border-radius: 999px; font-size: .8rem; color: #526078; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: .92rem; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+    footer { margin-top: 24px; color: #526078; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Tiny Robot</h1>
+    <p class="lede">A tiny, synthetic 8×8 walk cycle used to demonstrate Art Club's project, sprite-sheet PNG and animated GIF formats.</p>
+
+    <div class="grid">
+      <figure>
+        <h2>Sprite-sheet PNG</h2>
+        <div class="checker">
+          <img class="atlas" src="walk-cycle.png" width="304" height="304" alt="Four tiny robot poses arranged in a two-by-two pixel-art atlas">
+        </div>
+        <figcaption>19×19 RGBA atlas. Four 8×8 frames, arranged in two columns with 1px outer margin and 1px spacing.</figcaption>
+        <div class="meta"><span>Lossless RGB</span><span>Transparent padding</span><span>Native pixels</span></div>
+        <p><a href="walk-cycle.png">Open PNG</a> · <a href="walk-cycle.metadata.json">JSON atlas metadata</a></p>
+      </figure>
+
+      <figure>
+        <h2>Animated GIF</h2>
+        <div class="checker">
+          <img class="gif" src="walk-cycle.gif" width="192" height="192" alt="Animated four-frame Tiny Robot walk cycle">
+        </div>
+        <figcaption>8×8 animation, four frames, infinite loop. GIF uses centisecond timing and binary transparency.</figcaption>
+        <div class="meta"><span>4 frames</span><span>10ms units</span><span>Binary alpha</span></div>
+        <p><a href="walk-cycle.gif">Open GIF</a> · <a href="walk-cycle.gif.metadata.json">JSON timing metadata</a></p>
+      </figure>
+    </div>
+
+    <section style="margin-top:18px">
+      <h2>Source project</h2>
+      <p>The editable v2 project is the source of truth. It contains one layer, four independent cels and source durations; atlas/GIF exports are derived from those pixels.</p>
+      <table>
+        <thead><tr><th>Frame</th><th>Source duration</th><th>GIF effective duration</th></tr></thead>
+        <tbody>
+          <tr><td>Idle</td><td>100ms</td><td>100ms</td></tr>
+          <tr><td>Left step</td><td>145ms</td><td>150ms</td></tr>
+          <tr><td>Contact</td><td>155ms</td><td>160ms</td></tr>
+          <tr><td>Right step</td><td>250ms</td><td>250ms</td></tr>
+        </tbody>
+      </table>
+      <p><a href="walk-cycle.project.json">Open v2 project JSON</a></p>
+    </section>
+
+    <footer>All artwork in this gallery is synthetic and original. The sample GIF is a format illustration; its binary encoding is not claimed to be byte-identical to Art Club's GIF exporter.</footer>
+    <p><a href="../../docs/EXPORT_FORMATS.md">Read the export format guide</a></p>
+  </main>
+</body>
+</html>
