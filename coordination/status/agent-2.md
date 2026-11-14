@@ -187,3 +187,46 @@ These are the exact commit SHAs reported by GitHub as ahead of current main at i
 - **#90 (7):** dea13e4426664ab637174ed34d77c25035f8374c; 617b60cf8c3b5d72e8ad27fa874d21611cc6c1ef; 6941f98da0a007fac3afad59df15e440cbb80200; c116a4679f0a92d3dc055cb56f9284482df8fa27; 29f22446283c409cd6d7c5013c7bd608dbb67b63; 684333b09f136d27b25dbbc4bac527ea102c3df2; 2ab42f27be2661976fd182d284e65e53e3bd3cb7.
 
 Note: the compare endpoint's ahead list includes merge commits used to sync these branches. The per-PR file list above is the effective unique file delta against main; the two are different measures.
+
+ 
+## User-directed PR follow-up — PR #18 (AC-028), 2026-11-15
+
+The user explicitly requested that I choose an existing PR and solve it. I selected Agent 2's existing AC-028 PR #18 (no new PR or branch). This follow-up exceeded the read-only branch-inventory dispatch in the current BOARD.md; the user explicitly requested work on an existing PR. I kept the work limited to synchronizing its existing branch and did not touch the shared workflow or production files.
+
+- PR: https://github.com/faiev/ArtClub/pull/18
+- Branch: `agent/renderer-browser-validation`
+- Initial head inspected: `9af15df08c4178952dcbc404bb48463fb3fd1541`
+- Main snapshot at first sync: `b17a60949ceb510d33d192480d53167cb68a4b3d`
+- Final synchronized head at last verification: `dc587f3b9ba0d9c787babc747f459258a99aa184`
+- Main merged into branch non-force using merge commits; no force update.
+- Latest verified main parent: `ba721951a96009f53df77d343aa834499ee3992e`
+- Compare result at last check: **18 ahead / 0 behind**, with exactly the four AC-028 files in the effective diff:
+  - `benchmarks/renderer-browser-validation-report.json`
+  - `benchmarks/renderer-browser-validation.md`
+  - `tests/canvas-renderer.browser.html`
+  - `tests/canvas-renderer.browser.mjs`
+- Main renderer changed since the branch's old merge base only in the public `parseColor()` defensive-copy wrapper (the #90 fix). The AC-028 browser runner does not call `parseColor`; it tests `CanvasPixelRenderer` behavior. No production renderer change was made by this follow-up.
+
+### Synchronization commits created on the existing PR branch
+
+- `716790a652f40736c471a339e80f9afa209b6833` — merged main `b17a60949ceb510d33d192480d53167cb68a4b3d`.
+- `8413fd943b208a50d88574af800ba8a53a30fad0` — merged main `9d1e93285643d5782dc7f24da6e81d5af42f3c20`.
+- `043596731726715cc030d079c90a34208801ab47` — merged main `de0c0a1287fbf2e555fe45ec7e4ea1af4b245614`.
+- `f1cc9282b442e2ec2d54be6957299ad3704c93d4` — merged main `001d5777412cee8e63bc2f293719865db7bf9d08`.
+- `dc587f3b9ba0d9c787babc747f459258a99aa184` — merged main `ba721951a96009f53df77d343aa834499ee3992e`.
+
+Each update used the existing branch ref with `force=false` and an expected-old-SHA lease. The final compare confirms the branch is 0 commits behind the main snapshot used in its last merge. Main was actively advancing during this work; this is not a claim that it cannot advance again.
+
+### CI and unresolved acceptance
+
+- Exact-head PR Actions run for `dc587f3b9ba0d9c787babc747f459258a99aa184`: **no run returned at last query**.
+- Run [#43646006163](https://github.com/faiev/ArtClub/actions/runs/43646006163) is queued for the *previous* head `f1cc9282b442e2ec2d54be6957299ad3704c93d4`; it is not evidence for the final head.
+- The shared `.github/workflows/project-tests.yml` is Agent 3-owned and does not invoke `tests/canvas-renderer.browser.mjs`. No workflow edit or manual dispatch was available through the connected GitHub actions.
+- Dedicated AC-028 Chromium runner and fresh multi-sample benchmark have **not** been executed on `dc587f3b9ba0d9c787babc747f459258a99aa184`.
+- PR #18 remains open and draft. Do not mark complete, approve, or merge until exact-head dedicated browser evidence and CI are available.
+
+### Commands / operations
+
+No local shell commands or browser tests were executed. Remote GitHub operations: read latest refs/commit trees; built merge trees from current main plus the four PR-owned blobs; created five non-force merge commits with the existing branch head as first parent and fetched main as second parent; updated the existing branch with expected-SHA leases; compared final head against main; queried PR metadata and Actions runs. No branch creation, deletion, PR creation, PR closure, force push, production file edit, or workflow edit.
+
+**Disposition:** branch synchronization step completed with verified SHA and unchanged four-file PR scope; PR #18 itself remains **unresolved** because the dedicated browser/benchmark gate and final-head CI evidence are outstanding.
