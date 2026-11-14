@@ -745,7 +745,7 @@ test("deep diagnostics produces structured output for malformed JSON and respect
   assert.equal(report.schema.checked, false);
   assert.equal(report.diagnostics[0].code, "JSON_PARSE_ERROR");
 
-  const invalid = spawnSync(process.execPath, [CLI, "--diagnostics", "--compare", file, file], {
+  const invalid = spawnSync(process.execPath, [CLI, "--diagnostics", "--compare", "--json", file, file], {
     encoding: "utf8"
   });
   assert.equal(invalid.status, 2);
