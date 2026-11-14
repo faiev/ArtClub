@@ -607,6 +607,7 @@ function validateAgentCommands(commands){
 }
 function executeAgentCommands(commands,options){
   options=options||{};
+  if(drawing)throw new Error("A canvas stroke is in progress. Finish it before sending agent drawing commands.");
   if(options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
     throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
   }
@@ -677,6 +678,7 @@ function getAgentStatus(){
     selected_color:palette[selected]||null,
     palette:palette.slice(),
     revision:documentRevision,
+    human_stroke_in_progress:drawing,
     history:{can_undo:undoStack.length>0,can_redo:redoStack.length>0},
     capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png"]
   };
@@ -697,6 +699,7 @@ function getAgentPixel(coordinates){
   return {x,y,color:pixels[y*w+x],revision:documentRevision};
 }
 async function importAgentProject(payload){
+  if(drawing)throw new Error("Finish the current canvas stroke before importing a project.");
   const source=payload&&payload.project_json!==undefined?payload.project_json:(payload&&payload.project!==undefined?payload.project:payload);
   const imported=ProjectModel.deserializeProject(source);
   await persistNow();
@@ -710,6 +713,7 @@ async function listAgentProjects(){
   return projectStorage.listProjects();
 }
 async function openAgentProject(payload){
+  if(drawing)throw new Error("Finish the current canvas stroke before switching projects.");
   if(!projectStorage)throw new Error("The local project library is not available in this browser.");
   const projectId=payload&&payload.project_id;
   if(typeof projectId!=="string"||!projectId)throw new Error("Provide a project_id from list_projects.");
@@ -739,9 +743,9 @@ function installAgentAPI(){
     getCanvas:getAgentCanvas,
     getPixel:getAgentPixel,
     execute:executeAgentCommands,
-    undo:function(){undo();return getAgentStatus()},
-    redo:function(){redo();return getAgentStatus()},
-    save:async function(){const saved=await persistNow();return {ok:saved,status:$("saveState").textContent,project_id:activeProjectId}},
+    undo:function(){if(drawing)throw new Error("Finish the current canvas stroke before undoing.");undo();return getAgentStatus()},
+    redo:function(){if(drawing)throw new Error("Finish the current canvas stroke before redoing.");redo();return getAgentStatus()},
+    save:async function(){if(drawing)throw new Error("Finish the current canvas stroke before saving.");const saved=await persistNow();return {ok:saved,status:$("saveState").textContent,project_id:activeProjectId}},
     exportProject:function(){return ProjectModel.serializeProject(snapshot())},
     importProject:importAgentProject,
     listProjects:listAgentProjects,
