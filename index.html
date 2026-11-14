@@ -2436,6 +2436,20 @@ grid.addEventListener("pointercancel",()=>{
   drawing=false;strokeStart=null;strokeLast=null;strokeBeforePixels=null;strokeTarget=null;
   clearShapePreview();renderGrid();renderStats();
 });
+async function commitSinglePixel(index,color){
+  if(safeEditBusy||drawing)return false;
+  if(!Number.isInteger(index)||index<0||index>=w*h||!selectionContainsIndex(index))return false;
+  let source;
+  try{source=createSafeEditProject();}
+  catch(error){toast(error.message||"The active edit target is unavailable.");return false;}
+  const target={revision:documentRevision,projectId:source.id,layerId:source.activeLayerId,frameId:source.activeFrameId};
+  const cel=ProjectModel.getCel(source,target.layerId,target.frameId);
+  if(!cel)return false;
+  const next=cel.pixels.slice();
+  if(next[index]===color)return true;
+  next[index]=color;
+  return commitCanvasStroke(next,target);
+}
 grid.addEventListener("keydown",e=>{
   const current=document.activeElement;
   if(!current||!current.classList.contains("pixel-cell"))return;
@@ -2453,10 +2467,9 @@ grid.addEventListener("keydown",e=>{
       setTool("brush");return;
     }
     if(!isActiveLayerEditable()){toast("The active layer is locked.");return}
-    remember();
-    if(tool==="fill")floodFill(index,palette[selected]);
-    else paint(index,tool==="eraser"?null:palette[selected]);
-    renderStats();scheduleSave();return;
+    if(tool==="fill")void fillActiveArea(index,palette[selected]);
+    else void commitSinglePixel(index,tool==="eraser"?null:palette[selected]);
+    return;
   }else return;
   e.preventDefault();
   current.tabIndex=-1;focusedIndex=next;grid.children[next].tabIndex=0;grid.children[next].focus();
