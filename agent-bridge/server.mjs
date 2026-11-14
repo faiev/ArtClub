@@ -399,6 +399,90 @@ async function main() {
 
   registerTool(
     server,
+    "artclub_list_frames",
+    "List animation frames in timeline order, including frame names, durations and active state.",
+    z.object({}),
+    async () => textResult(await invoke("list_frames"))
+  );
+
+  registerTool(
+    server,
+    "artclub_add_frame",
+    "Add a blank animation frame after the active frame and make it active.",
+    z.object({
+      name: z.string().min(1).max(60).optional(),
+      duration_ms: z.number().int().min(10).max(60000).optional(),
+      expected_revision: revision
+    }),
+    async args => textResult(await invoke("add_frame", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_duplicate_frame",
+    "Duplicate a frame and all its layer cels, then make the duplicate active.",
+    z.object({
+      frame_id: z.string().min(1).optional(),
+      name: z.string().min(1).max(60).optional(),
+      expected_revision: revision
+    }),
+    async args => textResult(await invoke("duplicate_frame", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_select_frame",
+    "Switch the active animation frame. Drawing commands then target that frame's active-layer cel.",
+    z.object({ frame_id: z.string().min(1), expected_revision: revision }),
+    async args => textResult(await invoke("select_frame", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_delete_frame",
+    "Delete a frame and its cels. The final remaining frame cannot be deleted.",
+    z.object({ frame_id: z.string().min(1).optional(), expected_revision: revision }),
+    async args => textResult(await invoke("delete_frame", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_move_frame",
+    'Move a frame one position "up" (earlier) or "down" (later) in the timeline.',
+    z.object({
+      frame_id: z.string().min(1).optional(),
+      direction: z.enum(["up", "down"]),
+      expected_revision: revision
+    }),
+    async args => textResult(await invoke("move_frame", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_set_frame_duration",
+    "Set a frame's playback duration in milliseconds (10–60000).",
+    z.object({
+      frame_id: z.string().min(1).optional(),
+      duration_ms: z.number().int().min(10).max(60000),
+      expected_revision: revision
+    }),
+    async args => textResult(await invoke("set_frame_duration", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_rename_frame",
+    "Rename a frame in the timeline.",
+    z.object({
+      frame_id: z.string().min(1).optional(),
+      name: z.string().min(1).max(60),
+      expected_revision: revision
+    }),
+    async args => textResult(await invoke("rename_frame", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
     "artclub_undo",
     "Undo one editing transaction.",
     z.object({}),
