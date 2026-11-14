@@ -136,13 +136,46 @@
     assertInteger(spacing, "Spacing", 0, 4096);
 
     let columns;
-    if (layout === "horizontal") columns = frameIds.length;
-    else if (layout === "vertical") columns = 1;
-    else {
-      columns = options.columns === undefined ? Math.ceil(Math.sqrt(frameIds.length)) : options.columns;
-      assertInteger(columns, "Grid columns", 1, frameIds.length);
+    let rows;
+    if (layout === "horizontal") {
+      if (options.rows !== undefined) {
+        throw new Error("Grid rows can only be specified when layout is grid.");
+      }
+      columns = frameIds.length;
+      rows = 1;
+    } else if (layout === "vertical") {
+      if (options.rows !== undefined) {
+        throw new Error("Grid rows can only be specified when layout is grid.");
+      }
+      columns = 1;
+      rows = frameIds.length;
+    } else {
+      const requestedColumns = options.columns;
+      const requestedRows = options.rows;
+      if (requestedColumns !== undefined) {
+        assertInteger(requestedColumns, "Grid columns", 1, frameIds.length);
+      }
+      if (requestedRows !== undefined) {
+        assertInteger(requestedRows, "Grid rows", 1, frameIds.length);
+      }
+
+      if (requestedColumns !== undefined && requestedRows !== undefined) {
+        if (requestedColumns * requestedRows < frameIds.length) {
+          throw new Error("Grid rows × columns must provide at least one cell for every selected frame.");
+        }
+        columns = requestedColumns;
+        rows = requestedRows;
+      } else if (requestedColumns !== undefined) {
+        columns = requestedColumns;
+        rows = Math.ceil(frameIds.length / columns);
+      } else if (requestedRows !== undefined) {
+        rows = requestedRows;
+        columns = Math.ceil(frameIds.length / rows);
+      } else {
+        columns = Math.ceil(Math.sqrt(frameIds.length));
+        rows = Math.ceil(frameIds.length / columns);
+      }
     }
-    const rows = Math.ceil(frameIds.length / columns);
     const sheetWidth = margin * 2 + columns * width + Math.max(0, columns - 1) * spacing;
     const sheetHeight = margin * 2 + rows * height + Math.max(0, rows - 1) * spacing;
     const pixelCount = sheetWidth * sheetHeight;
