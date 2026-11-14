@@ -173,3 +173,71 @@
 - **PR report:** Posted to https://github.com/faiev/ArtClub/pull/96.
 - **Blockers/dependencies:** No UX-specific blocker identified. Overall UI-02A remains subject to the independently reported P1 cross-tab stale-write and P2 recovery rollback integrity findings; this review does not clear either.
 - **Next three actions:** (1) Coordinator considers the optional accessible disabled-reason guidance when polishing UI-02A; (2) re-review only if the Clear/import interaction or feedback behavior changes materially; (3) review UI-02B staged-import UX when explicitly dispatched, remaining read-only.
+
+
+## Ten-agent branch hygiene assignment — Agent 5 (2026-11-15)
+
+- **Status:** INVENTORY COMPLETED — read-only; no branches, PRs, production files, or shared files changed.
+- **Authoritative main ref:** `84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa` (verified from `GET /repos/faiev/ArtClub/git/ref/heads/main`).
+- **Board assignment:** `coordination/BOARD.md`, section “Ten-agent branch hygiene assignments — 2026-11-15” (section begins at line 505 in the fetched file). Assignment blob SHA: `fd52a2810983fd0eb71c1fb2ac0f582081204d15`.
+- **Ownership:** Agent 5 UX/accessibility inventory only. No implementation, branch creation/deletion, force update, PR close/retarget, or merge was performed.
+
+### Assigned PR / branch inventory
+
+Ahead/behind counts below are from GitHub compare `main...<head>` against the exact current main SHA above. “Ahead” is the number of commits not in main; “behind” is the number of main commits not in the branch. All listed open PRs have `base=main`; none uses another Agent 5 branch as its Git base.
+
+| PR | State / draft | Branch; exact PR head | PR base SHA | Ahead / behind main | Commits; unique changed files | Dependants / recommendation |
+|---|---|---|---|---:|---|---|
+| [#9](https://github.com/faiev/ArtClub/pull/9) | Open / draft | `agent/ux-implementation-plan`; `17e258a44a257d89556a80fb7977ef32a36d50ba` | `fe66725f7d010beca7ca60f497778d419e753d7b` | 1 / 427 | 1; `UX_IMPLEMENTATION_PLAN.md` | No open downstream PR. **Park**; very old base and later AC-054 sequence exists in #51. Coordinator may consider closing after confirming #51 fully supersedes it. |
+| [#20](https://github.com/faiev/ArtClub/pull/20) | Open / ready | `agent/keyboard-shortcuts-plan`; `36974992a26fb7b90d8aa6902fc0df3c3d5e3ba5` | `bf8e27ce5c338c228953d48914bfec7b6a7848f8` | 13 / 27 | 13; `KEYBOARD_SHORTCUTS_PLAN.md` | No open downstream PR. **Park** as standalone UX spec; older closed PRs #17/#19 used this same branch. |
+| [#24](https://github.com/faiev/ArtClub/pull/24) | Open / ready | `agent/canvas-workspace-spec`; `46546e8a7e7494933913e79b107148e93be085c7` | `bf8e27ce5c338c228953d48914bfec7b6a7848f8` | 12 / 27 | 12; `docs/ux/CANVAS_WORKSPACE_SPEC.md` | No open downstream PR. **Park**; useful future navigation/workspace spec, not a UI-02 prerequisite. |
+| [#30](https://github.com/faiev/ArtClub/pull/30) | Open / ready | `agent/layer-timeline-spec`; `54f2bb6867c36dbbf32c18df7ac8e3b4a95d9b83` | `bf8e27ce5c338c228953d48914bfec7b6a7848f8` | 7 / 27 | 7; `docs/ux/LAYER_TIMELINE_SPEC.md` | No open downstream PR. **Park**; layer/timeline workflow spec, not a UI-02 prerequisite. |
+| [#35](https://github.com/faiev/ArtClub/pull/35) | Open / ready | `agent/palette-export-spec`; `cbc74d707aa8fe925a9428e6a126e4fefcd9e95d` | `bf8e27ce5c338c228953d48914bfec7b6a7848f8` | 7 / 27 | 7; `docs/ux/PALETTE_EXPORT_SPEC.md` | No open downstream PR. **Park**; palette/export journeys are not a UI-02 prerequisite. |
+| [#41](https://github.com/faiev/ArtClub/pull/41) | Open / ready | `agent/accessibility-audit`; `8b1d42f7c55876520318aa22cc1922758f7fb3f2` | `bf8e27ce5c338c228953d48914bfec7b6a7848f8` | 9 / 27 | 9; `docs/ux/ACCESSIBILITY_AUDIT.md` | No open downstream PR. **Park**; broad accessibility audit, not a specifically identified UI-02 dependency. |
+| [#47](https://github.com/faiev/ArtClub/pull/47) | Open / draft | `agent/ux-prototypes`; `271a5e9c93ecf1dafd0e6ee0851fb9dd8cb8f1d1` | `bf8e27ce5c338c228953d48914bfec7b6a7848f8` | 19 / 27 | 19; `docs/ux/prototypes/canvas-workspace.html`, `layer-timeline.html`, `palette-export.html`, `shortcut-reference.html` | No open downstream PR. **Park**; static UX prototypes are not UI-02 prerequisites and remain non-production. |
+| [#51](https://github.com/faiev/ArtClub/pull/51) | Open / ready | `agent/ux-implementation-sequence`; `9695a72023abd97c7ba21664ef335d0085590c64` | `bf8e27ce5c338c228953d48914bfec7b6a7848f8` | 9 / 27 | 9; `docs/ux/IMPLEMENTATION_SEQUENCE.md` | No open downstream PR. **Park** as roadmap; it conceptually references the spec pack but is not Git-stacked on those branches. |
+| [#87](https://github.com/faiev/ArtClub/pull/87) | **Merged** 2026-11-14 | `agent/ac091-screenshot-caption-fix`; PR head `ccb49a9ca2e592b97f4afccbf1b2361dcb0828f0` | `0c525c763731d044bd700f3920e95943e35c543e` | 5 / 60 at PR head | 5; `docs/ux/DESIGN_SYSTEM.md` (+1/-1) | Merge commit `9296ca08e1e8143bb5b82c0ad48608e9c9a0b344` is reachable from main (0 ahead / 60 behind). Current branch ref has moved to `2ad07d86db0d62c96f882dd6337774ec0eff9c46` (6 / 58; 3 commits beyond PR head, with only `coordination/status/agent-5.md` differing from the PR head). **Preserve/park** until coordinator reviews those status-only commits; PR itself is complete. |
+| [#95](https://github.com/faiev/ArtClub/pull/95) | Open / ready | `agent/ui03-canvas-navigation-acceptance`; `c84583a504a9becccaaff2ea321f6e7fdf0187ed` | `67fea02e82db4b6da56550cf26e18e1265e9a4ff` | 3 / 33 | 3; `docs/CANVAS_NAVIGATION_ACCEPTANCE.md` | No open downstream PR. **Park**; UI-03 acceptance criteria, not a UI-02 prerequisite. |
+
+GitHub PR metadata reported `mergeable=false` for each currently open PR above at inspection time. No merge, retarget, or conflict-resolution attempt was made.
+
+### Related UX branch refs not represented by the assigned open PRs
+
+| Branch | Exact current head | Ahead / behind main | Unique diff vs main / history | Recommendation |
+|---|---|---:|---|---|
+| `agent/ux-audit` | `c434013166cc25d5bfb881530a31db42633b0701` | 0 / 429 | No diff; head is an ancestor of main. Associated PR #4 is closed. | **Candidate branch for deletion only after Coordinator confirms no historical/dependency need**; no unique commits remain outside main. |
+| `agent/workstation-design-system-current` | `91992448be2fc84bf7c21760b2af9c1c25869ead` | 8 / 71 | PR #77 was merged at `a229a8c0028dc4290c3f5da811fa565fc3a17610`. Current ref is 4 commits beyond the PR head `17c9d8ab5d9540ae1ec7889afdb2033ac7df57a0`; relative to that PR head it includes coordination updates and a one-line `docs/ux/DESIGN_SYSTEM.md` change. | **Park**; merged PR does not prove the later branch tip is redundant. Coordinator should review the one-line design-system delta before any cleanup. |
+| `agent/workstation-design-system` | `aa3f244acb1352d7cf964f4aef88afc398dead2b` | 4 / 240 | Four unique commits; `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, `docs/ux/prototypes/workstation.html`. These file blobs differ from current main. No PR head currently points to this ref. | **Park**; earlier parallel AC-091 material has distinct content and is not proven redundant with merged #77. Do not delete on age alone. |
+| `agent/ac091-screenshot-caption-fix` | `2ad07d86db0d62c96f882dd6337774ec0eff9c46` | 6 / 58 | PR #87 merge is in its history; three post-PR commits differ only in `coordination/status/agent-5.md` versus the PR head. | **Park** pending review of status-only commits; no open PR depends on it. |
+
+Related closed PRs on the UX branch set: #17 and #19 used `agent/keyboard-shortcuts-plan`; #4 used `agent/ux-audit`; #77 used `agent/workstation-design-system-current` and is merged. No open PR in the repository has one of these UX branches as its base; all current UX PRs in this inventory target `main`. PR #51 has conceptual document dependencies only, not a stacked Git parent relationship.
+
+### UI-02 relevance / UX blocker assessment
+
+- **No currently open UX PR is a required Git dependency for UI-02.** The open specs, prototypes, audit, and UI-03 acceptance document are future workflow/design deliverables; none is a parent branch for the coordinator's UI-02 PR.
+- Current main's `docs/ux/` directory contains `DESIGN_SYSTEM.md`, `WORKSTATION_REVIEW.md`, and prototypes. It does **not** contain a dedicated UI-02 Clear/import/paste copy-and-error, focus-return, and non-color-only status guidance document. None of the inventoried open PRs is that dedicated deliverable. This is a possible separate UX documentation gap only if the Coordinator explicitly makes it a UI-02 acceptance gate; it does not create a branch dependency and was not implemented in this read-only task.
+- No UX-specific P0 blocker to UI-02 was established by this branch inventory.
+
+### Exact-head CI evidence and validation limits
+
+- For each of the ten assigned PR heads (#9, #20, #24, #30, #35, #41, #47, #51, #87, #95), GitHub `GET /commits/{sha}/check-runs` returned `total_count=0`; `GET /commits/{sha}/status` returned `state=pending` with an empty `statuses` array; `fetch_commit_workflow_runs` returned no PR-triggered workflow runs.
+- Therefore **no exact-head CI pass/fail can be established from the available GitHub checks evidence**. Do not interpret the empty/pending status as a passing run. No run URLs or job logs exist in these responses.
+- No local clone or shell test command was run. This inventory used GitHub read endpoints and compare operations only.
+
+### Commands / requests executed
+
+1. `GET /repos/faiev/ArtClub/git/ref/heads/main`
+2. `GET /repos/faiev/ArtClub/contents/coordination/BOARD.md?ref=main`
+3. `GET /repos/faiev/ArtClub/contents/coordination/assignments/agent-5.md?ref=main`
+4. `GET /repos/faiev/ArtClub/contents/coordination/status/agent-5.md?ref=main`
+5. `GET /repos/faiev/ArtClub/branches?per_page=100&page=1` and `page=2`
+6. `GET /repos/faiev/ArtClub/pulls?state=all&per_page=100&page=1`
+7. `GET /repos/faiev/ArtClub/pulls/{9,20,24,30,35,41,47,51,77,87,95}` and changed-file listings for assigned PRs
+8. GitHub compare operations `compare(main, exact-head)` for every assigned PR head and the related UX branch refs; additional comparisons checked the merged #77/#87 merge commits and post-merge branch tips.
+9. For all ten assigned PR heads: `GET /repos/faiev/ArtClub/commits/{sha}/check-runs`, `GET /repos/faiev/ArtClub/commits/{sha}/status`, and commit-associated workflow-run lookup.
+10. `GET /repos/faiev/ArtClub/contents/docs/ux?ref=main` and file-content comparisons for the unrepresented workstation branch.
+
+- **No shell commands:** No local Git checkout was available in this execution; the latest main ref and repository objects were read directly from GitHub. No `git fetch`, `git status`, or local test command is claimed.
+- **Changed files in this assignment:** only `coordination/status/agent-5.md` (this report). No other path, branch ref, PR state, or workflow was changed.
+- **Coordinator handoff:** The inventory supports parking all non-UI-02 UX deliverables while the UI-02 release lane proceeds. Review the old AC-009 roadmap against AC-054 before closing #9; inspect the unmerged workstation branch delta before any branch cleanup; consider deletion of `agent/ux-audit` only after confirming its ancestry/no-dependency status. The Coordinator alone owns final disposition and cleanup.
+- **Last updated:** 2026-11-15.
