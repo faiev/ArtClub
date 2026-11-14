@@ -44,9 +44,19 @@ const REQUIRED_BRIDGE_SCRIPTS = ["test:e2e", "test:mcp"];
 const REQUIRED_WORKFLOW_COMMANDS = [
   "node --test tests/*.test.js",
   "node --check agent-bridge/server.mjs",
+  "npx playwright install --with-deps chromium",
   "npm run test:e2e",
   "npm run test:mcp",
   "node tests/gif-export.browser.mjs"
+];
+
+const REQUIRED_QA_COMMANDS = [
+  "node --test tests/qa/lifecycle/project-lifecycle.test.js",
+  "node --test tests/qa/lifecycle/editor-switch-contract.test.js",
+  "node --test tests/qa/compatibility/project-compatibility.test.js",
+  "node --test tests/qa/compatibility/gif-export-contract.test.js",
+  "node --test tests/qa/release/qa-release-check.test.js",
+  "node tests/qa/browser/project-lifecycle.mjs"
 ];
 
 function addCheck(checks, id, status, message, details) {
@@ -207,6 +217,22 @@ export function checkReleaseReadiness(options = {}) {
       present ? "pass" : "fail",
       present ? "Bridge script exists: " + script : "Required bridge script is missing: " + script
     );
+  }
+
+  const checklist = readText(root, "docs/RELEASE_CHECKLIST.md");
+  if (!checklist) {
+    addCheck(checks, "release-checklist-readable", "fail", "Release checklist is missing or unreadable.");
+  } else {
+    addCheck(checks, "release-checklist-readable", "pass", "Release checklist is readable.");
+    for (const command of REQUIRED_QA_COMMANDS) {
+      const present = checklist.includes(command);
+      addCheck(
+        checks,
+        "qa-command:" + command,
+        present ? "pass" : "fail",
+        present ? "Release checklist documents QA command: " + command : "Release checklist is missing QA command: " + command
+      );
+    }
   }
 
   const workflow = readText(root, ".github/workflows/project-tests.yml");
