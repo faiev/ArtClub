@@ -594,6 +594,7 @@ function compositePixels(frameId){
 }
 
 function loadProjectIntoEditor(source,resetHistory=true){
+  if(isPlaying||playbackFrameId)resetPlayback();
   const doc=ProjectModel.deserializeProject(source);
   projectDoc=doc;
   activeProjectId=doc.id;
@@ -621,8 +622,8 @@ function remember(){
   redoStack.length=0;
   updateHistoryButtons();
 }
-function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());}
-function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());}
+function undo(){if(!undoStack.length)return;if(isPlaying||playbackFrameId)resetPlayback();redoStack.push(snapshot());restore(undoStack.pop());}
+function redo(){if(!redoStack.length)return;if(isPlaying||playbackFrameId)resetPlayback();undoStack.push(snapshot());restore(redoStack.pop());}
 function updateHistoryButtons(){$("undoBtn").disabled=!undoStack.length;$("redoBtn").disabled=!redoStack.length}
 function selectionContainsPoint(rect,x,y){
   return Boolean(rect&&x>=rect.x&&y>=rect.y&&x<rect.x+rect.width&&y<rect.y+rect.height);
@@ -857,6 +858,7 @@ function renderTimeline(){
   $("frameCount").textContent=projectDoc.frames.length+" FRAME"+(projectDoc.frames.length===1?"":"S");
   projectDoc.frames.forEach((frame,index)=>{
     const card=document.createElement("div");
+    card.dataset.frameId=frame.id;
     card.className="frame-card"+(frame.id===projectDoc.activeFrameId?" active":"")+(frame.id===playbackFrameId&&frame.id!==projectDoc.activeFrameId?" preview":"");
     const select=document.createElement("button");
     select.type="button";select.className="frame-select";
@@ -1394,7 +1396,8 @@ function validateAgentCommands(commands){
 function executeAgentCommands(commands,options){
   options=options||{};
   if(drawing)throw new Error("A canvas stroke is in progress. Finish it before sending agent drawing commands.");
-  if(isPlaying||playbackFrameId)throw new Error("Pause or stop animation preview before sending drawing commands.");
+  if(isPlaying)throw new Error("Pause animation preview before sending drawing commands.");
+  if(playbackFrameId)resetPlayback();
   if(!isActiveLayerEditable())throw new Error("The active layer is locked. Unlock it before sending agent drawing commands.");
   if(options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
     throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
@@ -1466,8 +1469,9 @@ function getAgentStatus(){
     revision:documentRevision,
     human_stroke_in_progress:drawing,
     selection:selection?{x:selection.x,y:selection.y,width:selection.width,height:selection.height}:null,
+    playback:{playing:isPlaying,previewing:Boolean(playbackFrameId),preview_frame_id:playbackFrameId,mode:playbackMode,onion_skin:onionSkinEnabled},
     history:{can_undo:undoStack.length>0,can_redo:redoStack.length>0},
-    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","draw_ellipse","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png","layers","set_selection","select_all","copy_selection","cut_selection","paste_selection","clear_selection","deselect","move_selection","transform_selection","list_frames","add_frame","duplicate_frame","select_frame","delete_frame","move_frame","set_frame_duration","rename_frame"]
+    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","draw_ellipse","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png","layers","set_selection","select_all","copy_selection","cut_selection","paste_selection","clear_selection","deselect","move_selection","transform_selection","list_frames","add_frame","duplicate_frame","select_frame","delete_frame","move_frame","set_frame_duration","rename_frame","play","pause","stop_playback","set_playback_mode","set_onion_skin"]
   };
 }
 function getAgentCanvas(options){
@@ -1527,7 +1531,8 @@ async function exportAgentPNG(){
 function assertAgentLayerAction(options){
   options=options||{};
   if(drawing)throw new Error("A canvas stroke is in progress. Finish it before changing layers.");
-  if(isPlaying||playbackFrameId)throw new Error("Pause or stop animation preview before changing layers.");
+  if(isPlaying)throw new Error("Pause animation preview before changing layers.");
+  if(playbackFrameId)resetPlayback();
   if(options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
     throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
   }
@@ -1620,7 +1625,8 @@ function agentDeleteLayer(payload){
 function assertAgentSelectionAction(options){
   options=options||{};
   if(drawing)throw new Error("A canvas stroke is in progress. Finish it before changing the selection.");
-  if(isPlaying||playbackFrameId)throw new Error("Pause or stop animation preview before changing the selection.");
+  if(isPlaying)throw new Error("Pause animation preview before changing the selection.");
+  if(playbackFrameId)resetPlayback();
   if(options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
     throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
   }
@@ -1672,7 +1678,8 @@ function agentTransformSelection(payload){
 function assertAgentFrameAction(options){
   options=options||{};
   if(drawing)throw new Error("A canvas stroke is in progress. Finish it before changing frames.");
-  if(isPlaying||playbackFrameId)throw new Error("Pause or stop animation preview before changing frames.");
+  if(isPlaying)throw new Error("Pause animation preview before changing frames.");
+  if(playbackFrameId)resetPlayback();
   if(options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
     throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
   }
@@ -1884,6 +1891,7 @@ $("zoomReset").addEventListener("click",()=>setZoom(1));
 $("shapeFillToggle").addEventListener("change",()=>setTool(tool));
 async function createBlankProject(options){
   options=options||{};
+  if(isPlaying||playbackFrameId)resetPlayback();
   if(options.persistCurrent!==false)await persistNow();
   w=options.width===undefined?24:options.width;h=options.height===undefined?24:options.height;
   if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>ProjectModel.LIMITS.maxDimension||h>ProjectModel.LIMITS.maxDimension){
