@@ -3,7 +3,7 @@
 **Task:** AC-049 — Canvas navigation and workspace interaction specification  
 **Owner:** Agent 5 — UX / accessibility  
 **Branch:** `agent/canvas-workspace-spec`  
-**Synchronized main base:** `cb0ed64114e8934270e7e18e2c7c20f3a640c124`  
+**Production source reviewed:** `main` `index.html` blob `4645281c1aad8580529e7feb99cd299a88543913` (UI-01 workstation shell)  
 **Status:** Product/interaction specification only. No production UI or code is included.
 
 ---
