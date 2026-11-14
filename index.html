@@ -1078,6 +1078,9 @@ async function cutSelection(){
 function createSafeEditProject(){
   if(!projectDoc)throw new Error("The editor project is not ready yet.");
   const source=ProjectModel.cloneProject(projectDoc);
+  source.name=projectName;
+  source.palette=palette.slice();
+  source.selectedColorIndex=selected;
   const cel=ProjectModel.getCel(source,source.activeLayerId,source.activeFrameId);
   if(!cel)throw new Error("The active layer/frame cel no longer exists.");
   if(!Array.isArray(pixels)||pixels.length!==source.canvas.width*source.canvas.height){
