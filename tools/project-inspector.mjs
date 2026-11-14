@@ -27,6 +27,7 @@ function usage() {
     "Usage:",
     "  node tools/project-inspector.mjs [--json] <project-file>",
     "  node tools/project-inspector.mjs --batch [--recursive] [--json] <file-or-directory>...",
+    "  node tools/project-inspector.mjs --compare [--json] <left-project> <right-project>",
     "",
     "Inspect One Pixel Studio projects without modifying them.",
     "",
@@ -34,6 +35,7 @@ function usage() {
     "  --json        Print a stable machine-readable JSON report.",
     "  --batch       Inspect multiple files and/or directory inputs.",
     "  --recursive   Recurse into child directories (requires --batch).",
+    "  --compare     Compare two projects without modifying either file.",
     "  --help        Show this help message.",
     "",
     "Single-file and batch inspection accept v2 documents and legacy single-canvas documents.",
@@ -48,6 +50,8 @@ function parseArguments(argv) {
     help: false,
     batch: false,
     recursive: false,
+    compare: false,
+    comparePaths: [],
     filePath: null,
     inputPaths: [],
     error: null
@@ -58,11 +62,19 @@ function parseArguments(argv) {
     if (!positionalOnly && argument === "--json") { result.json = true; continue; }
     if (!positionalOnly && argument === "--help") { result.help = true; continue; }
     if (!positionalOnly && argument === "--batch") {
-      if (result.filePath !== null) {
-        result.error = inspectorError("INVALID_ARGUMENT", "Use --batch before listing batch input paths.", 2);
+      if (result.filePath !== null || result.compare) {
+        result.error = inspectorError("INVALID_ARGUMENT", "--batch cannot be combined with a single-file or compare input.", 2);
         return result;
       }
       result.batch = true;
+      continue;
+    }
+    if (!positionalOnly && argument === "--compare") {
+      if (result.batch || result.filePath !== null) {
+        result.error = inspectorError("INVALID_ARGUMENT", "--compare cannot be combined with single-file or batch input.", 2);
+        return result;
+      }
+      result.compare = true;
       continue;
     }
     if (!positionalOnly && argument === "--recursive") { result.recursive = true; continue; }
@@ -72,6 +84,8 @@ function parseArguments(argv) {
     }
     if (result.batch) {
       result.inputPaths.push(argument);
+    } else if (result.compare) {
+      result.comparePaths.push(argument);
     } else if (result.filePath === null) {
       result.filePath = argument;
     } else {
@@ -82,6 +96,14 @@ function parseArguments(argv) {
   if (result.help) return result;
   if (result.recursive && !result.batch) {
     result.error = inspectorError("INVALID_ARGUMENT", "--recursive requires --batch.", 2);
+    return result;
+  }
+  if (result.compare && result.comparePaths.length !== 2) {
+    result.error = inspectorError("INVALID_ARGUMENT", "--compare requires exactly two project file paths.", 2);
+    return result;
+  }
+  if (result.compare && result.recursive) {
+    result.error = inspectorError("INVALID_ARGUMENT", "--recursive cannot be used with --compare.", 2);
     return result;
   }
   if (result.batch && result.inputPaths.length === 0) {
@@ -489,6 +511,456 @@ function renderHumanBatchReport(report) {
   }
   return lines.join("\n");
 }
+
+function loadCompareInput(filePath) {
+  const input = readProjectFile(filePath);
+  let data;
+  try {
+    data = JSON.parse(input.text.replace(/^\uFEFF/, ""));
+  } catch (error) {
+    throw inspectorError("JSON_PARSE_ERROR", "Invalid JSON in " + JSON.stringify(filePath) + ": " + error.message);
+  }
+  const migratedInMemory = isLegacyProject(data);
+  let project;
+  try {
+    project = Project.deserializeProject(data);
+  } catch (error) {
+    throw inspectorError("INVALID_PROJECT", error.message || "Project validation failed.");
+  }
+  const validation = Project.validateProject(project);
+  if (!validation.valid) {
+    throw inspectorError("INVALID_PROJECT", "Invalid project: " + validation.errors.join(" "));
+  }
+  return {
+    file: filePath,
+    fileSizeBytes: input.bytes,
+    sourceFormat: migratedInMemory ? "legacy-single-canvas" : project.format,
+    sourceVersion: migratedInMemory ? (Number.isInteger(data.version) ? data.version : 1) : project.version,
+    migratedInMemory,
+    project
+  };
+}
+function stableSerialize(value) {
+  if (value === undefined) return "undefined";
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return "[" + value.map(stableSerialize).join(",") + "]";
+  return "{" + Object.keys(value).sort(lexicalCompare).map((key) =>
+    JSON.stringify(key) + ":" + stableSerialize(value[key])
+  ).join(",") + "}";
+}
+function diffValuesEqual(left, right) {
+  return stableSerialize(left) === stableSerialize(right);
+}
+function previewDiffValue(value) {
+  if (value === undefined) return { state: "absent" };
+  const serialized = stableSerialize(value);
+  if (serialized.length <= 240) return value;
+  return {
+    type: Array.isArray(value) ? "array" : typeof value,
+    preview: serialized.slice(0, 237) + "...",
+    truncated: true
+  };
+}
+function compareFields(before, after, fields) {
+  const changes = [];
+  for (const field of fields) {
+    if (!diffValuesEqual(before[field], after[field])) {
+      changes.push({
+        field,
+        before: previewDiffValue(before[field]),
+        after: previewDiffValue(after[field])
+      });
+    }
+  }
+  return changes;
+}
+function compareCanvas(left, right) {
+  const fields = compareFields(left.project.canvas, right.project.canvas, ["width", "height", "background"]);
+  return {
+    changed: fields.length > 0,
+    fields,
+    before: {
+      width: left.project.canvas.width,
+      height: left.project.canvas.height,
+      background: left.project.canvas.background === undefined ? null : left.project.canvas.background
+    },
+    after: {
+      width: right.project.canvas.width,
+      height: right.project.canvas.height,
+      background: right.project.canvas.background === undefined ? null : right.project.canvas.background
+    }
+  };
+}
+function comparePalette(left, right) {
+  const before = left.project.palette;
+  const after = right.project.palette;
+  const entries = [];
+  const count = Math.max(before.length, after.length);
+  for (let index = 0; index < count; index += 1) {
+    const hasBefore = index < before.length;
+    const hasAfter = index < after.length;
+    if (hasBefore && hasAfter && before[index] === after[index]) continue;
+    entries.push({
+      index,
+      kind: !hasBefore ? "added" : !hasAfter ? "removed" : "changed",
+      before: hasBefore ? before[index] : { state: "absent" },
+      after: hasAfter ? after[index] : { state: "absent" }
+    });
+  }
+  return {
+    changed: entries.length > 0,
+    beforeCount: before.length,
+    afterCount: after.length,
+    entries
+  };
+}
+function summarizeEntity(entity, index, kind, migratedInMemory) {
+  const result = {
+    index,
+    id: migratedInMemory ? null : entity.id,
+    name: entity.name
+  };
+  if (kind === "layer") {
+    result.visible = entity.visible;
+    result.locked = entity.locked;
+    result.opacity = entity.opacity;
+  } else {
+    result.durationMs = entity.durationMs;
+  }
+  return result;
+}
+function compareEntityCollection(beforeItems, afterItems, left, right, kind) {
+  const idField = "id";
+  const fields = kind === "layer"
+    ? ["name", "visible", "locked", "opacity"]
+    : ["name", "durationMs"];
+  const bothLegacy = left.migratedInMemory && right.migratedInMemory;
+  const bothVersioned = !left.migratedInMemory && !right.migratedInMemory;
+  const matchBy = bothLegacy ? "position" : bothVersioned ? "source-id" : "none-across-source-formats";
+  const beforeMatched = new Set();
+  const afterMatched = new Set();
+  const pairs = [];
+
+  if (matchBy === "position") {
+    const length = Math.min(beforeItems.length, afterItems.length);
+    for (let index = 0; index < length; index += 1) {
+      beforeMatched.add(index);
+      afterMatched.add(index);
+      pairs.push([index, index]);
+    }
+  } else if (matchBy === "source-id") {
+    const afterById = new Map(afterItems.map((item, index) => [item[idField], index]));
+    beforeItems.forEach((item, beforeIndex) => {
+      const afterIndex = afterById.get(item[idField]);
+      if (afterIndex !== undefined) {
+        beforeMatched.add(beforeIndex);
+        afterMatched.add(afterIndex);
+        pairs.push([beforeIndex, afterIndex]);
+      }
+    });
+  }
+
+  const added = [];
+  const removed = [];
+  const modified = [];
+  afterItems.forEach((item, index) => {
+    if (!afterMatched.has(index)) {
+      added.push(summarizeEntity(item, index, kind, right.migratedInMemory));
+    }
+  });
+  beforeItems.forEach((item, index) => {
+    if (!beforeMatched.has(index)) {
+      removed.push(summarizeEntity(item, index, kind, left.migratedInMemory));
+    }
+  });
+  for (const [beforeIndex, afterIndex] of pairs) {
+    const before = beforeItems[beforeIndex];
+    const after = afterItems[afterIndex];
+    const changes = compareFields(before, after, fields);
+    if (changes.length) {
+      modified.push({
+        id: bothLegacy ? null : before.id,
+        beforeIndex,
+        afterIndex,
+        changes
+      });
+    }
+  }
+  return { matchBy, added, removed, modified };
+}
+function summarizeCel(cel, index, migratedInMemory) {
+  let transparentPixels = 0;
+  for (const pixel of cel.pixels) if (pixel === null) transparentPixels += 1;
+  return {
+    index,
+    layerId: migratedInMemory ? null : cel.layerId,
+    frameId: migratedInMemory ? null : cel.frameId,
+    pixelCount: cel.pixels.length,
+    transparentPixels
+  };
+}
+function celRemovalReason(cel, targetProject, targetIsLegacy, direction) {
+  if (targetIsLegacy) return "source-identifiers-not-comparable";
+  if (!targetProject.layers.some((layer) => layer.id === cel.layerId)) {
+    return direction === "removed" ? "layer-removed" : "layer-added";
+  }
+  if (!targetProject.frames.some((frame) => frame.id === cel.frameId)) {
+    return direction === "removed" ? "frame-removed" : "frame-added";
+  }
+  return direction === "removed" ? "cel-missing" : "cel-added";
+}
+function comparePixelArrays(beforePixels, afterPixels) {
+  const length = Math.max(beforePixels.length, afterPixels.length);
+  const samples = [];
+  let changedCount = 0;
+  for (let index = 0; index < length; index += 1) {
+    const hasBefore = index < beforePixels.length;
+    const hasAfter = index < afterPixels.length;
+    const beforeValue = hasBefore ? beforePixels[index] : undefined;
+    const afterValue = hasAfter ? afterPixels[index] : undefined;
+    if (hasBefore === hasAfter && (!hasBefore || beforeValue === afterValue)) continue;
+    changedCount += 1;
+    if (samples.length < 100) {
+      samples.push({
+        index,
+        before: hasBefore ? { state: "pixel", value: beforeValue } : { state: "out-of-range" },
+        after: hasAfter ? { state: "pixel", value: afterValue } : { state: "out-of-range" }
+      });
+    }
+  }
+  return {
+    changedCount,
+    samples,
+    truncated: changedCount > samples.length,
+    beforeLength: beforePixels.length,
+    afterLength: afterPixels.length
+  };
+}
+function compareCelCollections(left, right) {
+  const beforeCels = left.project.cels;
+  const afterCels = right.project.cels;
+  const bothLegacy = left.migratedInMemory && right.migratedInMemory;
+  const bothVersioned = !left.migratedInMemory && !right.migratedInMemory;
+  const matchBy = bothLegacy ? "position" : bothVersioned ? "layerId+frameId" : "none-across-source-formats";
+  const beforeMatched = new Set();
+  const afterMatched = new Set();
+  const pairs = [];
+
+  if (matchBy === "position") {
+    const length = Math.min(beforeCels.length, afterCels.length);
+    for (let index = 0; index < length; index += 1) {
+      beforeMatched.add(index);
+      afterMatched.add(index);
+      pairs.push([index, index]);
+    }
+  } else if (matchBy === "layerId+frameId") {
+    const afterByKey = new Map(afterCels.map((cel, index) => [cel.layerId + "\u0000" + cel.frameId, index]));
+    beforeCels.forEach((cel, beforeIndex) => {
+      const afterIndex = afterByKey.get(cel.layerId + "\u0000" + cel.frameId);
+      if (afterIndex !== undefined) {
+        beforeMatched.add(beforeIndex);
+        afterMatched.add(afterIndex);
+        pairs.push([beforeIndex, afterIndex]);
+      }
+    });
+  }
+
+  const added = [];
+  const removed = [];
+  const modified = [];
+  afterCels.forEach((cel, index) => {
+    if (!afterMatched.has(index)) {
+      added.push({
+        ...summarizeCel(cel, index, right.migratedInMemory),
+        reason: celRemovalReason(cel, left.project, left.migratedInMemory, "added")
+      });
+    }
+  });
+  beforeCels.forEach((cel, index) => {
+    if (!beforeMatched.has(index)) {
+      removed.push({
+        ...summarizeCel(cel, index, left.migratedInMemory),
+        reason: celRemovalReason(cel, right.project, right.migratedInMemory, "removed")
+      });
+    }
+  });
+
+  let pixelIndexChanges = 0;
+  for (const [beforeIndex, afterIndex] of pairs) {
+    const before = beforeCels[beforeIndex];
+    const after = afterCels[afterIndex];
+    const pixels = comparePixelArrays(before.pixels, after.pixels);
+    pixelIndexChanges += pixels.changedCount;
+    if (pixels.changedCount) {
+      modified.push({
+        layerId: bothLegacy ? null : before.layerId,
+        frameId: bothLegacy ? null : before.frameId,
+        beforeIndex,
+        afterIndex,
+        pixelChanges: pixels
+      });
+    }
+  }
+  return { matchBy, added, removed, modified, pixelIndexChanges };
+}
+function compareProjectDocuments(left, right) {
+  const canvas = compareCanvas(left, right);
+  const palette = comparePalette(left, right);
+  const bothVersioned = !left.migratedInMemory && !right.migratedInMemory;
+  const projectFields = ["name", "selectedColorIndex"];
+  if (bothVersioned) projectFields.push("id", "activeLayerId", "activeFrameId");
+  const projectChanges = compareFields(left.project, right.project, projectFields);
+  const leftMetadata = left.migratedInMemory ? {} : (left.project.metadata || {});
+  const rightMetadata = right.migratedInMemory ? {} : (right.project.metadata || {});
+  const metadataFields = Array.from(new Set([
+    ...Object.keys(leftMetadata),
+    ...Object.keys(rightMetadata)
+  ])).sort(lexicalCompare);
+  const metadataChanges = [];
+  for (const field of metadataFields) {
+    if (!diffValuesEqual(leftMetadata[field], rightMetadata[field])) {
+      metadataChanges.push({
+        field,
+        before: previewDiffValue(leftMetadata[field]),
+        after: previewDiffValue(rightMetadata[field])
+      });
+    }
+  }
+  const layers = compareEntityCollection(left.project.layers, right.project.layers, left, right, "layer");
+  const frames = compareEntityCollection(left.project.frames, right.project.frames, left, right, "frame");
+  const cels = compareCelCollections(left, right);
+  const layerChanges = layers.added.length + layers.removed.length + layers.modified.length;
+  const frameChanges = frames.added.length + frames.removed.length + frames.modified.length;
+  const celChanges = cels.added.length + cels.removed.length + cels.modified.length;
+  const totalChanges = canvas.fields.length + palette.entries.length + projectChanges.length +
+    metadataChanges.length + layerChanges + frameChanges + celChanges + cels.pixelIndexChanges;
+  return {
+    ok: true,
+    mode: "compare",
+    identical: totalChanges === 0,
+    left: {
+      file: left.file,
+      fileSizeBytes: left.fileSizeBytes,
+      sourceFormat: left.sourceFormat,
+      sourceVersion: left.sourceVersion,
+      migratedInMemory: left.migratedInMemory,
+      projectId: left.migratedInMemory ? null : left.project.id,
+      name: left.project.name,
+      canvas: { width: left.project.canvas.width, height: left.project.canvas.height }
+    },
+    right: {
+      file: right.file,
+      fileSizeBytes: right.fileSizeBytes,
+      sourceFormat: right.sourceFormat,
+      sourceVersion: right.sourceVersion,
+      migratedInMemory: right.migratedInMemory,
+      projectId: right.migratedInMemory ? null : right.project.id,
+      name: right.project.name,
+      canvas: { width: right.project.canvas.width, height: right.project.canvas.height }
+    },
+    matchPolicy: {
+      versioned: "v2 entities and cels are matched only by exact source IDs.",
+      legacy: "two legacy inputs are matched by normalized array position; generated IDs are ignored.",
+      mixed: "legacy and v2 entities are not cross-matched because legacy source IDs do not exist."
+    },
+    changes: {
+      canvas,
+      palette,
+      project: projectChanges,
+      metadata: metadataChanges,
+      layers,
+      frames,
+      cels,
+      summary: {
+        canvasFieldsChanged: canvas.fields.length,
+        paletteEntriesChanged: palette.entries.length,
+        projectFieldsChanged: projectChanges.length,
+        metadataFieldsChanged: metadataChanges.length,
+        layerRecordsChanged: layerChanges,
+        frameRecordsChanged: frameChanges,
+        celRecordsChanged: celChanges,
+        pixelIndexesChanged: cels.pixelIndexChanges
+      }
+    },
+    totalChanges
+  };
+}
+function inspectComparison(leftPath, rightPath) {
+  try {
+    const left = loadCompareInput(leftPath);
+    const right = loadCompareInput(rightPath);
+    if (left.fileSizeBytes + right.fileSizeBytes > 128 * 1024 * 1024) {
+      throw inspectorError("COMPARE_TOTAL_SIZE_LIMIT", "The two input files exceed the 128 MiB combined comparison limit.");
+    }
+    return compareProjectDocuments(left, right);
+  } catch (error) {
+    return {
+      ok: false,
+      mode: "compare",
+      identical: false,
+      left: { file: leftPath },
+      right: { file: rightPath },
+      error: {
+        code: error.code || "COMPARE_FAILED",
+        message: error.message || "Project comparison failed."
+      }
+    };
+  }
+}
+function renderHumanComparison(report) {
+  if (!report.ok) {
+    return [
+      "Project Inspector — Compare",
+      "Status: INVALID",
+      "Left: " + report.left.file,
+      "Right: " + report.right.file,
+      "Error [" + report.error.code + "]: " + report.error.message
+    ].join("\n");
+  }
+  const changes = report.changes;
+  const lines = [
+    "Project Inspector — Compare",
+    "Left: " + report.left.file + " — " + report.left.name,
+    "Right: " + report.right.file + " — " + report.right.name,
+    "Status: " + (report.identical ? "IDENTICAL" : "DIFFERENCES FOUND"),
+    "Total changes: " + report.totalChanges,
+    "Canvas fields changed: " + changes.canvas.fields.length,
+    "Palette entries changed: " + changes.palette.entries.length,
+    "Project fields changed: " + changes.project.length,
+    "Metadata fields changed: " + changes.metadata.length,
+    "Layers: " + changes.layers.added.length + " added, " + changes.layers.removed.length +
+      " removed, " + changes.layers.modified.length + " modified (match by " + changes.layers.matchBy + ")",
+    "Frames: " + changes.frames.added.length + " added, " + changes.frames.removed.length +
+      " removed, " + changes.frames.modified.length + " modified (match by " + changes.frames.matchBy + ")",
+    "Cels: " + changes.cels.added.length + " added, " + changes.cels.removed.length +
+      " removed, " + changes.cels.modified.length + " modified (match by " + changes.cels.matchBy + ")",
+    "Pixel indexes changed: " + changes.cels.pixelIndexChanges
+  ];
+  for (const item of changes.layers.modified) {
+    lines.push("  Layer modified: " + (item.id || "position " + item.beforeIndex) +
+      " — " + item.changes.map((change) => change.field).join(", "));
+  }
+  for (const item of changes.frames.modified) {
+    lines.push("  Frame modified: " + (item.id || "position " + item.beforeIndex) +
+      " — " + item.changes.map((change) => change.field).join(", "));
+  }
+  for (const item of changes.cels.removed) {
+    lines.push("  Cel removed: " + (item.layerId || "legacy layer") + "/" +
+      (item.frameId || "legacy frame") + " (" + item.reason + ")");
+  }
+  for (const item of changes.cels.added) {
+    lines.push("  Cel added: " + (item.layerId || "legacy layer") + "/" +
+      (item.frameId || "legacy frame") + " (" + item.reason + ")");
+  }
+  for (const item of changes.cels.modified) {
+    lines.push("  Cel pixel changes: " + (item.layerId || "legacy position") + "/" +
+      (item.frameId || "legacy position") + " — " + item.pixelChanges.changedCount +
+      " indexes; sample " + item.pixelChanges.samples.length +
+      (item.pixelChanges.truncated ? " (truncated)" : ""));
+  }
+  return lines.join("\n");
+}
+
 function emitFailure(filePath, jsonMode, error) {
   const failure = {
     ok: false,
@@ -511,6 +983,13 @@ function main(argv) {
   const args = parseArguments(argv);
   if (args.help) { process.stdout.write(usage() + "\n"); return; }
   if (args.error) { emitFailure(args.filePath, args.json, args.error); return; }
+  if (args.compare) {
+    const report = inspectComparison(args.comparePaths[0], args.comparePaths[1]);
+    if (args.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
+    else process.stdout.write(renderHumanComparison(report) + "\n");
+    if (!report.ok) process.exitCode = 1;
+    return;
+  }
   if (args.batch) {
     const report = inspectBatch(args.inputPaths, args.recursive);
     if (args.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
