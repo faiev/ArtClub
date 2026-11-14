@@ -64,7 +64,7 @@ Merged feature PRs: #6, #10 and #11. Coordination PR #7 is also merged. Do not i
 ## Shared-file locks
 
 - **Bridge E2E:** Agent 4 is sole writer of agent-bridge/e2e-test.mjs while PR #8 is reconciled. Agent 1's PR #1 audit is read-only.
-- **Workflow:** Agent 3 owns .github/workflows/project-tests.yml while PR #11 is being reconciled. Agent 2 can prepare browser harnesses/docs but cannot edit the workflow until Agent 3 releases it.
+- **Workflow:** PR #11 is merged. Agent 3 owns `.github/workflows/project-tests.yml` for AC-027 sprite-sheet browser verification/CI wiring; Agent 2 may prepare and run its browser harness but must not edit the workflow until Agent 3 releases it.
 - **UI:** index.html and production UI wiring remain coordinator-controlled. No worker implicitly acquires a UI lock.
 - **Module files:** each agent's assignment lists their exclusive module/test/doc paths. Do not edit another agent's paths.
 
