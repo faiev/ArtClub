@@ -56,6 +56,7 @@ let page;
 let connectionPromise;
 let operationQueue = Promise.resolve();
 const monitoredPages = new WeakSet();
+const crashedPages = new WeakSet();
 
 function compactArgs(args) {
   return Object.fromEntries(
@@ -83,8 +84,9 @@ async function connectToEditor() {
     }
 
     const context = browserContext;
-    const candidate = context.pages().find(item => !item.isClosed()) ||
-      await context.newPage();
+    const candidate = context.pages().find(item =>
+      !item.isClosed() && !crashedPages.has(item)
+    ) || await context.newPage();
     page = candidate;
 
     if (!monitoredPages.has(candidate)) {
@@ -96,6 +98,7 @@ async function connectToEditor() {
         if (page === candidate) page = null;
       });
       candidate.on("crash", () => {
+        crashedPages.add(candidate);
         console.error("[Art Club browser] The editor page crashed.");
         if (page === candidate) page = null;
       });
