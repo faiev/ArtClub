@@ -25,6 +25,17 @@ This is a living index of regression coverage and known release risks. It separa
 
 Run from the repository root unless the line says otherwise.
 
+### Release readiness checker
+
+Run read-only structural checks:
+
+```bash
+node tools/qa-release-check.mjs
+node tools/qa-release-check.mjs --json
+```
+
+The checker reports required files, bridge scripts, workflow commands, QA commands documented in the release checklist, nested test discovery and coordination freshness where local Git refs permit a comparison. JSON includes counts and a `ci` object whose status is always `unverified`; this tool never queries GitHub Actions or declares a release green.
+
 ### Core CI-equivalent commands
 
 ```bash
