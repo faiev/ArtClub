@@ -35,7 +35,7 @@ The coordinator owns this roadmap. The detailed, pre-authorized phase queues liv
 Agent 4 is the only worker authorized to edit the bridge browser E2E file while reconciling PR #8. Agent 1's PR #1 audit is read-only. Preserve the PR #10 recovery regression.
 
 ### Project test workflow
-Agent 3 owns .github/workflows/project-tests.yml while reconciling PR #11. Agent 2 may build browser harness files and docs, but cannot edit the workflow until Agent 3 releases the lock.
+PR #11 is merged. Agent 3 currently owns .github/workflows/project-tests.yml for AC-027 sprite-sheet browser verification/CI wiring. Agent 2 may build and run browser harness files/docs but must not change the workflow until Agent 3 releases the lock.
 
 ### Application UI
 index.html and editor UI integration remain coordinator-controlled. Agents can build isolated modules, static UX prototypes, acceptance matrices, browser harnesses and integration contracts without stopping for the UI lock. No implicit UI authorization.
