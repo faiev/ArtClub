@@ -67,3 +67,7 @@ After AC-066, add a renderer-independent rule engine for selecting tile variants
 - Document the ruleset schema, examples, bounds and future UI/export integration contract.
 
 **Allowed files:** `js/autotile.js`, matching tests, tile fixtures and tile documentation only. Do not edit tile-map/preview/transform implementation owned by earlier phases unless a separate coordinator-approved change is needed; no UI, renderer, project model, exporter or Agent API integration.
+
+
+## Coordinator restart directive — 2026-11-15
+Sync and exact-head revalidate tile PRs #13/#28/#58/#65/#67/#79/#81; #80 is merged. Report each base/head/dependency/diff/CI/review thread. Pause new tile feature phases while UI-02 is the release gate. No production UI, renderer, exporter, model/storage, API/bridge or workflow edits.
