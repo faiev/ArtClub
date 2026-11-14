@@ -112,3 +112,65 @@
   2. Verify that any revised publication path still reloads the committed active cel and rebuilds the grid/overlays without stale node references.
   3. Review the next authorized UI-03 navigation production candidate against the existing acceptance criteria only when the Coordinator requests it.
 
+
+ 
+## Ten-agent branch hygiene assignment — 2026-11-15
+
+**Result: read-only inventory completed.** Main ref was fetched as 84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa. The board assignment was read from main. Branch pages 1–2 contain 102 refs. No code, branch, PR state, or shared file was changed.
+
+### Assigned PR inventory
+
+| PR / branch | Exact head | Base recorded on PR | Compare to current main | Changed files | Exact-head Actions / recommendation |
+|---|---|---|---|---|---|
+| #18 agent/renderer-browser-validation | 9af15df08c4178952dcbc404bb48463fb3fd1541 | main @ 67fea02e82db4b6da56550cf26e18e1265e9a4ff | 13 ahead / 33 behind, diverged | benchmarks/renderer-browser-validation-report.json; benchmarks/renderer-browser-validation.md; tests/canvas-renderer.browser.html; tests/canvas-renderer.browser.mjs | [run 43632843623](https://github.com/faiev/ArtClub/actions/runs/43632843623) success. Standard workflow only; custom renderer runner not invoked. **Retain parked** pending dedicated runner evidence and coordinator disposition. |
+| #52 agent/canvas-renderer-accessibility | bbdb24e1b1e65010a61807553cc33a78c9890c0c | main @ 67fea02e82db4b6da56550cf26e18e1265e9a4ff | 10 ahead / 33 behind, diverged | docs/RENDERER_BROWSER_VALIDATION.md; tests/canvas-renderer-accessibility.html; tests/canvas-renderer-accessibility.mjs | [run 43632863091](https://github.com/faiev/ArtClub/actions/runs/43632863091) success. Dedicated accessibility runner not invoked. **Retain parked** pending dedicated evidence and coordinator disposition. |
+| #73 agent/canvas-renderer-workload-benchmarks | a025dde2636be96bc26df30627c5c06e447bb0c3 | main @ 67fea02e82db4b6da56550cf26e18e1265e9a4ff | 11 ahead / 33 behind, diverged | benchmarks/renderer-workload-benchmark.html; benchmarks/renderer-workload-benchmark.mjs; benchmarks/renderer-workload-report.json; benchmarks/renderer-workload.md | No Actions run associated with this head. Current PR path filter excludes benchmarks/**. **Retain parked**; separately authorized benchmark execution required. |
+| #75 agent/canvas-renderer-integration-readiness | cf5376825a82d927ebb1cd42a7983b18c6d05b64 | main @ 67fea02e82db4b6da56550cf26e18e1265e9a4ff | 16 ahead / 33 behind, diverged | demos/canvas-renderer-integration.html; docs/CANVAS_RENDERER_INTEGRATION.md; tests/canvas-renderer-integration-demo.browser.mjs; tests/canvas-renderer-integration-demo.test.js | [run 43632921975](https://github.com/faiev/ArtClub/actions/runs/43632921975) success. Dedicated demo browser runner not invoked. **Retain parked**; standalone package, not production UI. Consumes merged #34 viewport and #43 adapter. |
+| #90 agent/renderer-parsecolor-defensive-api | 2ab42f27be2661976fd182d284e65e53e3bd3cb7 | main @ 67fea02e82db4b6da56550cf26e18e1265e9a4ff | 7 ahead / 33 behind, diverged | js/canvas-renderer.js; tests/canvas-renderer.test.js | [run 43632943858](https://github.com/faiev/ArtClub/actions/runs/43632943858) success. **Retain parked for coordinator review**; narrow renderer-core defensive-copy fix. QA PR #61 records the parseColor cache mutation as a TODO/expected failure; that is a logical test consumer, not a stacked base dependency. |
+
+All five assigned PRs remain open; #18/#52/#73/#75 are drafts, #90 is non-draft. All target main, not one another. Their recorded base is 33 commits behind the current main snapshot. Historical green CI does not establish current-main merge readiness.
+
+### Related renderer / navigation refs
+
+| Branch / PR | Exact tip | Compare to current main | Evidence / dependency | Disposition |
+|---|---|---|---|---|
+| agent/canvas-renderer / #6 | 17fc03c5cfbba3fea4fb176dde60a27ce4f27d7f | 12 ahead / 426 behind (squash-merged history) | #6 merged as 1ba0aaee597d5bf11083c97a03a312c7ee434530. Current main has js/canvas-renderer.js (blob 96eaa69872d6090e89c0e773483c5f8211e6b9b4). Historical branch files include renderer, tests, architecture and benchmark. | Candidate for deletion only after coordinator confirms no consumers; squash merge means branch tip is not an ancestor. |
+| agent/canvas-viewport / #34 | 041bbb114db5a0618420ad330ff8a7d95814c053 | 0 ahead / 152 behind | #34 merged as 3bd35de8b75adf52945eb58c64407e74c815bcc7. Current main has js/canvas-viewport.js (blob 577578809aa6693b125397fdf7d3597b4e005a35). | Candidate for deletion after no-consumer check. |
+| agent/canvas-renderer-adapter / #43 | 1af6025f09ad89bd0d62c266d13dba1e56e1d82f | 0 ahead / 154 behind | #43 merged as 79013ee60239dfb4665c34f258dd6d69fdb2dac0. Current main has js/canvas-renderer-adapter.js (blob 7ec9b8a9f4141fc25e01a26d9730102cedecbca6). | Candidate for deletion after no-consumer check. |
+| agent/canvas-workspace-spec / #24 (Agent 5) | 46546e8a7e7494933913e79b107148e93be085c7 | 12 ahead / 27 behind | Open PR, base main @ bf8e27ce5c338c228953d48914bfec7b6a7848f8; only docs/ux/CANVAS_WORKSPACE_SPEC.md. Aligns with #34 but is a separate UX spec. | Retain parked / coordinator review; not Agent 2-owned. |
+| agent/qa-renderer-contract / #61 (Agent 1) | 21c7b412df53182df5a3923ae738531022ca471c | 4 ahead / 235 behind | Open PR, base main @ e37ad85af904b308017a2027999f0c030e20e6e1; only tests/qa/renderer/canvas-renderer-contract.test.js. Body explicitly records #90's parseColor defect. | Retain as QA dependency; Agent 1 owns it. |
+| agent/ui03-canvas-navigation-acceptance / #95 (Agent 2) | c84583a504a9becccaaff2ea321f6e7fdf0187ed | 3 ahead / 33 behind | Open PR, base main @ 67fea02e82db4b6da56550cf26e18e1265e9a4ff; only docs/CANVAS_NAVIGATION_ACCEPTANCE.md. Uses the merged #34 viewport contract. | Retain parked as Agent 2 UI-03 handoff; no implementation authorized. |
+| agent/live-editor-canvas-workload-study (no PR) | 522b9432dee1f0196234e46578c42c7087bc1489 | 3 ahead / 85 behind | One file: benchmarks/renderer-live-workload-benchmark.html; no open PR head matches. Incomplete isolated DOM/Canvas study; AC-088 is explicitly paused. | Retain parked; coordinator to review unique work and consumers before disposition. |
+
+### Dependency graph and findings
+
+- #75's isolated demo consumes the viewport and renderer-adapter contracts from merged #34/#43. #95's navigation acceptance uses #34. These prerequisites are already on main.
+- #61's QA test records the public parseColor cache-mutation issue addressed by #90. This is a logical test dependency, not a stacked PR base dependency; Agent 1 owns #61.
+- No stacked PR parent was found among #18/#52/#73/#75/#90: all five target main. Repeated merge commits in their histories do not make them stacked PRs.
+- #24 (Agent 5 workspace UX spec) and #95 (Agent 2 engineering acceptance) overlap in navigation subject matter, but have distinct owners and artifact scope. Coordinator should decide whether they complement or supersede one another.
+- #18/#52/#73/#75 are isolated renderer subsystem artifacts, not evidence for a production Canvas renderer switch. Keep the production DOM-grid renderer active.
+- #73 has no Actions run because its changed paths are benchmark-only and the workflow PR filter omits benchmarks/**. Do not edit the shared workflow; Agent 3 owns it.
+- Standard green CI on #18/#52/#75 does not execute their dedicated renderer-specific runners; #90 standard CI also does not constitute browser-specific renderer evidence.
+- Main contains the merged renderer, viewport and adapter modules. The #6/#34/#43 old refs are cleanup candidates only after coordinator confirms no downstream consumers. No branch is recommended for deletion based only on age or lack of an open PR head.
+
+### Verification / commands executed
+
+No local shell commands, checkout, browser, or benchmark commands were run. This was a remote read-only GitHub API inventory. Operations executed:
+- Fetched BOARD.md, Agent 2 assignment and Agent 2 status from main.
+- Read refs/heads/main; exact SHA 84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa.
+- Listed branches API page 1 and page 2 (102 refs total); listed all PRs page 1.
+- Fetched metadata for PRs #6, #18, #24, #34, #43, #52, #61, #73, #75, #90 and #95.
+- Compared relevant branch tips with current main using GitHub compare endpoints.
+- Queried commit-associated Actions runs and combined statuses for #18/#52/#73/#75/#90; fetched exact run metadata for #18/#52/#75/#90.
+- Read .github/workflows/project-tests.yml. Workflow commands are node --test tests/*.test.js; node --check agent-bridge/server.mjs; npm run test:e2e; node tests/gif-export.browser.mjs; npm run test:mcp.
+- Fetched current-main blobs for js/canvas-renderer.js, js/canvas-viewport.js and js/canvas-renderer-adapter.js.
+
+### Unresolved blockers / next actions
+
+1. All five assigned open PRs are 33 commits behind current main; coordinator must decide whether to retain, sync/retest, or close after dependency review.
+2. Dedicated current-head browser runs remain unverified for #18/#52/#75; #73 needs an explicitly authorized benchmark run.
+3. #90's QA dependency (#61) remains Agent 1-owned; coordinator/Agent 1 should confirm the TODO is resolved by the defensive-copy fix.
+4. #24/#95 navigation-document overlap needs coordinator decision.
+5. Branch deletion and PR closure remain coordinator-owned. No refs or PR states were changed.
+
+**Completion evidence:** This inventory was committed only to this Agent 2 status file. No production implementation, branch creation/deletion, force-push, PR closure, or shared-file edit occurred.
