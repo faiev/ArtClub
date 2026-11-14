@@ -1,84 +1,61 @@
 # Status — Agent 9
 
 - **Workstream:** Project diagnostics / developer tooling
-- **Active phase:** AC-079 — Diagnostics documentation and integration pack
-- **Latest main observed:** `c2b0d4c395497f05756fb60723ef251ca2eaa788`
-- **Last inspector base sync:** `573bf6fd8963781613bb43179e9c7d10f49c418e`
-- **Post-sync main delta:** coordination status only (Agent 7); no inspector-owned file overlap.
-- **Completed:** AC-018, AC-074, AC-075, AC-076, AC-077 and AC-078. All six current branch heads have full Node/browser/GIF/MCP CI success.
+- **Latest main observed:** `57eb9fe78101528a5e26bc12d3cedff96cf73f62`
+- **Active phase:** AC-095 — project fingerprints and duplicate detection; submitted as draft PR #89, exact-head CI passed.
+- **Working branch:** `agent/project-fingerprint` / `16bdc5e7a7853f8e9dd5d544f8b79d28e8459a3e`
+- **Local execution:** Not available in this session; a local clone could not resolve `github.com`. All passing test evidence below is from GitHub Actions.
+- **Ownership:** This session changed only the AC-095 branch files and this Agent 9 status file. No project model, inspector CLI, storage, UI, bridge, Agent API, workflow or other-agent-owned paths changed.
 
-## Branch and PR ledger
+## PR and branch ledger
 
-| Phase | Branch / exact head | PR | Parent | Current state |
-|---|---|---|---|---|
-| AC-018 — single-file inspector | `agent/project-inspector` / `dc897d82d438e8a5cb6527d8f3541e65a8f7aadc` | [#12](https://github.com/faiev/ArtClub/pull/12) | `main` | Open draft; exact-head CI passed |
-| AC-074 — batch inspection | `agent/project-inspector-batch` / `c273fa255207792ee2d9ef22b2a8802de8c5017d` | [#46](https://github.com/faiev/ArtClub/pull/46) | PR #12 | Open draft; exact-head CI passed |
-| AC-075 — structural comparison | `agent/project-inspector-diff` / `3a3a858cbec32b8a842de05d30d755167f4a122d` | [#59](https://github.com/faiev/ArtClub/pull/59) | PR #46 | Open draft; exact-head CI passed |
-| AC-076 — deep diagnostics | `agent/project-inspector-diagnostics` / `63e469679148a68c60b5aa09ad53eb55bcd115dd` | [#64](https://github.com/faiev/ArtClub/pull/64) | PR #59 | Open draft; exact-head CI passed |
-| AC-077 — migration preview | `agent/project-inspector-migration-preview` / `7e2481ffb670ab15e1906b579488bcf07ffcc09a` | [#71](https://github.com/faiev/ArtClub/pull/71) | PR #64 | Open draft; exact-head CI passed |
-| AC-078 — CI artifact report | `agent/project-inspector-ci-report` / `d66f74735582f24021406b87650a31ff9b340e15` | [#83](https://github.com/faiev/ArtClub/pull/83) | PR #71 | Open draft; exact-head CI passed |
-| AC-079 — documentation/integration pack | To create | Not opened | PR #83 stack | Active; begin on separate branch |
+| Phase | Branch / PR | Parent | Latest state / evidence |
+|---|---|---|---|
+| AC-018 — read-only inspector | `agent/project-inspector` / [#12](https://github.com/faiev/ArtClub/pull/12) | `main` | Open draft; earlier exact-head CI passed |
+| AC-074 — batch inspection | `agent/project-inspector-batch` / [#46](https://github.com/faiev/ArtClub/pull/46) | #12 | Open draft; earlier exact-head CI passed |
+| AC-075 — structural comparison | `agent/project-inspector-diff` / [#59](https://github.com/faiev/ArtClub/pull/59) | #46 | Open draft; earlier exact-head CI passed |
+| AC-076 — deep diagnostics | `agent/project-inspector-diagnostics` / [#64](https://github.com/faiev/ArtClub/pull/64) | #59 | Open draft; earlier exact-head CI passed |
+| AC-077 — migration preview | `agent/project-inspector-migration-preview` / [#71](https://github.com/faiev/ArtClub/pull/71) | #64 | Open draft; earlier exact-head CI passed |
+| AC-078 — CI artifact report | `agent/project-inspector-ci-report` / [#83](https://github.com/faiev/ArtClub/pull/83) | #71 | Open draft; earlier exact-head CI passed |
+| AC-079 — docs and diagnostic fixture pack | `agent/project-diagnostics-docs` / [#85](https://github.com/faiev/ArtClub/pull/85) | #83 | Open draft; Actions run [#43621314697](https://github.com/faiev/ArtClub/actions/runs/43621314697): test and browser-e2e jobs passed |
+| AC-095 — project fingerprints | `agent/project-fingerprint` / [#89](https://github.com/faiev/ArtClub/pull/89) | #85 | Open draft; head `16bdc5e7a7853f8e9dd5d544f8b79d28e8459a3e`; Actions run [#43630959731](https://github.com/faiev/ArtClub/actions/runs/43630959731): 303 tests passed, 0 failed, 0 skipped; browser-e2e passed |
 
-Stack: PR #12 → #46 → #59 → #64 → #71 → #83. Keep descendant PRs stacked until parents merge. No Agent 9 PR has been merged or self-accepted.
+Stack: **#12 → #46 → #59 → #64 → #71 → #83 → #85 → #89**. The Agent 9 PRs remain drafts and unmerged. Do not retarget or merge descendants before their parents are reviewed and accepted. No UI integration is claimed.
 
-## Completed phase summaries
+## AC-079 — completed deliverable submitted
 
-### AC-018 — Read-only project inspector
-- Offline Node CLI; uses the existing model as validation/migration authority.
-- Human/JSON output, stable errors, 64 MiB per-file cap, read-only inputs and source-immutability coverage.
-- Legacy migration is in memory only; generated identifiers are not represented as source IDs.
+PR #85 adds:
+- `docs/PROJECT_DIAGNOSTICS.md`, covering single-file, batch, compare, diagnostics, migration preview and CI report modes.
+- Nine malformed/invalid project fixtures for the deep-diagnostic coverage matrix.
+- Fixture-corpus assertions for stable diagnostic codes and byte-for-byte source immutability, plus a byte-limit test using a temporary file.
 
-### AC-074 — Bounded batch inspection
-- `--batch` and optional `--recursive`; lexical deterministic ordering, duplicate suppression/warnings, per-file errors and no symlink following.
-- Limits: 500 unique files, 32 MiB aggregate, 64 MiB/file, 10,000 directory entries, 32 directory levels.
+The PR keeps the inspector CLI unchanged and does not modify other agents' ownership. Both Actions jobs passed on the submitted PR head.
 
-### AC-075 — Structural comparison
-- `--compare left.json right.json`; stable human/JSON summaries across canvas, palette, project metadata, layers, frames, cels and bounded pixel-index differences.
-- v2 matching uses exact source IDs only; legacy-to-legacy uses normalized positions; mixed-format records are not cross-matched.
-- Missing cel differs from transparent `null`; pixel samples are capped at 100/cel.
+## AC-095 — implementation submitted
 
-### AC-076 — Deep diagnostics and risk scoring
-- `--diagnostics [--json]`; model validation remains authoritative and supplemental findings are separate.
-- Checks dimensions/version, duplicate IDs and cel pairs, references/active targets, malformed or short/long/sparse arrays, invalid pixels, byte/pixel budgets and suspicious palette entries.
-- Fixed severity weights and risk score capped at 100; no repair/write-back.
+PR #89 adds exactly three paths:
+- `tools/project-fingerprint.mjs`: local read-only exact-byte SHA-256 and versioned semantic SHA-256; single-file and bounded batch modes; deterministic duplicate groups; stable errors; no symlink following.
+- `tests/project-fingerprint.test.js`: focused tests for exact bytes, identity/content separation, ID-changed semantic equality, pixel/cel/frame differences, legacy projects, unsupported versions, malformed JSON/UTF-8, optional canvas background, batch duplicates, symlinks, file limits and immutability.
+- `docs/PROJECT_FINGERPRINTS.md`: canonical version 1 include/exclude policy, comparability rules, batch limits and CLI schema.
 
-### AC-077 — Deterministic migration preview
-- `--migration-preview [--json]` invokes the actual legacy deserialize path and validates the v2 result.
-- Reports exact source-byte SHA-256/byte count, source and target versions, transformed/preserved/generated/discarded fields and warnings.
-- Preview IDs derive deterministically from source hash and are explicitly not source identities; timestamps use fixed epoch markers.
-- Unknown top-level legacy fields are explicitly listed as discarded with a warning.
-- 64 MiB source cap and 16 MiB normalized JSON output cap; no source or destination file is written.
+Semantic canonical version 1 includes canvas geometry/background, palette ordering, ordered layer/frame properties, cel presence, transparency and exact pixel values. It excludes project ID/name, layer/frame IDs, metadata/timestamps and editor selection. Cels use positional layer/frame references in the projection. Only equal canonical versions may be compared; this is exact projection equality, not fuzzy similarity. Legacy migration uses the existing project model in memory only and never reports generated IDs as source identity.
 
-### AC-078 — Versioned CI artifact report
-- `--ci-report <project-file>` always emits JSON with `artifactSchemaVersion: 1`.
-- Includes input path/size/format/version, project summary, authoritative validation, supplemental diagnostics and source paths, severity/count totals, risk, read-only flags and exit-code policy.
-- Status values: `valid`, `invalid`, `incomplete`; exit codes 0/1/2 are documented.
-- SARIF intentionally omitted to avoid claiming compatibility without a reviewed mapping for the inspector's diagnostic paths/codes/severity model.
+### CI corrections and final evidence
 
-## Exact-head CI evidence
+- Initial PR run [#43630476259](https://github.com/faiev/ArtClub/actions/runs/43630476259) failed one new batch duplicate-group test (301 passed / 1 failed). The grouping helper filters on `ok`; the successful-result projection had omitted that flag.
+- Added `ok: true` to successful candidates and changed directory enumeration to bounded streaming traversal. Also made file-count/directory-limit overflow reject partial batch output.
+- Intermediate exact-head runs [#43630860597](https://github.com/faiev/ArtClub/actions/runs/43630860597) and [#43630943655](https://github.com/faiev/ArtClub/actions/runs/43630943655) passed both jobs.
+- Final exact-head run [#43630959731](https://github.com/faiev/ArtClub/actions/runs/43630959731) on `16bdc5e7a7853f8e9dd5d544f8b79d28e8459a3e`: **303 passed, 0 failed, 0 skipped**; both `test` and `browser-e2e` jobs completed successfully.
 
-| Phase | Tested head | Actions run | Node tests | Browser / GIF / MCP |
-|---|---|---:|---:|---|
-| AC-018 | `dc897d82d438e8a5cb6527d8f3541e65a8f7aadc` | [#705](https://github.com/faiev/ArtClub/actions/runs/43619270426) | 246 pass, 0 fail, 0 skip | All passed |
-| AC-074 | `c273fa255207792ee2d9ef22b2a8802de8c5017d` | [#708](https://github.com/faiev/ArtClub/actions/runs/43619291567) | 254 pass, 0 fail, 0 skip | All passed |
-| AC-075 | `3a3a858cbec32b8a842de05d30d755167f4a122d` | [#712](https://github.com/faiev/ArtClub/actions/runs/43619311939) | 264 pass, 0 fail, 0 skip | All passed |
-| AC-076 | `63e469679148a68c60b5aa09ad53eb55bcd115dd` | [#717](https://github.com/faiev/ArtClub/actions/runs/43619348408) | 274 pass, 0 fail, 0 skip | All passed |
-| AC-077 | `7e2481ffb670ab15e1906b579488bcf07ffcc09a` | [#718](https://github.com/faiev/ArtClub/actions/runs/43619367155) | 282 pass, 0 fail, 0 skip | All passed |
-| AC-078 | `d66f74735582f24021406b87650a31ff9b340e15` | [#750](https://github.com/faiev/ArtClub/actions/runs/43619990920) | 287 pass, 0 fail, 0 skip | All passed |
+## Next queue / blockers
 
-For each listed run, both workflow jobs completed successfully. Browser E2E includes Chromium editor tests, animated GIF ImageDecoder verification and MCP client integration. Local execution was not performed; test claims above are from GitHub Actions logs.
+1. AC-095 is the final phase currently authorized in this workstream; implementation, tests, documentation and draft PR are submitted.
+2. Keep PR #89 stacked on #85. Coordinator review/merge of the parent chain is external to this worker; do not merge or self-accept.
+3. After the parent chain lands, coordinator may request a fresh base revalidation. No further Agent 9 implementation phase is currently listed in the assignment.
 
-## Next queue
+## Constraints
 
-1. **AC-079 — Diagnostics documentation/integration pack** (active): create `docs/PROJECT_DIAGNOSTICS.md` for single-file, batch, compare, diagnostics, migration preview and CI report; examples, limits, schemas and exit policies.
-2. Add/organize diagnostic fixtures and immutability tests for any cases not already represented.
-3. Open AC-079 as a separate draft PR stacked on #83; run the full current CI and record exact evidence.
-4. **AC-095 — Project fingerprints and duplicate detection:** separate CLI/library, exact-byte and versioned semantic hashes, bounded batch mode, identity/content policy and tests.
-5. Reconcile stacked PR bases parent-first after coordinator review; never merge own PRs or claim UI integration.
-
-## Constraints and handoff
-
-- All inspector operations remain local and read-only; no automatic correction or write-back.
-- Do not modify project-model/storage, editor UI, Agent API, bridge, workflow or another agent's tests.
-- PRs #12/#46/#59/#64/#71/#83 remain stacked drafts; coordinator handles review, merge and acceptance.
-- The two main commits after the last code sync only changed Agent 7 coordination status; application code has no overlap, but re-sync before the next review/merge if more main changes land.
+- Read-only, offline tools only; no source repair or write-back.
+- Use the existing project model as the authoritative validation/migration boundary.
+- Do not edit project-model/storage, inspector CLI (for AC-095), editor UI, Agent API, bridge, workflow or any other agent's tests.
+- Report PR/CI completion separately from merge, deployment and user-visible integration. None of the Agent 9 diagnostics/fingerprint PRs are merged or integrated into the live editor UI.
