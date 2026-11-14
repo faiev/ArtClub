@@ -1990,7 +1990,7 @@ function agentSetLayerLocked(payload){
   const layer=requireAgentLayer(payload);
   if(layer.locked!==payload.locked){
     remember();layer.locked=payload.locked;
-    renderLayers();scheduleSave();
+    renderLayers();renderSelectionTools();scheduleSave();
   }
   return getAgentStatus();
 }
