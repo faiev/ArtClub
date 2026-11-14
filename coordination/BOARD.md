@@ -353,3 +353,18 @@ Main snapshot before this board update: `89ca0708a58f6d640327bef0e807fe4ed9b88f6
 - Agent 1/2/5 now have coordinator-added review assignments in their own assignment files. QA 12-flow review, canvas/responsive review and visual-design review are requested; no completed independent reviews are recorded yet.
 - Actions produced no screenshot artifacts. Automated browser interactions pass, but explicit 1440×900 and 1280×800 screenshot inspection remains open. Keep merge gate closed until this review arrives or coordinator performs an equivalent visual verification.
 - Main `index.html` is still unchanged; no production UI change is on `main` or published. PR #77 remains the separate draft-only prototype handoff; D-026 approves design direction only.
+
+## Coordinator live check — UI-00 merged; UI-01 refreshed (2026-11-14)
+
+Main snapshot before this board update: `cc5e553bfa9e63e2945ac70017a01d420cd471fa`. Open PR inventory at last check: **63**.
+
+### UI-00 / AC-091
+- [PR #77](https://github.com/faiev/ArtClub/pull/77) was accepted and squash-merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610`. Three UX deliverables now live on main under `docs/ux/**`. D-026 accepts the graphite/olive visual direction for UI-01; Agent 5 remains restricted to design/docs ownership.
+- Four prototype WebP screenshots are described as separate Agent 5 handoff attachments but are not committed or visible in this coordinator session. They remain agent-reported manual Chromium evidence; no independent screenshot inspection is claimed.
+
+### UI-01 production release path
+- [PR #84](https://github.com/faiev/ArtClub/pull/84) remains the coordinator-owned production shell candidate, ready for review and unmerged. Last fully tested head `c955acae6ae8a5e11f4b4f5cc689884362c3002e` passed exact workflow #43622555688 (Node/editor + Chromium editor/GIF/MCP).
+- PR #84 changes only `index.html` and `tests/ui-workstation-shell.test.js`, preserves the existing live app controls/handlers/data, and does not replace the renderer or add prototype-only fake controls. Main's `index.html` blob remains `1a29a9eca58d9035287af1ff58b97f2ff4040a69`.
+- The UI-00 merge advanced main after the last PR #84 run. Coordinator is non-force syncing the feature branch and will require exact-head CI again.
+- Agent 1 (12-flow QA), Agent 2 (canvas sizing/pointer mapping/responsive review) and Agent 5 (visual system review) have written review assignments. Independent responses are still pending. Existing Actions do not generate screenshots; 1440×900 and 1280×800 visual review remains open.
+- Do not merge #84 until refreshed exact-head CI and specialist/visual review pass. After merge, inspect the GitHub Pages deployment and live URL before calling the redesign published.
