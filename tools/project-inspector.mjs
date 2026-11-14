@@ -1400,7 +1400,10 @@ function deepDiagnosticsFailure(filePath, code, message, fileSizeBytes) {
     severity,
     path: "$",
     message,
-    source: "supplemental"
+    source: "supplemental",
+    ...(diagnosticCode === "DOCUMENT_BYTE_LIMIT"
+      ? { details: { fileSizeBytes, maxBytes: MAX_FILE_BYTES } }
+      : {})
   }];
   const assessment = summarizeDiagnostics(diagnostics);
   return {
