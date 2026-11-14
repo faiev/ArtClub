@@ -36,20 +36,20 @@
 
 # Current reconciliation — 2026-11-15
 
-**Authoritative main checked:** `d9bc48fe9b78d767a6388188fc868cad9a1395bf`  
+**Feature-branch sync base:** `bf8e27ce5c338c228953d48914bfec7b6a7848f8` (latest main snapshot verified immediately before this status-only update)  
 **Scope:** Agent 5 UX specifications, accessibility audits and static prototypes only. Production `index.html`, app JavaScript/CSS, shared tests, bridge and workflow remain outside Agent 5 ownership.
 
 ## Current PR ledger
 
 | Phase | PR | Current head | Main comparison | State |
 |---|---:|---|---:|---|
-| AC-026 Keyboard shortcut plan | [#20](https://github.com/faiev/ArtClub/pull/20) | `77f58f304f3a1d6c1025e7fc9e046674bd2c8be3` | 11 ahead / 0 behind; one file | Ready for review |
-| AC-049 Canvas workspace spec | [#24](https://github.com/faiev/ArtClub/pull/24) | `4e9af2687c723322cb96a58c0a2debb9e4d37501` | 10 ahead / 0 behind; one file | Ready for review |
-| AC-050 Layer/timeline spec | [#30](https://github.com/faiev/ArtClub/pull/30) | `7fdd0d747ce9685c0d85047a2ce2a7a638e372ea` | 4 ahead / 0 behind; one file | Ready for review |
-| AC-051 Palette/export spec | [#35](https://github.com/faiev/ArtClub/pull/35) | `7e892ac57e4a7a4f2ea96424106403521aa85c8c` | 4 ahead / 0 behind; one file | Ready for review |
-| AC-052 Accessibility audit | [#41](https://github.com/faiev/ArtClub/pull/41) | `a6d0568cd732b87690ed3cf438e400f8457a9572` | 6 ahead / 0 behind; one file | Ready for review |
-| AC-053 Static prototypes | [#47](https://github.com/faiev/ArtClub/pull/47) | `858a33a139959eb68206c7e332a12aa6a6aae4bd` | 16 ahead / 0 behind; four files | Draft — rendered browser visual gate outstanding |
-| AC-054 Integrated UX roadmap | [#51](https://github.com/faiev/ArtClub/pull/51) | `2e6818ef79cd253d9724b6c6c8b828a464c09437` | 6 ahead / 0 behind; one file | Ready for review |
+| AC-026 Keyboard shortcut plan | [#20](https://github.com/faiev/ArtClub/pull/20) | `36974992a26fb7b90d8aa6902fc0df3c3d5e3ba5` | 13 ahead / 0 behind; one file | Ready for review |
+| AC-049 Canvas workspace spec | [#24](https://github.com/faiev/ArtClub/pull/24) | `46546e8a7e7494933913e79b107148e93be085c7` | 12 ahead / 0 behind; one file | Ready for review |
+| AC-050 Layer/timeline spec | [#30](https://github.com/faiev/ArtClub/pull/30) | `54f2bb6867c36dbbf32c18df7ac8e3b4a95d9b83` | 7 ahead / 0 behind; one file | Ready for review |
+| AC-051 Palette/export spec | [#35](https://github.com/faiev/ArtClub/pull/35) | `cbc74d707aa8fe925a9428e6a126e4fefcd9e95d` | 4 ahead / 0 behind; one file | Ready for review |
+| AC-052 Accessibility audit | [#41](https://github.com/faiev/ArtClub/pull/41) | `8b1d42f7c55876520318aa22cc1922758f7fb3f2` | 9 ahead / 0 behind; one file | Ready for review |
+| AC-053 Static prototypes | [#47](https://github.com/faiev/ArtClub/pull/47) | `271a5e9c93ecf1dafd0e6ee0851fb9dd8cb8f1d1` | 19 ahead / 0 behind; four files | Draft — rendered browser visual gate outstanding |
+| AC-054 Integrated UX roadmap | [#51](https://github.com/faiev/ArtClub/pull/51) | `9695a72023abd97c7ba21664ef335d0085590c64` | 9 ahead / 0 behind; one file | Ready for review |
 | AC-091 Workstation design system | [#77](https://github.com/faiev/ArtClub/pull/77) | `17c9d8ab5d9540ae1ec7889afdb2033ac7df57a0` | Merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610` | Merged |
 | AC-091 caption correction | [#87](https://github.com/faiev/ArtClub/pull/87) | `ccb49a9ca2e592b97f4afccbf1b2361dcb0828f0` | Merged as `9296ca08e1e8143bb5b82c0ad48608e9c9a0b344` | Merged |
 | UI-01 visual review | [#84](https://github.com/faiev/ArtClub/pull/84) | Reviewed source blob `4645281c1aad8580529e7feb99cd299a88543913` | Production PR merged as `e22ddb35ebf802b3b719e74a7329effceab28747` | Review posted |
@@ -65,7 +65,7 @@
 
 ## Validation and limitations
 
-- All listed open branches compared **0 commits behind** main at the last reconciliation; only their assigned paths appear in the diffs.
+- All seven open branches compared **0 commits behind** main at snapshot `bf8e27ce5c338c228953d48914bfec7b6a7848f8`; GitHub reported them mergeable and only their assigned paths appeared in the diffs. This status-only ledger commit is later than that sync snapshot.
 - Four AC-053 HTML files passed source-level duplicate-ID and external-asset checks. The approved theme override exists in each.
 - No application tests were run because this resume changed documentation/static reference HTML only; no application behavior was changed.
 - No new browser-rendered screenshots are claimed for AC-053. The local runtime could not transfer raw branch files from GitHub into its browser (raw-host download was blocked); the requested visual comparison at 1440×900 / compact size remains an explicit gate.
