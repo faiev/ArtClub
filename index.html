@@ -581,7 +581,7 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
           <button class="zoom-value" id="zoomReset" title="Reset zoom">100%</button>
           <button class="zoom-button" id="zoomIn" aria-label="Zoom in" title="Zoom in ( ] )">＋</button>
         </div>
-        <button class="icon-button" id="clearBtn" aria-label="Clear canvas" title="Clear canvas">⌫</button>
+        <button class="icon-button" id="clearBtn" aria-label="Clear active cel" title="Clear active layer for this frame">⌫</button>
       </div>
     </div>
     <div class="canvas-toolbar">
@@ -738,6 +738,8 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
 
 <script src="./js/project-model.js"></script>
 <script src="./js/project-storage.js"></script>
+<script src="./js/layer-edit-guard.js"></script>
+<script src="./js/safe-edit-operations.js"></script>
 <script src="./js/agent-api.js"></script>
 <script>
 (function(){
@@ -762,6 +764,7 @@ let isPlaying=false,playbackFrameId=null,playbackTimer=null,playbackDirection=1,
 let projectDoc=null;
 let projectStorage=null;
 let activeProjectId=null;
+let safeEditBusy=false;
 let documentRevision=0;
 const grid=$("pixelGrid");
 
@@ -829,7 +832,7 @@ function activeLayer(){
 }
 function isActiveLayerEditable(){
   const layer=activeLayer();
-  return Boolean(layer&&!layer.locked&&layer.visible);
+  return Boolean(layer&&!layer.locked&&layer.visible&&Number.isFinite(layer.opacity)&&layer.opacity>0);
 }
 function displayFrameId(){
   return playbackFrameId||projectDoc.activeFrameId;
@@ -1019,14 +1022,133 @@ function cutSelection(){
   }
   renderGrid();renderStats();scheduleSave();toast("Selection cut.");return true;
 }
-function clearSelectedPixels(){
-  if(!selection){toast("Select an area first.");return false}
-  if(!isActiveLayerEditable()){toast("The active layer is locked or hidden.");return false}
-  remember();
-  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
-    pixels[(selection.y+y)*w+selection.x+x]=null;
+function createSafeEditProject(){
+  if(!projectDoc)throw new Error("The editor project is not ready yet.");
+  const source=ProjectModel.cloneProject(projectDoc);
+  const cel=ProjectModel.getCel(source,source.activeLayerId,source.activeFrameId);
+  if(!cel)throw new Error("The active layer/frame cel no longer exists.");
+  if(!Array.isArray(pixels)||pixels.length!==source.canvas.width*source.canvas.height){
+    throw new Error("The active pixel buffer does not match the project dimensions.");
   }
-  renderGrid();renderStats();scheduleSave();return true;
+  cel.pixels=pixels.slice();
+  return source;
+}
+function safeEditDenialMessage(result){
+  const messages={
+    LAYER_HIDDEN:"Show this layer before editing it.",
+    LAYER_LOCKED:"Unlock this layer before editing it.",
+    LAYER_ZERO_OPACITY:"Increase this layer's opacity above zero before editing it.",
+    LAYER_NOT_FOUND:"The active layer no longer exists. Select a current layer and try again.",
+    LAYER_NOT_ACTIVE:"The active layer changed. Select it again and retry.",
+    FRAME_NOT_FOUND:"The active frame no longer exists. Select a current frame and try again.",
+    FRAME_NOT_ACTIVE:"The active frame changed. Select it again and retry.",
+    CEL_NOT_FOUND:"The active layer/frame cel is missing. Reopen the project and try again.",
+    PROJECT_REVISION_STALE:"The project changed. Refresh the target and try again.",
+    FRAME_REVISION_STALE:"The frame changed. Refresh the target and try again.",
+    COMPOSITE_REVISION_STALE:"The visible artwork changed. Refresh the target and try again."
+  };
+  return messages[result&&result.reason]||(result&&result.message)||"This edit is not safe to apply to the current target.";
+}
+async function commitSafeEditResult(result,previousProject,target,successMessage){
+  if(safeEditBusy){toast("Another safe edit is already being saved.");return false;}
+  const nextProject=ProjectModel.deserializeProject(result.project);
+  const undoBefore=undoStack.slice(),redoBefore=redoStack.slice();
+  const previousFocus=document.activeElement;
+  const bodyWasInert=document.body.inert;
+  let persisted=false,published=false;
+  safeEditBusy=true;
+  document.body.inert=true;
+  document.body.setAttribute("aria-busy","true");
+  $("saveState").textContent="SAVING SAFE EDIT…";
+  try{
+    if(projectStorage){
+      await projectStorage.saveProject(nextProject);
+      persisted=true;
+    }else{
+      if(!writeLocalBackup(nextProject))throw new Error("Local backup storage is unavailable.");
+      persisted=true;
+    }
+    const targetStillCurrent=documentRevision===target.revision&&projectDoc&&
+      projectDoc.id===target.projectId&&
+      projectDoc.activeLayerId===target.layerId&&
+      projectDoc.activeFrameId===target.frameId;
+    if(!targetStillCurrent){
+      const latest=createSafeEditProject();
+      if(projectStorage){
+        await projectStorage.saveProject(latest);
+        writeLocalBackup(latest);
+      }else if(!writeLocalBackup(latest)){
+        throw new Error("The current project changed during the save and its local backup could not be refreshed.");
+      }
+      toast("The project changed while this clear was being saved. No stale clear was applied; retry on the current target.");
+      return false;
+    }
+    remember();
+    published=true;
+    loadProjectIntoEditor(nextProject,false);
+    documentRevision+=1;
+    const backupSaved=writeLocalBackup(nextProject);
+    $("saveState").textContent=projectStorage
+      ?(backupSaved?"SAVED IN PROJECT LIBRARY":"LIBRARY SAVED · LOCAL BACKUP UNAVAILABLE")
+      :"LOCAL BACKUP ONLY";
+    toast(successMessage);
+    return true;
+  }catch(error){
+    if(published){
+      undoStack.splice(0,undoStack.length,...undoBefore);
+      redoStack.splice(0,redoStack.length,...redoBefore);
+      try{loadProjectIntoEditor(previousProject,false);documentRevision+=1;}
+      catch(restoreError){console.error("Safe-edit in-memory rollback failed:",restoreError);}
+    }
+    if(persisted&&projectStorage){
+      try{await projectStorage.saveProject(previousProject);}
+      catch(rollbackError){
+        console.error("Safe-edit database rollback failed:",rollbackError);
+        $("saveState").textContent="SAVE / ROLLBACK FAILED · EXPORT JSON";
+      }
+    }else if(!projectStorage){
+      writeLocalBackup(previousProject);
+    }
+    if($("saveState").textContent!=="SAVE / ROLLBACK FAILED · EXPORT JSON"){
+      $("saveState").textContent="SAVE FAILED · PREVIOUS ARTWORK KEPT";
+    }
+    toast("Could not save this edit. Your previous artwork was preserved. "+(error&&error.message?error.message:""));
+    return false;
+  }finally{
+    safeEditBusy=false;
+    document.body.inert=bodyWasInert;
+    if(!bodyWasInert)document.body.removeAttribute("aria-busy");
+    if(previousFocus&&previousFocus.isConnected&&typeof previousFocus.focus==="function")previousFocus.focus();
+  }
+}
+async function runSafeClear(options,confirmation,successMessage){
+  if(safeEditBusy){toast("Another safe edit is already being saved.");return false;}
+  if(drawing){toast("Finish the current stroke before clearing pixels.");return false;}
+  if(isPlaying||playbackFrameId)resetPlayback();
+  let source;
+  try{source=createSafeEditProject();}
+  catch(error){toast(error.message||"The active edit target is unavailable.");return false;}
+  const target={
+    revision:documentRevision,
+    projectId:source.id,
+    layerId:source.activeLayerId,
+    frameId:source.activeFrameId
+  };
+  const result=window.ArtClubSafeEditOperations.clearActiveCel(source,options||{});
+  if(!result.ok){toast(safeEditDenialMessage(result));return false;}
+  if(result.changedPixels===0){toast("There are no pixels to clear in this area.");return true;}
+  if(confirmation&&!confirm(confirmation))return false;
+  return commitSafeEditResult(result,source,target,successMessage);
+}
+async function clearSelectedPixels(){
+  if(!selection){toast("Select an area first.");return false;}
+  return runSafeClear({selection:{x:selection.x,y:selection.y,width:selection.width,height:selection.height}},
+    null,"Selection cleared.");
+}
+async function clearActiveCel(){
+  return runSafeClear({},
+    "Clear all pixels on the active layer for this frame? Other layers and frames will be preserved.",
+    "Active cel cleared.");
 }
 function pasteSelection(){
   if(!selectionClipboard){toast("Copy or cut a selection first.");return false}
@@ -1367,6 +1489,10 @@ function renderLayers(){
   $("deleteLayerBtn").disabled=layers.length<=1;
   $("duplicateLayerBtn").disabled=layers.length>=ProjectModel.LIMITS.maxLayers;
   $("addLayerBtn").disabled=layers.length>=ProjectModel.LIMITS.maxLayers;
+  $("clearBtn").disabled=!isActiveLayerEditable();
+  $("clearBtn").title=isActiveLayerEditable()
+    ?"Clear the active layer cel for this frame"
+    :"Show and unlock the active layer with opacity above zero to clear it";
 }
 function setActiveLayer(layerId){
   if(drawing){toast("Finish the current stroke before switching layers.");return}
@@ -1938,9 +2064,9 @@ function agentPasteSelection(payload){
   if(!pasteSelection())throw new Error("There is no editable clipboard selection to paste.");
   return getAgentStatus();
 }
-function agentClearSelection(payload){
+async function agentClearSelection(payload){
   payload=payload||{};assertAgentSelectionAction(payload);
-  if(!clearSelectedPixels())throw new Error("There is no editable active selection to clear.");
+  if(!await clearSelectedPixels())throw new Error("There is no editable active selection to clear.");
   return getAgentStatus();
 }
 function agentDeselect(payload){
@@ -2010,7 +2136,7 @@ function agentRenameFrame(payload){
 }
 function installAgentAPI(){
   if(!window.ArtClubAgentAPI)throw new Error("Agent API module failed to load.");
-  window.onePixelStudio=window.ArtClubAgentAPI.create({
+  const adapter={
     getStatus:getAgentStatus,
     getCanvas:getAgentCanvas,
     getPixel:getAgentPixel,
@@ -2054,7 +2180,17 @@ function installAgentAPI(){
     stopPlayback:agentStopPlayback,
     setPlaybackMode:agentSetPlaybackMode,
     setOnionSkin:agentSetOnionSkin
+  };
+  const readOnlyMethods=new Set(["getStatus","getCanvas","getPixel","listProjects","listLayers","listFrames"]);
+  Object.keys(adapter).forEach(name=>{
+    if(readOnlyMethods.has(name))return;
+    const operation=adapter[name];
+    adapter[name]=function(...args){
+      if(safeEditBusy)throw new Error("A safe edit is being committed. Retry this command when it finishes.");
+      return operation.apply(null,args);
+    };
   });
+  window.onePixelStudio=window.ArtClubAgentAPI.create(adapter);
 }
 
 grid.addEventListener("pointerdown",e=>{
@@ -2155,7 +2291,7 @@ $("undoBtn").addEventListener("click",undo);$("redoBtn").addEventListener("click
 $("selectionCopyBtn").addEventListener("click",copySelection);
 $("selectionCutBtn").addEventListener("click",cutSelection);
 $("selectionPasteBtn").addEventListener("click",pasteSelection);
-$("selectionClearBtn").addEventListener("click",clearSelectedPixels);
+$("selectionClearBtn").addEventListener("click",()=>{void clearSelectedPixels()});
 $("selectionAllBtn").addEventListener("click",selectAll);
 $("selectionDeselectBtn").addEventListener("click",deselect);
 $("selectionFlipHBtn").addEventListener("click",()=>{try{transformSelection("flip_h")}catch(error){toast(error.message)}});
@@ -2243,10 +2379,7 @@ $("canvasForm").addEventListener("submit",async e=>{
   else resizeCanvas(width,height);
   $("canvasDialog").close();
 });
-$("clearBtn").addEventListener("click",()=>{
-  if(!confirm("Clear every pixel on this canvas?"))return;
-  remember();pixels=blank(w,h);renderGrid();renderStats();scheduleSave();toast("Canvas cleared.");
-});
+$("clearBtn").addEventListener("click",()=>{void clearActiveCel()});
 $("gridSize").addEventListener("change",e=>{
   if(e.target.value==="custom"){openCanvasDialog("resize");syncDimensionSelect();return}
   const [nextWidth,nextHeight]=e.target.value.split("x").map(Number);
@@ -2334,6 +2467,7 @@ $("demoBtn").addEventListener("click",()=>{
   remember();selection=null;selectionPreview=null;selectionDragMode=null;w=24;h=24;palette=DEFAULT_PALETTE.slice();selected=8;pixels=demo();projectName="Untitled artwork";$("projectName").value=projectName;syncDimensionSelect();projectDoc=ProjectModel.createProject({width:w,height:h,name:projectName,palette:palette,selectedColorIndex:selected,pixels:pixels});renderAll();scheduleSave();toast("Starter artwork restored.");
 });
 document.addEventListener("keydown",e=>{
+  if(safeEditBusy)return;
   const tag=document.activeElement&&document.activeElement.tagName;
   const editing=tag==="INPUT"||tag==="SELECT"||tag==="TEXTAREA";
   const mod=e.ctrlKey||e.metaKey;
@@ -2345,7 +2479,7 @@ document.addEventListener("keydown",e=>{
   if(mod&&e.key.toLowerCase()==="v"&&selectionClipboard){e.preventDefault();pasteSelection();return}
   if(mod&&e.key.toLowerCase()==="a"){e.preventDefault();selectAll();return}
   if(mod&&e.key.toLowerCase()==="d"&&selection){e.preventDefault();deselect();return}
-  if((e.key==="Delete"||e.key==="Backspace")&&selection){e.preventDefault();clearSelectedPixels();return}
+  if((e.key==="Delete"||e.key==="Backspace")&&selection){e.preventDefault();void clearSelectedPixels();return}
   const keys={b:"brush",e:"eraser",g:"fill",i:"eyedropper",m:"select"};
   if(keys[e.key.toLowerCase()])setTool(keys[e.key.toLowerCase()]);
   if(e.key==="Escape"){if(selection)deselect();else setTool("brush")}
