@@ -208,3 +208,24 @@ Latest main observed: `51d2557cd8f2d1562af6f8a89b8168b6dd0d4246`. Live open PR c
 - **PR #76 AC-096 Bézier rasterization** is newly open and draft; exact-head workflow #626 was in progress at last check. Independent pure algorithm work; not a reason to postpone visible workstation integration.
 
 No production release claim is authorized until a coordinator-owned UI PR merges to main, GitHub Pages deployment succeeds, and the published editor is inspected.
+
+## Coordinator live check — UI-00 review / UI-01 preparation (2026-11-14)
+
+Main at this check: `394e232686923b1de7a5021c844a81f07fbdc5d6`. Live open PR count: **60**. Production `index.html` remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no user-visible production shell redesign is merged.
+
+### Coordinator preparation
+- Added `coordination/UI_01_SOURCE_MAP.md` to `main`. It maps the production UI's 86 current static IDs, primary tool values, live DOM targets and functions/event bindings across tools, selection, canvas, timeline, layers, palette, exports/import, project library, save/recovery and Agent API. It explicitly preserves the live DOM-grid renderer for UI-01 and prohibits synthetic placeholder matrices or fake controls.
+- Updated `coordination/INTEGRATION_PLAN.md`: UI-00 is now AC-091 PR #77 under review; its coordinator source map is linked. The UI-01 visual-token rule now follows approved UI-00 design rather than forcing the earlier warm-light palette against AC-091's proposed graphite/olive system.
+
+### AC-091 / PR #77 review
+- Current observed head: `7bec27e2c6df76d44931f0c1bd2155baea532526`; draft; still targets `main`, with base SHA `7265080a6e6596a10e1b455c49a2cf82176d0fc1`. Latest main has since advanced; GitHub reports mergeability false at this check. The status file still records older feature head `991931fbe935d257e1e3082a045ac81383a7f1c3`.
+- Three-file diff remains scoped correctly to `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, `docs/ux/prototypes/workstation.html`. Source static audit: 93 unique prototype IDs, no missing JS ID references, no external scripts/assets, and all buttons have text/ARIA names.
+- Review findings posted: fix broken/nonexistent screenshot links in DESIGN_SYSTEM.md (or make captures accessible and commit them); associate the read-only document values and palette file input with real accessible labels; disclose that Line/Rectangle Select are context-only, non-operational prototype selections (or implement sample behavior); sync latest main, update status head/evidence. Coordinator's source map now satisfies the separate production-control mapping requirement; Agent 5 need not duplicate it.
+- PR remains draft; no CI run exists for its current head. Agent 5's reported manual Chromium checks remain handoff evidence, not independently reproduced by coordinator. UI-00 is not accepted yet.
+
+### Related queue status
+- PR #75 AC-038 remains draft and stale: base is now main but parent ancestry is not reconciled, duplicate `js/canvas-viewport.js` remains in the changed files, and standalone demo interaction is not covered by run #603. Agent 2 has the required sync/Chromium evidence comment; no new head has been submitted.
+- PR #74 AC-089 remains draft on parent #55; latest observed head changed during this check. It is getting active workflow runs on newer commits, but exact latest-head success and parent acceptance are still required.
+- PR #76 AC-096 workflow #626 was in progress at the last exact-head query; isolated pixel algorithm work does not precede the workstation release.
+
+The next release action remains: finish UI-00 review, then coordinator-authored UI-01 shell PR preserving existing production commands, then Agent 1's browser smoke suite and published Pages inspection.
