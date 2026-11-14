@@ -289,9 +289,12 @@ function summarizeSuite(name, kind, results) {
   else if (skipped.length > 0 || notRun.length > 0) status = "partial";
   else status = "passed";
 
+  const hasMissingManifestFile = notRun.some(file =>
+    file.reason === "manifest file is not present in this checkout"
+  );
   const exitCode = failures.length
     ? (failures.find(file => file.exitCode !== 0)?.exitCode || 1)
-    : 0;
+    : (hasMissingManifestFile ? 2 : 0);
 
   return {
     name,
@@ -439,11 +442,14 @@ export async function runQASuites(options = {}) {
     }
   }
 
-  const failingFile = suiteResults.flatMap(suite => suite.files)
-    .find(file => file.status === "failed");
+  const allFileResults = suiteResults.flatMap(suite => suite.files);
+  const failingFile = allFileResults.find(file => file.status === "failed");
+  const missingManifestFile = allFileResults.some(file =>
+    file.reason === "manifest file is not present in this checkout"
+  );
   const exitCode = failingFile
     ? (failingFile.exitCode || 1)
-    : (fileCounts.executed === 0 ? 2 : 0);
+    : (missingManifestFile || fileCounts.executed === 0 ? 2 : 0);
 
   return {
     schemaVersion: 1,
