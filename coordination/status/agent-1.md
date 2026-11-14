@@ -6,7 +6,7 @@
 - **Base:** `fe66725f7d010beca7ca60f497778d419e753d7b`
 - **Head:** `fdaa0de7d246416795d30379cfa872b2d65ce01e`
 - **PR:** [#10 — Fix Project Library recovery snapshot rotation](https://github.com/faiev/ArtClub/pull/10) (verified open, draft, unmerged; GitHub reports mergeable)
-- **Live PR verification:** Checked directly on 2026-11-14. PR head matches the submitted commit above; base branch is `main`.
+- **Live PR verification:** Rechecked directly on 2026-11-14. PR head matches the submitted commit above; base branch is `main`.
 - **CI evidence:** [Run #43603210877](https://github.com/faiev/ArtClub/actions/runs/43603210877) on the exact PR head. Both GitHub check runs completed successfully:
   - `test`: `node --test tests/*.test.js` — 36 passed, 0 failed; `node --check agent-bridge/server.mjs` passed.
   - `browser-e2e`: `npm run test:e2e` passed in Chromium with real IndexedDB; `npm run test:mcp` passed.
@@ -15,8 +15,10 @@
 - **Root cause:** Opening Project Library calls `persistNow()` and unconditionally saves. The prior storage implementation rotated the current project into recovery on every save, including no-op saves, so opening the library overwrote snapshot A with current version B.
 - **Fix:** No-op saves compare project content while ignoring only `metadata.updatedAt`; they preserve the existing project record and recovery snapshot. Real content changes continue to rotate the prior record into one-step recovery.
 - **Regression coverage:** Storage unit test covers A → B → no-op B → C. Chromium E2E covers autosaved A/B, explicit clean save, opening Project Library, Recover, and a subsequent genuine edit/save. The existing reload assertion now selects the frame owning the tested pixels.
-- **Blockers:** Awaiting coordinator review of draft PR #10. No implementation or CI blocker.
+- **Coordinator review:** On 2026-11-14, the coordinator accepted AC-006 for code review, citing the implementation and passing CI evidence. This is not a merge or release declaration.
+- **Integration condition:** PR #10 must be handled first in the shared E2E integration sequence, before PR #8 and PR #1, because all three touch `agent-bridge/e2e-test.mjs`. Reconcile the shared file serially and rerun the combined browser/MCP checks. PR #1 and PR #8 were rechecked on 2026-11-14 and remain open/unmerged.
+- **Blockers:** No implementation or CI blocker. Integration sequencing and merge remain coordinator-owned.
 - **Remaining risk:** Focused Node storage test uses an IndexedDB test double; the complete UI recovery workflow is separately exercised by Chromium against real IndexedDB.
 - **Prior deliverable:** PR #1 remains unchanged and separate.
-- **Next:** Coordinator review only; do not mark ACCEPTED/DONE or merge.
-- **Last updated:** 2026-11-14 — PR head and CI re-verified, status retained at REVIEW.
+- **Next:** Preserve REVIEW pending integration/merge; do not mark ACCEPTED/DONE or merge.
+- **Last updated:** 2026-11-14 — coordinator disposition and shared E2E integration condition recorded; PR head unchanged.
