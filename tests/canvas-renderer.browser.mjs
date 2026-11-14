@@ -309,9 +309,19 @@ async function main() {
         const stats = pair.renderer.render(state, { x: 1, y: 0, width: 1, height: 1 });
         check(stats.lastRenderMode === "full",
           "onion mask content change should force a full render");
-        equalBytes(visibleBytes(pair.canvas),
+        const visible = visibleBytes(pair.canvas);
+        equalBytes(visible.slice(0, 4), [0, 0, 0, 0],
+          "cleared previous tint");
+        equalBytes(Array.from(pair.renderer.imageData.data),
           [0, 0, 0, 0, 76, 144, 210, 89],
-          "tint clearing and next-onion replacement");
+          "exact underlying onion tint buffer");
+        const expectedTint = [76, 144, 210];
+        for (let channel = 0; channel < 3; channel++) {
+          check(Math.abs(visible[4 + channel] - expectedTint[channel]) <= 1,
+            "browser alpha round-trip changed tint channel " + channel +
+            " beyond one-unit quantization: " + visible[4 + channel]);
+        }
+        check(visible[7] === 89, "onion tint alpha should remain exact");
         pair.renderer.destroy();
         pair.canvas.remove();
       });
