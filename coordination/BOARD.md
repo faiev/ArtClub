@@ -2,7 +2,7 @@
 
 Coordinator snapshot: 2026-11-14  
 Coordination source: `main`  
-Main snapshot used for this reconciliation: `0b131a963baabc5a83c5a9d6e570671abcda9f44`  
+Main snapshot used for this reconciliation: `38e980ffdb1c3d4512cb60e80a302874065520c9`  
 Repository: `faiev/ArtClub`
 
 > This board is the live index. It reconciles worker-owned status files with the current open PR inventory. An open PR is not automatically ready to merge; stacked dependencies, exact-head CI and explicit ownership still apply.
@@ -26,7 +26,7 @@ GitHub coordination files do not wake inactive ChatGPT chats or run them in the 
 | 7 | Tile workflows | PR #13 tile preview, #28 tile transforms and #58 tile-map model. Status file records AC-062 as latest; no blocker reported. | **AC-063** seam diagnostics/suggestions, then AC-064–066. | **AC-093** autotile rule resolver |
 | 8 | Palette tooling / color science | PRs #16, #27, #33, #39, #45, #53, #56 and #60 cover formats, analysis, color conversion, transformations, mapping, accessibility, corpus and workflow contract. Status file is stale at AC-017. | Existing queue through AC-073 is submitted; reconcile all branches/CI and update status. | **AC-094** opt-in CIEDE2000 perceptual matching |
 | 9 | Project diagnostics / developer tooling | PR #12 inspector, #46 batch inspection and #59 structural diff. AC-018 and AC-074 exact-head CI were recorded as successful; #46/#59 are stacked on #12. | **AC-076** deep diagnostics/risk scoring, then AC-077–079. | **AC-095** project fingerprint/duplicate detection |
-| 10 | Pixel-art algorithms | PRs #15, #31, #37, #44 and #50 cover craft effects, raster primitives, flood/regions, color/gradients and transforms. PR #50 is AC-083; status file is stale at AC-082. | **AC-084** advanced dithering/shading, then AC-085–086. | **AC-096** deterministic Bézier curve rasterization |
+| 10 | Pixel-art algorithms | PRs #15, #37, #44 and #50 cover craft effects, flood/regions, color/gradients and transforms. **PR #31 AC-080 merged** as `bfa9194`; exact-head run `43613997761` passed both jobs. PRs #37/#44/#50 now need sync/retest against post-merge main. PR #50 is AC-083; status file is stale at AC-082. | **AC-084** advanced dithering/shading, then AC-085–086. | **AC-096** deterministic Bézier curve rasterization |
 
 ### Status reconciliation required on next resume
 
@@ -38,7 +38,7 @@ GitHub coordination files do not wake inactive ChatGPT chats or run them in the 
 - **Agent 1:** PR #61 is not yet reflected in the previously fetched status file.
 - All workers must update only their own status files with the current branch/head, parent chain, exact tested SHA, CI state, completed phases and next 3–5 actions.
 
-## Open PR inventory (52 open at this snapshot)
+## Historical open PR inventory (50 open after #14 and #31 merges; see live check below)
 
 | Owner | Open PRs |
 |---|---|
@@ -47,13 +47,20 @@ GitHub coordination files do not wake inactive ChatGPT chats or run them in the 
 | Agent 3 | #3, #21, #22, #55 |
 | Agent 4 | #8, #38, #54 |
 | Agent 5 | #9, #20, #24, #30, #35, #41, #47, #51 |
-| Agent 6 | #14, #23, #26, #29, #40, #48, #49 |
+| Agent 6 | #23, #26, #29, #40, #48, #49 |
 | Agent 7 | #13, #28, #58 |
 | Agent 8 | #16, #27, #33, #39, #45, #53, #56, #60 |
 | Agent 9 | #12, #46, #59 |
-| Agent 10 | #15, #31, #37, #44, #50 |
+| Agent 10 | #15, #37, #44, #50 |
 
 Merged coordination/feature checkpoints include PRs #6 (Canvas renderer module), #7 (coordination system), #10 (recovery snapshot fix) and #11 (animated GIF exporter). No claim is made that these isolated modules are integrated into production UI.
+
+## Latest coordinator review actions (2026-11-14)
+
+- **PR #14 AC-015 merged** into main as `b53708dd73a4a0d00a7fdd2c79048054a2024295`. Exact pre-merge head `ca88065cc4eef8fd6448db839c9980ff33db1dce`; exact-head GitHub Actions run `43613631801` passed both Node and browser-e2e jobs. The diff was limited to the guard module, its tests and docs.
+- PR #16 and #15 have successful exact-head CI and focused scopes, but coordinator review found sparse-array validation gaps: #16's `normalizePalette()` skips sparse color entries; #15's `normalizePoints()` skips sparse stroke points. Fixes and regression tests were requested before approval.
+- PR #23 was retargeted to `main` after #14 merged. GitHub reports it currently not mergeable; Agent 6 must sync the branch without force, resolve conflicts and rerun full CI.
+- Coordinator handoff comments were added to PRs #3, #8, #12, #13, #18, #20/#24/#47/#51, #27/#33 and #31/#37/#44/#50 to resolve stale bases, CI-in-progress states and review gaps.
 
 ## Dependency chains and merge cautions
 
@@ -115,3 +122,153 @@ The full scope and file ownership live in:
 - `coordination/DECISIONS.md`
 
 Workers update only their own `coordination/status/agent-N.md`; the coordinator maintains this board.
+
+
+## Coordinator live check — 2026-11-14 16:30 UTC
+
+Current main at the time of this check: `38e980ffdb1c3d4512cb60e80a302874065520c9`. The live PR search returned 57 open pull requests. The historical inventory above predates the latest safety merges and must not be used as the current count.
+
+### Confirmed coordinator merges
+
+| PR | Phase | Merge commit |
+|---|---|---|
+| #14 | AC-015 layer edit safety guard | `b53708dd73a4a0d00a7fdd2c79048054a2024295` |
+| #23 | AC-055 expanded edit-target contract | `8ae25528af84c8fa4808ad375e4053e0f934eb14` |
+| #26 | AC-056 immutable safe-edit transactions | `fc0c36e8e59108f21a9bb90886d053d6dfe02153` |
+| #31 | AC-080 deterministic raster primitives | `bfa919499e65f5bcbcacfd6e686e3214b9eaa24a` |
+| #48 | AC-059 import staging | `103b5c488c262a0c34807d38361f193895e1e7db` |
+| #49 | AC-060 safe-edit integration contract | `87c15b08d41653e255922e3961698608ab991708` |
+| #62 | AC-092 seeded safe-edit conformance | `567c178df307b8332f6dd156b313021be77cf5f4` |
+
+### Current agent handoffs
+
+| Agent | Live state at check | Coordinator action / blocker |
+|---|---|---|
+| 1 — QA | UI-01 12-flow smoke plan prepared; AC-087 #66 remains stacked on #57 | Waiting for a real UI-01 candidate. Runner's nested tests need direct execution evidence; root `tests/*.test.js` does not discover them. |
+| 2 — Renderer | AC-037 submitted as #73; AC-038 now active | #73 had no CI run at check. Continue real workload characterization and integration-readiness package. |
+| 3 — Export | #3 exporter, #21 layout, #55 stress corpus, #68 docs/gallery remain in a dependency chain | #3 had green CI but stale branch/base and inherited workflow/coordination files in its combined diff. Finish AC-027 browser PNG verification; retain workflow lock until explicit release. |
+| 4 — Bridge | #8 bridge hardening with #38/#54 stacked | #8 had a green run but still carried inherited safety files and was not merge-ready. Sync latest main, narrow diff, preserve PR #10 frame/recovery E2E and rerun. |
+| 5 — UX | AC-026 and AC-049–054 submitted; AC-091 prototype not present in latest status | **Immediate design dependency:** deliver the high-fidelity workstation prototype. Coordinator still owns production `index.html`. |
+| 6 — Safety | AC-015/055/056/059/060/092 all merged | PR #40 standalone browser harness remains unexecuted; PR #29 audit remains open. Update status after merges. |
+| 7 — Tile | AC-065 active; #65/#67 submitted, both stale | Refresh #65/#67 to current main and rerun exact-head CI before review. |
+| 8 — Palette | AC-094/#63 submitted; prior CI green | #63 review requires a bounded comparison-work budget, palette metric precomputation and bounded per-pixel details. PR #16 still skips sparse palette entries. |
+| 9 — Diagnostics | AC-077 active; #12→#46→#59→#64→#71 stacked | Refresh parent PR #12 first; retarget/retest children parent-first. |
+| 10 — Pixel algorithms | AC-085/086 active; #69/#70/#72 submitted | #15 sparse point-array finding remains unfixed; #69/#70 need latest-main sync; #72 had no CI run. |
+
+### Approval / integration queue
+
+- **Ready on main:** the seven safety and raster PRs listed above are merged. They are isolated engineering work, not claims of completed production UI integration.
+- **Do not merge yet:** #15 and #16 until sparse-array review findings are fixed; #63 until its worst-case work/memory budget is bounded; #40 until its standalone browser runner has actually passed.
+- **Stale parent branches:** #3, #8 and #12 have recent green CI but their source/base diffs are stale or inherit already-merged changes. Green CI on the old branch does not approve the current main diff.
+- **Stacked children:** keep #21/#55/#68 behind #3; #38/#54 behind #8; #46/#59/#64/#71 behind #12.
+- **Production UI:** no UI-01 implementation PR exists at this check. Agent 1 is ready to run its smoke plan, but Agent 5's AC-091 prototype is still outstanding. The coordinator remains sole writer of production `index.html`.
+
+This live section supersedes stale counts and status rows elsewhere in this historical board until the full table is reconciled.
+
+## Coordinator live check — 2026-11-14 16:41 UTC
+
+Main is now `79013ee60239dfb4665c34f258dd6d69fdb2dac0`. The latest open-PR search returned **58 open pull requests**. This addendum supersedes the earlier 16:30 UTC live check above.
+
+### New coordinator merges
+
+| PR | Phase | Merge commit | Exact-head validation |
+|---|---|---|---|
+| #34 | AC-034 Canvas viewport and navigation utility | `3bd35de8b75adf52945eb58c64407e74c815bcc7` | Run #600 on head `041bbb114db5a0618420ad330ff8a7d95814c053`: 175 Node tests; Chromium editor E2E, GIF browser verification and MCP E2E passed |
+| #43 | AC-035 Project-to-renderer state adapter | `79013ee60239dfb4665c34f258dd6d69fdb2dac0` | Run #601 on head `1af6025f09ad89bd0d62c266d13dba1e56e1d82f`: 180 Node tests; Chromium editor E2E, GIF browser verification and MCP E2E passed |
+
+Both were reviewed as isolated module/test/documentation changes. Neither modifies `index.html` or production editor wiring.
+
+### New active PRs and current gates
+
+- **#75 AC-038 renderer integration demo:** retargeted to `main` after #34/#43 merged. Exact-head CI #603 passed 185 Node tests and the existing editor/GIF/MCP browser jobs on `8d6e9b42d6019feaa99e0cd3a77ebe68a4eaea35`. The standalone demo was not exercised by that workflow. Its branch still needs a non-force merge of latest main; Git reports it 10 commits behind its merge base, and `js/canvas-viewport.js` still appears in the changed-file list despite its blob being identical to main. Keep draft until ancestry/diff is clean, exact CI is rerun, and the demo itself has a documented Chromium interaction run.
+- **#74 AC-089 async export APIs:** remains stacked on #55. Run #598 passed the current Node/editor Chromium/GIF/MCP workflow on `60a2c010d244f7f44d491dffa038ffd048fd9b82`. The PR still owes independent browser parity/cancellation coverage and API documentation; do not retarget before #55 merges.
+- **#76 AC-096 Bézier rasterization:** newly opened; not yet reviewed. It is not a reason to divert from the production UI milestone.
+- **Agent 5 / AC-091:** latest status still records AC-054 as the last deliverable and contains no workstation design-system/prototype evidence. Coordinator posted a direct PR #51 handoff requiring AC-091 on a fresh main branch, with interactive behavior and viewport screenshots. Production UI remains coordinator-owned.
+- **Production UI:** `index.html` blob SHA remains `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no production workstation shell has been merged. Agent 1's UI-01 smoke matrix remains unexecuted pending a real UI candidate.
+
+The engineering modules merged in #34/#43 are prerequisites for specialist integration work only. They do not constitute a production Canvas renderer switch or a published UI release.
+
+## Coordinator live check — AC-091 handoff and latest PR queue (2026-11-14)
+
+Latest main observed: `51d2557cd8f2d1562af6f8a89b8168b6dd0d4246`. Live open PR count: **60**. This section supersedes earlier live-check counts until the board is fully reconciled.
+
+### Production UI / UX milestone
+
+- **Agent 5 submitted AC-091 as PR #77** (`agent/workstation-design-system-current`; current PR head observed `7bec27e2c6df76d44931f0c1bd2155baea532526`). The three-file diff is exactly `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, and `docs/ux/prototypes/workstation.html` (934 additions). It describes a professional graphite workstation, tool/context rail, dominant canvas, layer×frame/cel matrix, inspector/drawer, playback and import/export dialogs. The prototype is explicitly isolated; production model, persistence, safe transactions, real palette parser/encoder, and export are not wired.
+- Handoff reports manual/headless Chromium interaction and responsive checks at 1440×900, 1280×800, 860×740, 390×844 and 320 px overflow check. No CI was triggered for the latest PR head. Screenshots are described as separate handoff attachments rather than committed repository assets. **Review issue:** `DESIGN_SYSTEM.md` still links to four nonexistent relative `screenshots/*.jpg` files and calls them included in `screenshots/`; coordinator requested that Agent 5 either commit accessible captures or remove/fix those broken links and reconcile the review document.
+- PR #77 is still draft, 0 commits behind? Its latest base observation was main `7265080...`, while main has since advanced to `51d2557...`; latest head is 2 commits behind current main by comparison, although GitHub currently reports it mergeable. Coordinator requested a non-force main sync and exact feature-head update in `coordination/status/agent-5.md`. UI-00 is **under review**, not yet accepted.
+- **Production UI remains unchanged:** `index.html` blob SHA `1a29a9eca58d9035287af1ff58b97f2ff4040a69`. No production UI-01 shell has been merged. Agent 1's 12-flow QA matrix awaits a coordinator implementation candidate.
+
+### Renderer and export queue
+
+- **PR #34 AC-034** merged as `3bd35de8b75adf52945eb58c64407e74c815bcc7`; refreshed exact-head run #600 passed 175 Node tests plus existing Chromium editor, GIF browser and MCP E2E jobs.
+- **PR #43 AC-035** merged as `79013ee60239dfb4665c34f258dd6d69fdb2dac0`; refreshed exact-head run #601 passed 180 Node tests plus existing Chromium editor, GIF browser and MCP E2E jobs.
+- **PR #75 AC-038 demo** remains draft, retargeted to `main`, head `8d6e9b42d6019feaa99e0cd3a77ebe68a4eaea35`. Exact run #603 passed 185 Node tests and the standard Chromium editor/GIF/MCP jobs, but those jobs do not interact with the standalone demo. Diff still includes `js/canvas-viewport.js` despite an identical blob now on main; branch ancestry compares 10 commits behind. Coordinator requested a non-force main merge, removal of the duplicate module from the PR diff, exact-head CI, and dedicated Chromium demo interaction evidence. Do not merge until those are done.
+- **PR #74 AC-089 async export** remains draft and stacked on PR #55. Latest observed head `71fd0112174551b91b0441581a749501bf9a12e0`; workflow run #628 is queued. Its diff now includes `EXPORT_ASYNC.md` and browser test pages in addition to GIF/sprite implementation and tests. Earlier head #598 passed, but does not validate this new head. Await run #628 plus parent #55; review browser parity/cancellation and 512×512 responsiveness before accepting.
+- **PR #76 AC-096 Bézier rasterization** is newly open and draft; exact-head workflow #626 was in progress at last check. Independent pure algorithm work; not a reason to postpone visible workstation integration.
+
+No production release claim is authorized until a coordinator-owned UI PR merges to main, GitHub Pages deployment succeeds, and the published editor is inspected.
+
+## Coordinator live check — UI-00 review / UI-01 preparation (2026-11-14)
+
+Main at this check: `394e232686923b1de7a5021c844a81f07fbdc5d6`. Live open PR count: **60**. Production `index.html` remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no user-visible production shell redesign is merged.
+
+### Coordinator preparation
+- Added `coordination/UI_01_SOURCE_MAP.md` to `main`. It maps the production UI's 86 current static IDs, primary tool values, live DOM targets and functions/event bindings across tools, selection, canvas, timeline, layers, palette, exports/import, project library, save/recovery and Agent API. It explicitly preserves the live DOM-grid renderer for UI-01 and prohibits synthetic placeholder matrices or fake controls.
+- Updated `coordination/INTEGRATION_PLAN.md`: UI-00 is now AC-091 PR #77 under review; its coordinator source map is linked. The UI-01 visual-token rule now follows approved UI-00 design rather than forcing the earlier warm-light palette against AC-091's proposed graphite/olive system.
+
+### AC-091 / PR #77 review
+- Current observed head: `7bec27e2c6df76d44931f0c1bd2155baea532526`; draft; still targets `main`, with base SHA `7265080a6e6596a10e1b455c49a2cf82176d0fc1`. Latest main has since advanced; GitHub reports mergeability false at this check. The status file still records older feature head `991931fbe935d257e1e3082a045ac81383a7f1c3`.
+- Three-file diff remains scoped correctly to `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, `docs/ux/prototypes/workstation.html`. Source static audit: 93 unique prototype IDs, no missing JS ID references, no external scripts/assets, and all buttons have text/ARIA names.
+- Review findings posted: fix broken/nonexistent screenshot links in DESIGN_SYSTEM.md (or make captures accessible and commit them); associate the read-only document values and palette file input with real accessible labels; disclose that Line/Rectangle Select are context-only, non-operational prototype selections (or implement sample behavior); sync latest main, update status head/evidence. Coordinator's source map now satisfies the separate production-control mapping requirement; Agent 5 need not duplicate it.
+- PR remains draft; no CI run exists for its current head. Agent 5's reported manual Chromium checks remain handoff evidence, not independently reproduced by coordinator. UI-00 is not accepted yet.
+
+### Related queue status
+- PR #75 AC-038 remains draft and stale: base is now main but parent ancestry is not reconciled, duplicate `js/canvas-viewport.js` remains in the changed files, and standalone demo interaction is not covered by run #603. Agent 2 has the required sync/Chromium evidence comment; no new head has been submitted.
+- PR #74 AC-089 remains draft on parent #55; latest observed head changed during this check. It is getting active workflow runs on newer commits, but exact latest-head success and parent acceptance are still required.
+- PR #76 AC-096 workflow #626 was in progress at the last exact-head query; isolated pixel algorithm work does not precede the workstation release.
+
+The next release action remains: finish UI-00 review, then coordinator-authored UI-01 shell PR preserving existing production commands, then Agent 1's browser smoke suite and published Pages inspection.
+
+## Coordinator live check — additional merges and workstation blocker (2026-11-14)
+
+Main at this check: `187fbd0247c80ed5d5ba72ab019bc8d7bec2a86c`.
+
+### Additional coordinator merges
+
+| PR | Phase | Merge commit | Exact-head validation |
+|---|---|---|---|
+| #78 | AC-094 bounded perceptual palette matching | `d0d5e02c866544aae41fb18b8fef6488be04199b` | Run #652 on head `46487e8fc3e5241a01fcef1c807b3f1ae0696585`: Node/model and Chromium editor/GIF/ImageDecoder/MCP jobs passed |
+| #80 | AC-066 tile workflow integration contract | `187fbd0247c80ed5d5ba72ab019bc8d7bec2a86c` | Docs-only; source reviewed, no application test required |
+
+PR #78 resolves the earlier unbounded palette mapping concern with a 4,194,304 hard comparison budget (callers may lower but not raise it), one-time palette RGB/Lab preparation, sparse/malformed input rejection, and bounded/optional match detail records. RGB squared remains the default; perceptual metrics are opt-in. Coordinator asked Agent 8 to reconcile its status file with the newer exact PR head and run because its recorded SHA lagged.
+
+PR #80 is a future-facing workflow contract only; it explicitly preserves canonical source artwork and routes wrapped edits/stamps through safe mutation boundaries. It does not add production UI.
+
+### Current production UI gate
+
+- PR #77 / AC-091 remains open draft and unaccepted. Latest known feature head at this check: `7bec27e2c6df76d44931f0c1bd2155baea532526`, with only the three intended UX files; Git comparison shows the branch 13 commits behind latest main. The last agent status still records the older `991931f...` feature head.
+- Outstanding corrections from review: remove or commit the four missing screenshot references; properly label display-only readouts and the palette file input; state clearly that Line/Rectangle Select are context demonstrations if they remain nonfunctional; update status to the actual branch head and sync latest main without force-push.
+- Coordinator source map is in `coordination/UI_01_SOURCE_MAP.md`. No worker needs to change production code. Agent 5 must finish UX handoff corrections; coordinator retains `index.html` ownership.
+- Current production `index.html` is still unchanged from blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`. UI-01 has not begun in production. No published UI change is being claimed.
+
+### PR #79 caution
+
+Agent 7's tile fixture PR #79 still needs review: it contains coordination-file changes in its comparison in addition to the fixture/test deliverables, and the branch is behind current main. Do not merge it until the changed-file list is narrowed/reconciled and exact-head CI is refreshed. PR #80 is already merged independently.
+
+The next user-visible milestone remains the coordinator-authored UI-01 shell after UI-00 acceptance, followed by Agent 1's 12-flow browser smoke suite and published Pages inspection.
+
+## Coordinator live check — palette parent accepted; UI-00 still outstanding (2026-11-14)
+
+Main at this check: `4198b1e095ad48df59763e7a39853d277f0b0bda`. Current open PR count: **58**.
+
+### Additional merge
+- **PR #16 AC-017 palette formats** merged as `4198b1e095ad48df59763e7a39853d277f0b0bda`. Exact-head run #661 on `8a0208a152c9963331b4335d2aaee728da86711d` passed 214 Node/model tests, syntax validation, Chromium editor E2E, animated GIF/ImageDecoder and MCP E2E. The final three-file diff includes indexed own-slot rejection for sparse and explicit-undefined entries.
+- PR #56 (AC-072 palette corpus) remains stacked on the now-merged palette-format branch. Coordinator asked Agent 8 to sync latest main, retarget, verify its 14-file fixture/docs/test diff, and rerun exact-head CI. Do not merge the stale child branch.
+
+### Open dependencies and review holds
+- PR #78 AC-094 bounded perceptual distance: merged as `d0d5e02c866544aae41fb18b8fef6488be04199b`.
+- PR #80 AC-066 tile workflow contract: merged as `187fbd0247c80ed5d5ba72ab019bc8d7bec2a86c`.
+- PR #79 AC-065 fixture corpus remains draft and stale; its comparison includes coordination files from old main snapshots in addition to the tile deliverables. Agent 7 was asked to sync latest main without force-push and narrow the diff before exact-head CI/review.
+- PR #77 AC-091 still has no agent response/new commit after coordinator review comments. It is 13+ commits behind latest main, its status still records the older feature head, and the review findings remain open. The design direction is accepted in principle, but UI-00 is not accepted and UI-01 has not started.
+- `index.html` remains unchanged at blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`. The only production UI owner is the coordinator; no app redesign has been merged or published.

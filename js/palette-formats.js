@@ -107,11 +107,22 @@
     if (Array.isArray(input.colors)) {
       if (input.colors.length < 1) errors.push("Palette must contain at least one color.");
       if (input.colors.length > MAX_COLORS) errors.push("Palette exceeds the " + MAX_COLORS + " color limit.");
-      input.colors.slice(0, MAX_COLORS).forEach(function (entry, index) {
+      const colorCount = Math.min(input.colors.length, MAX_COLORS);
+      for (let index = 0; index < colorCount; index += 1) {
+        // Indexed own-slot checks are required: forEach skips sparse array holes.
+        if (!Object.prototype.hasOwnProperty.call(input.colors, index)) {
+          errors.push("Palette color " + (index + 1) + " is missing; sparse palette arrays are not allowed.");
+          continue;
+        }
+        const entry = input.colors[index];
+        if (entry === undefined) {
+          errors.push("Color " + (index + 1) + " must not be undefined.");
+          continue;
+        }
         const value = typeof entry === "string" ? { hex: entry } : entry;
         if (!value || typeof value !== "object" || Array.isArray(value)) {
           errors.push("Color " + (index + 1) + " must be a HEX string or color object.");
-          return;
+          continue;
         }
         const hex = normalizeHex(value.hex);
         if (!hex) errors.push("Color " + (index + 1) + " must contain a valid 3- or 6-digit HEX value.");
@@ -123,7 +134,8 @@
           } else color.name = value.name.trim();
         }
         if (hex) colors.push(color);
-      });
+
+      }
     }
     let columns;
     if (input.columns !== undefined) {
