@@ -85,6 +85,55 @@ test("supports vertical and grid layouts with margin and spacing metadata", () =
   });
 });
 
+test("supports explicit row-first and fixed row/column grid packing with stable metadata", () => {
+  const { project } = makeProject();
+
+  const rowFirst = Exporter.buildSpriteSheet(project, {
+    layout: "grid",
+    rows: 2,
+    margin: 1,
+    spacing: 1
+  });
+  assert.deepEqual([rowFirst.width, rowFirst.height, rowFirst.columns, rowFirst.rows], [7, 7, 2, 2]);
+  assert.deepEqual(rowFirst.frames.map(frame => [frame.frameId, frame.x, frame.y]), [
+    ["f1", 1, 1], ["f2", 4, 1], ["f3", 1, 4]
+  ]);
+
+  const columnFirst = Exporter.buildSpriteSheet(project, {
+    layout: "grid",
+    columns: 1,
+    margin: 1,
+    spacing: 1
+  });
+  assert.deepEqual([columnFirst.width, columnFirst.height, columnFirst.columns, columnFirst.rows], [4, 10, 1, 3]);
+  assert.deepEqual(columnFirst.frames.map(frame => [frame.x, frame.y]), [[1, 1], [1, 4], [1, 7]]);
+
+  const fixed = Exporter.buildSpriteSheet(project, {
+    layout: "grid",
+    columns: 3,
+    rows: 2,
+    margin: 1,
+    spacing: 1
+  });
+  assert.deepEqual([fixed.width, fixed.height, fixed.columns, fixed.rows], [10, 7, 3, 2]);
+  assert.deepEqual(fixed.frames.map(frame => [frame.x, frame.y]), [[1, 1], [4, 1], [7, 1]]);
+  assert.deepEqual(rgbaAt(fixed, 8, 5), [0, 0, 0, 0], "unused grid cells remain transparent");
+
+  const metadata = Exporter.buildMetadata(fixed, "explicit-grid.png");
+  const roundTripped = JSON.parse(JSON.stringify(metadata));
+  assert.deepEqual(roundTripped, metadata, "metadata must survive JSON serialization without losing the export contract");
+  assert.deepEqual(roundTripped.layout, {
+    type: "grid", columns: 3, rows: 2, margin: 1, spacing: 1
+  });
+  assert.deepEqual(roundTripped.frames.map(frame => [
+    frame.index, frame.frameId, frame.name, frame.x, frame.y, frame.width, frame.height, frame.durationMs
+  ]), [
+    [0, "f1", "Idle", 1, 1, 2, 2, 100],
+    [1, "f2", "Step", 4, 1, 2, 2, 180],
+    [2, "f3", "Contact", 7, 1, 2, 2, 240]
+  ]);
+});
+
 test("allows explicit frame order and selected layers, including hidden layers", () => {
   const { project } = makeProject();
   const sheet = Exporter.buildSpriteSheet(project, {
@@ -115,6 +164,9 @@ test("rejects invalid selection, layout, dimensions, and malformed cel data", ()
   assert.throws(() => Exporter.buildSpriteSheet(project, { frameIds: ["f1", "f1"] }), /duplicate IDs/);
   assert.throws(() => Exporter.buildSpriteSheet(project, { layout: "diagonal" }), /Layout must be/);
   assert.throws(() => Exporter.buildSpriteSheet(project, { layout: "grid", columns: 4 }), /Grid columns/);
+  assert.throws(() => Exporter.buildSpriteSheet(project, { layout: "grid", rows: 0 }), /Grid rows/);
+  assert.throws(() => Exporter.buildSpriteSheet(project, { layout: "grid", columns: 1, rows: 1 }), /at least one cell/);
+  assert.throws(() => Exporter.buildSpriteSheet(project, { layout: "horizontal", rows: 1 }), /only be specified when layout is grid/);
   assert.throws(() => Exporter.buildSpriteSheet(project, { spacing: -1 }), /Spacing/);
 
   const malformed = structuredClone(project);
