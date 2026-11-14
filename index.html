@@ -2139,14 +2139,14 @@ function agentCopySelection(payload){
   if(!copySelection())throw new Error("There is no active selection to copy.");
   return {ok:true,selection:{...selection},clipboard:{width:selectionClipboard.width,height:selectionClipboard.height}};
 }
-function agentCutSelection(payload){
+async function agentCutSelection(payload){
   payload=payload||{};assertAgentSelectionAction(payload);
-  if(!cutSelection())throw new Error("There is no editable active selection to cut.");
+  if(!await cutSelection())throw new Error("There is no editable active selection to cut.");
   return getAgentStatus();
 }
-function agentPasteSelection(payload){
+async function agentPasteSelection(payload){
   payload=payload||{};assertAgentSelectionAction(payload);
-  if(!pasteSelection())throw new Error("There is no editable clipboard selection to paste.");
+  if(!await pasteSelection())throw new Error("There is no editable clipboard selection to paste.");
   return getAgentStatus();
 }
 async function agentClearSelection(payload){
@@ -2587,8 +2587,8 @@ $("projectInput").addEventListener("change",async e=>{
     e.target.value="";toast("Project files must be 32 MB or smaller.");return;
   }
   const target=captureImportTarget();
-  const previousProject=snapshot();
   try{
+    const previousProject=snapshot();
     const staged=window.ArtClubImportStaging.stageProjectImport(await file.text());
     if(!staged.ok){
       const diagnostic=staged.diagnostics&&staged.diagnostics[0];
