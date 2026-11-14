@@ -1,3 +1,18 @@
+## UI-02A QA follow-up — 2026-11-15
+
+- **Active assignment:** UI-02A QA-only review of the coordinator's PR #96; no production edits and no new branch created.
+- **Reviewed branch/head:** `coordinator/ui-02a-safe-clear` / `0e0633bcadc8fbf3cfcc0de797136a1e4ffa6e29`.
+- **Lock/visibility regression coverage:** confirmed in `tests/ui02-safe-clear.browser.mjs`. The Chromium flow exercises Agent API lock and visibility transitions, checks that toolbar and selection Clear controls disable, and verifies a locked selection-clear denial leaves pixels unchanged. The production UI and Agent API lock/visibility handlers all refresh selection controls via `renderSelectionTools()`. The Node test covers locked, hidden and zero-opacity safe-edit denial and source-project immutability.
+- **Exact-head CI:** [UI-02 browser run #43636239861](https://github.com/faiev/ArtClub/actions/runs/43636239861) failed at browser test line 139, after the lock/visibility assertions, because the race probe assumes `window.ArtClubStorage.prototype.saveProject`; the loaded global is an API object, not a constructor. [Project test run #43636239803](https://github.com/faiev/ArtClub/actions/runs/43636239803) succeeded. This does not establish that the safe-edit persistence race is fixed.
+- **Review handoff:** posted the source/test review and exact failure details on [PR #96 comment #6883568281](https://github.com/faiev/ArtClub/pull/96#issuecomment-6883568281). PR remains draft. Agent 6 owns the stale-target/autosave persistence race review; Agent 1 did not edit production, storage, bridge or workflow files.
+- **Evidence limitation:** I inspected GitHub source and Actions logs through the repository connector. I did not run Node or Chromium locally; the prior local DNS limitation remains. The CI run reached and passed the lock/visibility assertions before failing later in the same browser script.
+
+### Current UI-02 next actions
+1. Recheck PR #96 after the Coordinator corrects the browser race-probe instrumentation; verify the new exact-head run and retain lock/visibility assertions.
+2. Add or confirm an explicit browser-level hidden-layer mutation-denial immutability assertion if the Coordinator requests a test-only follow-up or provides a QA branch/target.
+3. Review UI-02B import denial/immutability cases when the Coordinator opens that production slice; remain within `tests/qa/ui02/**`.
+4. Continue exact-head review of each UI-02 slice; do not claim a pass from source inspection or an unrelated workflow.
+
 # Status — Agent 1 QA / release reliability
 
 ## Current snapshot
