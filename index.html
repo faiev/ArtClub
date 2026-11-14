@@ -399,7 +399,7 @@ function syncProjectDocument(){
 function snapshot(){
   return ProjectModel.cloneProject(syncProjectDocument());
 }
-function loadProjectIntoEditor(source){
+function loadProjectIntoEditor(source,resetHistory=true){
   const doc=ProjectModel.deserializeProject(source);
   projectDoc=doc;
   activeProjectId=doc.id;
@@ -411,11 +411,12 @@ function loadProjectIntoEditor(source){
   pixels=activeCel.pixels.slice();
   $("projectName").value=projectName;
   $("gridSize").value=String(w);
-  undoStack.length=0;redoStack.length=0;drawing=false;
+  drawing=false;
+  if(resetHistory){undoStack.length=0;redoStack.length=0;}
   renderAll();updateHistoryButtons();
 }
 function restore(source){
-  loadProjectIntoEditor(source);
+  loadProjectIntoEditor(source,false);
   scheduleSave();
 }
 const HISTORY_LIMIT=100;
