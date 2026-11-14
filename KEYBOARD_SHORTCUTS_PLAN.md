@@ -3,7 +3,7 @@
 **Task:** AC-026 — Keyboard shortcut and command-discoverability specification  
 **Owner:** Agent 5 — UX / Product  
 **Branch:** `agent/keyboard-shortcuts-plan`  
-**Synchronized main:** `56932bb16601ab5f5fd22c1d37bb877b8c06ab3f`  
+**Production source rechecked:** `main` `index.html` blob `4645281c1aad8580529e7feb99cd299a88543913` (merged UI-01 workstation shell)  
 **Status:** Specification only; no application implementation is included.
 
 ---
@@ -366,3 +366,17 @@ AC-026 is ready for review when:
 - Keyboard-only and accessibility expectations are concrete.
 - Implementation files, current ownership and integration locks are identified.
 - No application code, test code, CSS, UI or command palette has been implemented as part of this specification.
+
+
+## Post UI-01 source recheck — 2026-11-15
+
+The current production shell has changed since the original AC-026 source inventory. This recheck uses the current main `index.html` blob `4645281c1aad8580529e7feb99cd299a88543913` and updates implementation priorities without claiming a keyboard implementation has shipped.
+
+- The live tool rail is now inside the workstation shell, with the existing tool buttons and click handlers preserved. Tool activation continues through `setTool(name)`; it currently toggles the `.active` class and does not expose `aria-pressed` on the selected tool.
+- The live zoom control remains three buttons: `#zoomOut`, `#zoomReset` and `#zoomIn`. The current percentage/reset control still invokes the fit-relative zoom factor, not a true Actual Size action.
+- The live layer list remains a separate inspector region, and the frame strip remains in the bottom timeline. There is no keyboard-operable layer×frame cel matrix on the production page yet.
+- The document-level handler still handles Ctrl/Cmd+Z and Ctrl/Cmd+S before checking whether an INPUT, SELECT or TEXTAREA owns focus. In the current handler, these chords call `preventDefault()` and invoke project undo/save before the `if(editing)return` guard. The native text-editing and browser Save Page conflicts in this spec remain live P1 findings.
+- The key guard still does not identify contenteditable, role=textbox, IME composition or AltGraph before app commands. Preserve those cases and browser/OS reserved chords when implementation is assigned.
+- The current production HTML still has no dedicated in-app shortcut-reference panel. The AC-053 reference remains a non-production static pattern until a coordinator UI slice is assigned.
+
+**Implementation priority remains:** protect native editing/browser shortcuts first; then expose tool, palette, layer and frame state; only then add context-gated accelerators. This recheck is source-based; no live keyboard-only or screen-reader conformance test is claimed.
