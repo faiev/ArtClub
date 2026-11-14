@@ -975,10 +975,10 @@ function renderHumanComparison(report) {
 
 
 const DIAGNOSTIC_WEIGHTS = Object.freeze({
-  critical: 30,
-  high: 15,
-  medium: 7,
-  low: 2,
+  critical: 60,
+  high: 25,
+  medium: 10,
+  low: 3,
   info: 0
 });
 function addDiagnostic(list, code, severity, filePath, message, details) {
