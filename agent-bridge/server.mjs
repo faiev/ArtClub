@@ -15,6 +15,7 @@ import {
   BridgeOperationError,
   SerialOperationQueue
 } from "./operation-queue.mjs";
+import { BridgeDiagnostics } from "./bridge-observability.mjs";
 import {
   acquireProfileLock,
   recoverStaleProfileLock
@@ -93,6 +94,7 @@ const TEST_TIMEOUT_POINT = parseTestPoint(process.env.ARTCLUB_TEST_TIMEOUT_POINT
 const TEST_TIMEOUT_MS = TEST_TIMEOUT_POINT
   ? boundedIntegerEnv("ARTCLUB_TEST_TIMEOUT_MS", 100, 50, 5_000)
   : 0;
+const TEST_RECOVERY_FAULTS_ENABLED = TEST_MODE && process.env.ARTCLUB_TEST_RECOVERY_FAULTS === "1";
 
 function getToolDeadlineMs(name, args) {
   if (TEST_TIMEOUT_POINT && name === "artclub_draw_pixel" &&
@@ -124,6 +126,7 @@ let shutdownPromise;
 let profileLock;
 const requestScope = new AsyncLocalStorage();
 const operationQueue = new SerialOperationQueue({ maxPending: MAX_PENDING_OPERATIONS });
+const bridgeDiagnostics = new BridgeDiagnostics();
 const monitoredPages = new WeakSet();
 const crashedPages = new WeakSet();
 
@@ -136,6 +139,7 @@ function compactArgs(args) {
 async function connectToEditor() {
   if (connectionPromise) return connectionPromise;
 
+  const reconnecting = bridgeDiagnostics.beginConnection();
   connectionPromise = (async () => {
     if (!browserContext) {
       const context = await chromium.launchPersistentContext(
@@ -147,7 +151,11 @@ async function connectToEditor() {
         }
       );
       browserContext = context;
+      context.browser()?.once("disconnected", () => {
+        bridgeDiagnostics.recordBrowserEvent("browser_disconnect", "The Chromium browser process disconnected.");
+      });
       context.once("close", () => {
+        bridgeDiagnostics.recordBrowserEvent("context_close", "The Chromium editor context closed.");
         if (browserContext === context) {
           browserContext = null;
           page = null;
@@ -164,15 +172,30 @@ async function connectToEditor() {
     if (!monitoredPages.has(candidate)) {
       monitoredPages.add(candidate);
       candidate.on("pageerror", error => {
-        console.error("[Art Club browser]", error.message);
+        bridgeDiagnostics.recordBrowserEvent("page_error", error?.message || "Editor page error.");
+        console.error("[Art Club browser]", sanitizeToolErrorMessage(error?.message || "Editor page error.", 400));
       });
       candidate.on("close", () => {
+        bridgeDiagnostics.recordBrowserEvent("page_close", "The editor tab closed.");
         if (page === candidate) page = null;
       });
       candidate.on("crash", () => {
         crashedPages.add(candidate);
+        bridgeDiagnostics.recordBrowserEvent("page_crash", "The editor tab crashed.");
         console.error("[Art Club browser] The editor page crashed.");
         if (page === candidate) page = null;
+      });
+      candidate.on("framenavigated", frame => {
+        if (frame !== candidate.mainFrame()) return;
+        try {
+          const actual = new URL(frame.url());
+          const expected = new URL(APP_URL);
+          if (actual.origin !== expected.origin || actual.pathname !== expected.pathname) {
+            bridgeDiagnostics.recordBrowserEvent("page_navigation", "The editor tab navigated away from the configured application.");
+          }
+        } catch {
+          bridgeDiagnostics.recordBrowserEvent("page_navigation", "The editor tab navigated to an unsupported location.");
+        }
       });
     }
 
@@ -184,6 +207,7 @@ async function connectToEditor() {
     );
 
     const status = await candidate.evaluate(() => window.onePixelStudio.get_status());
+    bridgeDiagnostics.connectionSucceeded(reconnecting);
     console.error(
       '[Art Club] Connected to "' + status.project_name + '" ' +
       '(' + status.canvas.width + "×" + status.canvas.height + ') at ' + APP_URL
@@ -194,11 +218,12 @@ async function connectToEditor() {
   try {
     return await connectionPromise;
   } catch (error) {
+    bridgeDiagnostics.connectionFailed(error, reconnecting);
     const context = browserContext;
     browserContext = null;
     page = null;
     try { await context?.close(); } catch {}
-    const message = error && error.message ? error.message : String(error);
+    const message = sanitizeToolErrorMessage(error && error.message ? error.message : String(error), 400);
     throw new Error("Could not connect to the Art Club editor: " + message);
   } finally {
     connectionPromise = null;
@@ -520,6 +545,29 @@ async function main() {
       return textResult(CAPABILITIES);
     }
   );
+
+  registerTool(
+    server,
+    "artclub_get_bridge_diagnostics",
+    "Read redacted local bridge connection health, reconnect history, browser lifecycle counters and bounded queue metrics. Does not read or mutate artwork.",
+    z.strictObject({}),
+    async () => textResult(bridgeDiagnostics.snapshot(operationQueue.getMetrics()))
+  );
+
+  if (TEST_RECOVERY_FAULTS_ENABLED) {
+    registerTool(
+      server,
+      "artclub_test_inject_browser_fault",
+      "Test-only browser recovery fault injection.",
+      z.strictObject({ kind: z.enum(["page_close", "page_navigation", "browser_disconnect"]) }),
+      async args => {
+        if (args.kind === "page_close") await page?.close();
+        else if (args.kind === "page_navigation") await page?.goto("about:blank", { waitUntil: "domcontentloaded" });
+        else await browserContext?.close();
+        return textResult({ ok: true, injected: args.kind });
+      }
+    );
+  }
 
   registerTool(
     server,
@@ -1037,6 +1085,7 @@ async function main() {
   const shutdown = async ({ closeTransport = true, reason = "The MCP server is shutting down; pending tool requests were cancelled." } = {}) => {
     if (shutdownPromise) return shutdownPromise;
     shutdownPromise = (async () => {
+      bridgeDiagnostics.beginShutdown();
       await operationQueue.close({ reason });
       const context = browserContext;
       browserContext = null;
@@ -1054,9 +1103,10 @@ async function main() {
       }
       if (closeTransport) {
         try { await stdioHandle?.close(); } catch (error) {
-          console.error("[Art Club] MCP transport shutdown:", error.message);
+          console.error("[Art Club] MCP transport shutdown:", sanitizeToolErrorMessage(error.message, 400));
         }
       }
+      bridgeDiagnostics.markClosed();
     })();
     return shutdownPromise;
   };
@@ -1082,6 +1132,7 @@ async function main() {
   // the process alive while the client is connected. Do not await the handle.
   stdioHandle = serveStdio(() => server);
   } catch (error) {
+    bridgeDiagnostics.beginShutdown();
     try {
       await operationQueue.close({
         reason: "Bridge startup failed; pending tool operations were cancelled."
@@ -1101,6 +1152,7 @@ async function main() {
     } finally {
       profileLock = null;
     }
+    bridgeDiagnostics.markClosed();
     throw error;
   }
 }
