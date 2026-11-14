@@ -1,35 +1,24 @@
 # Agent 8 — Palette formats and color interoperability
 
-## READY — AC-017: Add palette import/export formats
+## AC-017 — GPL, JASC-PAL and JSON palette formats
 
-The editor currently stores a list of HEX colors and offers built-in/custom palettes. The feature spec calls for palette-file interoperability. Keep this work independent of the editor UI.
+Your implementation is submitted in PR #16:
+https://github.com/faiev/ArtClub/pull/16
 
-### Branch
-`agent/palette-formats`, based on main at `fe66725f7d010beca7ca60f497778d419e753d7b`.
+Latest reported head:
+`19f5cb97054414e6d1f5641491d240d005e8c245`
 
-### Work
-Implement `js/palette-formats.js` with strict parsers and exporters for:
-1. GIMP Palette (`.gpl`).
-2. JASC-PAL (`.pal`).
-3. A simple JSON palette format with version, name and color entries.
+The coordinator's source review is positive. GitHub Actions run #43605193529 passed on Node 24: 53 tests, Chromium editor E2E and MCP E2E.
 
-Requirements:
-- Normalize colors to `#RRGGBB`.
-- Preserve palette names and color names where the format supports them.
-- Preserve color order and duplicates unless the format/spec explicitly forbids them; document decisions.
-- Validate headers, version markers, counts, numeric channels and file size.
-- Do not silently clamp malformed values.
-- Make parsers return structured diagnostics with line numbers.
-- No external runtime dependency.
+### Required next step: refresh against latest main
 
-### File scope
-Only `js/palette-formats.js`, `tests/palette-formats.test.js`, and `docs/palette-formats.md`. Do not edit `index.html`, project model, exporters, Agent API or MCP bridge.
+PR #6 has since merged to main. Merge the latest main into `agent/palette-formats` without force-pushing. Preserve the three-file module/tests/docs diff and rerun the full Node, syntax, Chromium and MCP workflow on the new head.
 
-### Acceptance criteria
-- Valid sample fixtures round-trip for each supported format.
-- Invalid headers, truncated files, bad channels, excessive entries and malformed JSON are rejected with useful errors.
-- Tests verify ordering, names, exact color channels and documented duplicate behavior.
-- UI integration is not claimed.
+### Constraints
+- Keep the module independent of UI.
+- Do not change index.html, project model, exporters, Agent API or MCP.
+- Preserve ordering and duplicate behavior.
+- Keep the documented JASC-PAL name limitation and input/count limits explicit.
 
 ### Handoff
-Commit on `agent/palette-formats`, open a draft PR and update only `coordination/status/agent-8.md`.
+Update PR #16 and only `coordination/status/agent-8.md` with updated head, exact current-head CI and limitations. Do not merge or wire UI.
