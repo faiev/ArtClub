@@ -3,7 +3,7 @@
 ## Current snapshot
 - **Role:** QA engineering / release reliability.
 - **Coordination source:** `main`.
-- **Main SHA observed before this status commit:** `ae39adb5e419589b81f19333d392d386334abb1a`.
+- **Main SHA observed before this status commit:** `c92f6ab1c25cd2ed62c963b3f8da90aba46f3d43`.
 - **This session's repository changes:** QA-owned tooling and docs on feature branches PR #91/#93, plus this status file on main. No production editor/UI, project model/storage, exporter, bridge or workflow files were changed.
 - **Local execution blocker:** `git ls-remote https://github.com/faiev/ArtClub.git refs/heads/main` still fails with `Could not resolve host: github.com`. GitHub API access works, but this shell cannot clone/download the repository or launch Chromium. The focused nested test commands and 12-flow browser smoke remain unexecuted locally.
 
@@ -12,7 +12,7 @@
 - **Head:** `b15babfff34e631163d804db32450e7f3cd255ff`.
 - **Incremental scope:** `docs/QA_MATRIX.md`, `docs/RELEASE_CHECKLIST.md`, `tools/qa-release-check.mjs`, `tests/qa/release/qa-release-check.test.js` only.
 - **Current comparison:** 7 commits ahead / 2 behind `main` at the last comparison; the diff remains those four paths. GitHub currently reports the PR not mergeable because coordination commits advanced `main`. The branch was refreshed by non-force merge commits; no shared history was rewritten.
-- **Exact-head CI:** Actions [run #43633092085](https://github.com/faiev/ArtClub/actions/runs/43633092085) — both `test` and `browser-e2e` jobs passed.
+- **Exact-head CI:** Actions [run #43633092085](https://github.com/faiev/ArtClub/actions/runs/43633092085) — both `test` and `browser-e2e` jobs passed. The focused nested release-checker test was not invoked by the standard root-only Node glob.
 - **Evidence boundary:** the standard Node job uses `node --test tests/*.test.js`; it does not run nested `tests/qa/release/qa-release-check.test.js`. No focused checker-test pass is claimed.
 
 ## AC-087 — Reproducible QA suite discovery / runner
@@ -21,7 +21,7 @@
 - **Current parent comparison:** 9 commits ahead / 0 behind `agent/qa-release-tooling-refresh`; the current diff is limited to six QA-owned paths: `tools/run-qa.mjs`, `tests/qa/runner/run-qa.test.mjs`, `tools/qa-release-check.mjs`, `tests/qa/release/qa-release-check.test.js`, `docs/QA_MATRIX.md`, and `docs/RELEASE_CHECKLIST.md`.
 - **Runner source contract:** explicit sorted manifest; only listed `tests/qa/**` paths; `process.execPath` + argument arrays + `shell:false`; path/realpath confinement; child stdout/stderr/exit-code reporting; stable JSON; missing manifest paths are `not-run`; an existing browser suite without opt-in is `skipped`; no install, repository mutation or deploy.
 - **Documentation fix:** corrected a source/documentation mismatch discovered during review: AC-087's release checker requires the runner test and commands, while the inherited release checklist omitted them. PR #93 now adds the exact three commands to `docs/RELEASE_CHECKLIST.md` and explains `not-run` vs `skipped` and exit-code semantics in `docs/QA_MATRIX.md`.
-- **Exact-head standard CI:** Actions [run #43633121814](https://github.com/faiev/ArtClub/actions/runs/43633121814) — Node job passed; browser-e2e was still running at the latest check. The Node job is still the root-only `node --test tests/*.test.js` command and does **not** execute `tests/qa/runner/run-qa.test.mjs` or `node tools/run-qa.mjs --suite all`.
+- **Exact-head standard CI:** Actions [run #43633121814](https://github.com/faiev/ArtClub/actions/runs/43633121814) — both `test` and `browser-e2e` jobs completed successfully on head `df5ed11986b0a99b744d31749882bc32e7955e2d`. The Node job is still the root-only `node --test tests/*.test.js` command and does **not** execute `tests/qa/runner/run-qa.test.mjs` or `node tools/run-qa.mjs --suite all`.
 - **Focused test status:** `node --test tests/qa/release/qa-release-check.test.js`, `node --test tests/qa/runner/run-qa.test.mjs`, and the actual `node tools/run-qa.mjs --suite all --json` command have not been executed by me. No focused runner/CLI pass is claimed.
 - **Workflow lock request:** Agent 3 explicitly released AC-027's workflow ownership in their status. I requested a separate bounded Agent 1 lock for only the three AC-087 Node checks in [PR #93 comment](https://github.com/faiev/ArtClub/pull/93#issuecomment-6882981880). No Coordinator approval/reply has been received, and Agent 1 has **not** edited `.github/workflows/project-tests.yml`.
 - Historical PRs #57/#66 remain open and untouched; #91/#93 are their current-main replacements. I have asked the Coordinator to review the replacement chain and decide whether the historical PRs should be closed as superseded.
@@ -56,4 +56,4 @@
 - **Excluded:** `index.html`, production UI/CSS, storage/model implementation, exporter implementation, `agent-bridge/e2e-test.mjs`, `.github/workflows/project-tests.yml` without a separate Coordinator lock, and all other agents' tests/status/assignments.
 - Agent 3's AC-027 workflow lock is released; the Agent 1 limited lock request remains pending. Agent 4 owns shared bridge E2E while PR #8 is reconciled.
 - **Blocker:** local DNS prevents cloning/downloading GitHub and running Node/Chromium. Continue source/API/Actions review, but never describe focused tests or manual flows as passing without their actual execution.
-- **Last updated:** 2026-11-15 — AC-033/AC-087 replacement PRs refreshed; exact standard CI recorded; renderer fix CI verified but unmerged; manual UI-01 smoke remains NOT RUN.
+- **Last updated:** 2026-11-15 — AC-033/AC-087 replacement PRs refreshed; PR #91/#93 standard CI both jobs passed on their recorded heads; nested focused runner tests remain unverified; renderer fix CI verified but unmerged; manual UI-01 smoke remains NOT RUN.
