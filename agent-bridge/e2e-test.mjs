@@ -75,6 +75,13 @@ async function run() {
     const bounds = await firstCell.boundingBox();
     assert.ok(bounds && bounds.width > 0 && bounds.height > 0, "pixel grid should have visible cells");
     await page.mouse.click(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    // Drawing is now committed asynchronously after IndexedDB persistence.
+    // Wait for save-before-publish to finish before reading the public pixel API.
+    await page.waitForFunction(() =>
+      window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === "#e96f55",
+      null,
+      { timeout: 10000 }
+    );
 
     let pixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }));
     assert.equal(pixel.color, "#e96f55", "a real mouse click should draw on the grid");
