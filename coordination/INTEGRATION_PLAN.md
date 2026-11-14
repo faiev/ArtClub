@@ -173,7 +173,7 @@ Exit gate:
 
 ## Current status
 
-- UI-00: AC-091 submitted as draft PR #77 and under coordinator review. Pending accessible screenshot evidence / corrected screenshot references, accessible labels for read-only controls and palette file input, explicit disclosure of prototype-only Line/Rectangle Select behavior, and a status update synchronized to the latest feature head. No production UI authorization yet.
+- UI-00: AC-091 submitted as draft PR #77 and under coordinator review. Coordinator source mapping is in `coordination/UI_01_SOURCE_MAP.md`. Pending accessible screenshot evidence / corrected screenshot references, accessible labels for read-only controls and palette file input, explicit disclosure of prototype-only Line/Rectangle Select behavior, and a status update synchronized to the latest feature head. No production UI authorization yet.
 - UI-01: queued; production UI owner is coordinator.
 - UI-02: contracts and modules submitted across open PRs; coordinator review/dependency acceptance required.
 - UI-03: viewport and adapter modules submitted; renderer remains separate until evidence gate.
