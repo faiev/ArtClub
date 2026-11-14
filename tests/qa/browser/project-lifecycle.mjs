@@ -85,6 +85,18 @@ async function selectCel(frame, layerId, frameId) {
   await frame.evaluate(id => window.onePixelStudio.select_layer({ layer_id: id }), layerId);
 }
 
+async function openProjectFromLibrary(frame, projectName, projectId) {
+  await frame.locator("#projectLibraryBtn").click();
+  const entry = frame.locator(".project-entry").filter({ hasText: projectName });
+  await entry.waitFor({ state: "visible", timeout: 10000 });
+  await entry.getByRole("button", { name: "Open", exact: true }).click();
+  await frame.waitForFunction(
+    expectedId => window.onePixelStudio.get_status().project_id === expectedId,
+    projectId,
+    { timeout: 10000 }
+  );
+}
+
 async function run() {
   const { server, url } = await startStaticServer();
   let browser;
@@ -175,10 +187,7 @@ async function run() {
     await waitForSaved(frame);
 
     // Switch back to Alpha and verify its active layer/frame and separate cels.
-    await frame.evaluate(id =>
-      window.onePixelStudio.open_project({ project_id: id }),
-      projectAId
-    );
+    await openProjectFromLibrary(frame, "Lifecycle Alpha", projectAId);
     let openedA = await frame.evaluate(() => window.onePixelStudio.get_status());
     assert.equal(openedA.project_id, projectAId);
     assert.equal(openedA.active_layer.id, overlayLayerAId,
@@ -200,10 +209,7 @@ async function run() {
 
     // Restore Alpha's persisted active cel before switching away.
     await selectCel(frame, overlayLayerAId, secondFrameAId);
-    await frame.evaluate(id =>
-      window.onePixelStudio.open_project({ project_id: id }),
-      projectBId
-    );
+    await openProjectFromLibrary(frame, "Lifecycle Beta", projectBId);
     statusB = await frame.evaluate(() => window.onePixelStudio.get_status());
     assert.equal(statusB.project_id, projectBId);
     assert.equal(statusB.active_layer.id, layerBId);
@@ -233,10 +239,7 @@ async function run() {
       "reload should preserve Beta's saved pixel");
 
     // Reload and revisit Alpha to verify its own active frame/layer and cels.
-    await frame.evaluate(id =>
-      window.onePixelStudio.open_project({ project_id: id }),
-      projectAId
-    );
+    await openProjectFromLibrary(frame, "Lifecycle Alpha", projectAId);
     openedA = await frame.evaluate(() => window.onePixelStudio.get_status());
     assert.equal(openedA.project_id, projectAId);
     assert.equal(openedA.active_layer.id, overlayLayerAId);
@@ -245,10 +248,7 @@ async function run() {
     assert.equal(await pixel(frame, 1, 1), "#aa1100");
     await selectCel(frame, overlayLayerAId, secondFrameAId);
     assert.equal(await pixel(frame, 3, 3), "#0000cc");
-    await frame.evaluate(id =>
-      window.onePixelStudio.open_project({ project_id: id }),
-      projectBId
-    );
+    await openProjectFromLibrary(frame, "Lifecycle Beta", projectBId);
 
     // Exercise the one-step recovery path in Beta with real autosave and
     // Project Library UI. Opening the library must be a no-op save and must
@@ -258,10 +258,14 @@ async function run() {
     );
     await waitForSaved(frame);
     const versionABaseline = await pixel(frame, 21, 20);
+    assert.equal(await pixel(frame, 20, 20), "#aa00aa",
+      "Beta version A should be present before the later edit");
     await frame.evaluate(() =>
       window.onePixelStudio.draw_pixel({ x: 21, y: 20, color: "#00aaff" })
     );
     await waitForSaved(frame);
+    assert.equal(await pixel(frame, 21, 20), "#00aaff",
+      "Beta version B should be autosaved before recovery is attempted");
 
     await frame.locator("#projectLibraryBtn").click();
     const betaEntry = frame.locator(".project-entry").filter({ hasText: "Lifecycle Beta" });
