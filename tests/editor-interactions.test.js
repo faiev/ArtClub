@@ -265,7 +265,7 @@ test("locked layers reject both human and agent drawing", async () => {
   );
 
   rows = editor.document.getElementById("layerList").children;
-  rows[1].children[1].children[1].emit("click");
+  rows[0].children[1].children[1].emit("click");
   assert.equal(editor.agent.get_status().active_layer.locked, false);
   await editor.agent.draw_pixel({ x: 3, y: 3, color: "#ff00ff" });
   assert.equal((await editor.agent.get_pixel({ x: 3, y: 3 })).color, "#ff00ff");
