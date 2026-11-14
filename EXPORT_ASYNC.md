@@ -76,9 +76,9 @@ An aborted operation rejects with an `ExportAbortError`:
 |---|---|
 | `name` | `ExportAbortError` |
 | `code` | `EXPORT_ABORTED` |
-| `stage` | `before-start`, `composition`, `encoding` or `finalization` |
+| `stage` | `before-start`, `validation`, `composition`, `encoding` or `finalization` |
 
-The exporter checks cancellation before starting, at work-chunk boundaries, before finalization and after the PNG codec resolves. A cancellation rejection contains no bytes, Blob, sheet, metadata or success result. The encoder may have allocated private working buffers before an abort; those buffers are not returned to the caller.
+The exporter checks cancellation before starting, while validating source cels, at composition/palette/indexing/LZW/ImageData chunk boundaries, immediately before finalization and after the PNG codec resolves. The GIF Blob wrapper also checks before and after constructing the Blob, and the PNG export wrapper checks again after metadata generation. A cancellation rejection contains no bytes, Blob, sheet, metadata or success result. The encoder may have allocated private working buffers before an abort; those buffers are not returned to the caller.
 
 The implementation polls `signal.aborted` and does not register an abort event listener. There is therefore no listener to detach on success or failure. Cancellation is cooperative: if the caller aborts between checkpoints, the operation stops at the next checkpoint.
 
@@ -109,3 +109,15 @@ For identical project data and format options, the async tests compare:
 - Sprite-sheet RGBA pixels, metadata and encoded PNG output against the synchronous exporter.
 
 Node tests cover early, mid-composition, mid-LZW, render-preparation and finalization cancellation. The real-browser GIF and PNG test pages verify async output parity, progress ordering and the PNG post-codec abort behavior.
+
+
+## AC-089 verification additions
+
+The async regression suite also proves:
+- The public GIF Blob API is byte-identical to the synchronous Blob output and does not return after an abort raised by the final progress callback.
+- Sparse/missing-cel composition yields through the event loop rather than treating a whole frame as one uninterruptible work unit.
+- A timer-triggered abort is observed while GIF validation/composition yields to the host event loop.
+- Sprite-sheet validation traverses cels in bounded chunks (it does not perform a separate synchronous full-cel reduction before yielding).
+- A delayed PNG codec result is discarded when the signal has been aborted while the platform encoder was running.
+
+`yieldEvery` counts validation/composition/indexing work units for GIF, source cel and RGBA-copy work for PNG. It is a maximum cooperative interval, not a strict wall-clock time budget; small bounded setup, typed-array allocation, canvas calls and palette median-cut operations remain synchronous.
