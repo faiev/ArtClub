@@ -34,7 +34,7 @@ node tools/qa-release-check.mjs
 node tools/qa-release-check.mjs --json
 ```
 
-The checker reports required files, bridge scripts, workflow commands, QA commands documented in the release checklist, nested test discovery and coordination freshness where local Git refs permit a comparison. JSON includes counts and a `ci` object whose status is always `unverified`; this tool never queries GitHub Actions or declares a release green.
+The checker reports required files, bridge scripts, workflow commands, QA commands documented in the release checklist, nested test discovery and coordination freshness where local Git refs permit a comparison. JSON includes check counts, `localCheckStatus`, and `releaseReady: false` / `releaseStatus: "unverified"`. Its `ci` object is always `unverified`; this tool never queries GitHub Actions or declares a release green. A local structural pass is not a release approval.
 
 ### Core CI-equivalent commands
 
