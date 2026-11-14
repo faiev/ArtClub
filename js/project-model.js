@@ -58,8 +58,8 @@
 
   function createProject(options) {
     options = options || {};
-    const width = options.width || options.w || 24;
-    const height = options.height || options.h || 24;
+    const width = options.width !== undefined ? options.width : (options.w !== undefined ? options.w : 24);
+    const height = options.height !== undefined ? options.height : (options.h !== undefined ? options.h : 24);
     assertDimension(width, "Canvas width");
     assertDimension(height, "Canvas height");
 
