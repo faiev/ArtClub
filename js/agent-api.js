@@ -14,7 +14,7 @@
   function requireAdapter(adapter) {
     const required = [
       "getStatus", "getCanvas", "getPixel", "execute",
-      "undo", "redo", "save", "exportProject", "importProject"
+      "undo", "redo", "save", "exportProject", "importProject", "listProjects", "openProject", "exportPNG"
     ];
     const missing = required.filter(function (name) {
       return !adapter || typeof adapter[name] !== "function";
@@ -88,6 +88,15 @@
       },
       import_project: function (payload) {
         return adapter.importProject(payload);
+      },
+      list_projects: function () {
+        return adapter.listProjects();
+      },
+      open_project: function (payload) {
+        return adapter.openProject(payload || {});
+      },
+      export_png: function () {
+        return adapter.exportPNG();
       }
     });
   }
