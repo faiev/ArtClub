@@ -189,3 +189,34 @@ test("maximum supported canvas dimensions remain bounded", () => {
   assert.ok(points.length <= Curves.MAX_PIXELS);
   assert.ok(points.every(point => point.x >= 0 && point.y >= 0 && point.x < 512 && point.y < 512));
 });
+
+
+const curveFixtures = require("./fixtures/pixel-effects/curves.json");
+
+test("synthetic quadratic/cubic golden fixtures match exact integer coordinate arrays", () => {
+  assert.equal(curveFixtures.schemaVersion, 1);
+  for (const fixture of curveFixtures.cases) {
+    const canvas = fixture.canvas;
+    const points = fixture.degree === 2
+      ? Curves.rasterizeQuadratic(...fixture.controlPoints, canvas)
+      : Curves.rasterizeCubic(...fixture.controlPoints, canvas);
+    assert.deepEqual(coords(points), fixture.expected, fixture.id);
+  }
+});
+
+test("closed-loop and cusp-like synthetic fixtures satisfy exact endpoint and uniqueness invariants", () => {
+  for (const fixture of curveFixtures.invariantCases) {
+    const points = fixture.degree === 2
+      ? Curves.rasterizeQuadratic(...fixture.controlPoints, fixture.canvas)
+      : Curves.rasterizeCubic(...fixture.controlPoints, fixture.canvas);
+    const [startX, startY] = fixture.invariants.start;
+    assert.deepEqual(points[0], { x: startX, y: startY }, fixture.id);
+    assert.ok(points.length >= fixture.invariants.minPointCount, fixture.id);
+    if (fixture.invariants.startCoordinateOccursOnce) {
+      assert.equal(points.filter(point => point.x === startX && point.y === startY).length, 1, fixture.id);
+    }
+    if (fixture.invariants.uniqueCoordinates) {
+      assert.equal(new Set(points.map(point => point.x + "," + point.y)).size, points.length, fixture.id);
+    }
+  }
+});
