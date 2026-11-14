@@ -5,18 +5,18 @@
 - **Branch:** `agent/qa-recovery-snapshot`
 - **Base:** `fe66725f7d010beca7ca60f497778d419e753d7b`
 - **Head:** `fdaa0de7d246416795d30379cfa872b2d65ce01e`
-- **PR:** [#10 — Fix Project Library recovery snapshot rotation](https://github.com/faiev/ArtClub/pull/10) (open, draft, unmerged)
+- **PR:** [#10 — Fix Project Library recovery snapshot rotation](https://github.com/faiev/ArtClub/pull/10) (verified open, draft, unmerged; GitHub reports mergeable)
+- **Live PR verification:** Checked directly on 2026-11-14. PR head matches the submitted commit above; base branch is `main`.
+- **CI evidence:** [Run #43603210877](https://github.com/faiev/ArtClub/actions/runs/43603210877) on the exact PR head. Both GitHub check runs completed successfully:
+  - `test`: `node --test tests/*.test.js` — 36 passed, 0 failed; `node --check agent-bridge/server.mjs` passed.
+  - `browser-e2e`: `npm run test:e2e` passed in Chromium with real IndexedDB; `npm run test:mcp` passed.
+  - Dependency installation reported 0 vulnerabilities.
 - **Files:** `js/project-storage.js`, `tests/project-storage.test.js`, `agent-bridge/e2e-test.mjs`
 - **Root cause:** Opening Project Library calls `persistNow()` and unconditionally saves. The prior storage implementation rotated the current project into recovery on every save, including no-op saves, so opening the library overwrote snapshot A with current version B.
 - **Fix:** No-op saves compare project content while ignoring only `metadata.updatedAt`; they preserve the existing project record and recovery snapshot. Real content changes continue to rotate the prior record into one-step recovery.
 - **Regression coverage:** Storage unit test covers A → B → no-op B → C. Chromium E2E covers autosaved A/B, explicit clean save, opening Project Library, Recover, and a subsequent genuine edit/save. The existing reload assertion now selects the frame owning the tested pixels.
-- **Test evidence — GitHub Actions [run #43603210877](https://github.com/faiev/ArtClub/actions/runs/43603210877):**
-  - `node --test tests/*.test.js`: 36 passed, 0 failed.
-  - `node --check agent-bridge/server.mjs`: passed.
-  - `npm run test:e2e`: passed in Chromium against real IndexedDB.
-  - `npm run test:mcp`: passed.
-  - `npm install --ignore-scripts`: 0 vulnerabilities.
-- **Blockers:** Awaiting coordinator review of draft PR #10. No code blocker.
-- **Remaining risk:** Focused Node storage test uses a test double; the complete UI recovery flow is separately exercised by real Chromium/IndexedDB E2E.
+- **Blockers:** Awaiting coordinator review of draft PR #10. No implementation or CI blocker.
+- **Remaining risk:** Focused Node storage test uses an IndexedDB test double; the complete UI recovery workflow is separately exercised by Chromium against real IndexedDB.
 - **Prior deliverable:** PR #1 remains unchanged and separate.
-- **Last updated:** 2026-11-14 — AC-006 implementation and CI evidence submitted for review.
+- **Next:** Coordinator review only; do not mark ACCEPTED/DONE or merge.
+- **Last updated:** 2026-11-14 — PR head and CI re-verified, status retained at REVIEW.
