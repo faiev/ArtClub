@@ -213,3 +213,93 @@ The five merge commits above were individually compared to current main; each is
 - Keep #29 parked pending coordinator review and non-force sync; its documentation does not change production behavior.
 - Keep #40 draft until its dedicated runner is actually invoked on a working Node/Chromium environment and exact-head evidence is recorded; standard E2E is not a substitute.
 - No branch deletion, force-push, PR closure, merge, workflow change, PR comment, production edit, or non-owned file edit was performed.
+
+
+---
+
+# Coordinator restart directive — 2026-11-15 (latest live revalidation)
+
+## Live source and scope
+- Current main at review start: 0bb35ba9ba22218ddeecf10d04bf245e05936b22.
+- Re-read the Agent 6 restart directive and the P0 branch-hygiene assignment.
+- Scope: read-only PR #96 Clear/import/paste safety review, attempt existing PR #40 dedicated runner, and isolate PR #82 inherited safe-edit failures without editing Agent 4 files.
+- No production, test, workflow, Agent 4, branch, PR, or other status-file changes made.
+
+## Exact refs and comparisons
+
+| Ref | Exact head | Ahead / behind current main | PR file scope |
+|---|---|---:|---|
+| #96 coordinator/ui-02a-safe-clear | 7071f9550f94f413f4dd414416a804079ee179c4 | 26 / 31; merge base 95e9a83efc0d024b4aa4abde709768db2b9a82b9 | workflow UI-02 browser, index.html, editor-interactions test, UI-02 browser test, UI-02 focused test |
+| #29 agent/safe-edit-path-audit | c5f27591506eb9584e8489dc6b83a3eaf978e531 | 17 / 30; merge base e7bcd76a7413fcb4f9e373ade67d71651da0064a | docs/SAFE_EDIT_PATH_AUDIT.md only |
+| #40 agent/layer-safety-browser | 2b900a79c4094b274db6c8611c101cbf75c7adc6 | 28 / 30; merge base e7bcd76a7413fcb4f9e373ade67d71651da0064a | docs/layer-edit-safety.md and three tests/layer-safety.browser.* files |
+| #82 AC-045 tested commit | ac064e94fb38e71f3bbdb17c5c6867d0e84a04a1 | Stacked on #54 parent 5ad306cb282182415cc867f0c9f1582724993eb8 | Seven bridge/API files only |
+
+PR #96's current live diff is limited to its five intended UI/workflow/test files; the previously observed coordination-file leakage is no longer in the live PR diff. #29 and #40 are parallel branches. Search found no distinct UI-02B/UI-02C implementation PRs. Do not infer those slices have started.
+
+## PR #96 — confirmed current-head findings
+
+Reviewed current branch index.html blob a65bdd8be6a28f4d08924420198279b7822d1df6 and project-storage.js blob 242bd0c6fcc3fa7675d0d7af68080c507a4efef6.
+
+### P1 — cross-tab stale-write remains
+- index.html:1075 calls projectStorage.saveProject(nextProject) without an expected persisted revision.
+- project-storage.js:82–134 reads the previous primary and then unconditionally writes the candidate in a readwrite transaction over PROJECTS and RECOVERY. It rotates the previous primary to recovery when content differs, but does not compare a caller revision.
+- Race: tabs A/B load P0; A saves P1; stale B saves P2; B replaces P1 and demotes it to the one-slot recovery record. A later save can evict that recovery copy.
+- Required: compare expected revision in the same transaction over both stores; conflict performs zero writes; success returns a new token and exact prior primary/recovery rollback receipt.
+
+### P2 — rollback still rotates recovery
+- index.html:1080–1085 persists the candidate before publishing it.
+- index.html:1091–1105 catches a publication failure and calls ordinary saveProject(previousProject).
+- That ordinary save can rotate the rejected candidate into recovery and overwrite the previous recovery snapshot. It is not exact rollback.
+- Required: conditional restoreIfCurrent(receipt), atomic across both stores, restoring exact prior records only if the committed revision is still current. A newer concurrent write must win.
+
+### Image import
+- index.html:2472–2501 captures the target before asynchronous image decode and revalidates it in img.onload. Stale completion is visibly canceled and the object URL is revoked. This is a positive guard against decode completing during safe Clear.
+- After revalidation, index.html:2498 still calls remember(), assigns pixels=next directly, renders, and schedules ordinary autosave. It does not use the accepted import-staging/immutable transaction path or persisted CAS/rollback receipt. P1/P2 therefore remain applicable.
+- RGBA is intentionally quantized to nearest palette HEX; alpha below 32 becomes transparent. This is lossy import, not exact RGBA preservation.
+- The onload conversion body has no finally-style URL cleanup if an unexpected exception occurs before the final revoke; add an exception-path cleanup test.
+
+### Selection paste
+- index.html:1150–1165 is still a direct mutable path: it clamps the destination, remembers history, writes non-transparent clipboard pixels directly into pixels, then schedules ordinary save.
+- It checks isActiveLayerEditable(); index.html:833–836 confirms hidden, locked, non-finite and zero-opacity layers are rejected.
+- It bypasses the immutable safe-edit transaction/guard API and has no persisted revision token or atomic storage commit. Paste is synchronous, so there is no await interleaving inside the pixel loop; do not claim an async race inside paste itself. Its risks are inconsistent safe-edit invariants and the same persistence race after mutation.
+- Clipboard dimensions are silently clipped to canvas bounds; confirm and test whether that is intended.
+
+### Required deterministic tests
+1. Two independent browser contexts share IndexedDB: both load P0/V0; A saves P1; stale B gets a typed conflict and causes zero primary/recovery writes; B reloads and can save with V1.
+2. Inject publication failure after P1 persistence: conditional rollback restores byte-identical P0/R0. If another context commits P2 before rollback, the P1 receipt must conflict and leave P2/recovery untouched.
+3. Image decode completing across a safe edit is rejected with visible feedback; assert pixels, project JSON, history, primary and recovery unchanged, and URL revoked on success, error, stale and thrown conversion paths.
+4. Paste denial against hidden/locked/zero-opacity/non-active/stale targets preserves pixels, project, undo/redo, primary and recovery. Successful paste uses detached validation and revision-aware persistence. Test canvas-edge clipping.
+5. Use explicit promise barriers, not sleeps; compare canonical record and raster bytes.
+
+## Exact-head PR #96 CI
+- Run #43637386209: dedicated UI-02 browser workflow passed on head 7071f9550f94f413f4dd414416a804079ee179c4; ui02-browser job and “Run UI-02 safe Clear browser checks” step succeeded.
+- Run #43637386219: standard Project workflow passed on the same head; browser-e2e and test jobs succeeded.
+- These are exact for the PR head but predate current main by 31 commits and do not cover cross-tab CAS or exact rollback.
+
+## AC-058 dedicated runner — BLOCKED, NOT PASSED
+- Exact branch head: 2b900a79c4094b274db6c8611c101cbf75c7adc6. Runner blob: 6d75a19ac02400abd1d9aa75d4d2527d2ab20b37.
+- Environment: Node v22.16.0 at /opt/nvm/versions/node/v22.16.0/bin/node; Chromium 144.0.7559.96 at /usr/bin/chromium.
+- No repository checkout exists in the container; current directory is / and /tmp/artclub-agent6 is absent.
+- git ls-remote https://github.com/faiev/ArtClub.git refs/heads/agent/layer-safety-browser failed with exit 128: Could not resolve host: github.com.
+- Attempted exact command node tests/layer-safety.browser.mjs from /; it failed with MODULE_NOT_FOUND for /tests/layer-safety.browser.mjs because the checkout is absent.
+- PR #40 standard workflow #43639272626 passed on its exact head, but does not invoke the dedicated runner. AC-058 remains BLOCKED / NOT EXECUTED.
+- #40 is 30 commits behind current main and needs non-force synchronization plus exact-head runner execution. No sync performed.
+
+## PR #82 — Agent 4 failures isolated to stale inherited parent implementation
+
+PR #82's seven-file diff is limited to AGENT_API.md and agent-bridge files; it changes none of Agent 6's guard, transaction or test files.
+
+- Tested commit: ac064e94fb38e71f3bbdb17c5c6867d0e84a04a1. Stacked parent #54 head: 5ad306cb282182415cc867f0c9f1582724993eb8.
+- Parent guard blob: 227b7e231f0cfff356810d47660fbb90ec5405e7 (7,807 bytes). Current main guard blob: 5a2207c3d05a05fc31f92e3ff91b8005b500cf86 (12,082 bytes).
+- Parent guard lacks validateRevisionContext(), LAYER_ZERO_OPACITY and stale project/frame/composite revision reason codes; current main guard contains them.
+- Failing conformance test blob is identical on parent and main: 0e3e2bbd6f017f757526d111f1718a5e7b20d809. Failing operations test blob is identical: 568a6a5fd30031dcffd51c546be5d0c4744fc54d. safe-edit-operations.js is also identical: 68011625ef3451983805f804452c2feb81b3be2b.
+- Exact-head run #43622756765: test job failed, browser-e2e job passed (including actual MCP client integration).
+- Log confirms five inherited failures: stale project revision accepted; zero-opacity clear accepted; replace followed by stale-revision edit accepted; zero-opacity reason constant missing; stale-revision reason constant missing.
+- Root cause is base-branch drift, not Agent 4's bridge changes: current tests/modules are inherited unchanged but the stacked #54 parent supplies the older guard implementation. Agent 4 should synchronize the stacked dependency onto the current guard after coordinator confirms the correct parent integration sequence. Agent 6 did not edit Agent 4 paths.
+
+## Blockers / next actions
+1. Keep #96 draft until CAS, conditional exact rollback and deterministic two-context tests pass on a synchronized exact head.
+2. Obtain a working checkout/network path, synchronize #40 non-force under coordination, then execute node tests/layer-safety.browser.mjs and record exact head/browser/run evidence.
+3. Coordinator/Agent 4: resolve #82's stale #54 parent guard dependency and rerun exact-head Node/Chromium/MCP CI.
+4. Keep UI-02B/C gated until UI-02A's P0 persistence findings close.
+5. Keep #29 parked pending coordinator review; no deletion or PR closure recommendation.
