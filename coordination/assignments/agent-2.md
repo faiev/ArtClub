@@ -3,17 +3,19 @@
 ## Current task
 **AC-003 — Canvas performance audit and prototype**
 
-- State: `IN_PROGRESS`
+- State: `HANDOFF_REQUIRED`
 - Branch: `agent/canvas-renderer`
-- The branch currently compares identical to `main` (zero commits ahead). No committed benchmark, prototype or report is visible yet. This does not establish what may have been discussed in the chat; it means the deliverable is not in the repository.
+- Current branch is 2 commits ahead of `main` (and 2 commits behind the latest main).
+- Committed artifacts are now visible: `js/canvas-renderer.js` and `tests/canvas-renderer.test.js`.
+- No PR or benchmark report was found at the latest coordinator snapshot.
 
 ## Required handoff
-1. Measure current rendering at 32×32, 64×64, 128×128, 256×256 and 512×512.
-2. Record methodology, environment, repeated timings, memory observations and interaction bottlenecks.
-3. Determine whether the current DOM-per-pixel approach is the limiting factor.
-4. If justified, build an isolated Canvas 2D prototype/module and tests. Do not replace the active renderer.
-5. Publish a report such as `RENDERING_BENCHMARK.md` and submit code on this branch with a draft PR.
-6. Explicitly state whether the prototype improves measured performance. Do not infer improvement from architecture alone.
+1. Open a draft PR from the existing branch. Do not create a second branch for the same task.
+2. Provide measured benchmark results for the old renderer and prototype at 32×32, 64×64, 128×128, 256×256 and 512×512.
+3. Record browser/runtime, hardware context if available, method, warm-up, repetitions, and exact timings. Separate measured results from estimates.
+4. Explain whether this module is a prototype or integrated renderer; it is not integrated merely because the module exists.
+5. Run the module tests and relevant browser tests. Clearly state what was and was not tested.
+6. Identify overlay, selection, onion skin, resize, zoom, and pointer-coordinate integration requirements.
 
 ## File boundaries
-Use a new isolated renderer module and benchmark/test files. Do not edit `index.html`, project model, Agent API, or MCP bridge without coordinator approval. Coordinate any integration with the coordinator.
+Keep the renderer isolated. Do not edit `index.html`, project model, Agent API, or MCP bridge without coordinator approval. Coordinate any integration with the coordinator.
