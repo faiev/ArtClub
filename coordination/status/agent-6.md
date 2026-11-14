@@ -13,7 +13,7 @@
 | AC-015 | [#14](https://github.com/faiev/ArtClub/pull/14) | Merged as `b53708dd73a4a0d00a7fdd2c79048054a2024295`. Pre-merge run #43613631801: 84 Node tests; standard Chromium editor E2E, GIF full-raster and MCP checks passed. |
 | AC-055 | [#23](https://github.com/faiev/ArtClub/pull/23) | Merged as `8ae25528af84c8fa4808ad375e4053e0f934eb14`. Run #43614462471: 121 Node tests; standard Chromium, GIF and MCP passed. |
 | AC-056 | [#26](https://github.com/faiev/ArtClub/pull/26) | Merged as `fc0c36e8e59108f21a9bb90886d053d6dfe02153`. Run #43614484842: 134 Node tests; standard Chromium, GIF and MCP passed. |
-| AC-057 | [#29](https://github.com/faiev/ArtClub/pull/29) | Open; one documentation file only. Head `7bc19c1872cf08910c15eba1cf81255e417b0277`; merge base `b2735dec1a7d36fb6ba6f15d910a93b5ec562b6d` (see note below). No review comments or inline threads. |
+| AC-057 | [#29](https://github.com/faiev/ArtClub/pull/29) | Open; one documentation file only. Head `7bc19c1872cf08910c15eba1cf81255e417b0277`; merge base `b2735dec1a7d36fb5e8dafa4c1ccc43131e71f07` (see note below). No review comments or inline threads. |
 | AC-058 | [#40](https://github.com/faiev/ArtClub/pull/40) | Open, draft; retargeted to `main`. Head `2cbb53635fee277e8ae60cfa648475ac4e8c9edb`; base snapshot `79013ee60239dfb4665c34f258dd6d69fdb2dac0`. Four changed files, all in assigned browser-harness/docs paths. |
 | AC-059 | [#48](https://github.com/faiev/ArtClub/pull/48) | Merged as `103b5c488c262a0c34807d38361f193895e1e7db`. Run #43614528692: 152 Node tests; standard Chromium, GIF and MCP passed. |
 | AC-060 | [#49](https://github.com/faiev/ArtClub/pull/49) | Merged as `87c15b08d41653e255922e3961698608ab991708`. Documentation-only integration contract; no live UI/API wiring claimed. |
