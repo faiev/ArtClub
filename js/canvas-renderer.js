@@ -120,8 +120,8 @@
         this.width = width;
         this.height = height;
       }
-      this.canvas.width = backingWidth;
-      this.canvas.height = backingHeight;
+      if (this.canvas.width !== backingWidth) this.canvas.width = backingWidth;
+      if (this.canvas.height !== backingHeight) this.canvas.height = backingHeight;
       this.displayWidth = displayWidth;
       this.displayHeight = displayHeight;
       this.dpr = dpr;
@@ -249,15 +249,10 @@
 
     getStats() {
       return {
-        width: this.width,
-        height: this.height,
-        pixelCount: this.width * this.height,
-        renderCount: this.renderCount,
-        lastRenderMode: this.lastRenderMode,
+        width: this.width, height: this.height, pixelCount: this.width * this.height,
+        renderCount: this.renderCount, lastRenderMode: this.lastRenderMode,
         lastDirtyRect: this.lastDirtyRect && Object.assign({}, this.lastDirtyRect),
-        displayWidth: this.displayWidth,
-        displayHeight: this.displayHeight,
-        devicePixelRatio: this.dpr
+        displayWidth: this.displayWidth, displayHeight: this.displayHeight, devicePixelRatio: this.dpr
       };
     }
 
