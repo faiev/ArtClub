@@ -66,7 +66,7 @@ Target:
 - replace the promotional/editorial hero layout with a compact creative-workstation structure;
 - introduce a restrained menu/document bar, persistent tool rail, dominant canvas viewport, docked inspector and bottom timeline region;
 - keep current working editor commands and project data behavior intact;
-- preserve warm-light brand identity initially; visual theme changes must not obscure functional review;
+- apply the palette and visual system approved at UI-00. The AC-091 submission currently proposes graphite/olive chrome; do not silently force the older warm-light palette or combine an unreviewed theme change with functional migration. Keep pixel artwork visually dominant and retain verified focus/contrast states;
 - ensure desktop and compact layouts, keyboard focus, useful labels and sensible panel collapse.
 
 Do not:
