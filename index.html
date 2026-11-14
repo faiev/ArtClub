@@ -2337,6 +2337,7 @@ grid.addEventListener("pointerdown",e=>{
   }
   if(!isActiveLayerEditable()){toast("The active layer is locked.");return}
   if(tool==="fill"){void fillActiveArea(p.i,palette[selected]);return}
+  clearTimeout(saveTimer);saveTimer=null;
   drawing=true;strokeStart=p;strokeLast=p;
   strokeBeforePixels=pixels.slice();
   strokeTarget={revision:documentRevision,projectId:projectDoc.id,layerId:projectDoc.activeLayerId,frameId:projectDoc.activeFrameId};
