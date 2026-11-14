@@ -1011,8 +1011,14 @@ function duplicateLayer(){
   const copy=ProjectModel.makeLayer((source.name+" copy").slice(0,60));
   copy.visible=source.visible;copy.opacity=source.opacity;
   projectDoc.layers.splice(projectDoc.layers.indexOf(source)+1,0,copy);
+  projectDoc.frames.forEach(frame=>{
+    const sourceCel=ProjectModel.getCel(projectDoc,source.id,frame.id);
+    if(sourceCel){
+      const destinationCel=ProjectModel.ensureCel(projectDoc,copy.id,frame.id);
+      destinationCel.pixels=sourceCel.pixels.slice();
+    }
+  });
   const cel=ProjectModel.ensureCel(projectDoc,copy.id,projectDoc.activeFrameId);
-  cel.pixels=pixels.slice();
   projectDoc.activeLayerId=copy.id;pixels=cel.pixels.slice();
   renderAll();scheduleSave();toast("Layer duplicated.");
 }
@@ -1791,6 +1797,7 @@ function resizeCanvas(width,height){
   const previous=pixels.slice(),oldWidth=w,oldHeight=h;
   w=width;h=height;
   pixels=resamplePixels(previous,oldWidth,oldHeight,w,h);
+  syncProjectDocument();
   renderAll();scheduleSave();
   toast("Canvas resized to "+w+" × "+h+" pixels.");
   return true;
