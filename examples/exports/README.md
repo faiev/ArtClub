@@ -13,4 +13,13 @@ The PNG atlas uses a two-column/two-row grid, a 1px outer margin and 1px inter-f
 
 The GIF keeps source timings alongside encoded timings: 145ms becomes 150ms and 155ms becomes 160ms. The GIF binary is a synthetic format illustration generated independently of the app's GIF89a encoder. It demonstrates visual and timing trade-offs, not byte-for-byte encoder output. Use the Chromium GIF browser test to verify the app encoder itself.
 
+Regenerate the sample binaries and metadata with Python 3 and Pillow installed:
+
+```bash
+python3 -m pip install Pillow
+python3 examples/exports/generate_examples.py
+```
+
+Pillow is only an optional gallery-authoring dependency; the editor exporters remain dependency-free JavaScript.
+
 All pixels are synthetic and original; no copyrighted art is included.
