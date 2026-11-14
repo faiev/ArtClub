@@ -26,7 +26,7 @@ GitHub coordination files do not wake inactive ChatGPT chats or run them in the 
 | 7 | Tile workflows | PR #13 tile preview, #28 tile transforms and #58 tile-map model. Status file records AC-062 as latest; no blocker reported. | **AC-063** seam diagnostics/suggestions, then AC-064–066. | **AC-093** autotile rule resolver |
 | 8 | Palette tooling / color science | PRs #16, #27, #33, #39, #45, #53, #56 and #60 cover formats, analysis, color conversion, transformations, mapping, accessibility, corpus and workflow contract. Status file is stale at AC-017. | Existing queue through AC-073 is submitted; reconcile all branches/CI and update status. | **AC-094** opt-in CIEDE2000 perceptual matching |
 | 9 | Project diagnostics / developer tooling | PR #12 inspector, #46 batch inspection and #59 structural diff. AC-018 and AC-074 exact-head CI were recorded as successful; #46/#59 are stacked on #12. | **AC-076** deep diagnostics/risk scoring, then AC-077–079. | **AC-095** project fingerprint/duplicate detection |
-| 10 | Pixel-art algorithms | PRs #15, #31, #37, #44 and #50 cover craft effects, raster primitives, flood/regions, color/gradients and transforms. PR #50 is AC-083; status file is stale at AC-082. | **AC-084** advanced dithering/shading, then AC-085–086. | **AC-096** deterministic Bézier curve rasterization |
+| 10 | Pixel-art algorithms | PRs #15, #37, #44 and #50 cover craft effects, flood/regions, color/gradients and transforms. **PR #31 AC-080 merged** as `bfa9194`; exact-head run `43613997761` passed both jobs. PRs #37/#44/#50 now need sync/retest against post-merge main. PR #50 is AC-083; status file is stale at AC-082. | **AC-084** advanced dithering/shading, then AC-085–086. | **AC-096** deterministic Bézier curve rasterization |
 
 ### Status reconciliation required on next resume
 
@@ -38,7 +38,7 @@ GitHub coordination files do not wake inactive ChatGPT chats or run them in the 
 - **Agent 1:** PR #61 is not yet reflected in the previously fetched status file.
 - All workers must update only their own status files with the current branch/head, parent chain, exact tested SHA, CI state, completed phases and next 3–5 actions.
 
-## Open PR inventory (52 open at this snapshot)
+## Open PR inventory (50 open after #14 and #31 merges)
 
 | Owner | Open PRs |
 |---|---|
@@ -51,7 +51,7 @@ GitHub coordination files do not wake inactive ChatGPT chats or run them in the 
 | Agent 7 | #13, #28, #58 |
 | Agent 8 | #16, #27, #33, #39, #45, #53, #56, #60 |
 | Agent 9 | #12, #46, #59 |
-| Agent 10 | #15, #31, #37, #44, #50 |
+| Agent 10 | #15, #37, #44, #50 |
 
 Merged coordination/feature checkpoints include PRs #6 (Canvas renderer module), #7 (coordination system), #10 (recovery snapshot fix) and #11 (animated GIF exporter). No claim is made that these isolated modules are integrated into production UI.
 
