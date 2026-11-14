@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
@@ -60,6 +61,23 @@ async function run() {
     ARTCLUB_HEADLESS: "1",
     ARTCLUB_PROFILE_DIR: profileDir
   };
+
+  // Invalid editor URLs must fail before Chromium launches.
+  for (const [invalidUrl, expectedMessage] of [
+    ["http://example.com/", /localhost development URLs/],
+    ["ftp://example.com/", /must use HTTPS/],
+    ["https://user:pass@example.com/", /embedded credentials/]
+  ]) {
+    const result = spawnSync(process.execPath, [SERVER_PATH], {
+      cwd: BRIDGE_DIR,
+      env: { ...env, ARTCLUB_URL: invalidUrl },
+      encoding: "utf8",
+      timeout: 10_000
+    });
+    assert.notEqual(result.status, 0, "invalid URL should prevent bridge startup");
+    assert.match(result.stderr, expectedMessage);
+  }
+
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [SERVER_PATH],
