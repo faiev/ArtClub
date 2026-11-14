@@ -48,7 +48,8 @@ This inventory was checked against the current `index.html` in the repository. I
 
 ### Already present
 
-- Single-canvas drawing with brush, eraser, flood fill, eyedropper, line, outlined/filled rectangle and outlined/filled ellipse tools. Shape tools show a preview before committing.
+- Single-frame drawing with brush, eraser, flood fill, eyedropper, line, outlined/filled rectangle and outlined/filled ellipse tools. Shape tools show a preview before committing.
+- Multi-layer canvas with independent cels, front-to-back composite rendering, active layer selection, add, duplicate, delete, rename, reorder, visibility and lock controls. Drawing targets only the active visible, unlocked layer.
 - Square and rectangular canvas presets plus custom dimensions from 1 to 512 pixels per side. New projects can be created at a custom aspect ratio; existing artwork can be resampled to new dimensions.
 - A small built-in palette, custom color entry and several palette presets.
 - Undo and redo.
@@ -64,13 +65,13 @@ This inventory was checked against the current `index.html` in the repository. I
 - Keep one previous saved version per project for recovery.
 - Restore the active project after a refresh; keep a local JSON backup where browser storage allows it.
 - Versioned browser Agent API and local stdio MCP bridge for AI agents.
-- Agent tools can inspect pixels, draw, fill, erase, batch edits, undo/redo, save, import/export projects and return PNG previews.
+- Agent tools can inspect the visible composite, draw, fill, erase, batch edits, manage layers, undo/redo, save, import/export projects and return PNG previews.
 
 ### Important gaps
 
 | Capability | Current state | Product consequence |
 |---|---|---|
-| Layers | Not implemented | Separate parts of a sprite cannot be edited independently |
+| Layers | Core editing implemented | Opacity controls, merge down and drag-to-reorder are still missing |
 | Frames and timeline | Not implemented | No animation workflow |
 | Playback and onion skin | Not implemented | Cannot create or inspect frame-to-frame motion |
 | Selection and transforms | Not implemented | Cannot move, copy, flip, rotate or scale a selected part |
@@ -82,7 +83,7 @@ This inventory was checked against the current `index.html` in the repository. I
 | Crash recovery | Basic previous-save recovery implemented | One previous saved version is kept per project; this is not a multi-version history or cloud backup |
 | Advanced pixel-art tools | Not implemented | No symmetry, dithering, outline, shading or tile preview tools |
 
-**Key conclusion:** the current app now has a reliable static-sprite foundation and an AI-agent interface, but it is not yet a complete pixel-art studio. Layers, animation, selection, flexible rectangular canvases and game-ready sprite-sheet export remain major product gaps.
+**Key conclusion:** the app now has a reliable multi-layer static-sprite foundation and an AI-agent interface, but it is not yet a complete pixel-art studio. Animation, selection/transforms, layer opacity/merge, and game-ready sprite-sheet export remain major product gaps.
 
 ### Implementation log
 
@@ -93,7 +94,7 @@ This inventory was checked against the current `index.html` in the repository. I
 - Added structural validation for dimensions, pixel-buffer lengths, colors, layer/frame references, IDs, durations and safe data limits.
 - Added migration from the old flat-canvas save/export format into a one-layer, one-frame v2 project.
 - Wired the editor's current canvas, undo snapshots, local save and project JSON import/export to the v2 schema.
-- Kept the visible editor behavior at one layer and one frame. The data model is prepared for future layers and timeline UI; those features are **not** exposed yet.
+- Initially shipped the document model before layer UI. The layer UI is now implemented in Step C1; the timeline and multi-frame UI remain outstanding.
 - Added Node's built-in test runner and automated GitHub Actions tests for project creation, cel creation, compositing, migration, serialization round-trip and invalid-file rejection.
 
 **Verified:** 8 project-model tests passed in GitHub Actions. The Pages build was also triggered for the same repository revision.
@@ -122,7 +123,7 @@ This inventory was checked against the current `index.html` in the repository. I
 - Added a local MCP server using a dedicated Playwright Chromium profile and stdio transport. It does not add a public server endpoint to GitHub Pages.
 - Added `AGENT_API.md` and `agent-bridge/README.md` with protocol, tools, setup and privacy details.
 
-**Verified:** agent interaction tests pass; the Chromium end-to-end suite exercised both mouse and API drawing, undo/redo, batch edits, project storage/reopen/refresh and PNG preview output. The MCP adapter's dependency imports and JavaScript syntax are checked in CI; actual registration with each MCP client still needs a host-specific smoke test.
+**Verified:** agent interaction tests pass; Chromium and MCP end-to-end suites exercise mouse and API drawing, undo/redo, batch edits, project storage/reopen/refresh, PNG preview and agent tool discovery. Layer-management tools are now part of the browser API and MCP bridge.
 
 
 #### Step B1 — Rectangular and custom canvas dimensions (implemented)
@@ -137,6 +138,22 @@ This inventory was checked against the current `index.html` in the repository. I
 **Verified:** automated editor tests cover a new 32×48 canvas, row-major coordinate access, resize preservation and undo. Chromium E2E also creates a 32×48 project, saves it in the library, opens the earlier project and confirms its pixels survive refresh.
 
 **Still outstanding in F-101:** nine-point canvas anchoring, separate canvas-vs-artwork resize modes and crop/expand without resampling.
+
+
+#### Step C1 — Core layer editing (implemented)
+
+- Added an inspector layer stack ordered front-to-back.
+- Added new layer, duplicate, delete, select, rename (double-click), visibility and lock controls.
+- Added explicit up/down layer reordering.
+- Each layer has its own cel for the active frame; drawing, fill, eraser and shapes edit only the active visible, unlocked layer.
+- The canvas, statistics, eyedropper, PNG/SVG export and Agent API readback use the composite of visible layers.
+- Layer operations are undoable and autosaved. Projects still retain one animation frame in the UI.
+- Exposed agent methods and MCP tools for list/add/select/rename/reorder/duplicate/delete/visibility/lock operations.
+
+**Verified:** editor tests cover top-over-bottom compositing, visibility, locked-layer protection, duplicate/delete/undo and agent readback. Chromium E2E covers layer compositing and reload persistence; MCP E2E checks layer tools and verifies hidden/locked behavior.
+
+**Still outstanding in F-105:** opacity slider/rendering, merge down, drag-to-reorder and layer groups.
+ 
 
 ---
 
