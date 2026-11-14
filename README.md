@@ -10,6 +10,7 @@ A browser-based pixel art editor. It is a static site: no build step, backend, a
 
 - Exact pixel grid with brush, eraser, flood fill, eyedropper, line, outlined/filled rectangle, and outlined/filled ellipse tools
 - Multi-layer editing with independent cels, visibility, lock, rename, reorder, duplicate, delete and composite export
+- Rectangular selection with move, copy, cut, paste, clear, horizontal/vertical flip and 90° rotation
 - Square and rectangular canvas presets, plus custom width and height from 1 to 512 pixels per side
 - Custom color palette
 - Undo and redo
@@ -20,7 +21,7 @@ A browser-based pixel art editor. It is a static site: no build step, backend, a
 
 ## AI-agent access
 
-One Pixel Studio exposes a versioned browser Agent API, so browser-connected agents can issue exact pixel operations instead of clicking screen coordinates. A local MCP bridge exposes drawing, inspection, layer management, undo/redo, project-library and PNG-preview tools to compatible AI clients.
+One Pixel Studio exposes a versioned browser Agent API, so browser-connected agents can issue exact pixel operations instead of clicking screen coordinates. A local MCP bridge exposes drawing, inspection, layer management, selection/transform, undo/redo, project-library and PNG-preview tools to compatible AI clients.
 
 - [Agent API reference](AGENT_API.md)
 - [Local MCP bridge setup](agent-bridge/README.md)
@@ -63,4 +64,4 @@ npm run test:e2e
 
 The GitHub Actions workflow runs both the unit/interaction checks and the Chromium end-to-end suite.
 
-The current editor exposes multiple editable layers but still has one animation frame. Layer opacity controls, merge-down, selection tools, timeline and animation export remain future work. The browser Agent API can manage layers and draws into the active visible, unlocked cel.
+The current editor exposes multiple editable layers and rectangular selection/transforms, but still has one animation frame. Layer opacity controls, merge-down, lasso/invert selection, timeline and animation export remain future work. The browser Agent API can manage layers and selections, and draws into the active visible, unlocked cel.
