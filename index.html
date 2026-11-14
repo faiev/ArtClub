@@ -1923,8 +1923,9 @@ function validateAgentCommands(commands){
     return result;
   });
 }
-function executeAgentCommands(commands,options){
+async function executeAgentCommands(commands,options){
   options=options||{};
+  if(safeEditBusy)throw new Error("A safe edit is being committed. Retry when it finishes.");
   if(drawing)throw new Error("A canvas stroke is in progress. Finish it before sending agent drawing commands.");
   if(isPlaying)throw new Error("Pause animation preview before sending drawing commands.");
   if(playbackFrameId)resetPlayback();
@@ -1935,10 +1936,21 @@ function executeAgentCommands(commands,options){
   const validated=validateAgentCommands(commands);
   const newColors=[...new Set(validated.map(command=>command.color).filter(Boolean))].filter(color=>!palette.includes(color));
   if(palette.length+newColors.length>ProjectModel.LIMITS.maxPaletteColors)throw new Error("The palette would exceed the 256-color safety limit.");
-  const before=snapshot();
-  const oldUndo=undoStack.slice(),oldRedo=redoStack.slice();
-  remember();
+  const source=createSafeEditProject();
+  const target={
+    revision:documentRevision,
+    projectId:source.id,
+    layerId:source.activeLayerId,
+    frameId:source.activeFrameId
+  };
+  const originalPixels=pixels,originalPalette=palette,originalSelected=selected;
+  let candidatePixels,candidatePalette,candidateSelected;
   try{
+    const sourceCel=ProjectModel.getCel(source,target.layerId,target.frameId);
+    if(!sourceCel)throw new Error("The active layer/frame cel is missing.");
+    pixels=sourceCel.pixels.slice();
+    palette=source.palette.slice();
+    selected=source.selectedColorIndex;
     for(const command of validated){
       if(command.color&&!palette.includes(command.color))palette.push(command.color);
       const color=command.color||palette[selected];
@@ -1963,21 +1975,34 @@ function executeAgentCommands(commands,options){
         }
       }
     }
-  }catch(error){
-    undoStack.length=0;undoStack.push(...oldUndo);
-    redoStack.length=0;redoStack.push(...oldRedo);
-    loadProjectIntoEditor(before,false);
-    updateHistoryButtons();
-    throw error;
+    candidatePixels=pixels.slice();
+    candidatePalette=palette.slice();
+    candidateSelected=selected;
+  }finally{
+    pixels=originalPixels;
+    palette=originalPalette;
+    selected=originalSelected;
+    renderGrid();renderPalette();syncColorUI();
   }
-  let changedPixels=0;
-  for(let i=0;i<pixels.length;i++)if(pixels[i]!==before.cels.find(c=>c.layerId===before.activeLayerId&&c.frameId===before.activeFrameId).pixels[i])changedPixels++;
-  renderGrid();renderPalette();renderStats();syncColorUI();updateHistoryButtons();scheduleSave();
+  const result=window.ArtClubSafeEditOperations.replaceActiveCel(source,candidatePixels,{
+    layerId:target.layerId,frameId:target.frameId
+  });
+  if(!result.ok)throw new Error(safeEditDenialMessage(result));
+  const paletteChanged=JSON.stringify(candidatePalette)!==JSON.stringify(source.palette);
+  const selectedChanged=candidateSelected!==source.selectedColorIndex;
+  if(!result.changedPixels&&!paletteChanged&&!selectedChanged){
+    return {ok:true,revision:documentRevision,commands_applied:validated.length,changed_pixels:0,project_id:activeProjectId,label:typeof options.label==="string"?options.label.slice(0,80):"Agent edit"};
+  }
+  result.project.palette=candidatePalette;
+  result.project.selectedColorIndex=candidateSelected;
+  if(!await commitSafeEditResult(result,source,target,"Agent edit saved.")){
+    throw new Error("The agent edit could not be saved; the previous project was preserved.");
+  }
   return {
     ok:true,
     revision:documentRevision,
     commands_applied:validated.length,
-    changed_pixels:changedPixels,
+    changed_pixels:result.changedPixels,
     project_id:activeProjectId,
     label:typeof options.label==="string"?options.label.slice(0,80):"Agent edit"
   };
