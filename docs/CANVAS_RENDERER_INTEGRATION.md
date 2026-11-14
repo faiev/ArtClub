@@ -14,10 +14,10 @@ It is an isolated engineering demo, not a production editor integration. The coo
 ## Dependencies and stacked branch
 
 - Renderer prototype: merged PR #6, `js/canvas-renderer.js`.
-- Viewport utility: PR #34, branch `agent/canvas-viewport`, source copied at its current reviewed candidate blob.
-- State adapter: PR #43, branch `agent/canvas-renderer-adapter`.
+- Viewport utility: merged PR #34, available from `main`.
+- State adapter: merged PR #43, available from `main`.
 
-This AC-038 branch is stacked on PR #43's adapter branch and includes the exact viewport module from PR #34 so the demo can load both modules in one tree. It does not merge or accept either parent PR. Once #34 and #43 are merged, retarget/synchronize this PR to main and ensure the identical viewport module is no longer shown as a new addition.
+The AC-038 branch has been retargeted to `main` after merging the latest main ancestry. Its diff contains only the isolated demo, integration contract and demo tests; it no longer adds a duplicate viewport module.
 
 ## Run the demo
 
@@ -34,6 +34,37 @@ Open:
 The page constructs a small 32×24 v2 sample project with three frames and two layers. Controls switch active frame, grid, selection and onion-before/after; fit, actual-size, button zoom, pointer-anchored wheel zoom and pan are implemented. The canvas preview has a programmatic name and is keyboard focusable. Arrow keys pan, plus/minus zoom, Home fits, and 1 resets to actual size.
 
 The demo has a bounded DOM fallback for initialization/adapter/render failure. It is intentionally only 32×24: it illustrates fallback semantics without creating an unbounded pixel grid. Failure is surfaced in the status strip. The live application renderer is untouched.
+
+
+## Automated Chromium interaction evidence
+
+A dedicated runner is committed at `tests/canvas-renderer-integration-demo.browser.mjs`. It inlines the four local module files into the demo page before calling Playwright `page.setContent()`; this keeps the test local-first and also works in restricted environments where Chromium navigation to a local HTTP origin is blocked.
+
+Reproduce from the repository root after installing the existing bridge Playwright dependency and Chromium:
+
+```sh
+cd agent-bridge
+npm install --ignore-scripts
+npx playwright install chromium
+node ../tests/canvas-renderer-integration-demo.browser.mjs
+```
+
+The local real-browser run used Python Playwright with the **exact demo HTML from the PR branch** and the **exact ProjectModel, viewport, renderer and adapter source files fetched from main**. Browser: Chromium **144.0.7559.96**, headless Linux. Context matrix: DPR **1, 1.25, 1.5 and 2**.
+
+For each DPR context, the run verified:
+- v2 sample project creation (32×24, three frames, two layers);
+- Canvas renderer initialization and logical buffer dimensions;
+- accessible canvas name and role;
+- onion-after mask composition on the first frame;
+- active-frame switching and redraw;
+- grid, selection and onion toggles;
+- zoom button, fit, actual-size, Home/1 keyboard navigation and pointer-wheel zoom;
+- ResizeObserver refresh with DPR retained and full redraw;
+- explicit renderer cleanup and backing-buffer reset.
+
+Result: **4/4 DPR contexts passed, 0 page errors**. A separate fallback context intentionally omitted the Canvas renderer module and verified that the 32×24 DOM fallback rendered all **768 cells**, hid the Canvas element, showed the fallback grid and produced 0 page errors. The committed Node Playwright runner was added for reproducibility; it was not invoked in this local runtime because Node Playwright is not installed here. The Python Playwright run is the actual local interaction evidence.
+
+The existing repository workflow also passed on the previous AC-038 head, but that standard editor/GIF/MCP workflow does not itself open this standalone demo. The dedicated run above is separate evidence.
 
 ## Coordinate and resize contract
 
