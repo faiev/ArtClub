@@ -1,61 +1,67 @@
-# Status — Agent 6
+# Status — Agent 6: Editing safety
 
-- **Task:** AC-015 — Layer editing safety guard
-- **Status:** REVIEW
-- **Branch:** `agent/layer-safety`
-- **Latest application base merged:** `56932bb16601ab5f5fd22c1d37bb877b8c06ab3f`
-- **Feature head tested:** `adb54668ebd4507e55dc6144b73a91b85f20afbe`
-- **Merge commit:** `adb54668ebd4507e55dc6144b73a91b85f20afbe` (two parents; latest main was second parent)
-- **PR:** [#14 — AC-015: Add isolated layer-edit safety guard](https://github.com/faiev/ArtClub/pull/14) — open, ready for review
-- **Diff against merged base:** 3 assigned application files only; 5 commits ahead, 0 behind at final synchronization.
-- **Subsequent main activity:** main advanced after synchronization through worker status-only updates; no application/workflow files changed in those commits. Current observed main at status write: `92a9b7e5646e6ec791e8cea7879da549a6558ccf`.
+- **Overall status:** REVIEW — AC-092 submitted; coordinator acceptance pending
+- **Current phase:** AC-092 — seeded adversarial/property-style safe-edit conformance
+- **Feature branch:** `agent/safe-edit-conformance`
+- **Feature head:** `2bf4d1ba4a04039cda3200b9f1f422e2409c2524`
+- **PR:** [#62 — AC-092: Add seeded safe-edit conformance tests](https://github.com/faiev/ArtClub/pull/62) — open, ready for review
+- **Stacked parent:** PR #49 / `agent/safe-edit-integration-contract` at `2e7a19ce843a3c659206c1bcb82825ded08a606a`
+- **Coordination source at this update:** `main` at `e37ad85af904b308017a2027999f0c030e20e6e1`
+- **Latest assignment check:** reread `coordination/assignments/agent-6.md` on this main head; AC-092 remains the authorized extension.
 
-## Coordinator-requested correction
+## Delivered phases and PRs
 
-- Replaced sparse-skipping `.some()` cel validation with indexed validation over every expected pixel slot.
-- Requires every expected index to be an own/present array entry.
-- Each value must be explicit `null` or a valid `#RRGGBB` string.
-- Sparse holes and explicit `undefined` return `CEL_INVALID`.
-- Denial path is non-mutating.
-- Added regression tests for sparse hole, explicit undefined, and valid null/HEX values. Both rejection tests assert that the project buffer and own-slot shape remain unchanged.
+| Phase | PR | Deliverable | Evidence / remaining note |
+|---|---|---|---|
+| AC-015 | [#14](https://github.com/faiev/ArtClub/pull/14) | Fail-closed layer/cel guard | 84 Node tests, Chromium editor E2E and MCP passed on an earlier synchronized head; branch needs latest-main revalidation |
+| AC-055 | [#23](https://github.com/faiev/ArtClub/pull/23) | Opacity, metadata, selection and revision checks | 96 Node tests, Chromium editor E2E and MCP passed on an earlier synchronized head |
+| AC-056 | [#26](https://github.com/faiev/ArtClub/pull/26) | Immutable safe-edit transaction helpers | 109 Node tests, Chromium editor E2E and MCP passed on an earlier synchronized head |
+| AC-057 | [#29](https://github.com/faiev/ArtClub/pull/29) | Read-only mutation-path audit | Documentation-only; source audit identifies Clear and async image import bypasses |
+| AC-058 | [#40](https://github.com/faiev/ArtClub/pull/40) | Dedicated safety browser harness | 113 Node tests and standard Chromium/MCP E2E passed; **the dedicated `node tests/layer-safety.browser.mjs` page remains unexecuted** |
+| AC-059 | [#48](https://github.com/faiev/ArtClub/pull/48) | Project/image import staging | 127 Node tests, Chromium editor E2E and MCP passed on an earlier synchronized head |
+| AC-060 | [#49](https://github.com/faiev/ArtClub/pull/49) | Safe-edit integration contract | Documentation-only; no live UI/API integration authorized |
+| AC-092 | [#62](https://github.com/faiev/ArtClub/pull/62) | Seeded adversarial/property-style conformance | **135 Node tests, Chromium editor E2E, GIF ImageDecoder verification and MCP passed** on exact head below |
 
-## Files changed
+CI counts above are tied to their exact historical heads; any further base sync requires fresh exact-head CI.
 
-- `js/layer-edit-guard.js`
-- `tests/layer-edit-guard.test.js`
-- `docs/layer-edit-safety.md`
+## AC-092 implementation
 
-No other files changed. No UI/API/MCP integration was performed.
+Files:
+- `tests/safe-edit-conformance.test.js`
+- `docs/SAFE_EDIT_CONFORMANCE.md`
 
-## Local tests
+The suite uses five fixed unsigned 32-bit seeds, bounded 1–8 px canvases, 2–3 layers/frames, 16 iterations per seeded property, and eight property/sequence tests. It covers guard accept/deny behavior, sparse/undefined/malformed pixel cases, stale revisions, complete source immutability, own-slot shape, derived raster, detached transactions, unrelated frame/layer preservation, deterministic repeat outputs, project/image staging, and composed edit sequences.
 
-Runtime: Node.js 22.16.0.
+`SAFE_EDIT_SEED=<unsigned-32-bit>` selects a single replay seed. Failure messages include seed, iteration, operation, canvas size and compact minimized mutation metadata. No new dependency or workflow edit was introduced.
 
-- `node --check /tmp/artclub-agent6/js/layer-edit-guard.js` — passed.
-- `node --check /tmp/artclub-agent6/tests/layer-edit-guard.test.js` — passed.
-- `node --test /tmp/artclub-agent6/tests/layer-edit-guard.test.js` — **13 passed, 0 failed**.
+## AC-092 verification
 
-## GitHub Actions revalidation
+GitHub Actions run #161 — [43613087859](https://github.com/faiev/ArtClub/actions/runs/43613087859)  
+Exact head: `2bf4d1ba4a04039cda3200b9f1f422e2409c2524`
 
-Run #149 — [workflow run](https://github.com/faiev/ArtClub/actions/runs/43606501403), exact feature head `adb54668ebd4507e55dc6144b73a91b85f20afbe`.
+- Full Node command `node --test tests/*.test.js`: **135 passed, 0 failed**.
+- Eight seeded conformance property/sequence tests are listed as passed in the Node job.
+- Standard real Chromium editor E2E: passed.
+- GIF export browser ImageDecoder checks: passed (two decoded RGBA frame rasters).
+- MCP E2E: passed.
+- Both CI jobs concluded `success`.
 
-- Node project job: `node --test tests/*.test.js` — **71 passed, 0 failed**.
-- The same Node job completed `node --check agent-bridge/server.mjs` successfully.
-- Browser setup: `npm install --ignore-scripts` — passed.
-- Chromium setup: `npx playwright install --with-deps chromium` — passed.
-- Real browser editor E2E: `npm run test:e2e` — passed. Log confirms mouse drawing, undo/redo, agent batch, layers, custom canvas, animation playback, onion skin, PNG, IndexedDB library and reload recovery.
-- MCP client integration: `npm run test:mcp` — passed. Log confirms drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
-- Both workflow jobs concluded `success`.
+A separate local focused or single-seed rerun was not completed because direct source retrieval in the container failed at DNS resolution. Do not claim that local command ran. The five-seed default property suite did run in CI on the exact PR head.
 
-## Remaining risks / limitations
+## Outstanding AC-058 evidence / integration boundaries
 
-- This remains an isolated guard library. It is not wired into the live editor, browser Agent API or MCP bridge.
-- Toolbar Clear and image import remain unprotected until the separately assigned integration work is authorized and its shared-file locks are granted.
-- Local focused tests ran on Node 22.16.0; GitHub Actions ran on Node 24.
-- No application integration or user-facing bug fix is claimed.
+- The custom safety page in PR #40 is not invoked by the current shared workflow. Local headless Chromium hung even on a minimal data page. Standard editor E2E is not evidence that the dedicated safety page ran.
+- Toolbar Clear and asynchronous image import remain unguarded in the live editor until an integration owner receives explicit shared-file locks.
+- No edits were made to `index.html`, project model/storage, Agent API, bridge or shared workflow.
+- Current board prioritizes production UI integration; Agent 6 has no production UI lock. Continue only with owned tests/docs/modules until coordinator grants one.
+- PR stack may be stale against the latest main. Check PR heads/bases and run exact-head CI after any future sync.
 
-## Handoff
+## Ranked next actions
 
-Coordinator: review PR #14 and accept or return the corrected AC-015 deliverable. Agent 6 does not merge, self-accept or mark the task DONE.
+1. Reconcile PR #14 and the dependent PR #23/#26/#40/#48/#49/#62 branches with the latest main/assignment state using non-force merges; preserve each PR's narrow file set.
+2. Rerun full Node, Chromium editor E2E and MCP CI on every updated PR head; update PR descriptions with exact evidence.
+3. Arrange a working headless Chromium environment for `node tests/layer-safety.browser.mjs`; keep PR #40 draft until the dedicated page itself passes.
+4. Ask the coordinator for a named integration lock if live Clear/image-import/Agent API wiring is needed; do not edit shared files without it.
+5. Wait for coordinator review of PR #62 and earlier stacked parents; do not self-merge, self-accept or mark DONE.
 
 - **Last updated:** 2026-11-14.
