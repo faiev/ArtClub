@@ -202,6 +202,26 @@ input[type=color]{width:40px;height:36px}
 .selection-tools .small-button{min-width:0;padding:7px 4px;font-size:9px}
 .selection-status{margin-top:7px;font:9px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:#839087}
 .selection-status.active{color:#526b54}
+.timeline-area{margin-top:16px;padding:13px 0 0;border-top:1px solid var(--line)}
+.timeline-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.timeline-heading{display:flex;align-items:baseline;gap:9px}
+.timeline-heading strong{font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.timeline-heading span{font:9px ui-monospace,monospace;color:#849087}
+.timeline-actions{display:flex;gap:5px;align-items:center}
+.timeline-actions .small-button{min-height:29px;padding:6px 9px;font-size:9px}
+.frame-list{display:flex;gap:7px;overflow-x:auto;padding:3px 2px 8px;scrollbar-width:thin}
+.frame-card{flex:0 0 152px;min-width:0;padding:8px;border:1px solid #e3e8df;border-radius:10px;background:#fbfcf8;display:grid;gap:7px}
+.frame-card.active{border-color:#b6c98e;background:#f0f5e5;box-shadow:inset 0 0 0 1px rgba(216,240,111,.22)}
+.frame-select{display:flex;align-items:center;gap:8px;min-width:0;width:100%;border:0;background:transparent;text-align:left;padding:3px;color:#33413b}
+.frame-number{width:25px;height:25px;flex:0 0 25px;display:grid;place-items:center;background:#e9ede4;border-radius:6px;font:10px ui-monospace,monospace}
+.frame-card.active .frame-number{background:var(--lime);color:#202c30}
+.frame-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:700}
+.frame-meta{display:flex;align-items:center;justify-content:space-between;gap:7px}
+.frame-duration-wrap{display:flex;align-items:center;gap:4px;font:9px ui-monospace,monospace;color:#77837b}
+.frame-duration{width:48px;min-width:0;padding:4px 5px;border:1px solid #dfe5da;border-radius:5px;background:#fffefa;color:#33413b;font:10px ui-monospace,monospace}
+.frame-move{display:flex;gap:3px}
+.frame-move .layer-mini-button{width:23px;height:23px;font-size:10px}
+.frame-empty{flex:1 0 100%;padding:14px;border:1px dashed #dfe5da;border-radius:8px;text-align:center;color:#88928c;font-size:10px}
 .pixel-cell.selection-top{border-top:1px dashed var(--coral)}
 .pixel-cell.selection-right{border-right:1px dashed var(--coral)}
 .pixel-cell.selection-bottom{border-bottom:1px dashed var(--coral)}
@@ -305,6 +325,17 @@ input[type=color]{width:40px;height:36px}
       <div id="pixelGrid" class="pixel-grid" role="grid" aria-label="Pixel art canvas"></div>
     </div>
     <div class="canvas-caption"><span>GRID <strong id="gridCaption">24 × 24</strong> · <strong id="fillCaption">—</strong> filled</span><span id="activeToolCaption">BRUSH TOOL</span></div>
+    <section class="timeline-area" id="timelineArea">
+      <div class="timeline-head">
+        <div class="timeline-heading"><strong>Timeline</strong><span id="frameCount">1 FRAME</span></div>
+        <div class="timeline-actions">
+          <button class="small-button" id="addFrameBtn" type="button">＋ Frame</button>
+          <button class="small-button" id="duplicateFrameBtn" type="button">Duplicate</button>
+          <button class="small-button" id="deleteFrameBtn" type="button">Delete</button>
+        </div>
+      </div>
+      <div class="frame-list" id="frameList" aria-label="Animation frames"></div>
+    </section>
   </section>
 
   <aside class="panel inspector">
@@ -787,6 +818,139 @@ function renderPalette(){
   $("paletteGrid").replaceChildren(frag);
   $("colorCount").textContent=palette.length+" COLORS";
 }
+function renderTimeline(){
+  const list=$("frameList"),fragment=document.createDocumentFragment();
+  $("frameCount").textContent=projectDoc.frames.length+" FRAME"+(projectDoc.frames.length===1?"":"S");
+  projectDoc.frames.forEach((frame,index)=>{
+    const card=document.createElement("div");
+    card.className="frame-card"+(frame.id===projectDoc.activeFrameId?" active":"");
+    const select=document.createElement("button");
+    select.type="button";select.className="frame-select";
+    const number=document.createElement("span");number.className="frame-number";number.textContent=String(index+1).padStart(2,"0");
+    const name=document.createElement("span");name.className="frame-name";name.textContent=frame.name;
+    select.append(number,name);
+    select.title="Select frame; double-click to rename";
+    select.addEventListener("click",()=>selectFrame(frame.id));
+    select.addEventListener("dblclick",()=>renameFrame(frame.id));
+    const meta=document.createElement("div");meta.className="frame-meta";
+    const durationWrap=document.createElement("label");durationWrap.className="frame-duration-wrap";
+    durationWrap.textContent="MS";
+    const duration=document.createElement("input");duration.type="number";duration.className="frame-duration";
+    duration.min="10";duration.max="60000";duration.step="10";duration.value=String(frame.durationMs);
+    duration.setAttribute("aria-label","Frame "+(index+1)+" duration in milliseconds");
+    duration.addEventListener("change",()=>{
+      const value=Number(duration.value);
+      try{setFrameDuration(frame.id,value)}catch(error){toast(error.message);renderTimeline()}
+    });
+    durationWrap.appendChild(duration);
+    const move=document.createElement("div");move.className="frame-move";
+    const makeMove=(label,title,direction,disabled)=>{
+      const button=document.createElement("button");button.type="button";button.className="layer-mini-button";
+      button.textContent=label;button.title=title;button.disabled=disabled;
+      button.addEventListener("click",()=>moveFrame(frame.id,direction));return button;
+    };
+    move.appendChild(makeMove("←","Move frame earlier","up",index===0));
+    move.appendChild(makeMove("→","Move frame later","down",index===projectDoc.frames.length-1));
+    meta.append(durationWrap,move);
+    card.append(select,meta);fragment.appendChild(card);
+  });
+  list.replaceChildren(fragment);
+  $("duplicateFrameBtn").disabled=projectDoc.frames.length>=ProjectModel.LIMITS.maxFrames;
+  $("addFrameBtn").disabled=projectDoc.frames.length>=ProjectModel.LIMITS.maxFrames;
+  $("deleteFrameBtn").disabled=projectDoc.frames.length<=1;
+}
+function selectFrame(frameId){
+  if(drawing){toast("Finish the current stroke before switching frames.");return}
+  const frame=ProjectModel.getFrame(projectDoc,frameId);if(!frame||frame.id===projectDoc.activeFrameId)return;
+  remember();
+  projectDoc.activeFrameId=frame.id;
+  const cel=ProjectModel.ensureCel(projectDoc,projectDoc.activeLayerId,frame.id);
+  pixels=cel.pixels.slice();
+  selection=null;selectionPreview=null;selectionDragMode=null;
+  renderAll();scheduleSave();
+}
+function addFrame(name,durationMs){
+  if(drawing){toast("Finish the current stroke before adding a frame.");return}
+  if(projectDoc.frames.length>=ProjectModel.LIMITS.maxFrames)throw new Error("This project has reached the 256-frame limit.");
+  const current=ProjectModel.getFrame(projectDoc);
+  const safeDuration=durationMs===undefined?current.durationMs:durationMs;
+  if(!Number.isInteger(safeDuration)||safeDuration<10||safeDuration>60000)throw new Error("Frame duration must be between 10 and 60000 milliseconds.");
+  if(name!==undefined&&(typeof name!=="string"||!name.trim()||name.length>60))throw new Error("Frame name must contain 1–60 characters.");
+  remember();
+  const frame=ProjectModel.makeFrame(name||("Frame "+(projectDoc.frames.length+1)),safeDuration);
+  const index=projectDoc.frames.findIndex(item=>item.id===projectDoc.activeFrameId);
+  projectDoc.frames.splice(index+1,0,frame);
+  projectDoc.activeFrameId=frame.id;
+  const cel=ProjectModel.ensureCel(projectDoc,projectDoc.activeLayerId,frame.id);
+  pixels=cel.pixels.slice();
+  selection=null;selectionPreview=null;selectionDragMode=null;
+  renderAll();scheduleSave();toast("Blank frame added.");
+  return getAgentStatus();
+}
+function duplicateFrame(frameId,name){
+  if(drawing)throw new Error("Finish the current stroke before duplicating a frame.");
+  if(projectDoc.frames.length>=ProjectModel.LIMITS.maxFrames)throw new Error("This project has reached the 256-frame limit.");
+  const source=ProjectModel.getFrame(projectDoc,frameId);if(!source)throw new Error("Frame not found.");
+  if(name!==undefined&&(typeof name!=="string"||!name.trim()||name.length>60))throw new Error("Frame name must contain 1–60 characters.");
+  remember();
+  const copy=ProjectModel.makeFrame(name||((source.name+" copy").slice(0,60)),source.durationMs);
+  const index=projectDoc.frames.findIndex(item=>item.id===source.id);
+  projectDoc.frames.splice(index+1,0,copy);
+  projectDoc.layers.forEach(layer=>{
+    const original=ProjectModel.ensureCel(projectDoc,layer.id,source.id);
+    const cel=ProjectModel.ensureCel(projectDoc,layer.id,copy.id);
+    cel.pixels=original.pixels.slice();
+  });
+  projectDoc.activeFrameId=copy.id;
+  pixels=ProjectModel.ensureCel(projectDoc,projectDoc.activeLayerId,copy.id).pixels.slice();
+  selection=null;selectionPreview=null;selectionDragMode=null;
+  renderAll();scheduleSave();toast("Frame duplicated.");
+  return getAgentStatus();
+}
+function deleteFrame(frameId,skipConfirmation){
+  if(projectDoc.frames.length<=1)throw new Error("A project must retain at least one frame.");
+  if(drawing)throw new Error("Finish the current stroke before deleting a frame.");
+  const index=projectDoc.frames.findIndex(item=>item.id===(frameId||projectDoc.activeFrameId));
+  if(index<0)throw new Error("Frame not found.");
+  const frame=projectDoc.frames[index];
+  if(!skipConfirmation&&!confirm("Delete "+frame.name+"? This can be undone."))return getAgentStatus();
+  remember();
+  projectDoc.frames=projectDoc.frames.filter(item=>item.id!==frame.id);
+  projectDoc.cels=projectDoc.cels.filter(cel=>cel.frameId!==frame.id);
+  if(projectDoc.activeFrameId===frame.id){
+    const next=projectDoc.frames[Math.min(index,projectDoc.frames.length-1)];
+    projectDoc.activeFrameId=next.id;
+    pixels=ProjectModel.ensureCel(projectDoc,projectDoc.activeLayerId,next.id).pixels.slice();
+  }
+  selection=null;selectionPreview=null;selectionDragMode=null;
+  renderAll();scheduleSave();toast("Frame deleted.");
+  return getAgentStatus();
+}
+function moveFrame(frameId,direction){
+  const index=projectDoc.frames.findIndex(frame=>frame.id===frameId);
+  const delta=direction==="up"?-1:direction==="down"?1:0;
+  const target=index+delta;
+  if(index<0||!delta||target<0||target>=projectDoc.frames.length)return;
+  remember();
+  const [frame]=projectDoc.frames.splice(index,1);
+  projectDoc.frames.splice(target,0,frame);
+  renderTimeline();scheduleSave();
+}
+function setFrameDuration(frameId,durationMs){
+  const frame=ProjectModel.getFrame(projectDoc,frameId);
+  if(!frame)throw new Error("Frame not found.");
+  if(!Number.isInteger(durationMs)||durationMs<10||durationMs>60000)throw new Error("Frame duration must be between 10 and 60000 milliseconds.");
+  if(frame.durationMs===durationMs)return;
+  remember();frame.durationMs=durationMs;renderTimeline();scheduleSave();
+}
+function renameFrame(frameId,providedName){
+  const frame=ProjectModel.getFrame(projectDoc,frameId);if(!frame)return;
+  const next=providedName===undefined?prompt("Frame name",frame.name):providedName;
+  if(next===null)return;
+  const name=typeof next==="string"?next.trim().slice(0,60):"";
+  if(!name){if(providedName!==undefined)throw new Error("Frame name cannot be empty.");toast("Frame name cannot be empty.");return}
+  remember();frame.name=name;renderTimeline();scheduleSave();
+}
 function renderLayers(){
   const list=$("layerList"),fragment=document.createDocumentFragment();
   const layers=projectDoc.layers;
@@ -905,7 +1069,7 @@ function renderStats(){
   $("usedColorStat").textContent=used.size;
   $("fillCaption").textContent=painted.length.toLocaleString();
 }
-function renderAll(){renderGrid();renderPalette();renderLayers();renderStats();renderSelectionTools();updateHistoryButtons();setTool(tool);applyZoom()}
+function renderAll(){renderGrid();renderPalette();renderLayers();renderTimeline();renderStats();renderSelectionTools();updateHistoryButtons();setTool(tool);applyZoom()}
 function syncDimensionSelect(){
   const value=w+"x"+h;
   const known=["16x16","24x24","32x32","32x48","48x32","48x48","64x64"];
@@ -1534,6 +1698,9 @@ $("selectionFlipHBtn").addEventListener("click",()=>{try{transformSelection("fli
 $("selectionFlipVBtn").addEventListener("click",()=>{try{transformSelection("flip_v")}catch(error){toast(error.message)}});
 $("selectionRotateBtn").addEventListener("click",()=>{try{transformSelection("rotate_cw")}catch(error){toast(error.message)}});
 $("addLayerBtn").addEventListener("click",addLayer);
+$("addFrameBtn").addEventListener("click",()=>{try{addFrame()}catch(error){toast(error.message)}});
+$("duplicateFrameBtn").addEventListener("click",()=>{try{duplicateFrame()}catch(error){toast(error.message)}});
+$("deleteFrameBtn").addEventListener("click",()=>{try{deleteFrame()}catch(error){toast(error.message)}});
 $("duplicateLayerBtn").addEventListener("click",duplicateLayer);
 $("deleteLayerBtn").addEventListener("click",deleteLayer);
 $("projectName").addEventListener("input",e=>{
