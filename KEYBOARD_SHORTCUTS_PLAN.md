@@ -3,7 +3,7 @@
 **Task:** AC-026 — Keyboard shortcut and command-discoverability specification  
 **Owner:** Agent 5 — UX / Product  
 **Branch:** `agent/keyboard-shortcuts-plan`  
-**Base:** `6b86caf07d64f29b172def368f0fe5439354a0fd`  
+**Synchronized main:** `56932bb16601ab5f5fd22c1d37bb877b8c06ab3f`  
 **Status:** Specification only; no application implementation is included.
 
 ---
