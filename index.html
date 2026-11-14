@@ -317,6 +317,7 @@ input[type=color]{width:40px;height:36px}
 
 <script src="./js/project-model.js"></script>
 <script src="./js/project-storage.js"></script>
+<script src="./js/agent-api.js"></script>
 <script>
 (function(){
 "use strict";
@@ -338,6 +339,7 @@ let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,sav
 let projectDoc=null;
 let projectStorage=null;
 let activeProjectId=null;
+let documentRevision=0;
 const grid=$("pixelGrid");
 
 function blank(size){return Array(size*size).fill(null)}
@@ -526,6 +528,7 @@ async function persistNow(){
   }
 }
 function scheduleSave(){
+  documentRevision+=1;
   $("saveState").textContent="SAVING LOCALLY…";
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
@@ -567,6 +570,153 @@ function drawRectangle(x0,y0,x1,y1,c){
   for(let x=minX;x<=maxX;x++){paint(minY*w+x,c);paint(maxY*w+x,c)}
   for(let y=minY;y<=maxY;y++){paint(y*w+minX,c);paint(y*w+maxX,c)}
 }
+
+function agentColor(value){
+  if(typeof value!=="string"||!/^#[0-9a-fA-F]{6}$/.test(value))throw new Error("Agent colors must use #RRGGBB hex format.");
+  return value.toLowerCase();
+}
+function agentCoordinate(value,max,label){
+  if(!Number.isInteger(value)||value<0||value>=max)throw new Error(label+" must be an integer from 0 to "+(max-1)+".");
+  return value;
+}
+function validateAgentCommands(commands){
+  if(!Array.isArray(commands)||commands.length<1)throw new Error("Provide at least one drawing command.");
+  if(commands.length>1000)throw new Error("A single agent batch is limited to 1,000 commands.");
+  return commands.map((command,index)=>{
+    if(!command||typeof command!=="object"||Array.isArray(command))throw new Error("Command "+index+" must be an object.");
+    const type=command.type;
+    const result={type};
+    const point=(key,max,label)=>{result[key]=agentCoordinate(command[key],max,"Command "+index+" "+label)};
+    const color=()=>{if(command.color!==undefined)result.color=agentColor(command.color)};
+    if(type==="draw_pixel"||type==="erase_pixel"||type==="fill"){
+      point("x",w,"x");point("y",h,"y");color();
+    }else if(type==="draw_line"){
+      point("x1",w,"x1");point("y1",h,"y1");point("x2",w,"x2");point("y2",h,"y2");color();
+    }else if(type==="draw_rectangle"||type==="erase_rectangle"){
+      point("x1",w,"x1");point("y1",h,"y1");point("x2",w,"x2");point("y2",h,"y2");color();
+      if(type==="draw_rectangle")result.filled=command.filled===true;
+    }else if(type==="clear_canvas"){
+      // No additional properties are required.
+    }else if(type==="set_color"){
+      result.color=agentColor(command.color);
+    }else{
+      throw new Error("Unsupported agent command: "+String(type));
+    }
+    return result;
+  });
+}
+function executeAgentCommands(commands,options){
+  options=options||{};
+  if(options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
+    throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
+  }
+  const validated=validateAgentCommands(commands);
+  const before=snapshot();
+  const oldUndo=undoStack.slice(),oldRedo=redoStack.slice();
+  remember();
+  try{
+    for(const command of validated){
+      const color=command.color||palette[selected];
+      if(command.type==="draw_pixel")paint(command.y*w+command.x,color);
+      else if(command.type==="erase_pixel")paint(command.y*w+command.x,null);
+      else if(command.type==="fill")floodFill(command.y*w+command.x,color);
+      else if(command.type==="draw_line")line(command.x1,command.y1,command.x2,command.y2,color);
+      else if(command.type==="draw_rectangle"){
+        if(command.filled){
+          const minX=Math.min(command.x1,command.x2),maxX=Math.max(command.x1,command.x2);
+          const minY=Math.min(command.y1,command.y2),maxY=Math.max(command.y1,command.y2);
+          for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)paint(y*w+x,color);
+        }else drawRectangle(command.x1,command.y1,command.x2,command.y2,color);
+      }else if(command.type==="erase_rectangle"){
+        const minX=Math.min(command.x1,command.x2),maxX=Math.max(command.x1,command.x2);
+        const minY=Math.min(command.y1,command.y2),maxY=Math.max(command.y1,command.y2);
+        for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)paint(y*w+x,null);
+      }else if(command.type==="clear_canvas"){
+        pixels=Array(w*h).fill(null);
+      }else if(command.type==="set_color"){
+        const index=palette.indexOf(command.color);
+        if(index>=0)selected=index;
+        else{
+          if(palette.length>=ProjectModel.LIMITS.maxPaletteColors)throw new Error("The palette is full. Remove a color before adding another.");
+          palette.push(command.color);selected=palette.length-1;
+        }
+      }
+    }
+  }catch(error){
+    undoStack.length=0;undoStack.push(...oldUndo);
+    redoStack.length=0;redoStack.push(...oldRedo);
+    loadProjectIntoEditor(before,false);
+    updateHistoryButtons();
+    throw error;
+  }
+  let changedPixels=0;
+  for(let i=0;i<pixels.length;i++)if(pixels[i]!==before.cels.find(c=>c.layerId===before.activeLayerId&&c.frameId===before.activeFrameId).pixels[i])changedPixels++;
+  renderGrid();renderPalette();renderStats();syncColorUI();updateHistoryButtons();scheduleSave();
+  return {
+    ok:true,
+    revision:documentRevision,
+    commands_applied:validated.length,
+    changed_pixels:changedPixels,
+    project_id:activeProjectId,
+    label:typeof options.label==="string"?options.label.slice(0,80):"Agent edit"
+  };
+}
+function getAgentStatus(){
+  const layer=ProjectModel.getLayer(projectDoc),frame=ProjectModel.getFrame(projectDoc);
+  return {
+    protocol:"one-pixel-studio-agent",
+    protocol_version:window.ArtClubAgentAPI.PROTOCOL_VERSION,
+    project_id:projectDoc.id,
+    project_name:projectName,
+    canvas:{width:w,height:h,origin:"top-left",x_axis:"right",y_axis:"down",coordinate_unit:"one grid cell"},
+    active_layer:layer?{id:layer.id,name:layer.name,visible:layer.visible,locked:layer.locked}:null,
+    active_frame:frame?{id:frame.id,name:frame.name,duration_ms:frame.durationMs}:null,
+    selected_color:palette[selected]||null,
+    palette:palette.slice(),
+    revision:documentRevision,
+    history:{can_undo:undoStack.length>0,can_redo:redoStack.length>0},
+    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project"]
+  };
+}
+function getAgentCanvas(options){
+  options=options||{};
+  const data=pixels.slice();
+  const response={
+    width:w,height:h,origin:"top-left",format:"row-major",
+    active_layer_id:projectDoc.activeLayerId,active_frame_id:projectDoc.activeFrameId,
+    revision:documentRevision
+  };
+  if(options.include_pixels!==false)response.pixels=data;
+  return response;
+}
+function getAgentPixel(coordinates){
+  const x=agentCoordinate(coordinates.x,w,"x"),y=agentCoordinate(coordinates.y,h,"y");
+  return {x,y,color:pixels[y*w+x],revision:documentRevision};
+}
+async function importAgentProject(payload){
+  const source=payload&&payload.project_json!==undefined?payload.project_json:(payload&&payload.project!==undefined?payload.project:payload);
+  const imported=ProjectModel.deserializeProject(source);
+  await persistNow();
+  loadProjectIntoEditor(imported);
+  const saved=await persistNow();
+  if(!saved)throw new Error("The project was imported, but it could not be saved locally. Export it as JSON.");
+  return getAgentStatus();
+}
+function installAgentAPI(){
+  if(!window.ArtClubAgentAPI)throw new Error("Agent API module failed to load.");
+  window.onePixelStudio=window.ArtClubAgentAPI.create({
+    getStatus:getAgentStatus,
+    getCanvas:getAgentCanvas,
+    getPixel:getAgentPixel,
+    execute:executeAgentCommands,
+    undo:function(){undo();return getAgentStatus()},
+    redo:function(){redo();return getAgentStatus()},
+    save:async function(){const saved=await persistNow();return {ok:saved,status:$("saveState").textContent,project_id:activeProjectId}},
+    exportProject:function(){return ProjectModel.serializeProject(snapshot())},
+    importProject:importAgentProject
+  });
+}
+
 grid.addEventListener("pointerdown",e=>{
   const p=getCell(e);if(!p)return;
   e.preventDefault();
@@ -813,7 +963,7 @@ async function init(){
     scheduleSave();
   }
 }
-window.OnePixelStudioReady = init();
+window.OnePixelStudioReady = init().then(()=>{installAgentAPI();return window.onePixelStudio;});
 
 async function renderProjectLibrary(){
   const list=$("projectList"),count=$("projectCount");
