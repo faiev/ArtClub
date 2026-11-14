@@ -135,6 +135,7 @@ async function run() {
     await page.evaluate(id => window.onePixelStudio.open_project({ project_id: id }), firstProjectId);
     const reopenedStatus = await page.evaluate(() => window.onePixelStudio.get_status());
     assert.equal(reopenedStatus.project_id, firstProjectId);
+    const firstFrameId = reopenedStatus.active_frame.id;
     const reopenedPixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }));
     assert.equal(reopenedPixel.color, "#ff0000", "opening a saved project should preserve agent artwork");
 
@@ -225,12 +226,35 @@ async function run() {
     const afterReload = await page.evaluate(() => window.onePixelStudio.get_status());
     assert.equal(afterReload.project_id, firstProjectId, "refresh should restore the active project");
     assert.equal(afterReload.layers.length, 2, "refresh should preserve the layer stack");
-    const afterReloadPixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }));
-    assert.equal(afterReloadPixel.color, "#ff0000", "refresh should preserve saved pixels");
+    assert.equal(afterReload.frames.length, 3, "refresh should preserve all animation frames");
+    assert.equal(afterReload.active_frame.id, frameTwoId, "refresh should restore the selected editing frame");
+
+    // Pixels belong to a layer/frame cel. The original red pixel and the
+    // layer-composite pixel were drawn on frame one, so select that frame
+    // before checking them after reload.
+    await page.evaluate(id => window.onePixelStudio.select_frame({ frame_id: id }), firstFrameId);
+    const firstFramePixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }));
+    assert.equal(firstFramePixel.color, "#ff0000", "refresh should preserve saved pixels on the original frame");
     const persistedLayerPixel = await page.evaluate(() =>
       window.onePixelStudio.get_pixel({ x: 2, y: 2 })
     );
-    assert.equal(persistedLayerPixel.color, "#ff8800", "refresh should preserve the visible layer composite");
+    assert.equal(persistedLayerPixel.color, "#ff8800", "refresh should preserve the visible layer composite on the original frame");
+    const firstAnimationPixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 10, y: 10 })
+    );
+    assert.equal(firstAnimationPixel.color, "#aa1100", "refresh should preserve frame one's cel");
+
+    await page.evaluate(id => window.onePixelStudio.select_frame({ frame_id: id }), frameTwoId);
+    const secondAnimationPixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 11, y: 11 })
+    );
+    assert.equal(secondAnimationPixel.color, "#00bb00", "refresh should preserve frame two's cel");
+
+    await page.evaluate(id => window.onePixelStudio.select_frame({ frame_id: id }), frameThreeId);
+    const thirdAnimationPixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 12, y: 12 })
+    );
+    assert.equal(thirdAnimationPixel.color, "#0000cc", "refresh should preserve frame three's cel");
 
     assert.deepEqual(pageErrors, [], "the app should not throw browser runtime errors");
     console.log("Browser E2E passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, real animation playback, onion skin, PNG, IndexedDB library and reload recovery.");
