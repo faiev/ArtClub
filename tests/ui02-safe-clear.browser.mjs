@@ -68,7 +68,7 @@ async function run() {
 
     const initial = await page.evaluate(() => window.onePixelStudio.get_status());
     const baseLayerId = initial.active_layer.id;
-    await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 23, y: 23, color: "#123456" }));
+    await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 0, y: 0, color: "#ff0000" }));
     const overlay = await page.evaluate(() => window.onePixelStudio.add_layer({ name: "Preserved overlay" }));
     const overlayLayerId = overlay.active_layer.id;
     await page.evaluate(() => window.onePixelStudio.draw_pixel({ x: 1, y: 1, color: "#00ff00" }));
@@ -80,7 +80,7 @@ async function run() {
       button.addEventListener("click", () => { window.__clearClickCount += 1; }, true);
     });
     await page.locator("#clearBtn").click();
-    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 23, y: 23 }).color === null);
+    await page.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === null);
     assert.equal((await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }))).color, null);
     assert.match(confirmationMessage, /active layer for this frame/i);
     assert.match(confirmationMessage, /Other layers and frames will be preserved/i);
@@ -163,10 +163,10 @@ async function run() {
     });
     await racePage.goto(url, { waitUntil: "domcontentloaded" });
     await racePage.waitForFunction(() => Boolean(window.onePixelStudio && window.__safeClearSaveProbe), null, { timeout: 30000 });
-    await racePage.evaluate(() => window.onePixelStudio.draw_pixel({ x: 0, y: 0, color: "#ff0000" }));
+    await racePage.evaluate(() => window.onePixelStudio.draw_pixel({ x: 23, y: 23, color: "#123456" }));
     await racePage.waitForFunction(() => window.__safeClearSaveProbe.active === 1, null, { timeout: 5000 });
     await racePage.locator("#clearBtn").click();
-    await racePage.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === null, null, { timeout: 10000 });
+    await racePage.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 23, y: 23 }).color === null, null, { timeout: 10000 });
     await racePage.waitForFunction(() => window.__safeClearSaveProbe.snapshots.length >= 2 && window.__safeClearSaveProbe.active === 0, null, { timeout: 10000 });
     const saveProbe = await racePage.evaluate(() => {
       const probe = window.__safeClearSaveProbe;
