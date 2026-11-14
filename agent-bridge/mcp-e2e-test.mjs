@@ -78,7 +78,16 @@ async function run() {
       "artclub_get_pixel",
       "artclub_export_png",
       "artclub_save",
-      "artclub_list_projects"
+      "artclub_list_projects",
+      "artclub_list_layers",
+      "artclub_add_layer",
+      "artclub_select_layer",
+      "artclub_set_layer_visibility",
+      "artclub_set_layer_locked",
+      "artclub_rename_layer",
+      "artclub_move_layer",
+      "artclub_duplicate_layer",
+      "artclub_delete_layer"
     ]) {
       assert.ok(names.has(required), "MCP server should register " + required);
     }
@@ -122,6 +131,70 @@ async function run() {
     });
     assert.equal(ellipseCenter.structuredContent.color, "#33aa77");
 
+    const baseLayerId = statusResult.structuredContent.active_layer.id;
+    const addLayerResult = await client.callTool({
+      name: "artclub_add_layer",
+      arguments: { name: "MCP Details", expected_revision: drawResult.structuredContent.revision }
+    });
+    assert.notEqual(addLayerResult.isError, true);
+    const topLayerId = addLayerResult.structuredContent.active_layer.id;
+    assert.notEqual(topLayerId, baseLayerId);
+
+    const lowerSelect = await client.callTool({
+      name: "artclub_select_layer",
+      arguments: { layer_id: baseLayerId }
+    });
+    assert.notEqual(lowerSelect.isError, true);
+    const lowerDraw = await client.callTool({
+      name: "artclub_draw_pixel",
+      arguments: { x: 6, y: 7, color: "#224466" }
+    });
+    assert.notEqual(lowerDraw.isError, true);
+    const stillCovered = await client.callTool({
+      name: "artclub_get_pixel",
+      arguments: { x: 6, y: 7 }
+    });
+    assert.equal(stillCovered.structuredContent.color, "#12abef", "top layer should cover lower-layer pixel");
+
+    const hideTop = await client.callTool({
+      name: "artclub_set_layer_visibility",
+      arguments: { layer_id: topLayerId, visible: false }
+    });
+    assert.notEqual(hideTop.isError, true);
+    const revealed = await client.callTool({
+      name: "artclub_get_pixel",
+      arguments: { x: 6, y: 7 }
+    });
+    assert.equal(revealed.structuredContent.color, "#224466", "hiding top layer should reveal lower pixel");
+
+    await client.callTool({
+      name: "artclub_set_layer_visibility",
+      arguments: { layer_id: topLayerId, visible: true }
+    });
+    await client.callTool({
+      name: "artclub_select_layer",
+      arguments: { layer_id: topLayerId }
+    });
+    await client.callTool({
+      name: "artclub_set_layer_locked",
+      arguments: { layer_id: topLayerId, locked: true }
+    });
+    const lockedDraw = await client.callTool({
+      name: "artclub_draw_pixel",
+      arguments: { x: 8, y: 8, color: "#ff00ff" }
+    });
+    assert.equal(lockedDraw.isError, true, "locked layers must reject drawing");
+    await client.callTool({
+      name: "artclub_set_layer_locked",
+      arguments: { layer_id: topLayerId, locked: false }
+    });
+    await client.callTool({
+      name: "artclub_rename_layer",
+      arguments: { layer_id: topLayerId, name: "MCP Highlights" }
+    });
+    const layerList = await client.callTool({ name: "artclub_list_layers", arguments: {} });
+    assert.ok(layerList.content[0].text.includes("MCP Highlights"));
+
     const pngResult = await client.callTool({
       name: "artclub_export_png",
       arguments: {}
@@ -149,7 +222,7 @@ async function run() {
     });
     assert.equal(invalidResult.isError, true, "invalid coordinates should be rejected");
 
-    console.log("MCP E2E passed: handshake, tool discovery, drawing, pixel readback, PNG image, save and input validation.");
+    console.log("MCP E2E passed: handshake, drawing, pixel readback, layer management, PNG preview, save and input validation.");
   } finally {
     await client.close().catch(() => {});
     await new Promise(resolve => staticServer.close(resolve));
