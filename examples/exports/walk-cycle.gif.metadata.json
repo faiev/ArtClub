@@ -12,7 +12,7 @@
   "diagnostics": {
     "sampleBinary": "Pillow-generated format illustration; not byte-for-byte output from js/gif-export.js",
     "paletteMode": "exact source colors in this sample",
-    "opaquePaletteColors": 5,
+    "opaquePaletteColors": 4,
     "globalColorTableEntries": 256,
     "usesFrameLocalColorTables": true,
     "transparentIndex": 0,
