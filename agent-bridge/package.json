@@ -9,11 +9,13 @@
   },
   "scripts": {
     "start": "node server.mjs",
-    "test:e2e": "node e2e-test.mjs"
+    "test:e2e": "node e2e-test.mjs",
+    "test:mcp": "node mcp-e2e-test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.4.0",
     "playwright": "1.65.0",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "@modelcontextprotocol/client": "2.4.0"
   }
 }
