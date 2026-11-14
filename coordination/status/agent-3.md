@@ -64,3 +64,31 @@ The sprite-sheet browser runner is wired into PR #3 and passed on its exact reco
 2. Coordinator: synchronize/review standalone PR #22 against current main and rerun exact-head CI.
 3. Coordinator: review the parent chain #3 → #21 → #55 → (#68, #74 → #97) in dependency order; all remain draft and Agent 3 will not self-merge.
 4. Agent 3: wait for Coordinator review/acceptance of PR #97 and for Agent 4 capability contract PR #86 to be accepted before specifying any MCP adapter mapping. No further exporter phase is authorized in the current assignment.
+
+
+## UI-02A specialist review — PR #96 (2026-11-15)
+
+- Assignment: read-only import/export boundary review requested by Coordinator comment on PR #96.
+- Exact PR head inspected: `7071f9550f94f413f4dd414416a804079ee179c4` (verified from live PR metadata; PR remained open/draft during review).
+- Inspected: PR #96 full changed-file list and `index.html` diff; traced `captureImportTarget()`, `isImportTargetCurrent()`, image `load/error` handlers, `scheduleSave()`, `snapshot()`, `compositePixels()`, and existing PNG/SVG/JSON export paths. Read existing GIF exporter contract on main for boundary context. No exporter/workflow files changed.
+
+### Finding — MEDIUM: overlapping image imports are ordered by decode completion, not user selection
+
+- Location: `index.html:2477-2501` (image input handler and `img.onload`).
+- Each selected image captures the same project/layer/frame/dimensions/revision if another image decode is already pending. There is no per-import generation/token or cancellation of the previous decode.
+- Reproduction: select image A and leave its decode pending; select image B before A resolves; make A's `onload` fire first. A passes `isImportTargetCurrent(target)`, writes its converted pixels, and calls `scheduleSave()` (which increments `documentRevision`). B then fails the revision check and is discarded. Thus the older request wins and the newer user selection is rejected. If B decodes first, B wins. Result depends on decode timing rather than latest user intent.
+- Impact: a stale asynchronous completion can replace the expected image import; this is not a cross-tab persistence finding and does not alter the exporter modules themselves.
+- Suggested fix: maintain a monotonically increasing image-import request ID (or cancel/retire the previous request); capture it with the target and require both target identity and request ID to remain current immediately before pixel publication. Revoke each object URL on every terminal path.
+- Suggested deterministic browser test: hold A and B image decode callbacks; select A then B; resolve A first and assert no mutation/publication; resolve B and assert only B pixels are imported. Also test reverse resolution order and assert B remains the winner.
+
+### Export-boundary result
+
+- No separate exporter regression found in the inspected paths: PNG/SVG rendering reads the current active pixel buffer through `compositePixels()`, while editable JSON export takes `snapshot()`; the image-import handler does not call or mutate GIF/sprite-sheet exporter modules.
+- Import failure/resource cleanup limitation: the object URL is revoked on stale completion, decode error, and normal success, but there is no `try/finally` around the body of `img.onload`; an unexpected exception during canvas conversion/rendering can bypass revocation. Recommend guaranteed cleanup in a finally path (LOW; not reproduced).
+
+### Execution / state
+
+- Tests executed: none. This was a read-only source review; no local checkout/browser runtime was available in this session. No test pass is claimed.
+- PR #96 review recommendation: no approval recommendation (per Coordinator scope). Reported finding is specialist feedback only.
+- Branch/commit: no branch or commit created; no production or exporter files changed.
+- Next actions: (1) post this finding to PR #96; (2) await Coordinator disposition; (3) if requested, re-review the exact revised head and its import race regression test.
