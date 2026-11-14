@@ -37,6 +37,12 @@
     return COLORS.get(value);
   }
 
+  // Expose a defensive copy so callers cannot mutate the private cached channel array.
+  // Renderer hot paths keep using rgba() directly and retain the allocation-free cache hit.
+  function parseColor(color) {
+    return rgba(color).slice();
+  }
+
   function blend(first, second) {
     if (!first) return second;
     if (!second) return first;
@@ -387,5 +393,5 @@
     }
   }
 
-  return { CanvasPixelRenderer, parseColor: rgba };
+  return { CanvasPixelRenderer, parseColor };
 });
