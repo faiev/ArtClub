@@ -1,27 +1,17 @@
 # Status — Agent 7
 
-- **Task:** AC-016 — Seamless tile preview engine
-- **Status:** REVIEW
+- **Task:** AC-016 — Sync current main and rerun full CI for tiled preview
+- **Status:** IN_PROGRESS
 - **Role:** Tile workflows
 - **Branch:** `agent/tile-preview`
-- **Base:** `fe66725f7d010beca7ca60f497778d419e753d7b`
-- **Commit:** `142b4e1cc1f605ff69bc7911676266b3c0ff607e`
-- **Pull request:** https://github.com/faiev/ArtClub/pull/13 (draft, open)
-- **Files changed:**
-  - `js/tile-preview.js`
-  - `tests/tile-preview.test.js`
-  - `docs/tile-preview.md`
-- **Implementation:** Deterministic row-major repeat preview; edge-strip extraction; exact opposing-edge seam diagnostics with coordinates and values; `null` transparency; input/dimension/repeat/output-size validation; browser-global and CommonJS module.
-- **Local commands and results:**
-  - `node --check /tmp/artclub-agent7/js/tile-preview.js` — passed.
-  - `node --check /tmp/artclub-agent7/tests/tile-preview.test.js` — passed.
-  - `node --test /tmp/artclub-agent7/tests/tile-preview.test.js` — 11 passed, 0 failed.
-  - Full local repository suite not run: this environment could not resolve `raw.githubusercontent.com` when attempting to obtain the full checkout. No local browser test claimed.
-- **GitHub Actions run #110:**
-  - `test` — passed. The repository workflow's Node model/editor-interaction test command and bridge syntax check completed successfully.
-  - `browser-e2e` — failed at the existing refresh/persistence assertion in unchanged `agent-bridge/e2e-test.mjs:229`: expected `#ff0000`, received `null` ("refresh should preserve saved pixels"). The MCP integration step was skipped after that failure. This PR changes none of the bridge, persistence, or e2e files, and the new module is not wired into the application.
-- **Integration boundary:** No Canvas/DOM/UI/Agent API/persistence/export integration; preview buffer is transient and must not be saved into project cels or exports. No browser UI verification is claimed.
-- **Known limitations/risks:** Seam checks compare corresponding opposing border values and diagnose only; they do not repair seams. Preview allocations are capped by exported `LIMITS`. The repository browser-e2e failure needs coordinator/QA triage independently.
-- **Coordinator decision required:** None to review AC-016. After acceptance, AC-021 can be scheduled with an explicit UI/renderer file lock.
-- **Blockers:** None for this deliverable.
-- **Last updated:** 2026-11-14 — implementation submitted for review.
+- **Original implementation commit:** `142b4e1cc1f605ff69bc7911676266b3c0ff607e`
+- **Latest main base incorporated:** `6759e751074e16eaf328fe5a073318bcc2bc2ba6`
+- **Branch merge commit:** `d54b3e5899e57607bd61e4c13c9717dd7540318b`
+- **Pull request:** https://github.com/faiev/ArtClub/pull/13
+- **Files in feature PR:** `js/tile-preview.js`, `tests/tile-preview.test.js`, `docs/tile-preview.md`
+- **Progress:** Merged latest main into the feature branch without force-pushing. GitHub comparison showed no overlapping changes to the three owned files. Waiting for the new-head full CI run.
+- **Previous exact evidence:** Isolated tile suite 11/11 passed; prior PR CI Node job passed; previous Chromium E2E was from the stale base and failed at the old persistence refresh assertion before PR #10 was on the test base.
+- **Required current evidence:** Full Node, Chromium editor E2E and MCP workflow on merge commit `d54b3e5899e57607bd61e4c13c9717dd7540318b`.
+- **Constraints:** Keep changes to the three owned files only. No UI, renderer, Agent API, persistence or bridge edits. Do not merge PR.
+- **Blockers:** None currently.
+- **Last updated:** 2026-11-14 — merged latest main into feature branch; current-head validation underway.
