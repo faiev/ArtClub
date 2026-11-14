@@ -87,6 +87,10 @@ Restart or reload the MCP client after adding the server. The server should expo
 | `artclub_select_frame` / `artclub_delete_frame` | Switch or delete a frame |
 | `artclub_move_frame` / `artclub_set_frame_duration` | Reorder frames and set playback timing |
 | `artclub_rename_frame` | Rename a frame |
+| `artclub_play_animation` / `artclub_pause_animation` | Preview and pause a sprite sequence |
+| `artclub_stop_animation_preview` | Return to the selected editing frame |
+| `artclub_set_playback_mode` | Choose loop, once or ping-pong playback |
+| `artclub_set_onion_skin` | Toggle previous/next frame guides |
 
 ## Drawing coordinates
 
@@ -120,7 +124,7 @@ For safe collaborative work, call `artclub_get_status` before editing and pass i
 5. Correct the result with another batch.
 6. Save and export the editable project when finished.
 
-Keep batches small enough to inspect. The editor exposes multiple editable layers, rectangular selection/edit transforms and a multi-frame timeline. Agents can manage layers and frames, set selections, constrain edits, transform selected pixels and set frame timing through MCP tools. Playback, onion skin and animation exports remain future work.
+Keep batches small enough to inspect. The editor exposes multiple editable layers, rectangular selection/edit transforms and a multi-frame timeline. Agents can manage layers and frames, set selections, constrain edits, transform selected pixels and set frame timing through MCP tools. Playback, loop/once/ping-pong modes and onion skin are implemented. Sprite-sheet/GIF export and advanced onion controls remain future work.
 
 ## Privacy and permissions
 
