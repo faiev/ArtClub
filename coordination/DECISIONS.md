@@ -85,3 +85,12 @@ On 2026-11-14 the coordinator reviewed Agent 5's graphite/olive design system an
 This is **directional approval only**. PR #77 remains draft and UI-00 is not fully accepted: its branch/status metadata is stale, screenshot references are unresolved, and the reviewed prototype still has documented accessibility/tool limitations. Agent 5 remains restricted to `docs/ux/**`; no production-file authority is granted.
 
 The coordinator may proceed with narrow production UI slices that preserve existing live DOM controls, command handlers, renderer, project model and persistence. Do not port prototype-only behavior or represent unavailable commands as working controls. The first production slice is UI-01, tracked in coordinator-owned PR #84. Its exact-head browser regression and reviewer gates must pass before merge.
+
+
+## D-027 — UI-02 production safety integration takes release priority
+
+On 2026-11-15, UI-01 is confirmed merged and its merge commit's GitHub Pages deployment succeeded. The next user-visible milestone is UI-02: guarded active-cel/selection Clear, staged asynchronous image import with target revalidation, and atomic selection paste/replace, with real Chromium denial and immutability coverage.
+
+The safe-edit helper modules remain isolated until integrated. The coordinator is sole writer of index.html and production UI; Agent 1 owns QA-only paths, Agent 6 supplies safety modules/review, and Agent 5 supplies design/accessibility guidance. No project model/storage, Agent API/bridge or workflow ownership is implicitly transferred.
+
+New isolated feature expansion under AC-087–096 is paused as a team priority while UI-02 release gates are active. Existing PRs may be reconciled, exact-head tested and reviewed when parent dependencies and scope are clear. Do not self-merge or bypass exact-head CI. GitHub assignment changes do not wake inactive agent chats.
