@@ -145,6 +145,7 @@
     const done = transactionResult(tx);
     const projectModel = this.model;
     let savedRecord = null;
+    let savedToken = null;
     let receipt = null;
     let failure = null;
     let previous = null;
@@ -195,6 +196,7 @@
         const previousRecovery = recoveryRequest.result || null;
         if (previous && previous.data && sameProjectContent(projectModel, copy, previous.data)) {
           savedRecord = previous;
+          savedToken = { revision: actualRevision, commitToken: actualCommitToken };
           receipt = Object.freeze({
             projectId: copy.id,
             committedRevision: actualRevision,
@@ -208,6 +210,7 @@
         const commitToken = newCommitToken();
         record.revision = nextRevision;
         record.commitToken = commitToken;
+        savedToken = { revision: nextRevision, commitToken: commitToken };
         receipt = Object.freeze({
           projectId: copy.id,
           committedRevision: nextRevision,
@@ -242,7 +245,7 @@
     catch (error) { throw failure || error; }
     if (failure) throw failure;
     if (!savedRecord) throw new Error("The project save transaction completed without a saved record.");
-    const savedToken = revisionTokenOf(savedRecord);
+    if (!savedToken) throw new Error("The project save transaction completed without a revision token.");
     this.revisions.set(copy.id, savedToken);
     return {
       id: savedRecord.id,
