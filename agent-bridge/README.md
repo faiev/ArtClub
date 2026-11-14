@@ -78,6 +78,10 @@ Restart or reload the MCP client after adding the server. The server should expo
 | `artclub_set_layer_visibility` / `artclub_set_layer_locked` | Show/hide and protect layers |
 | `artclub_rename_layer` / `artclub_move_layer` | Rename and reorder layers |
 | `artclub_duplicate_layer` / `artclub_delete_layer` | Duplicate or remove layers |
+| `artclub_set_selection` / `artclub_select_all` | Create a marquee selection |
+| `artclub_copy_selection` / `artclub_cut_selection` / `artclub_paste_selection` | Copy, cut and paste selected pixels |
+| `artclub_move_selection` / `artclub_clear_selection` / `artclub_deselect` | Move, clear or remove the selection |
+| `artclub_transform_selection` | Flip horizontally/vertically or rotate 90° |
 
 ## Drawing coordinates
 
@@ -111,7 +115,7 @@ For safe collaborative work, call `artclub_get_status` before editing and pass i
 5. Correct the result with another batch.
 6. Save and export the editable project when finished.
 
-Keep batches small enough to inspect. The editor exposes multiple editable layers (including visibility and lock controls); animation editing remains a later milestone. Agents can manage the same layer stack through MCP tools.
+Keep batches small enough to inspect. The editor exposes multiple editable layers and rectangular selection/edit transforms. Agents can manage the same layer stack, set selections, constrain edits, and transform selected pixels through MCP tools. Animation editing remains a later milestone.
 
 ## Privacy and permissions
 
