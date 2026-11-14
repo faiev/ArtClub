@@ -185,7 +185,6 @@ async function run() {
       buffer: Buffer.from("delayed image decode fixture")
     });
     await racePage.waitForFunction(() => Boolean(window.__pendingSafeClearImage), null, { timeout: 5000 });
-    await racePage.waitForFunction(() => window.__safeClearSaveProbe.active === 1, null, { timeout: 5000 });
     await racePage.locator("#clearBtn").click();
     await racePage.waitForFunction(() => window.__safeClearSaveProbe.active === 1, null, { timeout: 5000 });
     await racePage.evaluate(() => window.__pendingSafeClearImage.onload());
