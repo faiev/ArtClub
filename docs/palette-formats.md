@@ -19,7 +19,7 @@ Parser results contain ok, palette, errors, and warnings. Failed parses return a
 ## Limits and validation
 
 - Input files are limited to 1 MiB of UTF-8 data.
-- Palettes contain 1–4096 colors. The JASC-PAL limit is a defensive application bound.
+- Palettes contain 1–4096 colors. The JASC-PAL limit is a defensive application bound. Export validation checks every array index as an own slot and rejects sparse holes and explicit `undefined` entries; malformed entries are never silently skipped.
 - GPL requires the GIMP Palette header; optional Name and Columns metadata are validated. Blank lines and hash comments are ignored.
 - JASC-PAL requires the JASC-PAL header, version 0100, a valid declared count, and exactly that many RGB rows. Trailing blank lines are allowed.
 - JSON rejects unknown top-level fields, unknown color fields, malformed color entries, unsupported versions, and invalid HEX strings.
