@@ -1,22 +1,20 @@
 # Status — Agent 5
 
-## Current assignment — AC-026: Keyboard shortcut and command-discoverability specification
+## Active workstream — UX / accessibility / interaction design
 
-- **Status:** REVIEW
-- **Branch:** `agent/keyboard-shortcuts-plan`
-- **Feature document commit:** `22f3ad53310c6fc0b1ff394898e35c7b42f21592`
-- **Latest branch sync:** will be reconciled with the final AC-026 status handoff commit before PR #20 is opened
-- **PR:** [#20 — AC-026: Specify keyboard shortcuts and command discoverability](https://github.com/faiev/ArtClub/pull/20) (open, draft; GitHub reports mergeable)
-- **Allowed deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md` only.
-- **Scope:** Documentation/specification only. No application JS, HTML, CSS, tests, command-palette or shortcut UI implementation.
-- **Coordinator source:** `main`; PR #7 is merged.
-- **Source inspection:** Current `index.html` keyboard handling at lines 1865–1894 (pixel-grid arrow/Space/Enter behavior), 2073–2092 (document keydown handler), static shortcut legend at lines 293–300. Current handler uses Ctrl OR Meta, handles Undo and Save before text-input guard, does not exclude dialogs/contenteditable, includes B/E/G/I/M tools, Mod+C/X/V/A/D, Delete/Backspace selection clear, Escape, [, ], 0 zoom. Layer/frame navigation and playback shortcuts are not currently implemented.
-- **Discoverability findings:** Static legend labels only Command glyphs, is hidden at mobile breakpoints, and omits navigation/playback. Existing `tests/editor-interactions.test.js` contains no keyboard shortcut tests; README has no shortcut reference.
-- **Deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md`, 368 lines; 13 main sections. Includes current behavior, shortcut map, Ctrl/Command policy, browser/OS reserved conflicts, focus rules, keyboard-only accessibility, responsive discoverability, acceptance-test matrix, phased order and file ownership.
-- **Validation:** Fetched the committed document back from the feature branch and verified all assignment topics/sections. PR #17 and PR #19 were closed unmerged after their changed-file lists picked up status-file updates committed to main after PR creation. PR #20 is the clean-base replacement. Application tests are not run for this documentation-only task; the specification defines implementation-level tests.
-- **Branch synchronization:** No force updates. The feature branch is synchronized with the latest main tree using a two-parent merge commit before PR #20 is opened.
-- **Blockers:** None.
-- **Next action:** Coordinator review of PR #20. No implementation or command-palette work is self-assigned.
+### Phase 2 — AC-050: Layer, frame and timeline workflow specification
+
+- **Status:** IN_PROGRESS
+- **Branch:** `agent/layer-timeline-spec` (create from latest main after this status commit)
+- **Allowed deliverable:** `docs/ux/LAYER_TIMELINE_SPEC.md`
+- **Scope:** Documentation/specification only. Do not edit `index.html`, app JS, CSS, existing tests, bridge, exporter modules or workflow. No UI lock is granted.
+- **AC-049 completed:** `docs/ux/CANVAS_WORKSPACE_SPEC.md` (359 additions) submitted in [PR #24](https://github.com/faiev/ArtClub/pull/24), open/draft/unmerged. PR head `2cde5e9bc8ad4ad3b25bd79b939880b2b43d6502`; one changed file. It may need latest-main refresh because main advanced after PR creation; no review/merge dependency for AC-050.
+- **Source inspection:** v2 project model stores ordered `layers[]`, ordered `frames[]`, and `cels[]` keyed by `layerId`/`frameId`; each layer has name/visible/locked/opacity and each frame has name/durationMs. Current UI has a separate layer list and frame-card strip. Frame cards have names/duration/reorder but no thumbnails or layer×frame cel grid. Layer controls expose select/rename/visibility/lock/reorder, but no opacity slider. The model stores opacity, but current `getCompositePixels()` checks visibility and opaque pixels without applying layer opacity.
+- **Safety dependency:** Agent 6's AC-055 contract rejects hidden, locked, zero-opacity, non-active or stale targets and rejects missing/invalid cels. AC-056 safe-edit transactions and later audit are in Agent 6's authorized queue. AC-050 will distinguish structural blank-cel creation from pixel mutation and require fail-closed edits.
+- **Export dependency:** Agent 3's AC-039 layout/metadata contract and AC-040 export planner retain stable frame IDs, durations and explicit selected frame order. The timeline's order and timing must be the export source of truth; this spec will not edit exporter files.
+- **Next queue:** (1) finish AC-050 layer/frame/cel/timeline spec; (2) AC-051 palette/export journeys; (3) AC-052 accessibility audit; (4) AC-053 static interaction prototypes; (5) AC-054 integrated UX implementation sequence.
+- **Tests:** No application tests run; this is documentation-only. Validate source claims and the required workflow/acceptance matrix before submission.
+- **Blockers:** None for documentation. Production UI and shared editor integration remain coordinator-controlled.
 - **Last updated:** 2026-11-14.
 
 ## Previous task — AC-009
