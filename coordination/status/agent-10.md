@@ -3,7 +3,7 @@
 - **Workstream:** Deterministic pixel-art algorithm library
 - **State:** IN_PROGRESS — all assigned deliverables are submitted; AC-085 parity tranche remains dependency-gated
 - **Coordination source:** `main`
-- **Main snapshot checked before this status update:** `5679e45095c13b792093da1fff3c62c641f25c8b`
+- **Main snapshot checked before this status update:** `20408f45815d0e59539c4df5b06e8672ae4d3ed6`
 - **Current ownership:** `js/pixel-*.js` pure modules, matching tests/fixtures and pixel-algorithm docs only. No UI, renderer, project-model, Agent API or shared-workflow authority.
 
 ## Phase / PR ledger
@@ -20,7 +20,7 @@
 | AC-086 algorithm catalog | `agent/pixel-catalog` | [#72](https://github.com/faiev/ArtClub/pull/72), ready for review; docs-only | `3e2f6de1c54fbfeffde2e365a82196df96bb59f8` | Not applicable — documentation only |
 | AC-096 Bézier curves | `agent/pixel-curves` | [#76](https://github.com/faiev/ArtClub/pull/76), ready for review | `f1052d6640f62a2c9adab5961a7fe678f2744323` | #43631412895 — Node + browser-e2e passed |
 
-All code PRs were non-force synchronized to `main` at `471168e3a883886b2dd8db3889ccd84bbaf8faf5` before these exact-head runs. The current main head subsequently advanced to `5679e450` with one unrelated edit to Agent 2's status file. GitHub reports all eight PRs mergeable; no Agent 10 owned application paths overlap that later status-only change. These PRs remain unmerged and are not represented as shipped.
+All code PRs were non-force synchronized to `main` at `471168e3a883886b2dd8db3889ccd84bbaf8faf5` before these exact-head runs. Since then, `main` advanced through five coordination-only commits touching status files for Agents 2, 4, 6, 7 and 10. No application, test, fixture or pixel-algorithm documentation paths changed in that delta. The PR branches are therefore behind the latest `main` and GitHub currently reports them not mergeable; the coordinator must re-evaluate final base synchronization and CI before merge. These PRs remain open and unmerged; none is represented as shipped.
 
 ## AC-019 review correction
 
@@ -30,7 +30,7 @@ All code PRs were non-force synchronized to `main` at `471168e3a883886b2dd8db388
 - Added regression tests for both cases, including caller-array immutability assertions.
 - Implementation commit: `59c14c1ac1348e6e53ea37336da390b82d88ab87`.
 - Test commit: `19ffd61a41ce11e1ab59a8e49173e47e12b0222f`.
-- Included in tested PR #15 head `fd41bce6`; workflow #43631298298 passed both required jobs. Coordinator review follow-up posted in PR #15.
+- Included in tested PR #15 head `3b8acb6f672bf4dbd62b3f10a3b838f6bb9e9c46`; workflow #43631298298 passed both required jobs. Coordinator review follow-up posted in PR #15.
 
 ## AC-085 current coverage and remaining scope
 
