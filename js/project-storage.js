@@ -58,6 +58,14 @@
     });
   }
 
+  function sameProjectContent(projectModel, left, right) {
+    const current = projectModel.cloneProject(left);
+    const previous = projectModel.cloneProject(right);
+    if (current.metadata) delete current.metadata.updatedAt;
+    if (previous.metadata) delete previous.metadata.updatedAt;
+    return JSON.stringify(current) === JSON.stringify(previous);
+  }
+
   function ProjectStorage(db, projectModel) {
     this.db = db;
     this.model = projectModel;
@@ -90,10 +98,20 @@
     const projects = tx.objectStore(PROJECTS);
     const recovery = tx.objectStore(RECOVERY);
     const done = transactionResult(tx);
+    const projectModel = this.model;
+    let savedRecord = record;
     const getPrevious = projects.get(copy.id);
     getPrevious.onsuccess = function () {
       const previous = getPrevious.result;
       if (previous && previous.data) {
+        // A save that only refreshes metadata is not a new project version.
+        // In particular, opening Project Library calls persistNow() even when
+        // the current document is already saved; rotating here would discard
+        // the useful one-step recovery copy.
+        if (sameProjectContent(projectModel, copy, previous.data)) {
+          savedRecord = previous;
+          return;
+        }
         recovery.put({
           projectId: copy.id,
           projectName: previous.name,
@@ -108,11 +126,11 @@
     };
     await done;
     return {
-      id: record.id,
-      name: record.name,
-      width: record.width,
-      height: record.height,
-      updatedAt: record.updatedAt
+      id: savedRecord.id,
+      name: savedRecord.name,
+      width: savedRecord.width,
+      height: savedRecord.height,
+      updatedAt: savedRecord.updatedAt
     };
   };
 
