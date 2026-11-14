@@ -1,0 +1,18 @@
+{
+  "app": "One Pixel Studio",
+  "version": 1,
+  "w": 2,
+  "h": 2,
+  "projectName": "Legacy fixture",
+  "palette": [
+    "#000000",
+    "#ffffff"
+  ],
+  "selected": 1,
+  "pixels": [
+    "#ffffff",
+    null,
+    null,
+    "#000000"
+  ]
+}
