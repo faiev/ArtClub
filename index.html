@@ -759,7 +759,7 @@ const PALETTE_SETS = {
   mono: ["#161b1e","#343b3e","#515a5d","#6d7779","#929b9b","#b5bcba","#d8dc d5".replaceAll(" ",""),"#f3f3ec"]
 };
 let w=24,h=24,pixels=[],palette=DEFAULT_PALETTE.slice(),selected=8,tool="brush",projectName="Untitled artwork",zoom=1;
-let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,saveTimer=null,persistInFlight=null,focusedIndex=0;
+let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,strokeBeforePixels=null,strokeTarget=null,saveTimer=null,persistInFlight=null,focusedIndex=0;
 let selection=null,selectionPreview=null,selectionDragMode=null,selectionClipboard=null;
 let isPlaying=false,playbackFrameId=null,playbackTimer=null,playbackDirection=1,playbackMode="loop",onionSkinEnabled=false;
 let projectDoc=null;
@@ -2313,7 +2313,20 @@ function installAgentAPI(){
   window.onePixelStudio=window.ArtClubAgentAPI.create(adapter);
 }
 
+async function commitCanvasStroke(nextPixels,target){
+  if(!target||!Array.isArray(nextPixels)){toast("The stroke could not be committed safely.");return false;}
+  let source;
+  try{source=createSafeEditProject();}
+  catch(error){toast(error.message||"The active edit target is unavailable.");return false;}
+  const result=window.ArtClubSafeEditOperations.replaceActiveCel(source,nextPixels,{
+    layerId:target.layerId,frameId:target.frameId
+  });
+  if(!result.ok){toast(safeEditDenialMessage(result));return false;}
+  if(result.changedPixels===0)return true;
+  return commitSafeEditResult(result,source,target,"Stroke saved.");
+}
 grid.addEventListener("pointerdown",e=>{
+  if(safeEditBusy)return;
   const p=getCell(e);if(!p)return;
   if(isPlaying){toast("Pause playback before editing the canvas.");return}
   if(playbackFrameId)resetPlayback();
@@ -2324,7 +2337,9 @@ grid.addEventListener("pointerdown",e=>{
   }
   if(!isActiveLayerEditable()){toast("The active layer is locked.");return}
   if(tool==="fill"){void fillActiveArea(p.i,palette[selected]);return}
-  remember();drawing=true;strokeStart=p;strokeLast=p;
+  drawing=true;strokeStart=p;strokeLast=p;
+  strokeBeforePixels=pixels.slice();
+  strokeTarget={revision:documentRevision,projectId:projectDoc.id,layerId:projectDoc.activeLayerId,frameId:projectDoc.activeFrameId};
   if(tool==="brush")paint(p.i,palette[selected]);
   else if(tool==="eraser")paint(p.i,null);
   else if(tool==="line"||tool==="rect"||tool==="ellipse")updateShapePreview(p);
