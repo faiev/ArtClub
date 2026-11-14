@@ -226,6 +226,15 @@ input[type=color]{width:40px;height:36px}
 .pixel-cell.selection-right{border-right:1px dashed var(--coral)}
 .pixel-cell.selection-bottom{border-bottom:1px dashed var(--coral)}
 .pixel-cell.selection-left{border-left:1px dashed var(--coral)}
+.pixel-cell{position:relative;overflow:hidden}
+.pixel-cell.onion-before::before,.pixel-cell.onion-after::after{content:"";position:absolute;inset:0;pointer-events:none}
+.pixel-cell.onion-before::before{background:#e85f64;opacity:.35}
+.pixel-cell.onion-after::after{background:#4c90d2;opacity:.35}
+.frame-card.preview{outline:1px dashed #658daf;outline-offset:2px}
+.timeline-playback{display:flex;align-items:center;gap:6px}
+.timeline-mode{width:auto;min-width:86px;min-height:29px;padding:5px 7px;font-size:9px}
+.timeline-onion{display:flex;align-items:center;gap:4px;font:9px ui-monospace,monospace;color:#69766e;white-space:nowrap}
+.timeline-onion input{accent-color:#567b84}
 @media(max-width:600px){.project-dialog-inner{padding:16px}.project-entry{align-items:flex-start;flex-direction:column}.project-entry-actions{justify-content:flex-start}.project-dialog-toolbar{align-items:flex-start;flex-direction:column}.canvas-form-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -329,6 +338,15 @@ input[type=color]{width:40px;height:36px}
       <div class="timeline-head">
         <div class="timeline-heading"><strong>Timeline</strong><span id="frameCount">1 FRAME</span></div>
         <div class="timeline-actions">
+          <div class="timeline-playback">
+            <button class="small-button primary" id="playBtn" type="button" disabled>Play</button>
+            <select class="timeline-mode" id="playbackMode" aria-label="Playback mode">
+              <option value="loop">Loop</option>
+              <option value="once">Once</option>
+              <option value="pingpong">Ping-pong</option>
+            </select>
+            <label class="timeline-onion"><input type="checkbox" id="onionToggle"> Onion</label>
+          </div>
           <button class="small-button" id="addFrameBtn" type="button">＋ Frame</button>
           <button class="small-button" id="duplicateFrameBtn" type="button">Duplicate</button>
           <button class="small-button" id="deleteFrameBtn" type="button">Delete</button>
@@ -477,6 +495,7 @@ const PALETTE_SETS = {
 let w=24,h=24,pixels=[],palette=DEFAULT_PALETTE.slice(),selected=8,tool="brush",projectName="Untitled artwork",zoom=1;
 let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,saveTimer=null,focusedIndex=0;
 let selection=null,selectionPreview=null,selectionDragMode=null,selectionClipboard=null;
+let isPlaying=false,playbackFrameId=null,playbackTimer=null,playbackDirection=1,playbackMode="loop",onionSkinEnabled=false;
 let projectDoc=null;
 let projectStorage=null;
 let activeProjectId=null;
