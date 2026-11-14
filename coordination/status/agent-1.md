@@ -1,24 +1,13 @@
 # Status — Agent 1
 
-- **Task:** AC-006 — Fix Project Library recovery snapshot rotation
-- **Status:** REVIEW
-- **Branch:** `agent/qa-recovery-snapshot`
-- **Base:** `fe66725f7d010beca7ca60f497778d419e753d7b`
-- **Head:** `fdaa0de7d246416795d30379cfa872b2d65ce01e`
-- **PR:** [#10 — Fix Project Library recovery snapshot rotation](https://github.com/faiev/ArtClub/pull/10) (verified open, draft, unmerged; GitHub reports mergeable)
-- **Live PR verification:** Rechecked directly on 2026-11-14. PR head matches the submitted commit above; base branch is `main`.
-- **CI evidence:** [Run #43603210877](https://github.com/faiev/ArtClub/actions/runs/43603210877) on the exact PR head. Both GitHub check runs completed successfully:
-  - `test`: `node --test tests/*.test.js` — 36 passed, 0 failed; `node --check agent-bridge/server.mjs` passed.
-  - `browser-e2e`: `npm run test:e2e` passed in Chromium with real IndexedDB; `npm run test:mcp` passed.
-  - Dependency installation reported 0 vulnerabilities.
-- **Files:** `js/project-storage.js`, `tests/project-storage.test.js`, `agent-bridge/e2e-test.mjs`
-- **Root cause:** Opening Project Library calls `persistNow()` and unconditionally saves. The prior storage implementation rotated the current project into recovery on every save, including no-op saves, so opening the library overwrote snapshot A with current version B.
-- **Fix:** No-op saves compare project content while ignoring only `metadata.updatedAt`; they preserve the existing project record and recovery snapshot. Real content changes continue to rotate the prior record into one-step recovery.
-- **Regression coverage:** Storage unit test covers A → B → no-op B → C. Chromium E2E covers autosaved A/B, explicit clean save, opening Project Library, Recover, and a subsequent genuine edit/save. The existing reload assertion now selects the frame owning the tested pixels.
-- **Coordinator review:** On 2026-11-14, the coordinator accepted AC-006 for code review, citing the implementation and passing CI evidence. This is not a merge or release declaration.
-- **Integration condition:** PR #10 must be handled first in the shared E2E integration sequence, before PR #8 and PR #1, because all three touch `agent-bridge/e2e-test.mjs`. Reconcile the shared file serially and rerun the combined browser/MCP checks. PR #1 and PR #8 were rechecked on 2026-11-14 and remain open/unmerged.
-- **Blockers:** No implementation or CI blocker. Integration sequencing and merge remain coordinator-owned.
-- **Remaining risk:** Focused Node storage test uses an IndexedDB test double; the complete UI recovery workflow is separately exercised by Chromium against real IndexedDB.
-- **Prior deliverable:** PR #1 remains unchanged and separate.
-- **Next:** Preserve REVIEW pending integration/merge; do not mark ACCEPTED/DONE or merge.
-- **Last updated:** 2026-11-14 — coordinator disposition and shared E2E integration condition recorded; PR head unchanged.
+- **Task:** AC-025 — Read-only audit of remaining frame-aware QA coverage in PR #1
+- **Status:** IN_PROGRESS
+- **Coordination source:** `main` (PR #7 merged as `f0c470392fe4411ca79b1d17bfe72e928af3be00`)
+- **Latest main:** `829a85925eff9cf3cbf1931b56e5819952805bcc`
+- **Audit branch/reference:** `agent/qa-release` at `ffd5b1bda4dd0879949098709cbbe18474205675`; PR #1 remains open draft and unchanged.
+- **Prior deliverable:** AC-006 was merged via PR #10 as `57b4da3cf9be2a9a4b1c98fea942729e42314d54`; Issue #2 closed.
+- **Scope:** Read-only comparison of PR #1's E2E diff against current main and PR #8. Do not edit `agent-bridge/e2e-test.mjs`; Agent 4 is sole writer during PR #8 reconciliation. Do not modify PR #1 or Agent 4's branch.
+- **Required handoff:** Identify unique frame-aware assertions, assertions duplicated by PR #10, export/import gaps remaining on main, conflicting frame-selection setup, and a safe keep/drop/integration sequence. Exact test/assertion references required.
+- **Tests:** No code changes are authorized or required for AC-025; this is a source/diff audit.
+- **Blockers:** None for read-only review. Shared E2E editing is explicitly prohibited.
+- **Last updated:** 2026-11-14 — refreshed assignment from main; PR #7 and current main verified; audit started.
