@@ -14,15 +14,27 @@ function makeBoundaryProject(options) {
     "#" + index.toString(16).padStart(6, "0")
   );
 
+  // Create a valid document first, then mutate only the intended fixture
+  // dimensions for negative cases such as an over-limit palette.
+  const creationPalette = palette.slice(0, Project.LIMITS.maxPaletteColors);
+  const requestedSelectedIndex = options.selectedColorIndex === undefined
+    ? palette.length - 1
+    : options.selectedColorIndex;
+  const creationSelectedIndex = Math.max(
+    0,
+    Math.min(creationPalette.length - 1, requestedSelectedIndex)
+  );
   const project = Project.createProject({
     id,
     name: options.name || id,
     width,
     height,
-    palette,
-    selectedColorIndex: options.selectedColorIndex === undefined ? palette.length - 1 : options.selectedColorIndex,
+    palette: creationPalette,
+    selectedColorIndex: creationSelectedIndex,
     durationMs: options.firstDuration === undefined ? 100 : options.firstDuration
   });
+  project.palette = palette;
+  project.selectedColorIndex = requestedSelectedIndex;
 
   for (let index = 1; index < layerCount; index += 1) {
     const layer = Project.makeLayer("Layer " + (index + 1));
