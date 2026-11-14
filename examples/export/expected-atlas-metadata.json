@@ -1,0 +1,43 @@
+{
+  "format": "one-pixel-studio-sprite-sheet",
+  "version": 1,
+  "image": {
+    "filename": "walk-cycle-atlas.png",
+    "width": 7,
+    "height": 4
+  },
+  "canvas": {
+    "frameWidth": 2,
+    "frameHeight": 2
+  },
+  "layout": {
+    "type": "grid",
+    "columns": 2,
+    "rows": 1,
+    "margin": 1,
+    "spacing": 1
+  },
+  "frameCount": 2,
+  "frames": [
+    {
+      "index": 0,
+      "frameId": "contact",
+      "name": "Contact",
+      "x": 1,
+      "y": 1,
+      "width": 2,
+      "height": 2,
+      "durationMs": 155
+    },
+    {
+      "index": 1,
+      "frameId": "idle",
+      "name": "Idle",
+      "x": 4,
+      "y": 1,
+      "width": 2,
+      "height": 2,
+      "durationMs": 145
+    }
+  ]
+}

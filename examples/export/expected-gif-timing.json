@@ -1,0 +1,38 @@
+{
+  "format": "one-pixel-studio-gif",
+  "version": 1,
+  "image": {
+    "mimeType": "image/gif",
+    "width": 2,
+    "height": 2
+  },
+  "frameCount": 2,
+  "frames": [
+    {
+      "index": 0,
+      "frameId": "idle",
+      "name": "Idle",
+      "width": 2,
+      "height": 2,
+      "durationMs": 145,
+      "encodedDelayCentiseconds": 15,
+      "effectiveDurationMs": 150
+    },
+    {
+      "index": 1,
+      "frameId": "contact",
+      "name": "Contact",
+      "width": 2,
+      "height": 2,
+      "durationMs": 155,
+      "encodedDelayCentiseconds": 16,
+      "effectiveDurationMs": 160
+    }
+  ],
+  "diagnostics": {
+    "loopCount": 0,
+    "loopBehavior": "Infinite loop",
+    "transparentPixelCount": 3,
+    "transparency": "One reserved fully-transparent palette index; GIF transparency is binary and cannot preserve partial alpha"
+  }
+}
