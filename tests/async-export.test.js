@@ -172,7 +172,7 @@ test("async GIF cooperatively aborts during cel composition", async () => {
     signal: controller.signal,
     yieldEvery: 256,
     onProgress(event) {
-      if (event.phase === "composition" && event.completed > 128 * 128 + 128) controller.abort();
+      if (event.phase === "composition" && event.progress > 5) controller.abort();
     }
   }), "composition");
 });
@@ -395,7 +395,7 @@ test("GIF missing-cel composition still yields and can be interrupted", async ()
     signal: controller.signal,
     yieldEvery: 128,
     onProgress(event) {
-      if (event.phase === "composition" && event.progress > 5) controller.abort();
+      if (event.phase === "composition" && event.completed > 128 * 128 + 128) controller.abort();
     }
   }), "composition");
 });
