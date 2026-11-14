@@ -47,7 +47,9 @@ class FakeElement {
       preventDefault() {},
       ...event
     };
-    for (const callback of this.listeners[type] || []) callback(payload);
+    let result;
+    for (const callback of this.listeners[type] || []) result = callback(payload);
+    return result;
   }
   setAttribute(name, value) { this.attributes[name] = String(value); }
   appendChild(child) {
@@ -183,6 +185,42 @@ test("editor script parses and initializes a real pixel grid", async () => {
   const editor = await bootEditor();
   assert.equal(editor.grid.children.length, 24 * 24);
   assert.equal(editor.document.getElementById("dimensionLabel").textContent, "24 × 24 PX");
+});
+
+test("new canvas dialog creates a rectangular canvas and keeps row-major indexing", async () => {
+  const editor = await bootEditor();
+  editor.document.getElementById("newProjectBtn").emit("click");
+  const dialog = editor.document.getElementById("canvasDialog");
+  assert.equal(dialog.open, true);
+
+  editor.document.getElementById("canvasWidthInput").value = "32";
+  editor.document.getElementById("canvasHeightInput").value = "48";
+  await editor.document.getElementById("canvasForm").emit("submit");
+
+  const status = editor.agent.get_status();
+  assert.equal(status.canvas.width, 32);
+  assert.equal(status.canvas.height, 48);
+  assert.equal(editor.grid.children.length, 32 * 48);
+  assert.equal((await editor.agent.get_pixel({ x: 31, y: 47 })).color, null);
+  assert.equal(editor.document.getElementById("dimensionLabel").textContent, "32 × 48 PX");
+  assert.equal(dialog.open, false);
+});
+
+test("resizing an existing canvas preserves and resamples its artwork", async () => {
+  const editor = await bootEditor();
+  await editor.agent.draw_pixel({ x: 2, y: 3, color: "#ff00ff" });
+  editor.document.getElementById("customCanvasBtn").emit("click");
+  editor.document.getElementById("canvasWidthInput").value = "48";
+  editor.document.getElementById("canvasHeightInput").value = "32";
+  await editor.document.getElementById("canvasForm").emit("submit");
+
+  const status = editor.agent.get_status();
+  assert.equal(status.canvas.width, 48);
+  assert.equal(status.canvas.height, 32);
+  assert.equal((await editor.agent.get_pixel({ x: 4, y: 4 })).color, "#ff00ff");
+  await editor.agent.undo();
+  assert.equal(editor.agent.get_status().canvas.width, 24);
+  assert.equal(editor.agent.get_status().canvas.height, 24);
 });
 
 test("brush paints on pointer down and commits the stroke", async () => {
