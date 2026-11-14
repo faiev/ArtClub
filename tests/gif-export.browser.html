@@ -76,6 +76,124 @@
           if (JSON.stringify(rasters) !== JSON.stringify(expectedRasters)) {
             throw new Error("Decoded full RGBA rasters did not match source frames (including disposal/transparent overlap): " + JSON.stringify(rasters));
           }
+
+          // Palette-overflow compatibility: decode a median-cut GIF independently and
+          // verify the seeded source RGB that exposed the former bucket-midpoint bug.
+          const overflowPixels = ["#222799"];
+          const seenBuckets = new Set([((0x22 >>> 3) << 10) | ((0x27 >>> 3) << 5) | (0x99 >>> 3)]);
+          let state = 13;
+          while (overflowPixels.length < 257) {
+            state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+            const red = (state >>> 24) & 255;
+            const green = (state >>> 16) & 255;
+            const blue = (state >>> 8) & 255;
+            const bucket = ((red >>> 3) << 10) | ((green >>> 3) << 5) | (blue >>> 3);
+            if (seenBuckets.has(bucket)) continue;
+            seenBuckets.add(bucket);
+            overflowPixels.push("#" + [red, green, blue].map(value => value.toString(16).padStart(2, "0")).join(""));
+          }
+          if (overflowPixels[58] !== "#d2384e") {
+            throw new Error("The deterministic palette-overflow fixture no longer has #D2384E at pixel 58.");
+          }
+          const overflowProject = {
+            format: "one-pixel-studio",
+            version: 2,
+            id: "browser-gif-palette-overflow",
+            name: "Palette overflow browser fixture",
+            canvas: { width: 257, height: 1, background: null },
+            palette: [],
+            selectedColorIndex: 0,
+            layers: [{ id: "layer-1", name: "Layer", visible: true, locked: false, opacity: 1 }],
+            frames: [{ id: "overflow", name: "Overflow", durationMs: 145 }],
+            cels: [{ layerId: "layer-1", frameId: "overflow", pixels: overflowPixels }],
+            activeLayerId: "layer-1",
+            activeFrameId: "overflow",
+            metadata: { createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }
+          };
+          const overflowExport = window.ArtClubGIFExporter.exportGIF(overflowProject);
+          const overflowBytes = new Uint8Array(await overflowExport.blob.arrayBuffer());
+          const overflowDecoder = new ImageDecoder({ data: overflowBytes, type: "image/gif" });
+          await overflowDecoder.tracks.ready;
+          const overflowTrack = overflowDecoder.tracks.selectedTrack;
+          if (!overflowTrack || overflowTrack.frameCount !== 1) {
+            overflowDecoder.close();
+            throw new Error("Palette-overflow GIF did not decode to one frame.");
+          }
+          const overflowFrame = await overflowDecoder.decode({ frameIndex: 0 });
+          const overflowImage = overflowFrame.image;
+          const overflowWidth = overflowImage.displayWidth || overflowImage.codedWidth;
+          const overflowHeight = overflowImage.displayHeight || overflowImage.codedHeight;
+          if (overflowWidth !== 257 || overflowHeight !== 1) {
+            overflowImage.close();
+            overflowDecoder.close();
+            throw new Error("Palette-overflow GIF decoded with unexpected dimensions.");
+          }
+          const overflowCanvas = new OffscreenCanvas(overflowWidth, overflowHeight);
+          const overflowContext = overflowCanvas.getContext("2d", { willReadFrequently: true });
+          overflowContext.drawImage(overflowImage, 0, 0);
+          const overflowRaster = overflowContext.getImageData(0, 0, overflowWidth, overflowHeight).data;
+          const pixel58 = Array.from(overflowRaster.slice(58 * 4, 58 * 4 + 4));
+          overflowImage.close();
+          overflowDecoder.close();
+          if (JSON.stringify(pixel58) !== JSON.stringify([210, 56, 78, 255])) {
+            throw new Error("Independent decoder did not preserve exact pixel 58 #D2384E: " + JSON.stringify(pixel58));
+          }
+
+          // Long-animation compatibility: verify the decoder sees the maximum
+          // 256-frame sequence and that selected decoded frames retain source order.
+          const longFrames = Array.from({ length: 256 }, (_, index) => ({
+            id: "long-" + index,
+            name: "Long frame " + index,
+            durationMs: index === 0 ? 145 : (index === 1 ? 155 : 100)
+          }));
+          const longCels = longFrames.map((frame, index) => ({
+            layerId: "layer-1",
+            frameId: frame.id,
+            pixels: [index % 3 === 0 ? "#ff0000" : (index % 3 === 1 ? "#00ff00" : "#0000ff")]
+          }));
+          const longProject = {
+            format: "one-pixel-studio",
+            version: 2,
+            id: "browser-gif-long-animation",
+            name: "Long animation browser fixture",
+            canvas: { width: 1, height: 1, background: null },
+            palette: ["#ff0000", "#00ff00", "#0000ff"],
+            selectedColorIndex: 0,
+            layers: [{ id: "layer-1", name: "Layer", visible: true, locked: false, opacity: 1 }],
+            frames: longFrames,
+            cels: longCels,
+            activeLayerId: "layer-1",
+            activeFrameId: "long-0",
+            metadata: { createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }
+          };
+          const longExport = window.ArtClubGIFExporter.exportGIF(longProject, { loopCount: null });
+          const longBytes = new Uint8Array(await longExport.blob.arrayBuffer());
+          const longDecoder = new ImageDecoder({ data: longBytes, type: "image/gif" });
+          await longDecoder.tracks.ready;
+          const longTrack = longDecoder.tracks.selectedTrack;
+          if (!longTrack || longTrack.frameCount !== 256) {
+            longDecoder.close();
+            throw new Error("Maximum-length GIF did not decode to 256 frames.");
+          }
+          const sampledFrames = [];
+          for (const index of [0, 127, 255]) {
+            const decoded = await longDecoder.decode({ frameIndex: index });
+            const frame = decoded.image;
+            const canvas = new OffscreenCanvas(1, 1);
+            const context = canvas.getContext("2d", { willReadFrequently: true });
+            context.drawImage(frame, 0, 0);
+            sampledFrames.push(Array.from(context.getImageData(0, 0, 1, 1).data));
+            frame.close();
+          }
+          longDecoder.close();
+          const expectedLongPixels = [
+            [255, 0, 0, 255],
+            [0, 255, 0, 255],
+            [0, 0, 255, 255]
+          ];
+          if (JSON.stringify(sampledFrames) !== JSON.stringify(expectedLongPixels)) {
+            throw new Error("Long GIF frame sampling was out of order: " + JSON.stringify(sampledFrames));
+          }
           output.textContent = "PASS " + JSON.stringify({
             decoder: "ImageDecoder",
             frameCount: track.frameCount,
@@ -83,7 +201,12 @@
             fullRgbaRasters: rasters,
             checked: "every pixel of every decoded frame, including transparent disposal overlap",
             blobType: exported.blob.type,
-            blobSize: exported.blob.size
+            blobSize: exported.blob.size,
+            compatibility: {
+              paletteOverflowPixel58: pixel58,
+              longAnimationFrameCount: longTrack.frameCount,
+              sampledLongAnimationPixels: sampledFrames
+            }
           });
           document.body.dataset.result = "PASS";
         } else {
