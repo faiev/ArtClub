@@ -336,9 +336,9 @@
           typeof frame.name !== "string" || !frame.name.trim()) {
         throw new Error("Sprite sheet frame " + index + " identity metadata is invalid.");
       }
-      assertInteger(frame.x, "Frame x", 0, sheet.width - 1);
-      assertInteger(frame.y, "Frame y", 0, sheet.height - 1);
-      if (frame.width !== sheet.frameWidth || frame.height !== sheet.frameHeight ||
+      if (!Number.isInteger(frame.x) || !Number.isInteger(frame.y) ||
+          frame.x < 0 || frame.y < 0 ||
+          frame.width !== sheet.frameWidth || frame.height !== sheet.frameHeight ||
           frame.x + frame.width > sheet.width || frame.y + frame.height > sheet.height) {
         throw new Error("Sprite sheet frame rectangle is outside the output sheet.");
       }
