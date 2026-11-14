@@ -64,6 +64,28 @@ function findSuite(report, name) {
   return suite;
 }
 
+test("CLI parser accepts supported selection flags and rejects malformed arguments", () => {
+  const options = parseArgs([
+    "--suite", "lifecycle",
+    "--file", "tests/qa/lifecycle/project-lifecycle.test.js",
+    "--root", "/tmp/repo with spaces",
+    "--json",
+    "--include-browser"
+  ]);
+  assert.equal(options.suite, "lifecycle");
+  assert.equal(options.file, "tests/qa/lifecycle/project-lifecycle.test.js");
+  assert.equal(options.root, "/tmp/repo with spaces");
+  assert.equal(options.json, true);
+  assert.equal(options.includeBrowser, true);
+
+  assert.throws(() => parseArgs(["--suite"]), /requires a suite name/);
+  assert.throws(() => parseArgs(["--file"]), /requires a repository-relative QA path/);
+  assert.throws(() => parseArgs(["--root"]), /requires a directory path/);
+  assert.throws(() => parseArgs(["--unexpected"]), /Unknown argument/);
+  assert.throws(() => parseArgs(["--suite", "unknown"]), /Unknown QA suite/);
+  assert.throws(() => parseArgs(["--file", "../../package.json"]), /traverse parent directories/);
+});
+
 test("manifest is explicit, sorted, unique and confined to tests/qa", () => {
   const names = SUITE_MANIFEST.map(suite => suite.name);
   assert.deepEqual(names, names.slice().sort());
