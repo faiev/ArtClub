@@ -672,9 +672,9 @@ function validateAgentCommands(commands){
       point("x",w,"x");point("y",h,"y");color();
     }else if(type==="draw_line"){
       point("x1",w,"x1");point("y1",h,"y1");point("x2",w,"x2");point("y2",h,"y2");color();
-    }else if(type==="draw_rectangle"||type==="erase_rectangle"){
+    }else if(type==="draw_rectangle"||type==="erase_rectangle"||type==="draw_ellipse"){
       point("x1",w,"x1");point("y1",h,"y1");point("x2",w,"x2");point("y2",h,"y2");color();
-      if(type==="draw_rectangle")result.filled=command.filled===true;
+      if(type==="draw_rectangle"||type==="draw_ellipse")result.filled=command.filled===true;
     }else if(type==="clear_canvas"){
       // No additional properties are required.
     }else if(type==="set_color"){
@@ -705,13 +705,9 @@ function executeAgentCommands(commands,options){
       else if(command.type==="erase_pixel")paint(command.y*w+command.x,null);
       else if(command.type==="fill")floodFill(command.y*w+command.x,color);
       else if(command.type==="draw_line")line(command.x1,command.y1,command.x2,command.y2,color);
-      else if(command.type==="draw_rectangle"){
-        if(command.filled){
-          const minX=Math.min(command.x1,command.x2),maxX=Math.max(command.x1,command.x2);
-          const minY=Math.min(command.y1,command.y2),maxY=Math.max(command.y1,command.y2);
-          for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)paint(y*w+x,color);
-        }else drawRectangle(command.x1,command.y1,command.x2,command.y2,color);
-      }else if(command.type==="erase_rectangle"){
+      else if(command.type==="draw_rectangle")drawRectangle(command.x1,command.y1,command.x2,command.y2,color,command.filled);
+      else if(command.type==="draw_ellipse")drawEllipse(command.x1,command.y1,command.x2,command.y2,color,command.filled);
+      else if(command.type==="erase_rectangle"){
         const minX=Math.min(command.x1,command.x2),maxX=Math.max(command.x1,command.x2);
         const minY=Math.min(command.y1,command.y2),maxY=Math.max(command.y1,command.y2);
         for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++)paint(y*w+x,null);
@@ -760,7 +756,7 @@ function getAgentStatus(){
     revision:documentRevision,
     human_stroke_in_progress:drawing,
     history:{can_undo:undoStack.length>0,can_redo:redoStack.length>0},
-    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png"]
+    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","draw_ellipse","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png"]
   };
 }
 function getAgentCanvas(options){
