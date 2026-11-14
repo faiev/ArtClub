@@ -5,8 +5,8 @@ const assert = require("node:assert/strict");
 const Guard = require("../js/layer-edit-guard.js");
 
 function makeProject() {
-  const layer = { id: "layer-active", name: "Layer 1", visible: true, locked: false };
-  const frame = { id: "frame-active", name: "Frame 1" };
+  const layer = { id: "layer-active", name: "Layer 1", visible: true, locked: false, opacity: 1 };
+  const frame = { id: "frame-active", name: "Frame 1", durationMs: 100 };
   return {
     format: "one-pixel-studio",
     version: 2,
@@ -98,7 +98,7 @@ test("rejects malformed documents and malformed target pixel buffers", () => {
 
   const badCanvas = makeProject();
   badCanvas.canvas.width = 0;
-  assert.equal(Guard.resolveEditableTarget(badCanvas).reason, Guard.REASONS.PROJECT_INVALID);
+  assert.equal(Guard.resolveEditableTarget(badCanvas).reason, Guard.REASONS.CANVAS_SIZE_INVALID);
 
   const badLayer = makeProject();
   delete badLayer.layers[0].visible;
@@ -184,4 +184,148 @@ test("assert helper throws an error carrying the structured denial code", () => 
     assert.equal(error.layerId, project.activeLayerId);
     return true;
   });
+});
+
+
+test("rejects zero-opacity target layers", () => {
+  const project = makeProject();
+  project.layers[0].opacity = 0;
+  const before = JSON.stringify(project);
+
+  const result = Guard.resolveEditableTarget(project);
+
+  assert.equal(result.reason, Guard.REASONS.LAYER_ZERO_OPACITY);
+  assert.equal(JSON.stringify(project), before);
+});
+
+test("rejects malformed layer opacity and metadata", () => {
+  const values = [-0.01, 1.01, NaN, Infinity, "1", undefined];
+  for (const opacity of values) {
+    const project = makeProject();
+    project.layers[0].opacity = opacity;
+    assert.equal(
+      Guard.resolveEditableTarget(project).reason,
+      Guard.REASONS.LAYER_METADATA_INVALID,
+      "opacity " + String(opacity) + " should be rejected"
+    );
+  }
+  const unnamed = makeProject();
+  unnamed.layers[0].name = "  ";
+  assert.equal(Guard.resolveEditableTarget(unnamed).reason, Guard.REASONS.LAYER_METADATA_INVALID);
+});
+
+test("rejects malformed target frame metadata", () => {
+  const project = makeProject();
+  project.frames[0].durationMs = 0;
+  assert.equal(Guard.resolveEditableTarget(project).reason, Guard.REASONS.FRAME_METADATA_INVALID);
+});
+
+test("rejects duplicate active layer and frame IDs", () => {
+  const duplicateLayer = makeProject();
+  duplicateLayer.layers.push({ ...duplicateLayer.layers[0] });
+  assert.equal(Guard.resolveEditableTarget(duplicateLayer).reason, Guard.REASONS.LAYER_AMBIGUOUS);
+
+  const duplicateFrame = makeProject();
+  duplicateFrame.frames.push({ ...duplicateFrame.frames[0] });
+  assert.equal(Guard.resolveEditableTarget(duplicateFrame).reason, Guard.REASONS.FRAME_AMBIGUOUS);
+});
+
+test("accepts matching project, frame and composite revisions", () => {
+  const project = makeProject();
+  const revisions = { project: 12, frame: 3, composite: 9 };
+  const result = Guard.resolveEditableTarget(project, {
+    expectedRevisions: revisions,
+    currentRevisions: { ...revisions }
+  });
+  assert.equal(result.ok, true);
+});
+
+test("rejects stale project revision", () => {
+  const project = makeProject();
+  const result = Guard.resolveEditableTarget(project, {
+    expectedRevisions: { project: 4, frame: 2, composite: 7 },
+    currentRevisions: { project: 5, frame: 2, composite: 7 }
+  });
+  assert.equal(result.reason, Guard.REASONS.PROJECT_REVISION_STALE);
+});
+
+test("rejects stale frame revision", () => {
+  const project = makeProject();
+  const result = Guard.resolveEditableTarget(project, {
+    expectedRevisions: { project: 4, frame: 2, composite: 7 },
+    currentRevisions: { project: 4, frame: 3, composite: 7 }
+  });
+  assert.equal(result.reason, Guard.REASONS.FRAME_REVISION_STALE);
+});
+
+test("rejects stale composite revision", () => {
+  const project = makeProject();
+  const result = Guard.resolveEditableTarget(project, {
+    expectedRevisions: { project: 4, frame: 2, composite: 7 },
+    currentRevisions: { project: 4, frame: 2, composite: 8 }
+  });
+  assert.equal(result.reason, Guard.REASONS.COMPOSITE_REVISION_STALE);
+});
+
+test("rejects incomplete or malformed revision contexts", () => {
+  const project = makeProject();
+  assert.equal(
+    Guard.resolveEditableTarget(project, { expectedRevisions: { project: 1, frame: 1, composite: 1 } }).reason,
+    Guard.REASONS.REVISION_CONTEXT_INVALID
+  );
+  assert.equal(
+    Guard.resolveEditableTarget(project, {
+      expectedRevisions: { project: 1, frame: 1, composite: 1 },
+      currentRevisions: { project: 1, frame: -1, composite: 1 }
+    }).reason,
+    Guard.REASONS.REVISION_CONTEXT_INVALID
+  );
+  assert.equal(
+    Guard.resolveEditableTarget(project, {
+      expectedRevisions: [],
+      currentRevisions: {}
+    }).reason,
+    Guard.REASONS.REVISION_CONTEXT_INVALID
+  );
+});
+
+test("accepts absent and valid in-canvas selections", () => {
+  const project = makeProject();
+  assert.equal(Guard.resolveEditableTarget(project, { selection: null }).ok, true);
+  assert.equal(Guard.resolveEditableTarget(project, {
+    selection: { x: 1, y: 0, width: 2, height: 2 }
+  }).ok, true);
+});
+
+test("rejects malformed, empty, fractional and out-of-bounds selections", () => {
+  const invalidSelections = [
+    {},
+    { x: 0, y: 0, width: 0, height: 1 },
+    { x: 0, y: 0, width: 1, height: -1 },
+    { x: 0.5, y: 0, width: 1, height: 1 },
+    { x: -1, y: 0, width: 1, height: 1 },
+    { x: 0, y: -1, width: 1, height: 1 },
+    { x: 2, y: 0, width: 2, height: 1 },
+    { x: 0, y: 1, width: 1, height: 2 },
+    "not-a-selection"
+  ];
+  for (const selection of invalidSelections) {
+    const project = makeProject();
+    const before = JSON.stringify(project);
+    const result = Guard.resolveEditableTarget(project, { selection });
+    assert.equal(result.reason, Guard.REASONS.SELECTION_INVALID);
+    assert.equal(JSON.stringify(project), before);
+  }
+});
+
+test("enforces the canvas dimension ceiling and accepts the maximum canvas", () => {
+  const oversized = makeProject();
+  oversized.canvas.width = Guard.LIMITS.maxDimension + 1;
+  assert.equal(Guard.resolveEditableTarget(oversized).reason, Guard.REASONS.CANVAS_SIZE_INVALID);
+
+  const maxSize = makeProject();
+  maxSize.canvas.width = Guard.LIMITS.maxDimension;
+  maxSize.canvas.height = Guard.LIMITS.maxDimension;
+  maxSize.cels[0].pixels = Array(Guard.LIMITS.maxCanvasPixels).fill(null);
+  assert.equal(Guard.resolveEditableTarget(maxSize).ok, true);
 });
