@@ -299,7 +299,7 @@
     }
 
     // v1 was the original single-canvas format. Migrate it into one layer and one frame.
-    if (data.format !== FORMAT && (data.app === "One Pixel Studio" || ("w" in data && "h" in data && "pixels" in data))) {
+    if (data.format === undefined && (data.app === "One Pixel Studio" || ("w" in data && "h" in data && "pixels" in data))) {
       const migrated = fromLegacy(data);
       return migrated;
     }
