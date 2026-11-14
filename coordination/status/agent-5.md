@@ -7,7 +7,7 @@
 - **Status:** REVIEW
 - **Branch:** `agent/ux-implementation-sequence`
 - **Feature head:** `205ededc586ab84cf5546c19bfa7baf83f514b11`
-- **PR:** [#51 — AC-054: Publish integrated UX implementation sequence](https://github.com/faiev/ArtClub/pull/51) (open, draft; GitHub reports mergeable)
+- **PR:** [#51 — AC-054: Publish integrated UX implementation sequence](https://github.com/faiev/ArtClub/pull/51) (open, draft; GitHub currently reports not mergeable after subsequent coordination-only main commits; PR changed-file list remains the single assigned roadmap document)
 - **Base:** Branch was created from main `4192df678b48167eb1f76558a75523138970d7ee`; main later advanced with coordination-only status update `4b5055b0195271ad74761b6c1551d53fe682c6a0`. PR file list remains only the assigned roadmap file.
 - **Deliverable:** `docs/ux/IMPLEMENTATION_SEQUENCE.md` (374 lines, 10 sections; PR diff 373 additions).
 - **Roadmap:** P0 keyboard/focus and safe edit workflows; P1 canvas navigation, layer/frame/cel matrix, palette and animation export; P2 tile/pixel tools and developer diagnostics; final accessibility, responsive and release gates.
