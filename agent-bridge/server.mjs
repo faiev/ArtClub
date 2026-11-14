@@ -965,12 +965,11 @@ async function main() {
     }
   );
 
-  const shutdown = async () => {
+  let stdioHandle;
+  const shutdown = async ({ closeTransport = true, reason = "The MCP server is shutting down; pending tool requests were cancelled." } = {}) => {
     if (shutdownPromise) return shutdownPromise;
     shutdownPromise = (async () => {
-      await operationQueue.close({
-        reason: "The MCP server is shutting down; pending tool requests were cancelled."
-      });
+      await operationQueue.close({ reason });
       const context = browserContext;
       browserContext = null;
       page = null;
@@ -978,24 +977,35 @@ async function main() {
       try { await context?.close(); } catch (error) {
         console.error("[Art Club] Browser shutdown:", error.message);
       }
-      try { await server.close(); } catch (error) {
-        console.error("[Art Club] MCP shutdown:", error.message);
+      if (closeTransport) {
+        try { await stdioHandle?.close(); } catch (error) {
+          console.error("[Art Club] MCP transport shutdown:", error.message);
+        }
       }
     })();
     return shutdownPromise;
   };
-  process.once("SIGINT", () => {
-    void shutdown().catch(error => console.error("[Art Club] Shutdown failed:", error.message));
+  const reportShutdownError = error => {
+    console.error("[Art Club] Shutdown failed:", error && error.message ? error.message : error);
+  };
+  process.once("SIGINT", () => { void shutdown().catch(reportShutdownError); });
+  process.once("SIGTERM", () => { void shutdown().catch(reportShutdownError); });
+  process.stdin.once("end", () => {
+    void shutdown({
+      closeTransport: false,
+      reason: "The MCP client closed its stdio input; pending requests were cancelled."
+    }).catch(reportShutdownError);
   });
-  process.once("SIGTERM", () => {
-    void shutdown().catch(error => console.error("[Art Club] Shutdown failed:", error.message));
+  process.stdin.once("close", () => {
+    void shutdown({
+      closeTransport: false,
+      reason: "The MCP client closed its stdio input; pending requests were cancelled."
+    }).catch(reportShutdownError);
   });
 
-  try {
-    await serveStdio(() => server);
-  } finally {
-    await shutdown();
-  }
+  // serveStdio returns a handle immediately; the open stdio transport keeps
+  // the process alive while the client is connected. Do not await the handle.
+  stdioHandle = serveStdio(() => server);
 }
 
 export { main };
