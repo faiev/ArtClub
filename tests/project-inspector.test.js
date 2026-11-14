@@ -566,3 +566,199 @@ test("mixed legacy/v2 cel differences are labelled unmatchable, not falsely remo
   assert.ok(v2FirstReport.changes.cels.removed.every((cel) =>
     cel.reason === "source-identifiers-not-comparable"));
 });
+
+
+function runDiagnostics(filePath, options = ["--json"]) {
+  return spawnSync(process.execPath, [CLI, "--diagnostics", ...options, filePath], {
+    encoding: "utf8",
+    maxBuffer: 4 * 1024 * 1024
+  });
+}
+function writeDiagnosticProject(directory, filename, project) {
+  const file = path.join(directory, filename);
+  fs.writeFileSync(file, JSON.stringify(project));
+  return file;
+}
+
+test("deep diagnostics preserve model validation as a separate authoritative result", (t) => {
+  const directory = temporaryDirectory(t);
+  const valid = copyFixture(directory, "valid-v2.json");
+  const project = JSON.parse(fs.readFileSync(valid, "utf8"));
+  project.layers[1].id = project.layers[0].id;
+  project.frames[1].id = project.frames[0].id;
+  project.cels[1].layerId = "missing-layer";
+  project.cels[1].frameId = "missing-frame";
+  project.activeLayerId = "missing-active-layer";
+  project.activeFrameId = "missing-active-frame";
+  const invalid = writeDiagnosticProject(directory, "invalid-structure.json", project);
+
+  const result = runDiagnostics(invalid);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true);
+  assert.equal(report.mode, "diagnostics");
+  assert.equal(report.schema.checked, true);
+  assert.equal(report.schema.valid, false);
+  assert.ok(report.schema.errors.length > 0);
+  const codes = new Set(report.diagnostics.map((item) => item.code));
+  assert.ok(codes.has("LAYER_ID_DUPLICATE"));
+  assert.ok(codes.has("FRAME_ID_DUPLICATE"));
+  assert.ok(codes.has("CEL_LAYER_REFERENCE_INVALID"));
+  assert.ok(codes.has("CEL_FRAME_REFERENCE_INVALID"));
+  assert.ok(codes.has("ACTIVE_LAYER_MISSING"));
+  assert.ok(codes.has("ACTIVE_FRAME_MISSING"));
+  assert.ok(report.risk.score > 0);
+  assert.ok(["high", "critical"].includes(report.risk.level));
+  assert.ok(report.diagnostics.every((item) => item.source === "supplemental"));
+});
+
+test("deep diagnostics flags unsupported versions and invalid canvas dimensions", (t) => {
+  const directory = temporaryDirectory(t);
+  const source = copyFixture(directory, "valid-v2.json");
+  const project = JSON.parse(fs.readFileSync(source, "utf8"));
+  project.version = 99;
+  project.canvas.width = 0;
+  project.canvas.height = 900;
+  const file = writeDiagnosticProject(directory, "unsupported-dimensions.json", project);
+
+  const result = runDiagnostics(file);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  const codes = new Set(report.diagnostics.map((item) => item.code));
+  assert.ok(codes.has("UNSUPPORTED_VERSION"));
+  assert.ok(codes.has("CANVAS_WIDTH_INVALID"));
+  assert.ok(codes.has("CANVAS_HEIGHT_INVALID"));
+  assert.equal(report.schema.valid, false);
+  assert.ok(report.schema.errors.some((message) => /Unsupported project version/.test(message)));
+});
+
+test("deep diagnostics flags shortened cel pixel arrays without inferring missing transparency", (t) => {
+  const directory = temporaryDirectory(t);
+  const source = copyFixture(directory, "valid-v2.json");
+  const project = JSON.parse(fs.readFileSync(source, "utf8"));
+  project.cels[0].pixels.pop();
+  const file = writeDiagnosticProject(directory, "short-pixels.json", project);
+
+  const result = runDiagnostics(file);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  const shortArray = report.diagnostics.find((item) => item.code === "PIXEL_ARRAY_SHORT");
+  assert.ok(shortArray);
+  assert.deepEqual(shortArray.details, { expected: 12, actual: 11 });
+  assert.ok(report.schema.errors.some((message) => /exactly width/.test(message)));
+});
+
+test("deep diagnostics finds duplicate cel pairs and non-array/invalid pixel values", (t) => {
+  const directory = temporaryDirectory(t);
+  const source = copyFixture(directory, "valid-v2.json");
+  const project = JSON.parse(fs.readFileSync(source, "utf8"));
+  project.cels[1].layerId = project.cels[0].layerId;
+  project.cels[1].frameId = project.cels[0].frameId;
+  project.cels[0].pixels[0] = "#GGGGGG";
+  project.cels[1].pixels = "not-an-array";
+  const file = writeDiagnosticProject(directory, "malformed-cels.json", project);
+
+  const result = runDiagnostics(file);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  const codes = new Set(report.diagnostics.map((item) => item.code));
+  assert.ok(codes.has("CEL_PAIR_DUPLICATE"));
+  assert.ok(codes.has("PIXEL_COLOR_INVALID"));
+  assert.ok(codes.has("PIXEL_ARRAY_NOT_ARRAY"));
+});
+
+test("deep diagnostics treats explicit null pixels as transparency, not sparse holes", (t) => {
+  const directory = temporaryDirectory(t);
+  const source = copyFixture(directory, "valid-v2.json");
+  const project = JSON.parse(fs.readFileSync(source, "utf8"));
+  project.cels[0].pixels[0] = null;
+  const file = writeDiagnosticProject(directory, "transparent.json", project);
+
+  const result = runDiagnostics(file);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.schema.valid, true);
+  assert.ok(!report.diagnostics.some((item) => item.code === "PIXEL_ARRAY_HOLE"));
+  assert.ok(!report.diagnostics.some((item) => item.code === "PIXEL_ARRAY_SHORT"));
+});
+
+test("deep diagnostics reports duplicate and unused palette entries as supplemental warnings", (t) => {
+  const directory = temporaryDirectory(t);
+  const source = copyFixture(directory, "valid-v2.json");
+  const project = JSON.parse(fs.readFileSync(source, "utf8"));
+  project.palette.push(project.palette[0].toUpperCase());
+  project.palette.push("#abcdef");
+  project.cels[0].pixels[0] = "#aabbcc";
+  const file = writeDiagnosticProject(directory, "suspicious-palette.json", project);
+
+  const result = runDiagnostics(file);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true);
+  assert.equal(report.schema.valid, true);
+  const codes = new Set(report.diagnostics.map((item) => item.code));
+  assert.ok(codes.has("PALETTE_COLOR_DUPLICATE"));
+  assert.ok(codes.has("PALETTE_ENTRY_UNUSED"));
+  assert.ok(codes.has("PIXEL_COLOR_NOT_IN_PALETTE"));
+  assert.ok(report.diagnostics.every((item) => item.source === "supplemental"));
+  assert.equal(report.risk.level, "moderate");
+});
+
+test("deep diagnostics handles legacy projects without presenting generated IDs as source IDs", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "valid-legacy.json");
+  const original = fs.readFileSync(file);
+  const result = runDiagnostics(file);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true);
+  assert.equal(report.sourceFormat, "legacy-single-canvas");
+  assert.equal(report.sourceVersion, 1);
+  assert.equal(report.schema.valid, true);
+  assert.deepEqual(fs.readFileSync(file), original);
+  assert.equal(report.policy.inputModified, false);
+});
+
+test("deep diagnostics returns a structured size-limit finding without parsing an oversized file", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = path.join(directory, "oversized.json");
+  fs.writeFileSync(file, "{}");
+  fs.truncateSync(file, MAX_FILE_BYTES + 1);
+
+  const result = runDiagnostics(file);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, false);
+  assert.equal(report.schema.checked, false);
+  assert.equal(report.schema.valid, null);
+  assert.equal(report.diagnostics[0].code, "DOCUMENT_BYTE_LIMIT");
+  assert.equal(report.diagnostics[0].details.fileSizeBytes, MAX_FILE_BYTES + 1);
+});
+
+test("deep diagnostics produces structured output for malformed JSON and respects command exclusivity", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "malformed-json.json");
+  const result = runDiagnostics(file);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, false);
+  assert.equal(report.schema.checked, false);
+  assert.equal(report.diagnostics[0].code, "JSON_PARSE_ERROR");
+
+  const invalid = spawnSync(process.execPath, [CLI, "--json", "--diagnostics", "--compare", file, file], {
+    encoding: "utf8"
+  });
+  assert.equal(invalid.status, 2);
+  const invalidReport = JSON.parse(invalid.stdout);
+  assert.equal(invalidReport.error.code, "INVALID_ARGUMENT");
+});
+
+test("deep diagnostics renders a concise human report", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "valid-v2.json");
+  const result = runDiagnostics(file, []);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Project Inspector — Deep Diagnostics/);
+  assert.match(result.stdout, /Model validation: VALID/);
+  assert.match(result.stdout, /Risk score: 0\/100 \(low\)/);
+});
