@@ -20,6 +20,7 @@ This is a living index of regression coverage and known release risks. It separa
 | Palette formats | GPL/JASC-PAL/JSON ordering, duplicates, names where supported, strict diagnostics, size limits | PR #16 remains open; source tests exist on its branch | JASC-PAL does not encode palette or color names |
 | Standalone lifecycle browser QA | Real Chromium/IndexedDB create, switch, edit, reload and recovery with exact pixels | AC-032 PR #42 adds an isolated Playwright runner | Runner is not yet wired into the shared workflow and has not been executed here |
 | Canvas renderer | Strict #RRGGBB/null input, full source validation before mutation, dirty clipping, 512×512 bound, frame/composite invalidation, onion-mask invalidation, overlay isolation and hit testing | Root `tests/canvas-renderer.test.js` covers the merged module; PR #61 adds QA boundary tokens and invalid hit-test bounds | Public `parseColor()` currently exposes a mutable cached RGBA array; defensive-copy regression is a TODO in PR #61 | 
+| QA suite runner | Explicit lifecycle, compatibility, import/export, renderer, release and browser manifest; named/all selection; child exit-code preservation; skipped/not-run reporting | AC-087 `tools/run-qa.mjs` plus runner tests are in a stacked PR on AC-033 | Browser scripts require explicit `--include-browser`; missing manifest files are reported as skipped |
 | Release readiness tooling | Required-file/script checks, nested-test discovery, coordination freshness limits, CI evidence state | AC-033 checker and release docs are in PR #57 | Checker is read-only and does not query CI |
 
 ## Required commands
@@ -48,6 +49,19 @@ cd agent-bridge && npm run test:mcp
 node tests/gif-export.browser.mjs
 ```
 
+### QA-owned suite runner
+
+Run all manifest suites (browser QA is explicitly reported as skipped unless opted in):
+
+```bash
+node tools/run-qa.mjs --suite all
+node tools/run-qa.mjs --suite all --json
+node tools/run-qa.mjs --suite lifecycle
+node tools/run-qa.mjs --suite browser --include-browser
+```
+
+The runner invokes only its explicit sorted manifest under `tests/qa/**`; it does not sweep unrelated tests, install dependencies or modify files. Browser suites run only with `--include-browser`. Missing manifest entries and unselected suites are shown in the report; a suite with no runnable files exits with code 2.
+
 ### QA-owned focused suites
 
 ```bash
@@ -57,6 +71,7 @@ node --test tests/qa/compatibility/project-compatibility.test.js
 node --test tests/qa/compatibility/gif-export-contract.test.js
 node --test tests/qa/release/qa-release-check.test.js
 node --test tests/qa/renderer/canvas-renderer-contract.test.js
+node --test tests/qa/runner/run-qa.test.mjs
 ```
 
 ### Standalone project lifecycle browser harness
