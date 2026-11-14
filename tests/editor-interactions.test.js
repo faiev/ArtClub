@@ -54,6 +54,9 @@ class FakeElement {
     else this.children.push(child);
     return child;
   }
+  append(...children) { children.forEach(child => this.appendChild(child)); }
+  showModal() { this.open = true; }
+  close() { this.open = false; }
   replaceChildren(...children) {
     this.children = [];
     for (const child of children) this.appendChild(child);
@@ -121,20 +124,47 @@ function bootEditor() {
   });
   document.querySelectorAll = selector => selector === ".tool" ? toolButtons : [];
   const storage = new Map();
+  const projectDb = new Map();
+  const recoveryDb = new Map();
+  const storageApi = {
+    async listProjects() {
+      return [...projectDb.values()].map(record => ({
+        id: record.id, name: record.name, width: record.canvas.width,
+        height: record.canvas.height, updatedAt: record.metadata.updatedAt,
+        createdAt: record.metadata.createdAt
+      }));
+    },
+    async getProject(id) { return projectDb.has(id) ? ProjectModel.cloneProject(projectDb.get(id)) : null; },
+    async getRecovery(id) {
+      return recoveryDb.has(id) ? { project: ProjectModel.cloneProject(recoveryDb.get(id)), savedAt: new Date().toISOString() } : null;
+    },
+    async saveProject(project) {
+      if (projectDb.has(project.id)) recoveryDb.set(project.id, ProjectModel.cloneProject(projectDb.get(project.id)));
+      const copy = ProjectModel.cloneProject(project);
+      copy.metadata.updatedAt = new Date().toISOString();
+      projectDb.set(copy.id, copy);
+      return { id: copy.id, name: copy.name };
+    },
+    async deleteProject(id) { projectDb.delete(id); recoveryDb.delete(id); }
+  };
   const context = vm.createContext({
     document,
-    window: { ArtClubProject: ProjectModel },
+    window: {
+      ArtClubProject: ProjectModel,
+      ArtClubStorage: { async open() { return storageApi; } }
+    },
     localStorage: {
       getItem(key) { return storage.has(key) ? storage.get(key) : null; },
       setItem(key, value) { storage.set(key, String(value)); }
     },
     confirm() { return true; },
+    prompt() { return null; },
     setTimeout() { return 1; },
     clearTimeout() {},
     console
   });
   vm.runInContext(match[1], context, { filename: "index.html:inline-editor.js" });
-  return {
+  return new Promise(resolve => setImmediate(() => resolve({
     document,
     grid,
     storage,
@@ -142,7 +172,7 @@ function bootEditor() {
       return toolButtons.find(button => button.dataset.tool === name);
     },
     cell(index) { return grid.children[index]; }
-  };
+  }));
 }
 
 test("editor script parses and initializes a real pixel grid", () => {
