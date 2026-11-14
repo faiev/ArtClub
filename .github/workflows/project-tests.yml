@@ -11,8 +11,10 @@ on:
       - ".github/workflows/project-tests.yml"
   pull_request:
     paths:
+      - "index.html"
       - "js/**"
       - "tests/**"
+      - "agent-bridge/**"
       - ".github/workflows/project-tests.yml"
   workflow_dispatch:
 
@@ -29,7 +31,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Run project model tests
+      - name: Run model and editor interaction tests
         run: |
           node --test tests/*.test.js
           node --check agent-bridge/server.mjs
