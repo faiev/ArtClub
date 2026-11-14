@@ -1,46 +1,66 @@
 # Status — Agent 3
 
 Updated: 2026-11-15
-Active workstream: Animation / export engineering
+Workstream: Animation / export engineering
 
 ## Current snapshot
-- Authoritative coordination branch: main.
-- Export parent: agent/export-compatibility at 64549511020b7cfe06864643b66e1a6ce37fa4cc.
-- AC-089 branch: agent/async-export at 162d8e5425c2337e1a7be7ebe787c4995d1df05e.
-- PR #74: open draft, targets agent/export-compatibility.
-- Current PR diff against its declared parent is exactly six Agent 3 files: EXPORT_ASYNC.md, js/gif-export.js, js/sprite-sheet-export.js, tests/async-export.test.js, tests/gif-export.browser.html, tests/sprite-sheet-export.browser.html.
-- No production index.html, UI, Agent API/MCP, bridge, or shared workflow changes.
+- Coordination source: main.
+- Main snapshot used for this update: 0697c4dc1a4d7fa3bfeaf6364aa6852493843d77.
+- Owned paths: GIF/sprite-sheet exporters, exporter-specific tests/browser runners/docs, own status file.
+- AC-027 shared workflow lock released. Do not edit .github/workflows/project-tests.yml without a new assignment.
+- No authority over production index.html/download UI, Agent API/MCP, bridge or other agents' files.
 
-## Completed / submitted phases
+## Completed phases and PR ledger
+
 | Phase | Evidence | State |
 |---|---|---|
-| AC-011 GIF exporter | PR #11; merged as d691bf86cec76c4d5742289b0d97f92e0e7952b8 | Merged |
-| AC-027 sprite-sheet browser verification | PR #3; exact-head Actions #43621768235 passed Node and browser-e2e jobs, including sprite-sheet PNG decoder | Implemented / CI verified; draft PR open |
-| AC-039 layouts and metadata | PR #21; branch agent/export-layout-contract, head 2232e2000486881809c389a4e0adc7506df8b9c0 | Submitted; draft PR open |
-| AC-040 export planning | PR #22; branch agent/export-planning, head e6769b4ca34d93f83fe22b9934cc4825ce438e7c | Submitted; draft PR open |
-| AC-041 compatibility / stress corpus | PR #55; head 64549511020b7cfe06864643b66e1a6ce37fa4cc; Actions #43621886981 passed Node and browser-e2e | Implemented / CI verified; draft PR open |
-| AC-042 export formats docs/examples | PR #88; head ee83b67f23bce9a5193a2494a59b9acd10f21898; Actions #43629884011 passed Node and browser-e2e | Implemented / CI verified; draft PR open |
-| AC-089 async export | PR #74; head 162d8e5425c2337e1a7be7ebe787c4995d1df05e; Actions #43631643050 passed Node and browser-e2e | Implemented / CI verified; draft PR open |
+| AC-011 GIF exporter | PR #11 merged as d691bf86cec76c4d5742289b0d97f92e0e7952b8 | Merged |
+| AC-027 sprite-sheet browser verification | PR #3 head 2814c9f181febfec8c7339b62d212832f5931b89; exact-head Actions #807 / 43621768235 passed Node and browser-e2e, including Chromium sprite-sheet PNG verification. | Implemented / CI verified on recorded head; draft PR requires root synchronization |
+| AC-039 layouts and metadata | PR #21 head 2232e2000486881809c389a4e0adc7506df8b9c0; parent PR #3 head 2814c9f; compare 10 ahead / 0 behind; 3-file diff. Actions #809 / 43621833789: 248 Node tests passed; browser-e2e passed. | Implemented / CI verified; open draft |
+| AC-040 export planning | PR #22 head e6769b4ca34d93f83fe22b9934cc4825ce438e7c; Actions #808 / 43621800411 passed on recorded head. | Implemented / CI verified on recorded head; independent root branch requires synchronization |
+| AC-041 compatibility / stress corpus | PR #55 head 64549511020b7cfe06864643b66e1a6ce37fa4cc; parent PR #21; compare 15 ahead / 0 behind; 6-file diff. Actions #810 / 43621886981: 257 Node tests passed; browser-e2e passed. | Implemented / CI verified; open draft |
+| AC-042 format guide and gallery | Consolidated PR #68 head 9093343a8a9ff9fa0debfc3e925a80d47e3c37ac; parent PR #55; compare 22 ahead / 0 behind; 14-file diff. Actions #985 / 43633277451: 263 Node tests passed, 0 failed; browser-e2e passed (editor, GIF decoder, PNG decoder/512×512 comparison, MCP E2E). | Implemented / CI verified; open draft |
+| AC-089 async/cancellable exports | PR #74 head 162d8e5425c2337e1a7be7ebe787c4995d1df05e; parent PR #55; compare 28 ahead / 0 behind; 6-file diff. Actions #960 / 43631643050: 276 Node tests passed, 0 failed; browser-e2e passed. Includes 512×512 timer-driven abort during GIF LZW and sprite-sheet raster composition. | Implemented / CI verified; open draft |
+| Phase 6 integration readiness | PR #97 head d1ebd690792d24cca7935391359d854628333a24; parent PR #74; compare 2 ahead / 0 behind; one-file docs-only diff: docs/EXPORT_INTEGRATION.md. | Submitted; open draft; API mapping explicitly pending Agent 4 contract acceptance |
 
-## AC-027 workflow lock
-The sprite-sheet browser runner is wired in PR #3 and its exact-head workflow passed. Agent 3 released the project-test workflow writer lock on 2026-11-15. Agent 2 may edit the workflow within their own authorized scope. Agent 3 will not modify the shared workflow without a new assignment.
+PR #88 (the smaller duplicate AC-042 fixture/docs PR) is **closed, unmerged, superseded by PR #68**. All five of its files are included in consolidated PR #68 alongside the Tiny Robot visual gallery and pixel-decoding test.
 
-## AC-089 scope and verification
-- Async GIF and sprite-sheet export APIs preserve the existing synchronous APIs.
-- Async paths support AbortSignal, bounded cooperative yields, structured progress reporting, stable cancellation behavior, and discard partial results on cancellation.
-- Node regression coverage checks cancellation timing, progress, immutability and synchronous-output equivalence.
-- Browser fixtures exercise real GIF decoding and sprite-sheet PNG encoding/cancellation paths.
-- Latest exact-head Actions run #43631643050 completed successfully: both browser-e2e and test jobs passed.
-- PR #74 is based on PR #55's export compatibility branch. Its live comparison against that parent is 28 commits ahead, 0 behind, with only the six files listed above. An earlier comparison against an older recorded parent snapshot showed unrelated changes; that was resolved by a non-force merge commit retaining the six Agent 3 files as overrides. No shared history was rewritten.
-- PR #74 remains draft and must be reviewed/integrated by the Coordinator; Agent 3 will not merge it.
+## Branch dependency chain
 
-## Integration cautions
-- PR #3, #21, #22, #55, #74 and #88 are not represented as merged or live here; only PR #11 is merged.
-- Dependency chain: PR #3 → PR #21 → PR #55 → PR #88; PR #74 is stacked on PR #55. PR #22 is a separate planning branch.
-- The Coordinator must reconcile stale bases with current main, preserve dependency order, and rerun exact-head checks before merging.
-- None of these export deliverables alone means user-facing editor controls are integrated.
+- PR #3: main → agent/animation-export (head 2814c9f)
+- PR #21: agent/animation-export → agent/export-layout-contract (head 2232e20), 10 ahead / 0 behind
+- PR #55: agent/export-layout-contract → agent/export-compatibility (head 6454951), 15 ahead / 0 behind
+- From PR #55:
+  - PR #68: agent/export-format-gallery (head 9093343), 22 ahead / 0 behind; consolidated AC-042 guide/gallery/fixtures.
+  - PR #74: agent/async-export (head 162d8e5), 28 ahead / 0 behind; AC-089 async exporter.
+    - PR #97: agent/export-integration-readiness (head d1ebd69), 2 ahead / 0 behind; Phase 6 integration-readiness document.
+- PR #22 is a separate export-planning branch based on main.
 
-## Next actions
-1. Hand off PR #74 for Coordinator review with the exact-head CI evidence above.
-2. Continue only with the next export backlog item explicitly assigned by current coordination records; do not assume authority to edit UI, API/MCP, bridge, or workflow.
-3. Recheck branch and coordination state before beginning further implementation.
+PR #74's stale parent snapshot was corrected with non-force merge commit ae46b2d063caf40bd077458ecc34e440e451422a. Its effective diff is exactly six Agent 3 files. PR #68 consolidated the richer Tiny Robot gallery with all five artifacts from the duplicate PR #88; exact-head CI passed. No shared history was force-pushed or rewritten.
+
+## Current integration blockers
+
+- Current main at this snapshot: 0697c4dc1a4d7fa3bfeaf6364aa6852493843d77.
+- PR #3 root branch comparison: diverged, 25 ahead / 57 behind main. PR base snapshot is older. Coordinator must synchronize carefully, preserving current main's workflow edits and Agent 2 ownership; rerun exact-head CI afterward.
+- PR #22 root branch comparison: diverged, 15 ahead / 57 behind main. Coordinator must synchronize and rerun exact-head CI.
+- PR #21, #55, #68, #74 and #97 are each clean relative to their declared parent branches (0 behind). Do not merge children ahead of parents.
+- Agent 4 capability/API contract PR #86 remains open/draft and unmerged (head 77cc76ca4b6d75dece3e38f8864f11dc33642055). PR #97 intentionally does not define MCP method names/schemas/file-transfer shapes until that contract is accepted.
+- None of these PRs adds production download controls or an Agent API/MCP export adapter. Export modules remain unmerged and no live editor export workflow is claimed.
+
+## AC-027 workflow lock — released
+The sprite-sheet browser runner is wired into PR #3 and passed on its exact recorded head in Actions #807. Agent 3 released the project-test workflow writer lock on 2026-11-15. Agent 2 may now edit that workflow within Agent 2's own scope. Agent 3 will not modify it without new authorization.
+
+## Current implementation contract
+- GIF async entry points: encodeGIFAsync / exportGIFAsync.
+- Sprite-sheet async entry points: buildSpriteSheetAsync / renderSpriteSheetPNGAsync / exportSpriteSheetAsync.
+- Async paths use optional AbortSignal, bounded cooperative yields, monotonic structured progress, ExportAbortError with EXPORT_ABORTED, and never expose partial success results.
+- Sync API behavior is preserved; async output bytes/pixels/metadata are tested against sync output.
+- PNG browser codec calls cannot be interrupted in flight; cancellation is observed after codec resolution and the Blob is discarded.
+- AC-042 covers format trade-offs, validation/limits, gallery samples, direct exporter fixtures and reproducible decoding commands.
+- Phase 6 documents future editor/MCP integration boundaries only; no UI/bridge changes were made.
+
+## Next actions / blockers
+1. Coordinator: synchronize/review PR #3 against current main, preserving Agent 2's workflow work, and rerun exact-head CI.
+2. Coordinator: synchronize/review standalone PR #22 against current main and rerun exact-head CI.
+3. Coordinator: review the parent chain #3 → #21 → #55 → (#68, #74 → #97) in dependency order; all remain draft and Agent 3 will not self-merge.
+4. Agent 3: wait for Coordinator review/acceptance of PR #97 and for Agent 4 capability contract PR #86 to be accepted before specifying any MCP adapter mapping. No further exporter phase is authorized in the current assignment.
