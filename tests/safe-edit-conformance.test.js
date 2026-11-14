@@ -246,29 +246,37 @@ test("seeded guard properties: valid targets pass and adversarial target mutatio
 
       const mutation = mutations[(iteration + integer(random, 0, mutations.length - 1)) % mutations.length];
       const badProject = makeProject((seed ^ (iteration * 104729 + 17)) >>> 0);
-      mutation.apply(badProject);
       let options = {};
-      let expected = mutation.reason;
-      if (mutation.name === "duplicate layer ID") {
-        options.layerId = undefined;
-      }
-      if (mutation.name === "duplicate frame ID") {
-        options.frameId = undefined;
-      }
+      let expected;
+      let operation;
+      let mutationDescription;
+
+      // Forced freshness/selection cases are isolated from structural corruptions
+      // so one denial cannot mask the specific reason under test.
       if (iteration % 5 === 0) {
         options = {
           expectedRevisions: { project: 4, frame: 5, composite: 6 },
           currentRevisions: { project: 5, frame: 5, composite: 6 }
         };
         expected = Guard.REASONS.PROJECT_REVISION_STALE;
+        operation = "stale-project-revision";
+        mutationDescription = "expected project revision 4, current project revision 5";
       } else if (iteration % 7 === 0) {
         options = { selection: { x: badProject.canvas.width, y: 0, width: 1, height: 1 } };
         expected = Guard.REASONS.SELECTION_INVALID;
+        operation = "out-of-canvas-selection";
+        mutationDescription = "selection begins at canvas width";
+      } else {
+        mutation.apply(badProject);
+        expected = mutation.reason;
+        operation = mutation.name;
+        mutationDescription = mutation.name;
       }
+
       const before = stateSnapshot(badProject);
       const denied = Guard.resolveEditableTarget(badProject, options);
-      const context = compactReplay(seed, iteration, "guard-" + mutation.name,
-        badProject.canvas.width, badProject.canvas.height, mutation.name);
+      const context = compactReplay(seed, iteration, "guard-" + operation,
+        badProject.canvas.width, badProject.canvas.height, mutationDescription);
       assert.equal(denied.ok, false, context);
       assert.equal(denied.reason, expected, context);
       assert.equal(stateSnapshot(badProject), before, context);
