@@ -2512,21 +2512,98 @@ $("svgBtn").addEventListener("click",()=>{
 });
 $("jsonBtn").addEventListener("click",()=>{download(safeFilename()+"-project.json","application/json",ProjectModel.serializeProject(snapshot()));toast("Editable project exported.")});
 $("importProjectBtn").addEventListener("click",()=>$("projectInput").click());
-$("projectInput").addEventListener("change",async e=>{
-  const file=e.target.files[0];if(!file)return;
-  if(safeEditBusy){e.target.value="";toast("Finish saving the current edit before opening a project.");return}
-  const target=captureImportTarget();
+async function commitImportedProject(stagedProject,target,previousProject){
+  if(!isImportTargetCurrent(target)){
+    toast("The project changed while the file was loading. Nothing was imported.");
+    return false;
+  }
+  const imported=ProjectModel.cloneProject(stagedProject);
+  imported.id="project-import-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,10);
+  imported.metadata=imported.metadata||{};
+  imported.metadata.createdAt=new Date().toISOString();
+  imported.metadata.updatedAt=imported.metadata.createdAt;
+  const undoBefore=undoStack.slice(),redoBefore=redoStack.slice();
+  const previousSelection=selection,previousSelectionPreview=selectionPreview;
+  const previousClipboard=selectionClipboard,previousDragMode=selectionDragMode;
+  const previousFocus=document.activeElement;
+  const bodyWasInert=document.body.inert;
+  let persisted=false,published=false,rollbackReceipt=null;
+  safeEditBusy=true;
+  clearTimeout(saveTimer);saveTimer=null;
+  document.body.inert=true;
+  document.body.setAttribute("aria-busy","true");
+  $("saveState").textContent="SAVING IMPORTED PROJECT…";
   try{
-    const imported=ProjectModel.deserializeProject(await file.text());
-    if(!isImportTargetCurrent(target)){
-      toast("The project changed while the file was loading. Open the file again on the current project.");
-      return;
+    if(persistInFlight)await persistInFlight;
+    if(projectStorage){
+      const saved=await projectStorage.saveProject(imported);
+      rollbackReceipt=saved.rollbackReceipt;
+      persisted=true;
+    }else{
+      if(!writeLocalBackup(imported))throw new Error("Local backup storage is unavailable.");
+      persisted=true;
     }
     remember();
-    restore(imported);
+    selection=null;selectionPreview=null;selectionClipboard=null;selectionDragMode=null;
+    loadProjectIntoEditor(imported,false);
+    documentRevision+=1;
+    published=true;
+    const backupSaved=writeLocalBackup(imported);
+    $("saveState").textContent=projectStorage
+      ?(backupSaved?"SAVED IN PROJECT LIBRARY":"LIBRARY SAVED · LOCAL BACKUP UNAVAILABLE")
+      :"LOCAL BACKUP ONLY";
     toast("Project opened · "+imported.layers.length+" layer(s), "+imported.frames.length+" frame(s).");
-  }catch(err){
-    toast(err&&err.message?err.message:"Could not open that project file.");
+    return true;
+  }catch(error){
+    if(published){
+      undoStack.splice(0,undoStack.length,...undoBefore);
+      redoStack.splice(0,redoStack.length,...redoBefore);
+      selection=previousSelection;selectionPreview=previousSelectionPreview;
+      selectionClipboard=previousClipboard;selectionDragMode=previousDragMode;
+      try{loadProjectIntoEditor(previousProject,false);documentRevision+=1;}
+      catch(restoreError){console.error("Project import in-memory rollback failed:",restoreError);}
+    }
+    if(persisted&&projectStorage&&rollbackReceipt){
+      try{await projectStorage.restoreIfCurrent(rollbackReceipt);}
+      catch(rollbackError){console.error("Project import storage rollback failed:",rollbackError);$("saveState").textContent="IMPORT / ROLLBACK FAILED · EXPORT JSON";}
+    }else if(!projectStorage){
+      writeLocalBackup(previousProject);
+    }
+    if($("saveState").textContent!=="IMPORT / ROLLBACK FAILED · EXPORT JSON")$("saveState").textContent="IMPORT FAILED · PREVIOUS PROJECT KEPT";
+    toast("Could not open that project. Your previous artwork was preserved. "+(error&&error.message?error.message:""));
+    return false;
+  }finally{
+    safeEditBusy=false;
+    document.body.inert=bodyWasInert;
+    if(!bodyWasInert)document.body.removeAttribute("aria-busy");
+    if(previousFocus&&previousFocus.isConnected&&typeof previousFocus.focus==="function")previousFocus.focus();
+  }
+}
+$("projectInput").addEventListener("change",async e=>{
+  const file=e.target.files&&e.target.files[0];
+  if(!file)return;
+  if(safeEditBusy){e.target.value="";toast("Finish saving the current edit before opening a project.");return;}
+  if(file.size>window.ArtClubImportStaging.LIMITS.maxProjectBytes){
+    e.target.value="";toast("Project files must be 32 MB or smaller.");return;
+  }
+  const target=captureImportTarget();
+  const previousProject=snapshot();
+  try{
+    const staged=window.ArtClubImportStaging.stageProjectImport(await file.text());
+    if(!staged.ok){
+      const diagnostic=staged.diagnostics&&staged.diagnostics[0];
+      toast(diagnostic?diagnostic.message:"The project file could not be staged safely.");
+      return;
+    }
+    if(staged.warnings.length){
+      const details=staged.warnings.map(warning=>warning.message).join("\n");
+      if(!window.confirm("Open this project and replace the current editor?\n\n"+details+"\n\nYour current project will remain in the library."))return;
+    }else if(!window.confirm("Open this project and replace the current editor?\n\nYour current project will remain in the library.")){
+      return;
+    }
+    await commitImportedProject(staged.staged.project,target,previousProject);
+  }catch(error){
+    toast(error&&error.message?error.message:"Could not open that project file.");
   }finally{
     e.target.value="";
   }
