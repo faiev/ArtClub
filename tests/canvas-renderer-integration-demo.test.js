@@ -4,6 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 
 const root = path.resolve(__dirname, "..");
 const demo = fs.readFileSync(path.join(root, "demos/canvas-renderer-integration.html"), "utf8");
@@ -69,4 +70,16 @@ test("integration contract documents fallback, coordinate, accessibility, lifecy
   assert.match(docs, /Defer production Canvas renderer replacement/);
   assert.match(docs, /dirty-call-per-pixel/);
   assert.match(docs, /does not modify/);
+});
+
+
+test("dedicated Chromium runner is valid Node ESM and covers all four DPR contexts", () => {
+  const runnerPath = path.join(root, "tests/canvas-renderer-integration-demo.browser.mjs");
+  const syntax = spawnSync(process.execPath, ["--check", runnerPath], { encoding: "utf8" });
+  assert.equal(syntax.status, 0, syntax.stderr || syntax.stdout || "browser runner syntax check failed");
+  const runner = fs.readFileSync(runnerPath, "utf8");
+  assert.match(runner, /\[1, 1\.25, 1\.5, 2\]/);
+  assert.match(runner, /fallback/);
+  assert.match(runner, /cleanup/);
+  assert.match(runner, /pageErrors/);
 });
