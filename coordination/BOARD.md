@@ -1,3 +1,29 @@
+# DELIVERY RESET — 2026-11-15 (supersedes broad parallel workstream expansion)
+
+**The team is in product-delivery mode. Stop creating isolated modules, speculative tooling, extra prototypes, benchmark-only work, and documentation-only PRs unless the Coordinator explicitly requests them for the current release.**
+
+## One active release lane
+- **P0: UI-02 production editing safety.** Coordinator owns production UI integration. Deliver and verify active-cel/selection Clear, then staged image import, then atomic selection paste. Only one production integration PR is active at a time.
+- Agent 1: QA-only denial/immutability tests and exact-head review for the active UI-02 slice.
+- Agent 6: read-only safety-module review and reproducible test harness for the active UI-02 slice.
+- Agents 2–5 and 7–10: no new feature branches or PRs. Preserve submitted work; do not start the next AC phase. They may perform only specifically requested, read-only dependency/review work.
+- Existing open PRs are **inventory, not active work**. No new PR is accepted unless it directly unblocks or completes the current user-visible release.
+
+## Branch and PR controls
+- Do not create a branch merely because a task is a new AC number.
+- Maximum active feature branches: one coordinator integration branch plus one QA branch and one safety-review branch.
+- Keep historical branches intact during this reset. Do not bulk-delete branches or close PRs until each branch is classified against its PR, unique commits, dependencies and merge state.
+- Coordinator will maintain a branch/PR disposition ledger: merge, retain as dependency, close as superseded, or archive/delete after confirmation.
+- No agent may report a module, spec, test harness or prototype as a shipped application feature.
+
+## Definition of progress
+A task counts as product progress only when a real user workflow is implemented in the production app, tested in a real browser, merged to main, deployed, and verified on the published site. Unit tests, isolated modules, docs, open PRs and green CI are supporting evidence—not product delivery.
+
+## Daily operating rule
+At most three chats need to be active for the current release: Coordinator, Agent 1 QA, Agent 6 safety. The other chats are paused. GitHub cannot wake inactive ChatGPT chats; the user should not be asked to resume ten agents for this one release.
+
+---
+
 # CURRENT COORDINATOR RESET — 2026-11-15
 
 > This live snapshot supersedes older dated board status below. Re-fetch branch heads, PRs and Actions before every merge decision.
