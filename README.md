@@ -4,9 +4,7 @@ A browser-based pixel art editor. It is a static site: no build step, backend, a
 
 ## Open the editor
 
-Once GitHub Pages finishes its first deployment:
-
-**https://faiev.github.io/ArtClub/**
+**[Launch One Pixel Studio](https://faiev.github.io/ArtClub/)**
 
 ## Features
 
@@ -24,8 +22,8 @@ Artwork stays in your browser. The editor does not upload images or project data
 
 ## Deployment
 
-A GitHub Actions workflow in `.github/workflows/pages.yml` deploys the static site whenever a commit is pushed to `main`.
+This repository is hosted with GitHub Pages from the `main` branch and repository root (`/(root)`). GitHub automatically republishes the static site when changes are pushed to `main`.
 
-If this is the first deployment, open **Settings → Pages** in this repository and set **Build and deployment → Source** to **GitHub Actions**. The workflow will then publish the site automatically. You can follow its progress in the **Actions** tab.
+To check or change this setting, open **Settings → Pages → Build and deployment** and select **Deploy from a branch**, branch `main`, folder `/(root)`.
 
 No build command or package installation is needed.
