@@ -167,7 +167,7 @@ The report contains:
 - `migration.transformedFields`: source-to-target mappings for width/height, name, selected palette index, pixel data and version upgrade.
 - `migration.preservedFields`: values copied without reordering, including palette order.
 - `migration.generatedFields`: v2 fields supplied by the project model or represented by preview-only values.
-- `migration.discardedFields`: legacy-only markers not retained in the v2 project.
+- `migration.discardedFields`: legacy-only markers and unrecognized top-level source fields that the current model migration does not consume. These are named explicitly rather than silently disappearing from the migration report.
 - `migration.warnings`: defaults applied by the model and preview-only metadata policy.
 - `normalizedPreview`: the full normalized project object, with deterministic placeholders for fields that the legacy source never contained.
 - `normalizedJsonBytes`: compact JSON byte length of the normalized preview.
@@ -177,7 +177,7 @@ The project model normally creates IDs and timestamps during legacy migration. T
 - Metadata timestamps use the fixed epoch marker `1970-01-01T00:00:00.000Z`.
 - The report explicitly marks these IDs/timestamps as preview-only and not source identities or source timestamps. Do not persist these placeholders as though they were part of the original legacy file.
 
-Legacy `projectName` and `selected` defaulting are surfaced in `transformedFields` and `warnings`; the actual model's migration result remains authoritative. A legacy source with invalid dimensions, palette or pixel data is rejected; the preview does not repair missing values.
+Legacy `projectName` and `selected` defaulting are surfaced in `transformedFields` and `warnings`; unrecognized top-level fields are listed in `discardedFields` with a warning. The actual model's migration result remains authoritative. A legacy source with invalid dimensions, palette or pixel data is rejected; the preview does not repair missing values.
 
 Migration preview accepts legacy single-canvas inputs only. A v2 source returns `NOT_LEGACY_PROJECT` rather than pretending to perform a migration. Malformed and oversized inputs return structured errors. Input files larger than 64 MiB are rejected before parsing; the rejected-input report includes the measured file size, but cannot include a source hash because the file was not read. A 16 MiB normalized-preview JSON cap prevents excessively large output payloads.
 
