@@ -139,6 +139,11 @@ async function run() {
     assert.notEqual(addLayerResult.isError, true);
     const topLayerId = addLayerResult.structuredContent.active_layer.id;
     assert.notEqual(topLayerId, baseLayerId);
+    const topDraw = await client.callTool({
+      name: "artclub_draw_pixel",
+      arguments: { x: 6, y: 7, color: "#12abef" }
+    });
+    assert.notEqual(topDraw.isError, true);
 
     const lowerSelect = await client.callTool({
       name: "artclub_select_layer",
