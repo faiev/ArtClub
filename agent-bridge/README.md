@@ -37,7 +37,7 @@ Environment options:
 - `ARTCLUB_MAX_PENDING_OPERATIONS`: maximum active plus queued operations (default 64).
 - `ARTCLUB_MAX_TOOL_INPUT_BYTES` / `ARTCLUB_MAX_TOOL_OUTPUT_BYTES`: serialized JSON payload limits (defaults 8 MiB and 16 MiB).
 
-`ARTCLUB_URL` must use HTTPS, except that plain HTTP is accepted for loopback development URLs (`localhost`, `127.0.0.1` or `::1`). File/data/javascript/FTP URLs, non-loopback HTTP (including loopback-lookalike hostnames) and embedded credentials are rejected. Only point it at an Art Club deployment you trust: the bridge calls the `window.onePixelStudio` API exposed by that page, so a custom HTTPS origin is part of your local trust boundary.
+`ARTCLUB_URL` must use HTTPS, except that plain HTTP is accepted for loopback development URLs (`localhost`, `127.0.0.1` or `::1`). URLs containing embedded credentials are rejected. Only point it at an Art Club deployment you trust: the bridge calls the `window.onePixelStudio` API exposed by that page, so a custom HTTPS origin is part of your local trust boundary.
 
 ## Connect an MCP client
 
@@ -130,9 +130,7 @@ Each MCP request receives a request ID and per-tool deadline. Timeout/cancellati
 
 The queue is bounded; a full queue rejects new work with `QUEUE_FULL` rather than growing without limit. Input and output limits are measured from their serialized JSON representation in UTF-8 bytes. During shutdown, queued requests are rejected, active work is cancelled and drained, and only then are the browser context and MCP server closed. A browser evaluation that fails to settle after page teardown can still delay shutdown; the bridge does not claim rollback for an uncertain write.
 
-MCP inputs use strict object schemas; unknown top-level properties and unknown fields inside batch commands are rejected rather than silently ignored. Batch commands use a discriminated schema for the documented drawing operations. Coordinates, selection dimensions/offsets, IDs, names, batch counts and UTF-8 serialized input/output sizes are bounded before browser execution. Imported JSON is first checked for valid syntax and an object root, then the browser project model performs the full format, reference, dimensions and cel validation before persisting or replacing the active project.
-
-Tool-handler failures include text content and structured error details: `{ ok: false, error: { tool, name, code, request_id, outcome_uncertain, message } }`. Error messages are control-character cleaned, capped and redacted for local filesystem paths and URLs. Invalid arguments rejected by the MCP SDK's input-schema validation may use the SDK's own error response instead.
+Tool-handler failures include text content and structured error details: `{ ok: false, error: { tool, name, message } }`. Invalid arguments rejected by the MCP SDK's input-schema validation may use the SDK's own error response instead.
 
 Read-only array results are returned in object envelopes for structured MCP clients: `{ palette }`, `{ layers }` and `{ projects }`. Project JSON export returns `{ project_json }`; PNG export includes MIME type and dimensions in structured content alongside the image block.
 

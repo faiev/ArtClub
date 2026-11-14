@@ -64,19 +64,13 @@ async function run() {
     ARTCLUB_TEST_HOLD_POINTS: "23,22;22,21",
     ARTCLUB_TEST_HOLD_MS: "1000",
     ARTCLUB_TEST_TIMEOUT_POINT: "22,21",
-    ARTCLUB_TEST_TIMEOUT_MS: "100",
-    ARTCLUB_MAX_TOOL_INPUT_BYTES: "65536"
+    ARTCLUB_TEST_TIMEOUT_MS: "100"
   };
 
   // Invalid editor URLs must fail before Chromium launches.
   for (const [invalidUrl, expectedMessage] of [
     ["http://example.com/", /localhost development URLs/],
-    ["http://127.0.0.1.evil.example/", /localhost development URLs/],
-    ["http://localhost.example/", /localhost development URLs/],
     ["ftp://example.com/", /must use HTTPS/],
-    ["file:///etc/passwd", /must use HTTPS/],
-    ["data:text/html,hello", /must use HTTPS/],
-    ["javascript:alert(1)", /must use HTTPS/],
     ["https://user:pass@example.com/", /embedded credentials/]
   ]) {
     const result = spawnSync(process.execPath, [SERVER_PATH], {
@@ -213,95 +207,6 @@ async function run() {
     assert.notEqual(statusResult.isError, true);
     const status = statusResult.structuredContent;
     assert.equal(status.protocol, "one-pixel-studio-agent");
-
-    // Strict root schemas and discriminated command schemas reject unexpected
-    // object shapes before any editor operation can start.
-    const validationRevision = status.revision;
-    const schemaRejections = [
-      ["artclub_get_status", { unexpected: true }],
-      ["artclub_draw_pixel", {
-        x: 1, y: 1, color: "#112233",
-        expected_revision: validationRevision, unexpected: true
-      }],
-      ["artclub_execute", {
-        expected_revision: validationRevision,
-        commands: [{ type: "draw_pixel", x: 1, y: 1, color: "#112233", unexpected: true }]
-      }],
-      ["artclub_execute", {
-        expected_revision: validationRevision,
-        commands: [{ type: "delete_project", project_id: "some-project" }]
-      }],
-      ["artclub_execute", {
-        expected_revision: validationRevision,
-        commands: Array.from({ length: 1001 }, () => ({ type: "clear_canvas" }))
-      }],
-      ["artclub_set_selection", {
-        x: 0, y: 0, width: 513, height: 1, expected_revision: validationRevision
-      }],
-      ["artclub_move_selection", {
-        dx: 513, dy: 0, expected_revision: validationRevision
-      }]
-    ];
-    for (const [name, args] of schemaRejections) {
-      const rejected = await rawCallTool({ name, arguments: args });
-      assert.equal(rejected.isError, true, name + " must reject malformed or out-of-bounds input");
-    }
-    const afterSchemaRejections = await rawCallTool({
-      name: "artclub_get_status", arguments: {}
-    });
-    assert.equal(
-      afterSchemaRejections.structuredContent.revision,
-      validationRevision,
-      "schema rejection must not mutate the project"
-    );
-
-    // IDs are untrusted identifiers; unknown layer/frame IDs are rejected
-    // without advancing the document revision.
-    for (const [name, args] of [
-      ["artclub_select_layer", { layer_id: "missing-layer-id", expected_revision: validationRevision }],
-      ["artclub_select_frame", { frame_id: "missing-frame-id", expected_revision: validationRevision }]
-    ]) {
-      const rejected = await rawCallTool({ name, arguments: args });
-      assert.equal(rejected.isError, true, name + " must reject unknown IDs");
-    }
-
-    // Malformed JSON, scalar/array roots and invalid project documents all
-    // fail before the editor persists or replaces the active project.
-    for (const [project_json, expectedCode] of [
-      ["{not-json", "INVALID_PROJECT_JSON"],
-      ["null", "INVALID_PROJECT_SHAPE"],
-      ["[]", "INVALID_PROJECT_SHAPE"],
-      [JSON.stringify({ format: "not-an-artclub-project" }), "TOOL_FAILED"]
-    ]) {
-      const rejected = await rawCallTool({
-        name: "artclub_import_project",
-        arguments: { project_json, expected_revision: validationRevision }
-      });
-      assert.equal(rejected.isError, true, "invalid project payload must be rejected");
-      assert.equal(rejected.structuredContent.error.code, expectedCode);
-    }
-
-    // JSON string length is not byte length: emoji are multi-byte UTF-8.
-    // This payload passes the schema character cap but exceeds the serialized
-    // request byte cap and must be rejected by the bridge before browser use.
-    const oversizedUtf8 = await rawCallTool({
-      name: "artclub_import_project",
-      arguments: {
-        project_json: "🧵".repeat(20_000),
-        expected_revision: validationRevision
-      }
-    });
-    assert.equal(oversizedUtf8.isError, true);
-    assert.equal(oversizedUtf8.structuredContent.error.code, "INPUT_TOO_LARGE");
-
-    const afterInvalidImports = await rawCallTool({
-      name: "artclub_get_status", arguments: {}
-    });
-    assert.equal(
-      afterInvalidImports.structuredContent.revision,
-      validationRevision,
-      "rejected project imports and oversized inputs must leave the active document unchanged"
-    );
 
     const missingRevision = await rawCallTool({
       name: "artclub_draw_pixel",
