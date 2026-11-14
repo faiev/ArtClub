@@ -61,3 +61,36 @@ The GitHub coordination system is shared memory, not a scheduler. It cannot wake
 
 ## D-020 — Release shared locks when the blocking PR merges
 The PR #11 project-test workflow changes are merged. Agent 3 retains the workflow writer lock only for the assigned AC-027 sprite-sheet browser verification/CI wiring; Agent 2 must not edit the workflow until Agent 3 records the lock release. The bridge E2E lock remains with Agent 4 while PR #8 is reconciled.
+
+## D-021 — Coordinator extension queues
+On 2026-11-14 the coordinator appended AC-087 through AC-096, one follow-on phase to each of the ten workstreams. These phases are pre-authorized after the corresponding agent's existing queue; they do not cancel unfinished phases, loosen file ownership or grant shared-file locks.
+
+## D-022 — UX prototype is not production UI authorization
+Agent 5's AC-091 may create a self-contained, interactive prototype and design system under `docs/ux/**`. It must be labelled non-production and must not edit `index.html`, production CSS/JS or application tests. Production UI ownership remains with the coordinator and will be issued as a separate, explicit lock.
+
+## D-023 — Keep renderer and exporter integration evidence separate
+Agent 2's AC-088 must distinguish the live editor's DOM-grid performance from isolated Canvas renderer measurements. Agent 3's AC-089 may add cooperative async cancellation/progress to exporter APIs but must not duplicate bridge request-deadline behavior owned by Agent 4. No renderer/exporter UI integration is implied.
+
+## D-024 — Status files must catch up with submitted PRs
+Several status files lag the open PR inventory. On each resume, the owner must reconcile their own status with every submitted phase/PR, exact current head, parent dependency, tested SHA, CI result and remaining limitation before starting the next phase. The coordinator updates the board from both status files and PR evidence, but does not overwrite worker-owned status files.
+
+## D-025 — Workflow and bridge E2E locks remain explicit
+Agent 3 retains the project workflow lock only for AC-027 sprite-sheet browser verification/CI wiring and must explicitly release it when complete. Agent 4 remains sole writer of the shared bridge browser E2E file while PR #8 is reconciled. No other agent may infer these locks have expired from later independent PRs.
+
+
+## D-026 — Accept the AC-091 visual direction, not the incomplete prototype handoff
+
+On 2026-11-14 the coordinator reviewed Agent 5's graphite/olive design system and workstation prototype source. The visual direction is approved as the basis for UI-01: compact creative-workstation hierarchy, canvas-first center, restrained graphite surfaces, muted olive selection, warm visible focus, precise separators and reduced promotional chrome.
+
+This is **directional approval only**. PR #77 remains draft and UI-00 is not fully accepted: its branch/status metadata is stale, screenshot references are unresolved, and the reviewed prototype still has documented accessibility/tool limitations. Agent 5 remains restricted to `docs/ux/**`; no production-file authority is granted.
+
+The coordinator may proceed with narrow production UI slices that preserve existing live DOM controls, command handlers, renderer, project model and persistence. Do not port prototype-only behavior or represent unavailable commands as working controls. The first production slice is UI-01, tracked in coordinator-owned PR #84. Its exact-head browser regression and reviewer gates must pass before merge.
+
+
+## D-027 — UI-02 production safety integration takes release priority
+
+On 2026-11-15, UI-01 is confirmed merged and its merge commit's GitHub Pages deployment succeeded. The next user-visible milestone is UI-02: guarded active-cel/selection Clear, staged asynchronous image import with target revalidation, and atomic selection paste/replace, with real Chromium denial and immutability coverage.
+
+The safe-edit helper modules remain isolated until integrated. The coordinator is sole writer of index.html and production UI; Agent 1 owns QA-only paths, Agent 6 supplies safety modules/review, and Agent 5 supplies design/accessibility guidance. No project model/storage, Agent API/bridge or workflow ownership is implicitly transferred.
+
+New isolated feature expansion under AC-087–096 is paused as a team priority while UI-02 release gates are active. Existing PRs may be reconciled, exact-head tested and reviewed when parent dependencies and scope are clear. Do not self-merge or bypass exact-head CI. GitHub assignment changes do not wake inactive agent chats.

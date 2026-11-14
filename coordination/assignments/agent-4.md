@@ -48,3 +48,22 @@ All phases are authorized. PR #8 can be under review while phases 1–3 proceed 
 
 ## Handoff
 Update only coordination/status/agent-4.md with phase, branch/head, PRs, checks, security findings, unresolved concurrency guarantees and next 3–5 actions. Do not merge or self-accept.
+
+## Coordinator-added extension — AC-090: Local bridge doctor and diagnostics
+
+After AC-048, build a read-only diagnostic command that helps users understand whether the optional local MCP bridge can start and communicate safely.
+
+### Deliverable
+- Add `agent-bridge/doctor.mjs` (or an equivalently scoped executable) with human and stable JSON output.
+- Check supported Node version, required package availability, configured editor URL policy, browser automation executable availability, profile directory accessibility and profile-lock state.
+- Distinguish pass, warning, fail and unknown. Never reveal environment secrets, credentials, full sensitive paths or browser profile contents.
+- Read stale lock metadata but never automatically reclaim or delete a lock; direct the user to the documented explicit recovery operation.
+- Do not start/stop the bridge, launch a browser, change environment variables, install packages, contact a remote service or mutate project data.
+- Add tests for missing configuration, invalid URLs, unsupported runtimes, missing browser executables, inaccessible profiles, active/stale/malformed locks and redaction.
+- Document exit codes and troubleshooting. Ensure diagnostics work offline.
+
+**Allowed files:** `agent-bridge/doctor.mjs`, focused bridge doctor tests and `agent-bridge/README.md` / `AGENT_API.md` diagnostics sections. Do not change shared bridge E2E without the existing lock, index.html, editor storage, workflow or exporter code.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile #8/#38/#54/#82/#86 and exact dependencies/head tests. PR #82 reports five failures in Agent 6-owned safe-edit tests; coordinate diagnosis with Agent 6, do not edit their files, rerun complete CI. Maintain agent-bridge/e2e-test.mjs ownership until #8 is reconciled. No production UI/API lock.
