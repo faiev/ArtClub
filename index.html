@@ -158,7 +158,7 @@ input[type=color]{width:40px;height:36px}
 .bottom-note{padding-top:19px}
 @media(max-width:1120px){.workspace{grid-template-columns:168px minmax(300px,1fr) 230px}.tools-panel,.inspector{padding:14px}.stage{padding:16px}.canvas-wrap{padding:18px;min-height:360px}}
 @media(max-width:900px){.workspace{grid-template-columns:158px minmax(0,1fr)}.inspector{grid-column:1/-1;display:grid;grid-template-columns:1.1fr 1fr 1fr;align-items:start}.inspector .rule{display:none}.palette-area{grid-row:span 2}}
-@media(max-width:700px){.shell{padding:13px 12px 20px}.topbar{padding-bottom:15px}.intro{padding:20px 0 17px}.workspace{grid-template-columns:1fr}.tools-panel{padding:12px}.stage{padding:13px}.stage-head{align-items:flex-start}.stage-title{flex:1 1 100%;justify-content:space-between}.project-name{width:min(62vw,230px)}.stage-actions{width:100%;justify-content:flex-end}.canvas-toolbar{margin-bottom:8px}.canvas-wrap{min-height:0;padding:14px 10px}.pixel-grid{max-width:none}.inspector{grid-column:auto;display:grid;grid-template-columns:1fr 1fr;gap:13px}.inspector .palette-area{grid-column:1/-1;grid-row:auto}.palette-presets{margin-top:11px}.canvas-tip{font-size:8px}.bottom-note{font-size:8px}}
+@media(max-width:700px){.shell{padding:13px 12px 20px}.topbar{padding-bottom:15px}.intro{padding:20px 0 17px}.workspace{grid-template-columns:1fr}.tools-panel{padding:12px}.stage{padding:13px}.stage-head{align-items:flex-start}.stage-title{flex:1 1 100%;justify-content:space-between}.project-name{width:min(62vw,230px)}.stage-actions{width:100%;justify-content:flex-end}.canvas-toolbar{margin-bottom:8px}.canvas-wrap{min-height:0;padding:14px 10px}.pixel-grid{max-width:none}.inspector{grid-column:auto;display:grid;grid-template-columns:1fr 1fr;gap:13px}.inspector .palette-area{grid-column:1/-1;grid-row:auto}.palette-presets{margin-top:11px}.canvas-tip{font-size:8px}.tool-list{grid-template-columns:repeat(4,minmax(0,1fr))}.shortcut-list{display:none}.selection-tools .small-button{font-size:8px;padding:6px 2px}.bottom-note{font-size:8px}}
 @media(max-width:390px){.local-pill{padding:7px 8px;font-size:8px}.brandname{font-size:13px}.brandname span{margin-left:2px}.stage-actions{gap:3px}.action-divider{margin:0 1px}.zoom-button{width:22px}.zoom-value{min-width:38px}.icon-button{width:29px;height:29px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
 .project-dialog{width:min(760px,calc(100vw - 24px));max-width:760px;max-height:min(82vh,760px);padding:0;border:1px solid #d8ded5;border-radius:18px;background:#fffefa;color:var(--ink);box-shadow:0 25px 80px rgba(20,35,35,.24)}
@@ -239,6 +239,9 @@ input[type=color]{width:40px;height:36px}
       <button class="small-button" id="selectionClearBtn" type="button" disabled>Clear</button>
       <button class="small-button" id="selectionAllBtn" type="button">Select all</button>
       <button class="small-button" id="selectionDeselectBtn" type="button" disabled>Deselect</button>
+      <button class="small-button" id="selectionFlipHBtn" type="button" disabled>Flip H</button>
+      <button class="small-button" id="selectionFlipVBtn" type="button" disabled>Flip V</button>
+      <button class="small-button" id="selectionRotateBtn" type="button" disabled>Rotate 90°</button>
     </div>
     <div class="selection-status" id="selectionStatus">NO SELECTION · M TO SELECT</div>
     <label class="check-row hidden" id="shapeFillOption"><input type="checkbox" id="shapeFillToggle"> Filled shape</label>
@@ -261,7 +264,9 @@ input[type=color]{width:40px;height:36px}
     <div class="shortcut-list">
       <div class="field-label">Shortcuts</div>
       <div class="shortcut"><span>Brush / Erase</span><span><kbd>B</kbd> <kbd>E</kbd></span></div>
-      <div class="shortcut"><span>Fill / Pick</span><span><kbd>G</kbd> <kbd>I</kbd></span></div>
+      <div class="shortcut"><span>Fill / Pick / Select</span><span><kbd>G</kbd> <kbd>I</kbd> <kbd>M</kbd></span></div>
+      <div class="shortcut"><span>Copy / Cut / Paste</span><span><kbd>⌘ C</kbd> <kbd>⌘ X</kbd> <kbd>⌘ V</kbd></span></div>
+      <div class="shortcut"><span>Select all / Deselect</span><span><kbd>⌘ A</kbd> <kbd>⌘ D</kbd></span></div>
       <div class="shortcut"><span>Undo / Redo</span><span><kbd>⌘ Z</kbd> <kbd>⇧ Z</kbd></span></div>
       <div class="shortcut"><span>Save project</span><span><kbd>⌘ S</kbd></span></div>
     </div>
@@ -294,7 +299,7 @@ input[type=color]{width:40px;height:36px}
         <span class="toolbar-divider"></span>
         <span class="active-tool-label" id="toolMeta">BRUSH · 1 PX</span>
       </div>
-      <span class="canvas-tip">DRAG TO DRAW</span>
+      <span class="canvas-tip" id="canvasTip">DRAG TO DRAW</span>
     </div>
     <div class="canvas-wrap">
       <div id="pixelGrid" class="pixel-grid" role="grid" aria-label="Pixel art canvas"></div>
@@ -601,6 +606,9 @@ function renderSelectionTools(){
   $("selectionClearBtn").disabled=!active||!isActiveLayerEditable();
   $("selectionPasteBtn").disabled=!selectionClipboard||!isActiveLayerEditable();
   $("selectionDeselectBtn").disabled=!active;
+  $("selectionFlipHBtn").disabled=!active||!isActiveLayerEditable();
+  $("selectionFlipVBtn").disabled=!active||!isActiveLayerEditable();
+  $("selectionRotateBtn").disabled=!active||!isActiveLayerEditable();
   $("selectionStatus").textContent=active
     ?selection.width+" × "+selection.height+" PX · X "+selection.x+" · Y "+selection.y
     :"NO SELECTION · M TO SELECT";
@@ -635,6 +643,43 @@ function moveSelectionPixels(dx,dy){
     if(color!==null)pixels[(targetY+y)*w+targetX+x]=color;
   }
   selection={x:targetX,y:targetY,width:selection.width,height:selection.height};
+  renderGrid();renderStats();renderSelectionTools();scheduleSave();
+}
+function transformSelection(operation){
+  if(!selection)throw new Error("Create a selection before transforming pixels.");
+  if(!isActiveLayerEditable())throw new Error("The active layer is locked or hidden.");
+  if(!["flip_h","flip_v","rotate_cw","rotate_ccw"].includes(operation)){
+    throw new Error("Unknown selection transform.");
+  }
+  const sourceWidth=selection.width,sourceHeight=selection.height;
+  const outputWidth=operation==="rotate_cw"||operation==="rotate_ccw"?sourceHeight:sourceWidth;
+  const outputHeight=operation==="rotate_cw"||operation==="rotate_ccw"?sourceWidth:sourceHeight;
+  const outputX=selection.x,outputY=selection.y;
+  if(outputX+outputWidth>w||outputY+outputHeight>h){
+    throw new Error("The rotated selection will not fit at this position. Move it away from the canvas edge first.");
+  }
+  const source=[];
+  for(let y=0;y<sourceHeight;y++)for(let x=0;x<sourceWidth;x++){
+    source.push(pixels[(selection.y+y)*w+selection.x+x]);
+  }
+  const output=Array(outputWidth*outputHeight).fill(null);
+  for(let y=0;y<sourceHeight;y++)for(let x=0;x<sourceWidth;x++){
+    let targetX=x,targetY=y;
+    if(operation==="flip_h")targetX=sourceWidth-1-x;
+    else if(operation==="flip_v")targetY=sourceHeight-1-y;
+    else if(operation==="rotate_cw"){targetX=sourceHeight-1-y;targetY=x}
+    else if(operation==="rotate_ccw"){targetX=y;targetY=sourceWidth-1-x}
+    output[targetY*outputWidth+targetX]=source[y*sourceWidth+x];
+  }
+  remember();
+  for(let y=0;y<sourceHeight;y++)for(let x=0;x<sourceWidth;x++){
+    pixels[(selection.y+y)*w+selection.x+x]=null;
+  }
+  for(let y=0;y<outputHeight;y++)for(let x=0;x<outputWidth;x++){
+    const color=output[y*outputWidth+x];
+    if(color!==null)pixels[(outputY+y)*w+outputX+x]=color;
+  }
+  selection={x:outputX,y:outputY,width:outputWidth,height:outputHeight};
   renderGrid();renderStats();renderSelectionTools();scheduleSave();
 }
 function copySelection(){
@@ -871,7 +916,8 @@ function setTool(name){
   document.querySelectorAll(".tool").forEach(b=>b.classList.toggle("active",b.dataset.tool===name));
   $("shapeFillOption").classList.toggle("hidden",name!=="rect"&&name!=="ellipse");
   $("activeToolCaption").textContent=name.toUpperCase()+" TOOL";
-  $("toolMeta").textContent=name.toUpperCase()+" · "+(name==="eraser"?"ERASE":name==="eyedropper"?"PICK":name==="fill"?"AREA":(name==="rect"||name==="ellipse")&&$("shapeFillToggle").checked?"FILLED":"1 PX");
+  $("toolMeta").textContent=name.toUpperCase()+" · "+(name==="eraser"?"ERASE":name==="eyedropper"?"PICK":name==="fill"?"AREA":name==="select"?"MARQUEE":(name==="rect"||name==="ellipse")&&$("shapeFillToggle").checked?"FILLED":"1 PX");
+  $("canvasTip").textContent=name==="select"?"DRAG TO SELECT / MOVE":name==="eyedropper"?"CLICK TO PICK A COLOR":name==="fill"?"CLICK TO FILL AN AREA":"DRAG TO DRAW";
 }
 function applyZoom(){
   const parentWidth=grid.parentElement?grid.parentElement.clientWidth:600;
@@ -1478,6 +1524,9 @@ $("selectionPasteBtn").addEventListener("click",pasteSelection);
 $("selectionClearBtn").addEventListener("click",clearSelectedPixels);
 $("selectionAllBtn").addEventListener("click",selectAll);
 $("selectionDeselectBtn").addEventListener("click",deselect);
+$("selectionFlipHBtn").addEventListener("click",()=>{try{transformSelection("flip_h")}catch(error){toast(error.message)}});
+$("selectionFlipVBtn").addEventListener("click",()=>{try{transformSelection("flip_v")}catch(error){toast(error.message)}});
+$("selectionRotateBtn").addEventListener("click",()=>{try{transformSelection("rotate_cw")}catch(error){toast(error.message)}});
 $("addLayerBtn").addEventListener("click",addLayer);
 $("duplicateLayerBtn").addEventListener("click",duplicateLayer);
 $("deleteLayerBtn").addEventListener("click",deleteLayer);
@@ -1500,6 +1549,7 @@ async function createBlankProject(options){
   projectName="Untitled artwork";$("projectName").value=projectName;setZoom(1);
   projectDoc=ProjectModel.createProject({width:w,height:h,name:projectName,palette:palette,selectedColorIndex:selected,pixels:pixels});
   activeProjectId=projectDoc.id;undoStack.length=0;redoStack.length=0;drawing=false;
+  selection=null;selectionPreview=null;selectionDragMode=null;documentRevision+=1;
   renderAll();syncColorUI();scheduleSave();toast("New "+w+" × "+h+" canvas ready.");
 }
 function resizeCanvas(width,height){
@@ -1508,6 +1558,7 @@ function resizeCanvas(width,height){
   }
   if(width===w&&height===h)return true;
   remember();
+  selection=null;selectionPreview=null;selectionDragMode=null;
   const previous=pixels.slice(),oldWidth=w,oldHeight=h;
   w=width;h=height;
   pixels=resamplePixels(previous,oldWidth,oldHeight,w,h);
@@ -1638,7 +1689,7 @@ $("imageInput").addEventListener("change",e=>{
 });
 $("demoBtn").addEventListener("click",()=>{
   if(!confirm("Restore the starter artwork? Your current canvas will be replaced."))return;
-  remember();w=24;h=24;palette=DEFAULT_PALETTE.slice();selected=8;pixels=demo();projectName="Untitled artwork";$("projectName").value=projectName;syncDimensionSelect();projectDoc=ProjectModel.createProject({width:w,height:h,name:projectName,palette:palette,selectedColorIndex:selected,pixels:pixels});renderAll();scheduleSave();toast("Starter artwork restored.");
+  remember();selection=null;selectionPreview=null;selectionDragMode=null;w=24;h=24;palette=DEFAULT_PALETTE.slice();selected=8;pixels=demo();projectName="Untitled artwork";$("projectName").value=projectName;syncDimensionSelect();projectDoc=ProjectModel.createProject({width:w,height:h,name:projectName,palette:palette,selectedColorIndex:selected,pixels:pixels});renderAll();scheduleSave();toast("Starter artwork restored.");
 });
 document.addEventListener("keydown",e=>{
   const tag=document.activeElement&&document.activeElement.tagName;
