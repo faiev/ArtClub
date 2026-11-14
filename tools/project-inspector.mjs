@@ -110,7 +110,7 @@ function parseArguments(argv) {
     result.error = inspectorError("INVALID_ARGUMENT", "At least one file or directory path is required with --batch.", 2);
     return result;
   }
-  if (!result.batch && result.filePath === null) {
+  if (!result.batch && !result.compare && result.filePath === null) {
     result.error = inspectorError("INVALID_ARGUMENT", "A project file path is required. Use --help for usage.", 2);
   }
   return result;
