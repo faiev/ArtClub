@@ -45,31 +45,43 @@
           await decoder.tracks.ready;
           const track = decoder.tracks.selectedTrack;
           if (!track || track.frameCount !== 2) throw new Error("Browser decoder did not find two animation frames.");
-          const samples = [];
-          const transparentAlpha = [];
+
+          const expectedRasters = [
+            [255, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 255],
+            [0, 0, 255, 255, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 0]
+          ];
+          const dimensions = [];
+          const rasters = [];
           for (let frameIndex = 0; frameIndex < track.frameCount; frameIndex += 1) {
             const decoded = await decoder.decode({ frameIndex: frameIndex });
             const frame = decoded.image;
-            const canvas = new OffscreenCanvas(2, 2);
+            const width = frame.displayWidth || frame.codedWidth;
+            const height = frame.displayHeight || frame.codedHeight;
+            dimensions.push([width, height]);
+            if (width !== 2 || height !== 2) {
+              frame.close();
+              throw new Error("Decoded frame " + frameIndex + " had unexpected dimensions " + width + "×" + height + ".");
+            }
+            const canvas = new OffscreenCanvas(width, height);
             const context = canvas.getContext("2d", { willReadFrequently: true });
             context.drawImage(frame, 0, 0);
-            const data = context.getImageData(0, 0, 2, 2).data;
-            samples.push([data[0], data[1], data[2], data[3]]);
-            transparentAlpha.push(data[7]);
+            rasters.push(Array.from(context.getImageData(0, 0, width, height).data));
             frame.close();
           }
           decoder.close();
-          if (JSON.stringify(samples) !== JSON.stringify([[255, 0, 0, 255], [0, 0, 255, 255]])) {
-            throw new Error("Decoded frame colors did not match the expected source pixels: " + JSON.stringify(samples));
+
+          if (JSON.stringify(dimensions) !== JSON.stringify([[2, 2], [2, 2]])) {
+            throw new Error("Decoded frame dimensions did not match the native canvas: " + JSON.stringify(dimensions));
           }
-          if (JSON.stringify(transparentAlpha) !== JSON.stringify([0, 0])) {
-            throw new Error("Transparent pixels were not transparent in decoded frames: " + JSON.stringify(transparentAlpha));
+          if (JSON.stringify(rasters) !== JSON.stringify(expectedRasters)) {
+            throw new Error("Decoded full RGBA rasters did not match source frames (including disposal/transparent overlap): " + JSON.stringify(rasters));
           }
           output.textContent = "PASS " + JSON.stringify({
             decoder: "ImageDecoder",
             frameCount: track.frameCount,
-            firstPixelByFrame: samples,
-            transparentAlpha: transparentAlpha,
+            dimensions: dimensions,
+            fullRgbaRasters: rasters,
+            checked: "every pixel of every decoded frame, including transparent disposal overlap",
             blobType: exported.blob.type,
             blobSize: exported.blob.size
           });
@@ -85,15 +97,17 @@
             canvas.height = 2;
             const context = canvas.getContext("2d", { willReadFrequently: true });
             context.drawImage(image, 0, 0);
-            const pixel = Array.from(context.getImageData(0, 0, 1, 1).data);
-            if (image.naturalWidth !== 2 || image.naturalHeight !== 2 || pixel.join(",") !== "255,0,0,255") {
-              throw new Error("Browser image decode returned an unexpected first frame.");
+            const raster = Array.from(context.getImageData(0, 0, 2, 2).data);
+            const expectedFirstFrame = [255, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 255];
+            if (image.naturalWidth !== 2 || image.naturalHeight !== 2 ||
+                JSON.stringify(raster) !== JSON.stringify(expectedFirstFrame)) {
+              throw new Error("Browser image decode returned an unexpected first-frame RGBA raster: " + JSON.stringify(raster));
             }
             output.textContent = "PASS " + JSON.stringify({
               decoder: "HTMLImageElement",
-              note: "First frame decoded; ImageDecoder API unavailable for per-frame inspection.",
+              note: "ImageDecoder unavailable; fallback verifies the complete first-frame raster only.",
               dimensions: [image.naturalWidth, image.naturalHeight],
-              firstPixel: pixel,
+              fullFirstFrameRgba: raster,
               blobType: exported.blob.type,
               blobSize: exported.blob.size
             });
