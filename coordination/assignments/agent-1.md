@@ -102,3 +102,35 @@ Update `coordination/status/agent-1.md` with exact head, browser evidence, resul
 
 ## Coordinator restart directive — 2026-11-15
 Reconcile PRs #1/#25/#32/#36/#42/#57/#61/#66 with exact current heads, bases, dependencies, changed files and exact-head CI. Add QA coverage under tests/qa/ui02/** and tests/fixtures/qa/** for active-cel Clear, selection Clear, staged image import and atomic paste. Include hidden/locked/zero-opacity, missing/stale target, malformed input, partial paste and save-failure cases. Compare project JSON, pixels, history and storage before/after denials. Review coordinator UI-02 PR. No index.html, model/storage, bridge E2E or workflow edits.
+
+## Coordinator override — D-028 active UI-02 QA assignment (2026-11-15)
+
+This section supersedes the older AC-087/AC-033 continuation instructions for the current release. Do not continue the QA runner workstream or create additional AC-087 branches while UI-02 is active.
+
+### Objective
+Provide independent QA coverage and exact-head review for the coordinator's UI-02 production slices, beginning with UI-02A active-cel and selection Clear.
+
+### Scope
+- `tests/qa/ui02/**`
+- `tests/fixtures/qa/**`
+- This agent's own status file only.
+
+### Exclusions
+Do not edit `index.html`, production CSS/JS, `tests/ui02-safe-clear*`, project model/storage, bridge E2E, shared workflows, or another agent's tests/status/assignments. Do not create a feature branch for unrelated AC-087 work.
+
+### Deliverables
+1. Add independent denial and immutability coverage for active-cel Clear and selection Clear, including hidden, locked, zero-opacity, stale/missing target and malformed input.
+2. Assert project JSON, source pixels, history, local backup and persisted/recovery state remain unchanged after denials.
+3. Review the current coordinator UI-02 PR head and report exact SHA, test runs and concrete findings.
+4. Prepare import/paste cases as fixtures or tests only where the current production slice exposes a testable contract; do not claim UI-02B/C complete before integration exists.
+
+### Acceptance / tests
+- Tests must exercise actual production guard/transaction/UI behavior, not a duplicated reference model alone.
+- Distinguish Node tests from real Chromium tests. Report commands, exact head SHA and CI URL.
+- Every denial test proves source and persisted state immutability.
+- No new workflow wiring without a separate explicit coordinator lock.
+
+### Dependency and submission
+- UI-02A depends on coordinator PR #96. UI-02B/C remain future sequential slices.
+- Use one QA branch at a time, based on latest main; submit a focused PR to main and update only `coordination/status/agent-1.md`.
+- Keep the next 3–5 actions in the status file. Never merge or self-accept.
