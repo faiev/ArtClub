@@ -28,6 +28,7 @@ function usage() {
     "  node tools/project-inspector.mjs [--json] <project-file>",
     "  node tools/project-inspector.mjs --batch [--recursive] [--json] <file-or-directory>...",
     "  node tools/project-inspector.mjs --compare [--json] <left-project> <right-project>",
+    "  node tools/project-inspector.mjs --diagnostics [--json] <project-file>",
     "",
     "Inspect One Pixel Studio projects without modifying them.",
     "",
@@ -36,6 +37,7 @@ function usage() {
     "  --batch       Inspect multiple files and/or directory inputs.",
     "  --recursive   Recurse into child directories (requires --batch).",
     "  --compare     Compare two projects without modifying either file.",
+    "  --diagnostics Run supplemental deep diagnostics and risk scoring.",
     "  --help        Show this help message.",
     "",
     "Single-file and batch inspection accept v2 documents and legacy single-canvas documents.",
@@ -52,6 +54,7 @@ function parseArguments(argv) {
     recursive: false,
     compare: false,
     comparePaths: [],
+    diagnostics: false,
     filePath: null,
     inputPaths: [],
     error: null
@@ -61,8 +64,16 @@ function parseArguments(argv) {
     if (!positionalOnly && argument === "--") { positionalOnly = true; continue; }
     if (!positionalOnly && argument === "--json") { result.json = true; continue; }
     if (!positionalOnly && argument === "--help") { result.help = true; continue; }
+    if (!positionalOnly && argument === "--diagnostics") {
+      if (result.batch || result.compare || result.filePath !== null) {
+        result.error = inspectorError("INVALID_ARGUMENT", "--diagnostics cannot be combined with batch, compare, or prior file input.", 2);
+        return result;
+      }
+      result.diagnostics = true;
+      continue;
+    }
     if (!positionalOnly && argument === "--batch") {
-      if (result.filePath !== null || result.compare) {
+      if (result.filePath !== null || result.compare || result.diagnostics) {
         result.error = inspectorError("INVALID_ARGUMENT", "--batch cannot be combined with a single-file or compare input.", 2);
         return result;
       }
@@ -70,7 +81,7 @@ function parseArguments(argv) {
       continue;
     }
     if (!positionalOnly && argument === "--compare") {
-      if (result.batch || result.filePath !== null) {
+      if (result.batch || result.diagnostics || result.filePath !== null) {
         result.error = inspectorError("INVALID_ARGUMENT", "--compare cannot be combined with single-file or batch input.", 2);
         return result;
       }
@@ -962,6 +973,533 @@ function renderHumanComparison(report) {
   return lines.join("\n");
 }
 
+
+const DIAGNOSTIC_WEIGHTS = Object.freeze({
+  critical: 30,
+  high: 15,
+  medium: 7,
+  low: 2,
+  info: 0
+});
+function addDiagnostic(list, code, severity, filePath, message, details) {
+  const item = {
+    code,
+    severity,
+    path: filePath,
+    message,
+    source: "supplemental"
+  };
+  if (details !== undefined) item.details = details;
+  list.push(item);
+}
+function summarizeDiagnostics(diagnostics) {
+  const summary = {
+    total: diagnostics.length,
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+    info: 0
+  };
+  let score = 0;
+  for (const diagnostic of diagnostics) {
+    if (Object.prototype.hasOwnProperty.call(summary, diagnostic.severity)) {
+      summary[diagnostic.severity] += 1;
+    }
+    score += DIAGNOSTIC_WEIGHTS[diagnostic.severity] || 0;
+  }
+  score = Math.min(100, score);
+  const level = score >= 60 ? "critical" :
+    score >= 30 ? "high" :
+      score >= 10 ? "moderate" : "low";
+  return { summary, risk: { score, level } };
+}
+function schemaValidationFor(data) {
+  try {
+    if (isLegacyProject(data)) {
+      const normalized = Project.deserializeProject(data);
+      const validation = Project.validateProject(normalized);
+      return {
+        checked: true,
+        valid: validation.valid,
+        errors: validation.errors
+      };
+    }
+    const validation = Project.validateProject(data);
+    return {
+      checked: true,
+      valid: validation.valid,
+      errors: validation.errors
+    };
+  } catch (error) {
+    return {
+      checked: true,
+      valid: false,
+      errors: [error.message || "The project model rejected the document."]
+    };
+  }
+}
+function collectDeepDiagnostics(data, fileSizeBytes) {
+  const diagnostics = [];
+  const legacy = isLegacyProject(data);
+  const rootIsObject = Boolean(data && typeof data === "object" && !Array.isArray(data));
+  if (!rootIsObject) {
+    addDiagnostic(
+      diagnostics,
+      "PROJECT_ROOT_INVALID",
+      "critical",
+      "$",
+      "The JSON root is not a project object."
+    );
+    return diagnostics;
+  }
+
+  if (fileSizeBytes > MAX_FILE_BYTES) {
+    addDiagnostic(
+      diagnostics,
+      "DOCUMENT_BYTE_LIMIT",
+      "critical",
+      "$",
+      "Document exceeds the 64 MiB inspector input limit.",
+      { fileSizeBytes, maxBytes: MAX_FILE_BYTES }
+    );
+  }
+
+  if (!legacy) {
+    if (data.format !== Project.FORMAT) {
+      addDiagnostic(
+        diagnostics,
+        "UNSUPPORTED_FORMAT",
+        "critical",
+        "$.format",
+        "The project format is not recognized by the current project model.",
+        { actual: data.format === undefined ? null : data.format, expected: Project.FORMAT }
+      );
+    }
+    if (data.version !== Project.VERSION) {
+      addDiagnostic(
+        diagnostics,
+        "UNSUPPORTED_VERSION",
+        "critical",
+        "$.version",
+        "The project version is not supported by the current project model.",
+        { actual: data.version === undefined ? null : data.version, expected: Project.VERSION }
+      );
+    }
+  }
+
+  const canvas = legacy
+    ? { width: data.w, height: data.h }
+    : (data.canvas && typeof data.canvas === "object" ? data.canvas : {});
+  const width = canvas.width;
+  const height = canvas.height;
+  const maxDimension = Project.LIMITS.maxDimension;
+  const widthValid = Number.isInteger(width) && width >= 1 && width <= maxDimension;
+  const heightValid = Number.isInteger(height) && height >= 1 && height <= maxDimension;
+
+  if (!widthValid) {
+    addDiagnostic(
+      diagnostics,
+      "CANVAS_WIDTH_INVALID",
+      "high",
+      legacy ? "$.w" : "$.canvas.width",
+      "Canvas width must be a whole number between 1 and " + maxDimension + ".",
+      { actual: width === undefined ? null : width }
+    );
+  }
+  if (!heightValid) {
+    addDiagnostic(
+      diagnostics,
+      "CANVAS_HEIGHT_INVALID",
+      "high",
+      legacy ? "$.h" : "$.canvas.height",
+      "Canvas height must be a whole number between 1 and " + maxDimension + ".",
+      { actual: height === undefined ? null : height }
+    );
+  }
+  const dimensionsValid = widthValid && heightValid;
+  const expectedPixelsPerCel = dimensionsValid ? width * height : null;
+
+  const palette = Array.isArray(data.palette) ? data.palette : [];
+  const paletteByColor = new Map();
+  const paletteColors = new Set();
+  for (let index = 0; index < palette.length; index += 1) {
+    const color = palette[index];
+    if (typeof color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(color)) continue;
+    const normalized = color.toLowerCase();
+    paletteColors.add(normalized);
+    const existing = paletteByColor.get(normalized);
+    if (existing !== undefined) {
+      addDiagnostic(
+        diagnostics,
+        "PALETTE_COLOR_DUPLICATE",
+        "low",
+        "$.palette[" + index + "]",
+        "Palette color duplicates an earlier entry (HEX comparison is case-insensitive).",
+        { color, duplicateOfIndex: existing }
+      );
+    } else {
+      paletteByColor.set(normalized, index);
+    }
+  }
+
+  const layers = legacy || !Array.isArray(data.layers) ? [] : data.layers;
+  const frames = legacy || !Array.isArray(data.frames) ? [] : data.frames;
+  const layerIds = new Set();
+  const frameIds = new Set();
+  const duplicateLayerIds = new Set();
+  const duplicateFrameIds = new Set();
+
+  if (!legacy && Array.isArray(data.layers)) {
+    for (let index = 0; index < data.layers.length; index += 1) {
+      const layer = data.layers[index];
+      const id = layer && typeof layer === "object" ? layer.id : null;
+      if (typeof id !== "string" || id.length === 0) continue;
+      if (layerIds.has(id)) {
+        duplicateLayerIds.add(id);
+        addDiagnostic(
+          diagnostics,
+          "LAYER_ID_DUPLICATE",
+          "high",
+          "$.layers[" + index + "].id",
+          "Layer identifier is duplicated.",
+          { id }
+        );
+      }
+      layerIds.add(id);
+    }
+  }
+  if (!legacy && Array.isArray(data.frames)) {
+    for (let index = 0; index < data.frames.length; index += 1) {
+      const frame = data.frames[index];
+      const id = frame && typeof frame === "object" ? frame.id : null;
+      if (typeof id !== "string" || id.length === 0) continue;
+      if (frameIds.has(id)) {
+        duplicateFrameIds.add(id);
+        addDiagnostic(
+          diagnostics,
+          "FRAME_ID_DUPLICATE",
+          "high",
+          "$.frames[" + index + "].id",
+          "Frame identifier is duplicated.",
+          { id }
+        );
+      }
+      frameIds.add(id);
+    }
+  }
+
+  if (!legacy) {
+    if (!layerIds.has(data.activeLayerId)) {
+      addDiagnostic(
+        diagnostics,
+        "ACTIVE_LAYER_MISSING",
+        "high",
+        "$.activeLayerId",
+        "Active layer identifier does not resolve to a project layer.",
+        { id: data.activeLayerId === undefined ? null : data.activeLayerId }
+      );
+    }
+    if (!frameIds.has(data.activeFrameId)) {
+      addDiagnostic(
+        diagnostics,
+        "ACTIVE_FRAME_MISSING",
+        "high",
+        "$.activeFrameId",
+        "Active frame identifier does not resolve to a project frame.",
+        { id: data.activeFrameId === undefined ? null : data.activeFrameId }
+      );
+    }
+  }
+
+  const cels = legacy
+    ? [{ pixels: data.pixels }]
+    : (Array.isArray(data.cels) ? data.cels : []);
+  const celPairs = new Set();
+  const usedPaletteColors = new Set();
+  let actualPixelSlots = 0;
+  let expectedPixelSlots = 0;
+
+  if (!legacy && !Array.isArray(data.cels)) {
+    addDiagnostic(
+      diagnostics,
+      "CELS_NOT_ARRAY",
+      "high",
+      "$.cels",
+      "Project cels are not represented as an array."
+    );
+  }
+
+  for (let celIndex = 0; celIndex < cels.length; celIndex += 1) {
+    const cel = cels[celIndex];
+    const basePath = legacy ? "$.pixels" : "$.cels[" + celIndex + "]";
+    if (!cel || typeof cel !== "object" || Array.isArray(cel)) {
+      addDiagnostic(
+        diagnostics,
+        "CEL_ENTRY_INVALID",
+        "high",
+        basePath,
+        "Cel entry is not an object."
+      );
+      continue;
+    }
+
+    if (!legacy) {
+      if (!layerIds.has(cel.layerId)) {
+        addDiagnostic(
+          diagnostics,
+          "CEL_LAYER_REFERENCE_INVALID",
+          "high",
+          basePath + ".layerId",
+          "Cel references a layer identifier that does not exist.",
+          { id: cel.layerId === undefined ? null : cel.layerId }
+        );
+      }
+      if (!frameIds.has(cel.frameId)) {
+        addDiagnostic(
+          diagnostics,
+          "CEL_FRAME_REFERENCE_INVALID",
+          "high",
+          basePath + ".frameId",
+          "Cel references a frame identifier that does not exist.",
+          { id: cel.frameId === undefined ? null : cel.frameId }
+        );
+      }
+      if (typeof cel.layerId === "string" && typeof cel.frameId === "string") {
+        const key = cel.layerId + "\u0000" + cel.frameId;
+        if (celPairs.has(key)) {
+          addDiagnostic(
+            diagnostics,
+            "CEL_PAIR_DUPLICATE",
+            "high",
+            basePath,
+            "More than one cel uses the same layer/frame pair.",
+            { layerId: cel.layerId, frameId: cel.frameId }
+          );
+        }
+        celPairs.add(key);
+      }
+    }
+
+    if (!Array.isArray(cel.pixels)) {
+      addDiagnostic(
+        diagnostics,
+        "PIXEL_ARRAY_NOT_ARRAY",
+        "critical",
+        basePath + ".pixels",
+        "Cel pixel data is not an array."
+      );
+      continue;
+    }
+
+    actualPixelSlots += cel.pixels.length;
+    if (expectedPixelsPerCel !== null) expectedPixelSlots += expectedPixelsPerCel;
+
+    if (expectedPixelsPerCel !== null && cel.pixels.length !== expectedPixelsPerCel) {
+      const tooShort = cel.pixels.length < expectedPixelsPerCel;
+      addDiagnostic(
+        diagnostics,
+        tooShort ? "PIXEL_ARRAY_SHORT" : "PIXEL_ARRAY_LONG",
+        "critical",
+        basePath + ".pixels",
+        tooShort
+          ? "Pixel array is shorter than the canvas area; missing slots are not silently filled."
+          : "Pixel array is longer than the canvas area.",
+        { expected: expectedPixelsPerCel, actual: cel.pixels.length }
+      );
+    }
+
+    for (let pixelIndex = 0; pixelIndex < cel.pixels.length; pixelIndex += 1) {
+      if (!Object.prototype.hasOwnProperty.call(cel.pixels, pixelIndex)) {
+        addDiagnostic(
+          diagnostics,
+          "PIXEL_ARRAY_HOLE",
+          "critical",
+          basePath + ".pixels[" + pixelIndex + "]",
+          "Pixel array contains a sparse hole instead of an explicit color or null value.",
+          { index: pixelIndex }
+        );
+        continue;
+      }
+      const color = cel.pixels[pixelIndex];
+      if (color === null) continue;
+      if (typeof color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(color)) {
+        addDiagnostic(
+          diagnostics,
+          "PIXEL_COLOR_INVALID",
+          "high",
+          basePath + ".pixels[" + pixelIndex + "]",
+          "Pixel value must be null or a six-digit HEX color.",
+          { index: pixelIndex, actual: color === undefined ? null : color }
+        );
+        continue;
+      }
+      const normalized = color.toLowerCase();
+      usedPaletteColors.add(normalized);
+      if (paletteColors.size > 0 && !paletteColors.has(normalized)) {
+        addDiagnostic(
+          diagnostics,
+          "PIXEL_COLOR_NOT_IN_PALETTE",
+          "medium",
+          basePath + ".pixels[" + pixelIndex + "]",
+          "Pixel color is valid HEX but is not present in the project's palette.",
+          { index: pixelIndex, color }
+        );
+      }
+    }
+  }
+
+  for (let index = 0; index < palette.length; index += 1) {
+    const color = palette[index];
+    if (typeof color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(color)) continue;
+    if (!usedPaletteColors.has(color.toLowerCase())) {
+      addDiagnostic(
+        diagnostics,
+        "PALETTE_ENTRY_UNUSED",
+        "low",
+        "$.palette[" + index + "]",
+        "Palette entry does not appear in any cel pixel data.",
+        { index, color }
+      );
+    }
+  }
+
+  if (actualPixelSlots > Project.LIMITS.maxCelPixels) {
+    addDiagnostic(
+      diagnostics,
+      "DOCUMENT_PIXEL_BUDGET_EXCEEDED",
+      "critical",
+      "$.cels",
+      "Actual cel pixel data exceeds the project model's total pixel-data budget.",
+      { actualPixelSlots, maxPixelSlots: Project.LIMITS.maxCelPixels }
+    );
+  }
+  if (expectedPixelSlots > Project.LIMITS.maxCelPixels) {
+    addDiagnostic(
+      diagnostics,
+      "DOCUMENT_EXPECTED_PIXEL_BUDGET_EXCEEDED",
+      "high",
+      "$.cels",
+      "Canvas dimensions and cel count imply more pixel slots than the model's documented total pixel-data budget.",
+      { expectedPixelSlots, maxPixelSlots: Project.LIMITS.maxCelPixels }
+    );
+  }
+
+  diagnostics.sort((left, right) =>
+    lexicalCompare(left.path, right.path) || lexicalCompare(left.code, right.code)
+  );
+  return diagnostics;
+}
+function deepDiagnosticsFailure(filePath, code, message, fileSizeBytes) {
+  const severity = code === "FILE_TOO_LARGE" ? "critical" : "high";
+  const diagnosticCode = code === "FILE_TOO_LARGE" ? "DOCUMENT_BYTE_LIMIT" :
+    code === "SYMLINK_NOT_FOLLOWED" ? "SYMLINK_NOT_FOLLOWED" :
+      code === "JSON_PARSE_ERROR" ? "JSON_PARSE_ERROR" : "FILE_ACCESS_ERROR";
+  const diagnostics = [{
+    code: diagnosticCode,
+    severity,
+    path: "$",
+    message,
+    source: "supplemental"
+  }];
+  const assessment = summarizeDiagnostics(diagnostics);
+  return {
+    ok: false,
+    mode: "diagnostics",
+    file: filePath,
+    fileSizeBytes: fileSizeBytes === undefined ? null : fileSizeBytes,
+    schema: { checked: false, valid: null, errors: [] },
+    diagnostics,
+    summary: assessment.summary,
+    risk: assessment.risk,
+    policy: {
+      modelValidationAuthoritative: true,
+      inputModified: false,
+      exitCodeNonZeroWhen: "input cannot be read or parsed, or schema.valid is false"
+    }
+  };
+}
+function inspectDeepDiagnostics(filePath) {
+  let input;
+  try {
+    input = readProjectFile(filePath);
+  } catch (error) {
+    let size = null;
+    try {
+      const stats = fs.lstatSync(filePath);
+      size = stats.size;
+    } catch {}
+    return deepDiagnosticsFailure(
+      filePath,
+      error.code || "FILE_READ_ERROR",
+      error.message || "Unable to read project file.",
+      size
+    );
+  }
+
+  let data;
+  try {
+    data = JSON.parse(input.text.replace(/^\uFEFF/, ""));
+  } catch (error) {
+    return deepDiagnosticsFailure(
+      filePath,
+      "JSON_PARSE_ERROR",
+      "Invalid JSON: " + error.message,
+      input.bytes
+    );
+  }
+
+  const schema = schemaValidationFor(data);
+  const diagnostics = collectDeepDiagnostics(data, input.bytes);
+  const assessment = summarizeDiagnostics(diagnostics);
+  const legacy = isLegacyProject(data);
+  return {
+    ok: true,
+    mode: "diagnostics",
+    file: filePath,
+    fileSizeBytes: input.bytes,
+    sourceFormat: legacy ? "legacy-single-canvas" : data && data.format !== undefined ? data.format : null,
+    sourceVersion: legacy ? (Number.isInteger(data.version) ? data.version : 1) : data && data.version !== undefined ? data.version : null,
+    schema,
+    diagnostics,
+    summary: assessment.summary,
+    risk: assessment.risk,
+    policy: {
+      modelValidationAuthoritative: true,
+      inputModified: false,
+      supplementaryDiagnosticsDoNotRewriteSchemaValidation: true,
+      exitCodeNonZeroWhen: "input cannot be read or parsed, or schema.valid is false"
+    }
+  };
+}
+function renderHumanDiagnostics(report) {
+  const lines = [
+    "Project Inspector — Deep Diagnostics",
+    "File: " + report.file,
+    "File size: " + (report.fileSizeBytes === null || report.fileSizeBytes === undefined ? "unknown" : report.fileSizeBytes + " bytes"),
+    "Report: " + (report.ok ? "COMPLETE" : "INCOMPLETE"),
+    "Model validation: " + (report.schema.checked ? (report.schema.valid ? "VALID" : "INVALID") : "NOT CHECKED"),
+    "Schema errors: " + report.schema.errors.length,
+    "Supplemental diagnostics: " + report.summary.total,
+    "Risk score: " + report.risk.score + "/100 (" + report.risk.level + ")",
+    "  Critical: " + report.summary.critical,
+    "  High: " + report.summary.high,
+    "  Medium: " + report.summary.medium,
+    "  Low: " + report.summary.low,
+    "  Info: " + report.summary.info
+  ];
+  for (const error of report.schema.errors) {
+    lines.push("MODEL ERROR: " + error);
+  }
+  for (const diagnostic of report.diagnostics) {
+    lines.push(
+      diagnostic.severity.toUpperCase() + " [" + diagnostic.code + "] " +
+      diagnostic.path + " — " + diagnostic.message
+    );
+  }
+  return lines.join("\n");
+}
+
 function emitFailure(filePath, jsonMode, error) {
   const failure = {
     ok: false,
@@ -984,6 +1522,13 @@ function main(argv) {
   const args = parseArguments(argv);
   if (args.help) { process.stdout.write(usage() + "\n"); return; }
   if (args.error) { emitFailure(args.filePath, args.json, args.error); return; }
+  if (args.diagnostics) {
+    const report = inspectDeepDiagnostics(args.filePath);
+    if (args.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
+    else process.stdout.write(renderHumanDiagnostics(report) + "\n");
+    if (!report.ok || (report.schema.checked && !report.schema.valid)) process.exitCode = 1;
+    return;
+  }
   if (args.compare) {
     const report = inspectComparison(args.comparePaths[0], args.comparePaths[1]);
     if (args.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
