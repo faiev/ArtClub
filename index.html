@@ -1353,13 +1353,14 @@ function getAgentStatus(){
     active_layer:layer?{id:layer.id,name:layer.name,visible:layer.visible,locked:layer.locked}:null,
     layers:projectDoc.layers.map(item=>({id:item.id,name:item.name,visible:item.visible,locked:item.locked,active:item.id===projectDoc.activeLayerId})),
     active_frame:frame?{id:frame.id,name:frame.name,duration_ms:frame.durationMs}:null,
+    frames:projectDoc.frames.map((item,index)=>({id:item.id,name:item.name,duration_ms:item.durationMs,order:index,active:item.id===projectDoc.activeFrameId})),
     selected_color:palette[selected]||null,
     palette:palette.slice(),
     revision:documentRevision,
     human_stroke_in_progress:drawing,
     selection:selection?{x:selection.x,y:selection.y,width:selection.width,height:selection.height}:null,
     history:{can_undo:undoStack.length>0,can_redo:redoStack.length>0},
-    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","draw_ellipse","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png","layers","set_selection","select_all","copy_selection","cut_selection","paste_selection","clear_selection","deselect","move_selection"]
+    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","draw_ellipse","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png","layers","set_selection","select_all","copy_selection","cut_selection","paste_selection","clear_selection","deselect","move_selection","transform_selection","list_frames","add_frame","duplicate_frame","select_frame","delete_frame","move_frame","set_frame_duration","rename_frame"]
   };
 }
 function getAgentCanvas(options){
@@ -1559,6 +1560,53 @@ function agentTransformSelection(payload){
   return getAgentStatus();
 }
 
+function assertAgentFrameAction(options){
+  options=options||{};
+  if(drawing)throw new Error("A canvas stroke is in progress. Finish it before changing frames.");
+  if(options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
+    throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
+  }
+}
+function agentListFrames(){
+  return projectDoc.frames.map((frame,index)=>({
+    id:frame.id,name:frame.name,duration_ms:frame.durationMs,
+    order:index,active:frame.id===projectDoc.activeFrameId
+  }));
+}
+function agentAddFrame(payload){
+  payload=payload||{};assertAgentFrameAction(payload);
+  return addFrame(payload.name,payload.duration_ms);
+}
+function agentDuplicateFrame(payload){
+  payload=payload||{};assertAgentFrameAction(payload);
+  return duplicateFrame(payload.frame_id,payload.name);
+}
+function agentSelectFrame(payload){
+  payload=payload||{};assertAgentFrameAction(payload);
+  if(typeof payload.frame_id!=="string"||!payload.frame_id)throw new Error("Provide a frame_id from get_status.");
+  selectFrame(payload.frame_id);return getAgentStatus();
+}
+function agentDeleteFrame(payload){
+  payload=payload||{};assertAgentFrameAction(payload);
+  return deleteFrame(payload.frame_id,true);
+}
+function agentMoveFrame(payload){
+  payload=payload||{};assertAgentFrameAction(payload);
+  if(payload.direction!=="up"&&payload.direction!=="down")throw new Error('direction must be "up" or "down".');
+  const frameId=payload.frame_id||projectDoc.activeFrameId;
+  moveFrame(frameId,payload.direction);return getAgentStatus();
+}
+function agentSetFrameDuration(payload){
+  payload=payload||{};assertAgentFrameAction(payload);
+  const frameId=payload.frame_id||projectDoc.activeFrameId;
+  setFrameDuration(frameId,payload.duration_ms);return getAgentStatus();
+}
+function agentRenameFrame(payload){
+  payload=payload||{};assertAgentFrameAction(payload);
+  if(typeof payload.name!=="string")throw new Error("Frame name is required.");
+  const frameId=payload.frame_id||projectDoc.activeFrameId;
+  renameFrame(frameId,payload.name);return getAgentStatus();
+}
 function installAgentAPI(){
   if(!window.ArtClubAgentAPI)throw new Error("Agent API module failed to load.");
   window.onePixelStudio=window.ArtClubAgentAPI.create({
@@ -1591,7 +1639,15 @@ function installAgentAPI(){
     clearSelection:agentClearSelection,
     deselect:agentDeselect,
     moveSelection:agentMoveSelection,
-    transformSelection:agentTransformSelection
+    transformSelection:agentTransformSelection,
+    listFrames:agentListFrames,
+    addFrame:agentAddFrame,
+    duplicateFrame:agentDuplicateFrame,
+    selectFrame:agentSelectFrame,
+    deleteFrame:agentDeleteFrame,
+    moveFrame:agentMoveFrame,
+    setFrameDuration:agentSetFrameDuration,
+    renameFrame:agentRenameFrame
   });
 }
 
