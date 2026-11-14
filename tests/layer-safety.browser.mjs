@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 "use strict";
 
-const { execFile } = require("node:child_process");
-const { promisify } = require("node:util");
-const { access } = require("node:fs/promises");
-const path = require("node:path");
-const { fileURLToPath, pathToFileURL } = require("node:url");
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import { access } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const execFileAsync = promisify(execFile);
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
