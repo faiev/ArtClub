@@ -111,6 +111,15 @@ function bootEditor() {
     elementFromPoint() { return null; }
   };
   const grid = document.getElementById("pixelGrid");
+  const toolButtons = ["brush", "eraser", "fill", "eyedropper", "line", "rect"].map(name => {
+    const el = new FakeElement();
+    el.ownerDocument = document;
+    el.dataset.tool = name;
+    el.className = "tool" + (name === "brush" ? " active" : "");
+    el.classList.toggle("active", name === "brush");
+    return el;
+  });
+  document.querySelectorAll = selector => selector === ".tool" ? toolButtons : [];
   const storage = new Map();
   const context = vm.createContext({
     document,
@@ -130,7 +139,7 @@ function bootEditor() {
     grid,
     storage,
     tool(name) {
-      return document.querySelectorAll(".tool").find(button => button.dataset.tool === name);
+      return toolButtons.find(button => button.dataset.tool === name);
     },
     cell(index) { return grid.children[index]; }
   };
