@@ -5,17 +5,18 @@
 - **Status:** REVIEW
 - **Branch:** `agent/keyboard-shortcuts-plan`
 - **Feature document commit:** `22f3ad53310c6fc0b1ff394898e35c7b42f21592`
-- **PR:** [#18 — AC-026: Specify keyboard shortcuts and command discoverability](https://github.com/faiev/ArtClub/pull/18) (draft; fresh-base PR to be opened immediately after branch synchronization)
+- **Latest branch sync head at handoff:** `7fba24c7da2fcc7f768d4e4bec644f3fc8ee197d` (will be reconciled with the status handoff commit below)
+- **PR:** [#19 — AC-026: Specify keyboard shortcuts and command discoverability](https://github.com/faiev/ArtClub/pull/19) (open, draft; GitHub reports mergeable)
 - **Allowed deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md` only.
 - **Scope:** Documentation/specification only. No application JS, HTML, CSS, tests, command-palette or shortcut UI implementation.
 - **Coordinator source:** `main`; PR #7 is merged.
 - **Source inspection:** Current `index.html` keyboard handling at lines 1865–1894 (pixel-grid arrow/Space/Enter behavior), 2073–2092 (document keydown handler), static shortcut legend at lines 293–300. Current handler uses Ctrl OR Meta, handles Undo and Save before text-input guard, does not exclude dialogs/contenteditable, includes B/E/G/I/M tools, Mod+C/X/V/A/D, Delete/Backspace selection clear, Escape, [, ], 0 zoom. Layer/frame navigation and playback shortcuts are not currently implemented.
 - **Discoverability findings:** Static legend labels only Command glyphs, is hidden at mobile breakpoints, and omits navigation/playback. Existing `tests/editor-interactions.test.js` contains no keyboard shortcut tests; README has no shortcut reference.
 - **Deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md`, 368 lines; 13 main sections. Includes current behavior, shortcut map, Ctrl/Command policy, browser/OS reserved conflicts, focus rules, keyboard-only accessibility, responsive discoverability, acceptance-test matrix, phased order and file ownership.
-- **Validation:** Fetched the committed document back from the feature branch and verified all assignment topics/sections. PR #17's stale-base diff exposed coordination status updates committed to main after PR creation; PR #17 was closed unmerged and is being replaced with a fresh-base PR #18. Application tests are not run for this documentation-only task; the specification defines implementation-level tests.
-- **Branch synchronization:** No force updates. The feature branch has been reconciled with successive main updates using two-parent merge commits. It will be synchronized once more with the status handoff commit before PR #18 is opened.
+- **Validation:** Fetched the committed document back from the feature branch and verified all assignment topics/sections. PR #17 was closed unmerged after its changed-file list picked up unrelated status-file updates made to main after creation. PR #19 is the replacement draft; its current changed-file list contains only `KEYBOARD_SHORTCUTS_PLAN.md`. Application tests are not run for this documentation-only task; the specification defines implementation-level tests.
+- **Branch synchronization:** No force updates. The feature branch has been reconciled with successive main updates using two-parent merge commits. A final sync with the current status handoff commit is recorded in the feature branch history before PR #19's final verification.
 - **Blockers:** None.
-- **Next action:** Coordinator review of PR #18. No implementation or command-palette work is self-assigned.
+- **Next action:** Coordinator review of PR #19. No implementation or command-palette work is self-assigned.
 - **Last updated:** 2026-11-14.
 
 ## Previous task — AC-009
