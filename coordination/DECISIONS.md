@@ -18,7 +18,7 @@ A worker continues independent work while an earlier PR is under review. Only a 
 All application code belongs on a worker's dedicated feature branch. Never commit application code directly to main. Open a PR for review. Workers do not merge their own PRs. Each worker may create additional clearly named feature branches for the next authorized deliverables. Workers update only their own status file on main.
 
 ## D-006 — Single-writer ownership
-Only one agent edits a shared file at a time. Agent 2 owns renderer/browser validation and viewport files; Agent 3 owns GIF/sprite-sheet exporter files and the project-test workflow while PR #11 is being reconciled; Agent 4 owns bridge/API files. No UI/API integration is authorized without a coordinator-issued file lock.
+Only one agent edits a shared file at a time. Agent 2 owns renderer/browser validation and viewport files; Agent 3 owns GIF/sprite-sheet exporter files and the project-test workflow for AC-027 sprite-sheet browser verification; Agent 4 owns bridge/API files. No UI/API integration is authorized without a coordinator-issued file lock.
 
 ## D-007 — Pixel fidelity
 Preserve exact pixel colors and integer boundaries. Do not introduce smoothing/interpolation into artwork, transforms or exports. UI overlays must not enter exported artwork unless requested.
@@ -58,3 +58,6 @@ The coordinator pre-authorizes the phases written in each assignment. Workers ma
 
 ## D-019 — No background execution claim
 The GitHub coordination system is shared memory, not a scheduler. It cannot wake an idle ChatGPT chat or make a worker run between user prompts. Continuous workstreams reduce the number of prompts needed, but a new user resume message is still needed to start a chat that is inactive.
+
+## D-020 — Release shared locks when the blocking PR merges
+The PR #11 project-test workflow changes are merged. Agent 3 retains the workflow writer lock only for the assigned AC-027 sprite-sheet browser verification/CI wiring; Agent 2 must not edit the workflow until Agent 3 records the lock release. The bridge E2E lock remains with Agent 4 while PR #8 is reconciled.

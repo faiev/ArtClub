@@ -1,45 +1,39 @@
-# Status — Agent 1
+# Status — Agent 1 QA / release reliability
 
-- **Task:** AC-025 — Audit remaining frame-aware QA coverage in PR #1
-- **Status:** REVIEW
-- **Coordination source:** `main`; PR #7 merged as `f0c470392fe4411ca79b1d17bfe72e928af3be00`.
-- **Latest main audited:** `829a85925eff9cf3cbf1931b56e5819952805bcc`.
-- **PR #1 / audit branch:** `agent/qa-release` at `ffd5b1bda4dd0879949098709cbbe18474205675`; PR #1 remains open/draft/unmerged and GitHub reports unmergeable. Diff changes only `agent-bridge/e2e-test.mjs` (+49/-4); compare to current main: 3 commits ahead, 85 behind, diverged.
-- **PR #8 comparison:** `agent/bridge-hardening` at `9d21f0c9ca87cd0044de36c48a646e411482ed3e`; PR #8 remains open/draft/unmerged and GitHub reports unmergeable. Compare to current main: 22 ahead, 82 behind, diverged. Agent 4 remains the sole writer of `agent-bridge/e2e-test.mjs`.
-- **AC-006 dependency:** PR #10 is merged as `57b4da3cf9be2a9a4b1c98fea942729e42314d54`; its recovery E2E is already present on main. Preserve it.
+## Active workstream
+- **Current phase:** AC-030 — Project format and migration compatibility suite
+- **State:** IN_PROGRESS
+- **Coordination source:** `main` (PR #7 merged).
+- **Latest main used to start the workstream:** `332fefeec3d73d3af8e9818f84d1dc79e3ae1ce5`.
+- **Current phase branch:** Creating a dedicated branch from the latest main after this status update.
 
-## Read-only audit findings
+## Completed / submitted phases
 
-### Keep from PR #1
-1. **Browser Agent API JSON import round-trip** — PR #1 lines 114–126 parse the exported JSON, change its name, call `onePixelStudio.import_project({ project })`, then assert imported project name, project ID and restored pixel. Main currently checks only `export_project()` JSON parsing and format at `agent-bridge/e2e-test.mjs` lines 111–113; no direct browser `import_project()` verification exists. PR #8's MCP test separately checks `artclub_export_project` JSON format and that `artclub_import_project` does not error (its branch's `agent-bridge/mcp-e2e-test.mjs` lines 522–532), but does not verify imported pixels or metadata and is not yet on main. Keep PR #1's direct browser-path assertion.
-2. **Debounced autosave for animation cels** — PR #1 lines 237–245 waits for the normal `SAVED IN PROJECT LIBRARY` state after the frame/cel edits, instead of calling explicit `save()`. Current main calls explicit `save()` at line 222 before reload. Main's later AC-006 recovery test does exercise autosave for recovery snapshots, but that is a separate workflow and does not establish that the three-frame cel edits reached storage through autosave. Keep the autosave wait in the frame persistence scenario.
-3. **Selected-frame and frame inventory persistence** — PR #1 lines 250–251 assert three frames remain and `active_frame.id === frameTwoId` after reload. Current main does not assert either; it switches to the original frame after reload to inspect two pixels.
-4. **Per-frame cel persistence** — PR #1 lines 263–278 selects each owning frame and checks frame one's `#aa1100` pixel, frame two's `#00bb00` pixel and frame three's `#0000cc` pixel. Current main creates/plays three frames but does not verify these three cels after reload. Keep these assertions.
+### AC-025 — Read-only PR #1 QA coverage audit
+- **State:** REVIEW / handoff submitted.
+- Compared PR #1, current main and PR #8; supplied keep/drop and integration ordering recommendations.
+- Read-only; no edits to the shared E2E file, PR #1 or PR #8.
 
-### Duplicate coverage to avoid carrying twice
-- PR #1's original red pixel `(1,1)` and visible layer composite `(2,2)` checks at lines 256–262 are already covered by current main lines 231–239 after selecting the original frame. Keep one version only.
-- PR #1's `firstFrameId` captured after reopening the saved project can replace the older `initialFrameId` captured at startup in main lines 63–64 and used at lines 231–233. Retain one canonical original-frame ID; capturing it from `reopenedStatus` is closest to the saved project being tested.
-- Main's AC-006 recovery sequence at lines 241–307 covers A→autosaved B→open Project Library→Recover A and a later genuine edit/save/recovery. Keep this full sequence unchanged; PR #1 adds no necessary replacement for it.
+### AC-029 — Project lifecycle regression matrix
+- **PR:** [#25 — Add project lifecycle QA regression matrix](https://github.com/faiev/ArtClub/pull/25) (open, draft, unmerged).
+- **Branch/head:** `agent/qa-lifecycle` at `c0a7fea2193d37f868818de4b715857cb1575a53`.
+- **Base sync:** current main at last comparison `332fefeec3d73d3af8e9818f84d1dc79e3ae1ce5`; branch was 0 commits behind then.
+- **Files:** `tests/fixtures/qa/lifecycle-fixtures.js`, `tests/qa/lifecycle/project-lifecycle.test.js`, `tests/qa/lifecycle/editor-switch-contract.test.js`.
+- **Coverage:** project record isolation/reload/switch, rename/duplicate/delete, active layer/frame and visibility/lock/cel preservation, no-op versus meaningful-save recovery rotation, Recover semantics, quota abort atomicity, and a static selection-reset contract check.
+- **Verification:** Focused commands are documented in PR #25 but **not run locally**. Attempted `git clone` failed because the execution environment could not resolve `github.com`. The project workflow's `node --test tests/*.test.js` does not discover nested `tests/qa/lifecycle/*.test.js`; no CI pass is claimed for these tests. Test-runner integration remains necessary and is outside this phase's assigned files.
+- **Risks / limits:** Storage tests exercise `ProjectStorage` using a transactional IndexedDB test double; editor selection reset check is static source inspection, not browser behavior. AC-032 is the assigned real-Chromium lifecycle harness.
 
-### PR #8 frame-selection conflict
-- PR #8 adds a pre-save reset to `reopenedStatus.active_frame.id` and an assertion of that same ID at its branch's `agent-bridge/e2e-test.mjs` lines 222–235, then saves/reloads and reads a pixel on that frame.
-- This reset changes the test setup back to frame one before persistence. If retained, it prevents the E2E from checking whether the selected frame two survives reload, which is exactly what PR #1's line 251 tests.
-- Recommendation: when rebasing/reconciling PR #8, Agent 4 should drop this pre-save reset/assertion, preserve frame two as the selected editing frame through autosave/reload, assert its ID after reload, and then explicitly select frames one/two/three only when reading their cel pixels. Do not remove the post-reload frame selections; those are correct because pixel reads are scoped to the active frame.
+## Next 3–5 authorized actions
+1. **AC-030:** Add fixture-driven current-v2 boundary, legacy-v1 deterministic migration, malformed JSON/reference/ID/color/duration, sparse/undefined cel, limit and non-mutation compatibility tests.
+2. **AC-031:** Add import/export contract matrix as GIF, sprite-sheet and palette modules land; document contracts and continue other tests if a dependency remains open.
+3. **AC-032:** Build standalone Chromium/IndexedDB lifecycle harness under `tests/qa/browser/`; do not touch shared bridge E2E or workflow.
+4. **AC-033:** Add QA/release matrix, release checklist, read-only release checker and its tests.
+5. **Ongoing triage:** Add missing negative/boundary cases only under QA-owned paths and maintain `docs/QA_MATRIX.md`.
 
-### Export/import gaps still visible on main
-- PNG export is only checked for MIME type, width and PNG signature at main lines 106–109; no decode-and-raster/pixel/alpha verification exists in this E2E.
-- Project JSON export is parsed and its `format` checked at main lines 111–113; browser Agent API import is not tested. PR #1's direct import assertions are the useful keep.
-- PR #8's MCP export/import round trip is not on main and, as submitted, only checks exported JSON format and import success; consider a post-import readback assertion when Agent 4 integrates it.
-
-## Recommended handoff sequence
-1. Agent 4 rebases/reconciles PR #8 against latest main, preserving all AC-006 recovery assertions.
-2. While Agent 4 owns the file, port the non-duplicative PR #1 coverage: browser import round-trip, autosave wait for frame edits, restored frame count/selected-frame assertion, and frame-one/two/three cel checks.
-3. Drop the PR #8 pre-save frame reset. Keep only one original-frame ID and one set of original red/composite assertions.
-4. Rerun `npm run test:e2e` and `npm run test:mcp` on the combined/reconciled PR #8 head; add decoded PNG raster tests separately if in scope/assigned.
-5. Keep PR #1 unmerged as a stale overlapping source branch; coordinator decides whether to close it after Agent 4's integrated changes pass. Agent 1 did not edit PR #1, PR #8 or the shared E2E file.
-
-- **Evidence links:** [Current main E2E](https://github.com/faiev/ArtClub/blob/829a85925eff9cf3cbf1931b56e5819952805bcc/agent-bridge/e2e-test.mjs); [PR #1 import/frame assertions](https://github.com/faiev/ArtClub/blob/ffd5b1bda4dd0879949098709cbbe18474205675/agent-bridge/e2e-test.mjs); [PR #8 frame reset](https://github.com/faiev/ArtClub/blob/9d21f0c9ca87cd0044de36c48a646e411482ed3e/agent-bridge/e2e-test.mjs); [PR #8 MCP export/import checks](https://github.com/faiev/ArtClub/blob/9d21f0c9ca87cd0044de36c48a646e411482ed3e/agent-bridge/mcp-e2e-test.mjs).
-- **Tests:** None run. AC-025 is explicitly read-only; this audit compared the exact GitHub file contents and PR patches. Historical PR #1 CI evidence predates current main and is not a current-base validation.
-- **Blockers:** None for the audit. Shared E2E changes are prohibited for Agent 1 and remain assigned solely to Agent 4.
-- **Next:** Coordinator/Agent 4 to use this keep/drop map during PR #8 reconciliation; no code PR from Agent 1.
-- **Last updated:** 2026-11-14 — AC-025 read-only audit completed against main `829a85925eff9cf3cbf1931b56e5819952805bcc`.
+## Ownership / blockers
+- Owned paths: `tests/qa/**`, `tests/fixtures/qa/**`, `tools/qa-release-check.mjs`, `docs/QA_MATRIX.md`, `docs/RELEASE_CHECKLIST.md`.
+- Do not edit `agent-bridge/e2e-test.mjs`, `.github/workflows/project-tests.yml`, `index.html`, storage/model implementation, exporter implementation or other agents' tests.
+- Agent 4 owns the shared bridge E2E. Workflow lock for PR #11 was released on main; workflow remains outside Agent 1's ownership.
+- **Current blocker:** local repository test execution is unavailable while GitHub DNS resolution fails; nested QA tests also need explicit test-runner inclusion. Continue AC-030 independently.
+- **Next handoff:** Complete AC-030 as a separate narrow PR; keep PR #25 draft pending focused execution/test-runner integration.
+- **Last updated:** 2026-11-14 — AC-029 submitted; AC-030 started.
