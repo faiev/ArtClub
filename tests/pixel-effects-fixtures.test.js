@@ -191,3 +191,51 @@ test("AC-085 maximum-dimension stress recipe is bounded by the real filled-recta
   assert.deepEqual(points[0], { x: 0, y: 0 });
   assert.deepEqual(points.at(-1), { x: 511, y: 511 });
 });
+
+
+test("AC-085 maximum-size ellipse and circle outputs stay inside the pixel allocation budget", () => {
+  const options = { width: 512, height: 512 };
+  const ellipseOutline = Raster.rasterizeEllipse(0, 0, 512, 512, options);
+  const ellipseFill = Raster.rasterizeEllipse(0, 0, 512, 512, { ...options, filled: true });
+  const circleOutline = Raster.rasterizeCircle(0, 0, 512, options);
+  for (const points of [ellipseOutline, ellipseFill, circleOutline]) {
+    assert.ok(points.length <= Raster.MAX_PIXELS);
+    assert.ok(points.every(point =>
+      Number.isInteger(point.x) && Number.isInteger(point.y) &&
+      point.x >= 0 && point.y >= 0 && point.x < 512 && point.y < 512
+    ));
+  }
+  assert.ok(ellipseOutline.length > 0);
+  assert.ok(ellipseFill.length >= ellipseOutline.length);
+  assert.ok(circleOutline.length > 0);
+});
+
+test("AC-085 polygon rasterization is deterministic and does not mutate control vertices", () => {
+  const vertices = [
+    { x: 1, y: 1 }, { x: 7, y: 1 }, { x: 7, y: 6 }, { x: 4, y: 4 }, { x: 1, y: 6 }
+  ];
+  const snapshot = vertices.map(point => ({ x: point.x, y: point.y }));
+  const options = { width: 9, height: 9 };
+  const first = Raster.rasterizePolygon(vertices, options);
+  const second = Raster.rasterizePolygon(vertices, options);
+  assert.deepEqual(first, second);
+  assert.notEqual(first, second);
+  assert.deepEqual(vertices, snapshot);
+  assert.equal(new Set(coords(first).map(point => point.join(","))).size, first.length);
+});
+
+test("AC-085 rejects line and polygon workloads beyond their declared hard ceilings", () => {
+  assert.throws(() => Raster.rasterizeLine(-8192, 2, 8192, 2, {
+    width: 512,
+    height: 512
+  }), /step/i);
+
+  const oversizedPolygon = Array.from({ length: Raster.MAX_POLYGON_VERTICES + 1 }, (_, i) => ({
+    x: i % 512,
+    y: Math.floor(i / 512)
+  }));
+  assert.throws(() => Raster.rasterizePolygon(oversizedPolygon, {
+    width: 512,
+    height: 512
+  }), /vertex|4096/i);
+});
