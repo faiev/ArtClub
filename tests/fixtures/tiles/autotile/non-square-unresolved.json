@@ -1,0 +1,130 @@
+{
+  "schema": "artclub.autotile-fixture.v1",
+  "id": "non-square-unresolved",
+  "description": "Non-square two-group map proves out-of-bounds neighbors are zero and no-match cells remain unresolved.",
+  "map": {
+    "width": 4,
+    "height": 2,
+    "cells": [
+      "grass-source",
+      "grass-source",
+      null,
+      "water-source",
+      "grass-source",
+      null,
+      "water-source",
+      "water-source"
+    ]
+  },
+  "catalog": [
+    {
+      "id": "grass-source",
+      "group": "ground"
+    },
+    {
+      "id": "grass-corner",
+      "group": "ground"
+    },
+    {
+      "id": "grass-edge",
+      "group": "ground"
+    },
+    {
+      "id": "water-source",
+      "group": "water"
+    },
+    {
+      "id": "water-corner",
+      "group": "water"
+    }
+  ],
+  "ruleset": {
+    "schema": "artclub.autotile-rules.v1",
+    "maskMode": 4,
+    "directions": [
+      "N",
+      "E",
+      "S",
+      "W"
+    ],
+    "groups": [
+      {
+        "id": "ground",
+        "variants": [
+          "grass-corner",
+          "grass-edge"
+        ]
+      },
+      {
+        "id": "water",
+        "variants": [
+          "water-corner"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "ground-nw-corner",
+        "group": "ground",
+        "mask": "0110",
+        "variant": "grass-corner",
+        "priority": 10
+      },
+      {
+        "id": "ground-left-edge",
+        "group": "ground",
+        "mask": "0001",
+        "variant": "grass-edge",
+        "priority": 10
+      },
+      {
+        "id": "water-top-edge",
+        "group": "water",
+        "mask": "0010",
+        "variant": "water-corner",
+        "priority": 10
+      }
+    ]
+  },
+  "expect": {
+    "variantCells": [
+      "grass-corner",
+      "grass-edge",
+      null,
+      "water-corner",
+      null,
+      null,
+      null,
+      null
+    ],
+    "unresolved": [
+      {
+        "x": 0,
+        "y": 1,
+        "index": 4,
+        "sourceTileId": "grass-source",
+        "group": "ground",
+        "mask": "1000",
+        "reason": "NO_RULE_MATCHED"
+      },
+      {
+        "x": 2,
+        "y": 1,
+        "index": 6,
+        "sourceTileId": "water-source",
+        "group": "water",
+        "mask": "0100",
+        "reason": "NO_RULE_MATCHED"
+      },
+      {
+        "x": 3,
+        "y": 1,
+        "index": 7,
+        "sourceTileId": "water-source",
+        "group": "water",
+        "mask": "1001",
+        "reason": "NO_RULE_MATCHED"
+      }
+    ]
+  }
+}
