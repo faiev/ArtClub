@@ -1511,11 +1511,21 @@ function getAgentPixel(coordinates){
   const x=agentCoordinate(coordinates.x,w,"x"),y=agentCoordinate(coordinates.y,h,"y");
   return {x,y,color:compositePixelAt(y*w+x,projectDoc.activeFrameId),revision:documentRevision};
 }
+function assertAgentRevision(options){
+  if(options&&options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
+    throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
+  }
+}
 async function importAgentProject(payload){
+  payload=payload||{};
   if(drawing)throw new Error("Finish the current canvas stroke before importing a project.");
-  const source=payload&&payload.project_json!==undefined?payload.project_json:(payload&&payload.project!==undefined?payload.project:payload);
+  assertAgentRevision(payload);
+  const source=payload.project_json!==undefined?payload.project_json:(payload.project!==undefined?payload.project:payload);
   const imported=ProjectModel.deserializeProject(source);
   await persistNow();
+  // persistNow yields to the browser event loop; recheck before replacing a
+  // document that may have been edited by a human while storage was pending.
+  assertAgentRevision(payload);
   loadProjectIntoEditor(imported);
   const saved=await persistNow();
   if(!saved)throw new Error("The project was imported, but it could not be saved locally. Export it as JSON.");
@@ -1526,13 +1536,17 @@ async function listAgentProjects(){
   return projectStorage.listProjects();
 }
 async function openAgentProject(payload){
+  payload=payload||{};
   if(drawing)throw new Error("Finish the current canvas stroke before switching projects.");
+  assertAgentRevision(payload);
   if(!projectStorage)throw new Error("The local project library is not available in this browser.");
-  const projectId=payload&&payload.project_id;
+  const projectId=payload.project_id;
   if(typeof projectId!=="string"||!projectId)throw new Error("Provide a project_id from list_projects.");
   await persistNow();
+  assertAgentRevision(payload);
   const project=await projectStorage.getProject(projectId);
   if(!project)throw new Error("That local project no longer exists.");
+  assertAgentRevision(payload);
   loadProjectIntoEditor(project);
   const saved=await persistNow();
   if(!saved)throw new Error("The project opened, but the local save failed.");
@@ -1752,8 +1766,8 @@ function installAgentAPI(){
     getCanvas:getAgentCanvas,
     getPixel:getAgentPixel,
     execute:executeAgentCommands,
-    undo:function(){if(drawing)throw new Error("Finish the current canvas stroke before undoing.");undo();return getAgentStatus()},
-    redo:function(){if(drawing)throw new Error("Finish the current canvas stroke before redoing.");redo();return getAgentStatus()},
+    undo:function(options){if(drawing)throw new Error("Finish the current canvas stroke before undoing.");assertAgentRevision(options);undo();return getAgentStatus()},
+    redo:function(options){if(drawing)throw new Error("Finish the current canvas stroke before redoing.");assertAgentRevision(options);redo();return getAgentStatus()},
     save:async function(){if(drawing)throw new Error("Finish the current canvas stroke before saving.");const saved=await persistNow();return {ok:saved,status:$("saveState").textContent,project_id:activeProjectId}},
     exportProject:function(){return ProjectModel.serializeProject(snapshot())},
     importProject:importAgentProject,
