@@ -611,11 +611,14 @@ function executeAgentCommands(commands,options){
     throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
   }
   const validated=validateAgentCommands(commands);
+  const newColors=[...new Set(validated.map(command=>command.color).filter(Boolean))].filter(color=>!palette.includes(color));
+  if(palette.length+newColors.length>ProjectModel.LIMITS.maxPaletteColors)throw new Error("The palette would exceed the 256-color safety limit.");
   const before=snapshot();
   const oldUndo=undoStack.slice(),oldRedo=redoStack.slice();
   remember();
   try{
     for(const command of validated){
+      if(command.color&&!palette.includes(command.color))palette.push(command.color);
       const color=command.color||palette[selected];
       if(command.type==="draw_pixel")paint(command.y*w+command.x,color);
       else if(command.type==="erase_pixel")paint(command.y*w+command.x,null);
