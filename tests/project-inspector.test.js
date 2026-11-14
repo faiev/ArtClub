@@ -7,6 +7,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
+const { createHash } = require("node:crypto");
 
 const ROOT = path.resolve(__dirname, "..");
 const CLI = path.join(ROOT, "tools", "project-inspector.mjs");
@@ -568,6 +569,14 @@ test("mixed legacy/v2 cel differences are labelled unmatchable, not falsely remo
 });
 
 
+
+function runMigrationPreview(filePath, options = ["--json"]) {
+  return spawnSync(process.execPath, [CLI, "--migration-preview", ...options, filePath], {
+    encoding: "utf8",
+    maxBuffer: 8 * 1024 * 1024
+  });
+}
+
 function runDiagnostics(filePath, options = ["--json"]) {
   return spawnSync(process.execPath, [CLI, "--diagnostics", ...options, filePath], {
     encoding: "utf8",
@@ -761,4 +770,155 @@ test("deep diagnostics renders a concise human report", (t) => {
   assert.match(result.stdout, /Project Inspector — Deep Diagnostics/);
   assert.match(result.stdout, /Model validation: VALID/);
   assert.match(result.stdout, /Risk score: 0\/100 \(low\)/);
+});
+
+
+test("migration preview hashes exact source bytes and reports normalized v2 field mapping", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "valid-legacy.json");
+  const original = fs.readFileSync(file);
+  const originalHash = createHash("sha256").update(original).digest("hex");
+
+  const result = runMigrationPreview(file);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true);
+  assert.equal(report.mode, "migration-preview");
+  assert.equal(report.source.file, file);
+  assert.equal(report.source.byteCount, original.length);
+  assert.equal(report.source.sha256, originalHash);
+  assert.equal(report.source.format, "legacy-single-canvas");
+  assert.equal(report.source.version, 1);
+  assert.equal(report.migration.fromVersion, 1);
+  assert.equal(report.migration.toVersion, 2);
+  assert.equal(report.normalizedPreview.format, "one-pixel-studio");
+  assert.equal(report.normalizedPreview.version, 2);
+  assert.equal(report.normalizedPreview.name, "Legacy fixture");
+  assert.deepEqual(report.normalizedPreview.canvas, {
+    width: 2,
+    height: 2,
+    background: null
+  });
+  assert.deepEqual(report.normalizedPreview.palette, ["#000000", "#ffffff"]);
+  assert.deepEqual(report.normalizedPreview.cels[0].pixels, [
+    "#ffffff",
+    null,
+    null,
+    "#000000"
+  ]);
+  assert.match(report.normalizedPreview.id, /^preview-project-/);
+  assert.match(report.normalizedPreview.layers[0].id, /^preview-layer-/);
+  assert.match(report.normalizedPreview.frames[0].id, /^preview-frame-/);
+  assert.equal(report.normalizedPreview.metadata.createdAt, "1970-01-01T00:00:00.000Z");
+  assert.equal(report.normalizedPreview.metadata.updatedAt, "1970-01-01T00:00:00.000Z");
+  assert.ok(report.migration.transformedFields.some((field) =>
+    field.source === "w" && field.target === "canvas.width"));
+  assert.ok(report.migration.transformedFields.some((field) =>
+    field.source === "pixels" && field.target === "cels[0].pixels"));
+  assert.ok(report.migration.preservedFields.some((field) =>
+    field.source === "palette" && field.operation === "copied without reordering"));
+  assert.equal(report.policy.previewOnly, true);
+  assert.equal(report.policy.inputModified, false);
+  assert.equal(report.policy.outputWritten, false);
+  assert.equal(report.policy.previewIdsAreSourceIds, false);
+  assert.equal(report.policy.timestampsAreSourceTimestamps, false);
+  assert.deepEqual(fs.readFileSync(file), original);
+});
+
+test("migration preview is deterministic for identical source bytes", (t) => {
+  const directory = temporaryDirectory(t);
+  const left = copyFixture(directory, "valid-legacy.json");
+  const right = path.join(directory, "copy.json");
+  fs.copyFileSync(left, right);
+
+  const first = JSON.parse(runMigrationPreview(left).stdout);
+  const second = JSON.parse(runMigrationPreview(right).stdout);
+  assert.equal(first.ok, true);
+  assert.equal(second.ok, true);
+  assert.equal(first.source.sha256, second.source.sha256);
+  assert.deepEqual(first.normalizedPreview, second.normalizedPreview);
+  assert.deepEqual(first.migration, second.migration);
+});
+
+test("migration preview reports model-supplied defaults explicitly", (t) => {
+  const directory = temporaryDirectory(t);
+  const source = JSON.parse(fs.readFileSync(path.join(FIXTURES, "valid-legacy.json"), "utf8"));
+  delete source.projectName;
+  delete source.selected;
+  const file = writeDiagnosticProject(directory, "legacy-defaults.json", source);
+
+  const result = runMigrationPreview(file);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.normalizedPreview.name, "Untitled artwork");
+  assert.equal(report.normalizedPreview.selectedColorIndex, 0);
+  assert.ok(report.migration.transformedFields.some((field) =>
+    field.source === "projectName" && field.operation === "defaulted"));
+  assert.ok(report.migration.transformedFields.some((field) =>
+    field.source === "selected" && field.operation === "defaulted"));
+  assert.ok(report.migration.warnings.some((warning) => /no projectName/.test(warning)));
+  assert.ok(report.migration.warnings.some((warning) => /no valid selected index/.test(warning)));
+});
+
+test("migration preview rejects v2 projects rather than pretending they were migrated", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "valid-v2.json");
+  const original = fs.readFileSync(file);
+
+  const result = runMigrationPreview(file);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, false);
+  assert.equal(report.error.code, "NOT_LEGACY_PROJECT");
+  assert.equal(report.normalizedPreview, undefined);
+  assert.equal(report.source.byteCount, original.length);
+  assert.deepEqual(fs.readFileSync(file), original);
+});
+
+test("migration preview includes source hash and byte count in malformed JSON errors", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "malformed-json.json");
+  const original = fs.readFileSync(file);
+  const result = runMigrationPreview(file);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, false);
+  assert.equal(report.error.code, "JSON_PARSE_ERROR");
+  assert.equal(report.source.byteCount, original.length);
+  assert.equal(report.source.sha256, createHash("sha256").update(original).digest("hex"));
+  assert.equal(report.policy.inputModified, false);
+});
+
+test("migration preview reports oversized input without attempting to parse or write it", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = path.join(directory, "too-large-legacy.json");
+  fs.writeFileSync(file, "{}");
+  fs.truncateSync(file, MAX_FILE_BYTES + 1);
+
+  const result = runMigrationPreview(file);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, false);
+  assert.equal(report.error.code, "FILE_TOO_LARGE");
+  assert.equal(report.source.byteCount, MAX_FILE_BYTES + 1);
+  assert.equal(report.source.sha256, null);
+  assert.equal(report.policy.outputWritten, false);
+});
+
+test("migration preview provides a concise human report and enforces mode exclusivity", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "valid-legacy.json");
+  const human = runMigrationPreview(file, []);
+  assert.equal(human.status, 0, human.stderr);
+  assert.match(human.stdout, /Project Inspector — Migration Preview/);
+  assert.match(human.stdout, /Status: PREVIEW ONLY/);
+  assert.match(human.stdout, /SHA-256:/);
+  assert.match(human.stdout, /Source modified: no/);
+
+  const invalid = spawnSync(process.execPath, [
+    CLI, "--json", "--migration-preview", "--compare", file, file
+  ], { encoding: "utf8" });
+  assert.equal(invalid.status, 2);
+  const report = JSON.parse(invalid.stdout);
+  assert.equal(report.error.code, "INVALID_ARGUMENT");
 });
