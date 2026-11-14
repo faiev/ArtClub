@@ -11,12 +11,12 @@
   },
   "bridge": {
     "name": "art-club-mcp-bridge",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "transport": "stdio",
     "local_only": true
   },
   "tools": {
-    "total": 53,
+    "total": 54,
     "read_only": [
       "artclub_get_status",
       "artclub_get_canvas",
@@ -27,6 +27,7 @@
       "artclub_list_projects",
       "artclub_export_project",
       "artclub_export_png",
+      "artclub_get_bridge_diagnostics",
       "artclub_get_capabilities"
     ],
     "document_mutating": [
@@ -160,6 +161,11 @@
       },
       {
         "name": "artclub_export_png",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_get_bridge_diagnostics",
         "access": "read_only",
         "requires_expected_revision": false
       },
@@ -448,7 +454,8 @@
     "palette_formats": false
   },
   "diagnostics": {
-    "available": false,
+    "available": true,
+    "bridge_runtime": true,
     "bridge_doctor": false,
     "read_only_project_inspection": false
   },
@@ -461,6 +468,9 @@
     "onion_skin": true,
     "cross_process_profile_lock": true,
     "operation_deadlines": true,
-    "request_cancellation": true
+    "request_cancellation": true,
+    "reconnect_state_reporting": true,
+    "queue_metrics": true,
+    "redacted_diagnostics": true
   }
 }
