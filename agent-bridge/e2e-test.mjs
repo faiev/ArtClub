@@ -218,6 +218,20 @@ async function run() {
     assert.equal(pausedState.playback.playing, false);
     assert.equal(pausedState.active_frame.id, frameTwoId);
     await page.evaluate(() => window.onePixelStudio.stop_playback());
+
+    // The reload assertions below inspect pixels from the original editing
+    // frame. Playback leaves the selected frame unchanged, so explicitly
+    // return to that frame before saving the project snapshot.
+    await page.evaluate(
+      id => window.onePixelStudio.select_frame({ frame_id: id }),
+      reopenedStatus.active_frame.id
+    );
+    const frameBeforeReload = await page.evaluate(() => window.onePixelStudio.get_status());
+    assert.equal(
+      frameBeforeReload.active_frame.id,
+      reopenedStatus.active_frame.id,
+      "the original editing frame should be selected before reload persistence is tested"
+    );
     await page.evaluate(() => window.onePixelStudio.save());
 
     await page.reload({ waitUntil: "domcontentloaded" });
