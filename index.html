@@ -974,7 +974,7 @@ $("shapeFillToggle").addEventListener("change",()=>setTool(tool));
 async function createBlankProject(options){
   options=options||{};
   if(options.persistCurrent!==false)await persistNow();
-  w=options.width||24;h=options.height||24;
+  w=options.width===undefined?24:options.width;h=options.height===undefined?24:options.height;
   if(!Number.isInteger(w)||!Number.isInteger(h)||w<1||h<1||w>ProjectModel.LIMITS.maxDimension||h>ProjectModel.LIMITS.maxDimension){
     throw new Error("Canvas dimensions must be whole numbers between 1 and "+ProjectModel.LIMITS.maxDimension+".");
   }
