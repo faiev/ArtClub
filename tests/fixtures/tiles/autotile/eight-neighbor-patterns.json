@@ -1,0 +1,123 @@
+{
+  "schema": "artclub.autotile-fixture.v1",
+  "id": "eight-neighbor-patterns",
+  "description": "Eight-neighbor diagonal corner, top edge and center masks with an explicit fallback.",
+  "map": {
+    "width": 3,
+    "height": 3,
+    "cells": [
+      "stone-source",
+      "stone-source",
+      "stone-source",
+      "stone-source",
+      "stone-source",
+      "stone-source",
+      "stone-source",
+      "stone-source",
+      "stone-source"
+    ]
+  },
+  "catalog": [
+    {
+      "id": "stone-source",
+      "group": "stone"
+    },
+    {
+      "id": "stone-corner",
+      "group": "stone"
+    },
+    {
+      "id": "stone-edge",
+      "group": "stone"
+    },
+    {
+      "id": "stone-inner",
+      "group": "stone"
+    },
+    {
+      "id": "stone-default",
+      "group": "stone"
+    }
+  ],
+  "ruleset": {
+    "schema": "artclub.autotile-rules.v1",
+    "maskMode": 8,
+    "directions": [
+      "N",
+      "NE",
+      "E",
+      "SE",
+      "S",
+      "SW",
+      "W",
+      "NW"
+    ],
+    "groups": [
+      {
+        "id": "stone",
+        "variants": [
+          "stone-corner",
+          "stone-edge",
+          "stone-inner",
+          "stone-default"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "stone-nw-corner",
+        "group": "stone",
+        "mask": "00111000",
+        "variant": "stone-corner",
+        "priority": 100
+      },
+      {
+        "id": "stone-north-edge",
+        "group": "stone",
+        "mask": "00111110",
+        "variant": "stone-edge",
+        "priority": 100
+      },
+      {
+        "id": "stone-inner",
+        "group": "stone",
+        "mask": "11111111",
+        "variant": "stone-inner",
+        "priority": 100
+      },
+      {
+        "id": "stone-fallback",
+        "group": "stone",
+        "mask": "????????",
+        "variant": "stone-default",
+        "priority": 0,
+        "fallback": true
+      }
+    ]
+  },
+  "expect": {
+    "variantCells": [
+      "stone-corner",
+      "stone-edge",
+      "stone-default",
+      "stone-default",
+      "stone-inner",
+      "stone-default",
+      "stone-default",
+      "stone-default",
+      "stone-default"
+    ],
+    "unresolvedCount": 0,
+    "masks": [
+      "00111000",
+      "00111110",
+      "00001110",
+      "11111000",
+      "11111111",
+      "10001111",
+      "11100000",
+      "11100011",
+      "10000011"
+    ]
+  }
+}
