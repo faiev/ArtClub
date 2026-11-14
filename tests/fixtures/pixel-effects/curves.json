@@ -1,0 +1,365 @@
+{
+  "schemaVersion": 1,
+  "coordinateSystem": "integer pixel coordinates; row-major viewport; #RRGGBB not applicable",
+  "defaultCanvas": {
+    "width": 9,
+    "height": 9
+  },
+  "cases": [
+    {
+      "id": "quadratic-horizontal-degenerates-to-line",
+      "degree": 2,
+      "controlPoints": [
+        {
+          "x": 0,
+          "y": 2
+        },
+        {
+          "x": 2,
+          "y": 2
+        },
+        {
+          "x": 4,
+          "y": 2
+        }
+      ],
+      "canvas": {
+        "width": 9,
+        "height": 9
+      },
+      "expected": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ]
+      ]
+    },
+    {
+      "id": "cubic-vertical-degenerates-to-line",
+      "degree": 3,
+      "controlPoints": [
+        {
+          "x": 4,
+          "y": 1
+        },
+        {
+          "x": 4,
+          "y": 2
+        },
+        {
+          "x": 4,
+          "y": 4
+        },
+        {
+          "x": 4,
+          "y": 5
+        }
+      ],
+      "canvas": {
+        "width": 9,
+        "height": 9
+      },
+      "expected": [
+        [
+          4,
+          1
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          4,
+          3
+        ],
+        [
+          4,
+          4
+        ],
+        [
+          4,
+          5
+        ]
+      ]
+    },
+    {
+      "id": "coincident-quadratic",
+      "degree": 2,
+      "controlPoints": [
+        {
+          "x": 3,
+          "y": 3
+        },
+        {
+          "x": 3,
+          "y": 3
+        },
+        {
+          "x": 3,
+          "y": 3
+        }
+      ],
+      "canvas": {
+        "width": 9,
+        "height": 9
+      },
+      "expected": [
+        [
+          3,
+          3
+        ]
+      ]
+    },
+    {
+      "id": "coincident-cubic",
+      "degree": 3,
+      "controlPoints": [
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 5,
+          "y": 5
+        },
+        {
+          "x": 5,
+          "y": 5
+        }
+      ],
+      "canvas": {
+        "width": 9,
+        "height": 9
+      },
+      "expected": [
+        [
+          5,
+          5
+        ]
+      ]
+    },
+    {
+      "id": "out-of-bounds-straight-quadratic-clips",
+      "degree": 2,
+      "controlPoints": [
+        {
+          "x": -2,
+          "y": 2
+        },
+        {
+          "x": 1,
+          "y": 2
+        },
+        {
+          "x": 4,
+          "y": 2
+        }
+      ],
+      "canvas": {
+        "width": 5,
+        "height": 5
+      },
+      "expected": [
+        [
+          0,
+          2
+        ],
+        [
+          1,
+          2
+        ],
+        [
+          2,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          4,
+          2
+        ]
+      ]
+    },
+    {
+      "id": "fully-outside-cubic",
+      "degree": 3,
+      "controlPoints": [
+        {
+          "x": -8,
+          "y": -8
+        },
+        {
+          "x": -6,
+          "y": -2
+        },
+        {
+          "x": -4,
+          "y": -2
+        },
+        {
+          "x": -2,
+          "y": -8
+        }
+      ],
+      "canvas": {
+        "width": 5,
+        "height": 5
+      },
+      "expected": []
+    }
+  ],
+  "invariantCases": [
+    {
+      "id": "closed-loop-cubic",
+      "degree": 3,
+      "controlPoints": [
+        {
+          "x": 4,
+          "y": 4
+        },
+        {
+          "x": 7,
+          "y": 1
+        },
+        {
+          "x": 1,
+          "y": 1
+        },
+        {
+          "x": 4,
+          "y": 4
+        }
+      ],
+      "canvas": {
+        "width": 9,
+        "height": 9
+      },
+      "invariants": {
+        "start": [
+          4,
+          4
+        ],
+        "startCoordinateOccursOnce": true,
+        "minPointCount": 5,
+        "uniqueCoordinates": true
+      },
+      "expected": [
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          4,
+          2
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ]
+    },
+    {
+      "id": "cusp-like-cubic",
+      "degree": 3,
+      "controlPoints": [
+        {
+          "x": 4,
+          "y": 4
+        },
+        {
+          "x": 8,
+          "y": 0
+        },
+        {
+          "x": 0,
+          "y": 0
+        },
+        {
+          "x": 4,
+          "y": 4
+        }
+      ],
+      "canvas": {
+        "width": 9,
+        "height": 9
+      },
+      "invariants": {
+        "start": [
+          4,
+          4
+        ],
+        "startCoordinateOccursOnce": true,
+        "minPointCount": 5,
+        "uniqueCoordinates": true
+      },
+      "expected": [
+        [
+          4,
+          4
+        ],
+        [
+          5,
+          3
+        ],
+        [
+          5,
+          2
+        ],
+        [
+          5,
+          1
+        ],
+        [
+          4,
+          1
+        ],
+        [
+          3,
+          1
+        ],
+        [
+          3,
+          2
+        ],
+        [
+          3,
+          3
+        ]
+      ]
+    }
+  ]
+}
