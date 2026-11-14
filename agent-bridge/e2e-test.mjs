@@ -66,6 +66,7 @@ async function run() {
     await page.waitForFunction(() => Boolean(window.onePixelStudio), null, { timeout: 30_000 });
 
     const initialStatus = await page.evaluate(() => window.onePixelStudio.get_status());
+    const initialFrameId = initialStatus.active_frame.id;
     assert.equal(initialStatus.protocol, "one-pixel-studio-agent");
     assert.equal(initialStatus.canvas.width, 24);
     assert.equal(initialStatus.canvas.height, 24);
@@ -225,6 +226,11 @@ async function run() {
     const afterReload = await page.evaluate(() => window.onePixelStudio.get_status());
     assert.equal(afterReload.project_id, firstProjectId, "refresh should restore the active project");
     assert.equal(afterReload.layers.length, 2, "refresh should preserve the layer stack");
+    // The tested red pixel and composite were drawn on the first frame.
+    // The last selected editing frame before reload was frame two.
+    await page.evaluate(id =>
+      window.onePixelStudio.select_frame({ frame_id: id }), initialFrameId
+    );
     const afterReloadPixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }));
     assert.equal(afterReloadPixel.color, "#ff0000", "refresh should preserve saved pixels");
     const persistedLayerPixel = await page.evaluate(() =>
