@@ -129,6 +129,36 @@ test("async GIF output bytes, metadata and diagnostics exactly match synchronous
   assert.equal(progress.at(-1).phase, "completed");
 });
 
+test("async GIF median-cut palette overflow is byte-identical to the synchronous encoder", async () => {
+  const pixels = Array.from({ length: 257 }, (_, index) => {
+    const red = index & 255;
+    const green = (index >>> 8) & 255;
+    const blue = (index * 7) & 255;
+    return "#" + [red, green, blue].map(value => value.toString(16).padStart(2, "0")).join("");
+  });
+  const project = {
+    format: "one-pixel-studio",
+    version: 2,
+    id: "async-palette-overflow",
+    name: "Async palette overflow",
+    canvas: { width: 257, height: 1, background: null },
+    palette: [],
+    selectedColorIndex: 0,
+    layers: [{ id: "layer-1", name: "Layer", visible: true, locked: false, opacity: 1 }],
+    frames: [{ id: "f1", name: "Overflow", durationMs: 145 }],
+    cels: [{ layerId: "layer-1", frameId: "f1", pixels }],
+    activeLayerId: "layer-1",
+    activeFrameId: "f1",
+    metadata: { createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }
+  };
+  const sync = GIF.encodeGIF(project);
+  const asyncResult = await GIF.encodeGIFAsync(project, { yieldEvery: 32 });
+  assert.equal(sync.diagnostics.paletteMode, "median-cut");
+  assert.equal(asyncResult.diagnostics.paletteMode, "median-cut");
+  assert.deepEqual(Array.from(asyncResult.bytes), Array.from(sync.bytes));
+  assert.deepEqual(asyncResult.metadata, sync.metadata);
+});
+
 test("async GIF checks AbortSignal before starting any work", async () => {
   const controller = new AbortController();
   controller.abort();
