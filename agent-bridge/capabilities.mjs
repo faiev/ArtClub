@@ -13,8 +13,8 @@ const READ_ONLY_TOOLS = [
   "artclub_list_projects",
   "artclub_export_project",
   "artclub_export_png",
-  "artclub_get_capabilities",
-  "artclub_get_bridge_diagnostics"
+  "artclub_get_bridge_diagnostics",
+  "artclub_get_capabilities"
 ];
 
 const DOCUMENT_MUTATING_TOOLS = [
