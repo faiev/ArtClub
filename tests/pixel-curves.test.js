@@ -209,6 +209,7 @@ test("closed-loop and cusp-like synthetic fixtures satisfy exact endpoint and un
       ? Curves.rasterizeQuadratic(...fixture.controlPoints, fixture.canvas)
       : Curves.rasterizeCubic(...fixture.controlPoints, fixture.canvas);
     const [startX, startY] = fixture.invariants.start;
+    assert.deepEqual(coords(points), fixture.expected, fixture.id);
     assert.deepEqual(points[0], { x: startX, y: startY }, fixture.id);
     assert.ok(points.length >= fixture.invariants.minPointCount, fixture.id);
     if (fixture.invariants.startCoordinateOccursOnce) {
@@ -221,9 +222,3 @@ test("closed-loop and cusp-like synthetic fixtures satisfy exact endpoint and un
 });
 
 
-test("temporary golden capture for AC-096 loop/cusp", () => {
-  for (const fixture of curveFixtures.invariantCases) {
-    const points = Curves.rasterizeCubic(...fixture.controlPoints, fixture.canvas);
-    console.log("AC096_GOLDEN_CAPTURE", fixture.id, JSON.stringify(coords(points)));
-  }
-});
