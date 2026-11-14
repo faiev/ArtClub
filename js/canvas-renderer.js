@@ -17,10 +17,13 @@
   const AFTER = [76, 144, 210, 0.35];
   const DEFAULT_GRID_COLOR = "rgba(37, 53, 49, 0.18)";
   const DEFAULT_SELECTION_COLOR = "#e97960";
+  const MAX_DIMENSION = 512;
+  const MAX_PIXELS = MAX_DIMENSION * MAX_DIMENSION;
+  const TRANSPARENT_KEY = 0x1000000;
 
   function rgba(color) {
-    if (color == null || color === "" || color === "transparent") return [0, 0, 0, 0];
-    if (typeof color !== "string") throw new TypeError("Pixel colors must be #RRGGBB strings or null.");
+    if (color === null) return [0, 0, 0, 0];
+    if (typeof color !== "string") throw new TypeError("Pixel colors must be #RRGGBB strings or explicit null.");
     const value = color.toLowerCase();
     if (!/^#[0-9a-f]{6}$/.test(value)) throw new TypeError("Pixel colors must use #RRGGBB hex format.");
     if (!COLORS.has(value)) {
@@ -90,6 +93,11 @@
       this.lastRenderMode = "none";
       this.lastDirtyRect = null;
       this.overlaySignature = null;
+      this.onionBeforeSnapshot = null;
+      this.onionAfterSnapshot = null;
+      this.lastFrameId = undefined;
+      this.lastCompositeRevision = undefined;
+      this.hasRendered = false;
       this.destroyed = false;
       if (canvas.style && this.options.pixelated !== false) canvas.style.imageRendering = "pixelated";
     }
@@ -140,6 +148,36 @@
       this.surfaceContext.imageSmoothingEnabled = false;
       this.overlayContext.imageSmoothingEnabled = false;
       return changed;
+    }
+
+    _validateColorArray(values, count, label) {
+      if (!Array.isArray(values) || values.length !== count) {
+        throw new RangeError(label + " length must equal width × height.");
+      }
+      for (let i = 0; i < count; i++) {
+        if (!(i in values)) {
+          throw new TypeError(label + " must not contain sparse or undefined pixel entries (index " + i + ").");
+        }
+        rgba(values[i]);
+      }
+    }
+
+    _snapshotMask(values, count) {
+      if (values === undefined || values === null) return null;
+      const snapshot = new Uint32Array(count);
+      for (let i = 0; i < count; i++) {
+        snapshot[i] = values[i] === null ? TRANSPARENT_KEY : parseInt(values[i].slice(1), 16);
+      }
+      return snapshot;
+    }
+
+    _maskChanged(next, previous) {
+      if (next === null || previous === null) return next !== previous;
+      if (next.length !== previous.length) return true;
+      for (let i = 0; i < next.length; i++) {
+        if (next[i] !== previous[i]) return true;
+      }
+      return false;
     }
 
     _selectionFor(state) {
@@ -251,26 +289,47 @@
     render(state, dirtyRect) {
       this._live();
       if (!state || !Number.isInteger(state.width) || !Number.isInteger(state.height) ||
-          state.width < 1 || state.height < 1) {
-        throw new RangeError("Canvas width and height must be positive integers.");
+          state.width < 1 || state.height < 1 ||
+          state.width > MAX_DIMENSION || state.height > MAX_DIMENSION) {
+        throw new RangeError("Canvas width and height must be positive integers no larger than " +
+          MAX_DIMENSION + " pixels.");
       }
       const count = state.width * state.height;
-      if (!Array.isArray(state.pixels) || state.pixels.length !== count) {
-        throw new RangeError("Pixel array length must equal width × height.");
+      if (count > MAX_PIXELS) {
+        throw new RangeError("Canvas area exceeds the " + MAX_PIXELS + " pixel renderer limit.");
       }
-      if (state.onionBefore && state.onionBefore.length !== count) {
-        throw new RangeError("Previous-frame pixel array length must equal width × height.");
+
+      // Validate every source entry before resizing or mutating any render buffer. This
+      // rejects sparse arrays and undefined values even when they lie outside dirtyRect.
+      this._validateColorArray(state.pixels, count, "Pixel array");
+      if (state.onionBefore !== undefined && state.onionBefore !== null) {
+        this._validateColorArray(state.onionBefore, count, "Previous-frame pixel array");
       }
-      if (state.onionAfter && state.onionAfter.length !== count) {
-        throw new RangeError("Next-frame pixel array length must equal width × height.");
+      if (state.onionAfter !== undefined && state.onionAfter !== null) {
+        this._validateColorArray(state.onionAfter, count, "Next-frame pixel array");
+      }
+      if (state.frameId !== undefined && typeof state.frameId !== "string") {
+        throw new TypeError("frameId must be a string when provided.");
+      }
+      if (state.compositeRevision !== undefined &&
+          typeof state.compositeRevision !== "string" && typeof state.compositeRevision !== "number") {
+        throw new TypeError("compositeRevision must be a string or number when provided.");
       }
 
       const selection = this._selectionFor(state);
       const requested = clippedRect(dirtyRect, state.width, state.height);
       const overlaySignature = this._overlaySignature(state, selection);
+      const nextBeforeSnapshot = this._snapshotMask(state.onionBefore, count);
+      const nextAfterSnapshot = this._snapshotMask(state.onionAfter, count);
+      const onionChanged = this._maskChanged(nextBeforeSnapshot, this.onionBeforeSnapshot) ||
+        this._maskChanged(nextAfterSnapshot, this.onionAfterSnapshot);
+      const compositeChanged = this.hasRendered &&
+        (state.frameId !== this.lastFrameId ||
+          state.compositeRevision !== this.lastCompositeRevision);
       const resized = this._resize(state.width, state.height);
       const overlayChanged = overlaySignature !== this.overlaySignature;
-      const rect = resized || overlayChanged
+      const fullRedraw = resized || overlayChanged || onionChanged || compositeChanged;
+      const rect = fullRedraw
         ? { x: 0, y: 0, width: state.width, height: state.height }
         : requested;
       if (!rect) return this.getStats();
@@ -279,6 +338,11 @@
       this._drawOverlay(state, selection);
       this._blit(rect);
       this.overlaySignature = overlaySignature;
+      this.onionBeforeSnapshot = nextBeforeSnapshot;
+      this.onionAfterSnapshot = nextAfterSnapshot;
+      this.lastFrameId = state.frameId;
+      this.lastCompositeRevision = state.compositeRevision;
+      this.hasRendered = true;
       this.renderCount++;
       this.lastRenderMode = rect.width === state.width && rect.height === state.height ? "full" : "dirty";
       this.lastDirtyRect = Object.assign({}, rect);
@@ -317,6 +381,9 @@
       this.width = this.height = 0;
       this.imageData = null;
       this.overlaySignature = null;
+      this.onionBeforeSnapshot = null;
+      this.onionAfterSnapshot = null;
+      this.hasRendered = false;
     }
   }
 

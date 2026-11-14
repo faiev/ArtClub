@@ -72,9 +72,11 @@ function createRenderer(bounds, ratio) {
 test("parses supported project colors and transparent pixels", () => {
   assert.deepEqual(parseColor("#123456"), [18, 52, 86, 255]);
   assert.deepEqual(parseColor(null), [0, 0, 0, 0]);
-  assert.deepEqual(parseColor("transparent"), [0, 0, 0, 0]);
+  assert.throws(() => parseColor("transparent"), /#RRGGBB/);
+  assert.throws(() => parseColor(""), /#RRGGBB/);
+  assert.throws(() => parseColor(undefined), /explicit null/);
   assert.throws(() => parseColor("red"), /#RRGGBB/);
-  assert.throws(() => parseColor(123), /strings or null/);
+  assert.throws(() => parseColor(123), /explicit null/);
 });
 
 test("renders exact source pixels with crisp nearest-neighbor scaling", () => {
@@ -271,6 +273,91 @@ test("maps pointer coordinates to logical pixels and excludes invalid/outside po
   assert.equal(renderer.mapClientToPixel(9.99, 20), null);
   assert.equal(renderer.mapClientToPixel(NaN, 20), null);
   assert.equal(renderer.mapClientToPixel(10, 20, { left: 0, top: 0, width: 0, height: 2 }), null);
+});
+
+test("rejects sparse and undefined pixel entries before mutating renderer buffers", () => {
+  const { renderer, canvas, surfaces } = createRenderer();
+  const valid = { width: 2, height: 2, pixels: Array(4).fill(null), grid: false };
+  renderer.render(valid);
+  const renderCount = renderer.renderCount;
+  const visibleCalls = canvas.context.calls.length;
+  const surfaceCalls = surfaces[0].context.calls.length;
+
+  const sparse = Array(4).fill(null);
+  delete sparse[3];
+  assert.throws(() => renderer.render({ ...valid, pixels: sparse }, { x: 0, y: 0, width: 1, height: 1 }),
+    /sparse or undefined/);
+  const explicitUndefined = [null, null, null, undefined];
+  assert.throws(() => renderer.render({ ...valid, pixels: explicitUndefined }, { x: 0, y: 0, width: 1, height: 1 }),
+    /explicit null/);
+  assert.equal(renderer.renderCount, renderCount);
+  assert.equal(canvas.context.calls.length, visibleCalls);
+  assert.equal(surfaces[0].context.calls.length, surfaceCalls);
+});
+
+test("rejects sparse or undefined onion-mask entries before rendering", () => {
+  const { renderer } = createRenderer();
+  const state = { width: 2, height: 1, pixels: [null, null], grid: false };
+  const sparseMask = ["#ff0000", undefined];
+  delete sparseMask[1];
+  assert.throws(() => renderer.render({ ...state, onionBefore: sparseMask }), /sparse or undefined/);
+  assert.throws(() => renderer.render({ ...state, onionAfter: ["#ff0000", undefined] }), /explicit null/);
+  assert.equal(renderer.renderCount, 0);
+});
+
+test("enforces the project's 512-pixel dimension limit before allocating surfaces", () => {
+  const { renderer, surfaces, canvas } = createRenderer();
+  assert.throws(() => renderer.render({
+    width: 513, height: 1, pixels: Array(513).fill(null)
+  }), /no larger than 512/);
+  assert.throws(() => renderer.render({
+    width: 1, height: 513, pixels: Array(513).fill(null)
+  }), /no larger than 512/);
+  assert.equal(renderer.renderCount, 0);
+  assert.equal(surfaces[0].width, 1);
+  assert.equal(surfaces[1].width, 1);
+  assert.equal(canvas.widthSets, 0);
+});
+
+test("frame and composite revision changes force full redraws", () => {
+  const { renderer } = createRenderer();
+  const pixels = Array(4).fill(null);
+  const state = { width: 2, height: 2, pixels, frameId: "frame-a", compositeRevision: 1, grid: false };
+  renderer.render(state);
+
+  pixels[0] = "#ff0000";
+  const switchedFrame = renderer.render(
+    { ...state, frameId: "frame-b", compositeRevision: 1 },
+    { x: 0, y: 0, width: 1, height: 1 }
+  );
+  assert.equal(switchedFrame.lastRenderMode, "full");
+  assert.deepEqual(switchedFrame.lastDirtyRect, { x: 0, y: 0, width: 2, height: 2 });
+
+  pixels[1] = "#00ff00";
+  const changedComposite = renderer.render(
+    { ...state, frameId: "frame-b", compositeRevision: 2 },
+    { x: 1, y: 0, width: 1, height: 1 }
+  );
+  assert.equal(changedComposite.lastRenderMode, "full");
+  assert.deepEqual(changedComposite.lastDirtyRect, { x: 0, y: 0, width: 2, height: 2 });
+});
+
+test("onion mask content changes force full redraw and erase stale tints", () => {
+  const { renderer } = createRenderer();
+  const state = {
+    width: 3, height: 1, pixels: [null, null, null],
+    onionBefore: ["#ff0000", null, null], grid: false
+  };
+  renderer.render(state);
+  assert.deepEqual(Array.from(renderer.imageData.data.slice(0, 4)), [232, 95, 100, 89]);
+
+  state.onionBefore[0] = null;
+  state.onionBefore[2] = "#0000ff";
+  const result = renderer.render(state, { x: 2, y: 0, width: 1, height: 1 });
+  assert.equal(result.lastRenderMode, "full");
+  assert.deepEqual(result.lastDirtyRect, { x: 0, y: 0, width: 3, height: 1 });
+  assert.deepEqual(Array.from(renderer.imageData.data.slice(0, 4)), [0, 0, 0, 0]);
+  assert.deepEqual(Array.from(renderer.imageData.data.slice(8, 12)), [232, 95, 100, 89]);
 });
 
 test("supports the editor's maximum 512 by 512 raster", () => {

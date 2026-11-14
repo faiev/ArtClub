@@ -20,8 +20,10 @@ Load js/canvas-renderer.js as a regular script. It exposes window.ArtClubCanvasR
       width: 24,
       height: 24,
       pixels: compositedPixels, // Array(width * height) of #RRGGBB or null
-      onionBefore: previousFrameMask, // optional truthy/falsy mask
-      onionAfter: nextFrameMask,      // optional truthy/falsy mask
+      onionBefore: previousFramePixels, // optional Array(width * height) of #RRGGBB or null
+      onionAfter: nextFramePixels,      // optional Array(width * height) of #RRGGBB or null
+      frameId: "frame-1",               // optional identity; a change forces a full redraw
+      compositeRevision: 1,             // bump when frame/layer/order/visibility composite changes
       grid: true,
       selection: null,
       selectionPreview: null
@@ -33,7 +35,11 @@ Load js/canvas-renderer.js as a regular script. It exposes window.ArtClubCanvasR
 
 The module keeps an ImageData buffer at logical canvas resolution. It writes that buffer into a pixel-resolution offscreen surface, then scales the result to the visible canvas with imageSmoothingEnabled = false and image-rendering: pixelated. Grid lines and the rectangular selection outline are drawn on a separate transparent overlay surface, so these effects are not written into project pixels. Onion skin is a translucent tint over cells that are transparent in the active composite.
 
-A dirty rectangle updates only the specified source pixels and blits that crop to the visible canvas. The overlay is redrawn separately and composited over that crop. The renderer tracks grid/selection overlay state: when the grid, its color, selection bounds or selection color changes, it performs a full visible blit so old overlay pixels cannot remain outside a pixel-only dirty rectangle. Logical size, CSS display size and device-pixel-ratio changes also force full redraws. Callers still need to supply the correct dirty bounds for pixel changes and keep the composited pixel array current.
+A dirty rectangle updates only the specified source pixels and blits that crop to the visible canvas. The overlay is redrawn separately and composited over that crop. The renderer tracks grid/selection overlay state: when the grid, its color, selection bounds or selection color changes, it performs a full visible blit. It also snapshots onion-mask contents and forces a full redraw whenever either neighboring-frame mask changes, including in-place edits. Logical size, CSS display size and device-pixel-ratio changes also force full redraws.
+
+For frame, layer, layer-order or visibility changes, callers must either call `render(state)` without a dirty rectangle or change `state.compositeRevision` (and should supply `state.frameId`). A changed `frameId` or `compositeRevision` forces a full redraw even when a dirty rectangle is supplied. Keep the revision token stable for ordinary pixel edits that are accurately bounded by the dirty rectangle. If no revision token is supplied, a full render is mandatory for any whole-composite change. The renderer validates every source pixel and onion-mask entry before resizing or mutating surfaces; only explicit `null` represents transparency, and sparse/undefined/malformed entries are rejected.
+
+The project limit is enforced before allocations: width and height must each be from 1 through 512, for at most 262,144 logical pixels. Callers must still supply accurate dirty bounds for normal pixel edits and keep the composited pixel array current.
 
 mapClientToPixel() maps pointer coordinates from the canvas client bounds to logical pixel positions. It returns null before the first successful render, for invalid bounds and for positions outside the canvas.
 
@@ -51,8 +57,9 @@ mapClientToPixel() maps pointer coordinates from the canvas client bounds to log
 
 - This is an isolated prototype, not a drop-in editor replacement. index.html, the agent API and project model remain untouched.
 - It owns raster display, basic grid lines, onion tint masks and a rectangular selection outline. It does not implement brush/fill operations, layer compositing, shape generation, selection transforms or playback.
-- A full render still visits each pixel. Incremental callers must supply a correct dirty rectangle and keep their composited pixel array current.
-- Overlay changes are detected and force a full visible blit. Selection movement therefore remains correct even if the caller passes a pixel-only dirty rectangle.
+- A full render still visits each pixel. Pixel arrays and onion masks are fully validated on each call; onion masks are compared against exact snapshots to detect in-place neighbor-frame changes.
+- Grid/selection and onion-mask changes force a full visible blit. Frame/layer/composite changes force a full blit when callers omit the dirty rectangle or advance compositeRevision/change frameId.
+- Composite revisions are caller-managed: update them for frame/layer/order/visibility changes. Without a revision token, callers must issue an explicit full render for those changes.
 - Canvas needs explicit keyboard and screen-reader work before replacing the current DOM grid.
 - The renderer creates a pixel surface, a separate overlay surface and a visible canvas. Measure real browser memory and frame time before choosing it as the default.
 
@@ -62,7 +69,7 @@ Run the isolated mocked-context suite:
 
     node --test tests/canvas-renderer.test.js
 
-The tests cover color/transparency conversion, overlapping onion masks, dirty-rectangle clipping and writes, full redraw after logical/display/DPR changes, crisp scaling, overlay isolation and invalidation, pointer mapping, 512×512 buffers, input validation and cleanup. They use fake Canvas 2D contexts and are not a substitute for a real browser test.
+The tests cover strict null-only transparency, sparse/undefined input rejection, the 512×512 project bounds, overlapping onion masks, dirty-rectangle clipping and writes, full redraw after logical/display/DPR changes, frame/composite revision invalidation, in-place onion-mask transitions, crisp scaling, overlay isolation, pointer mapping and cleanup. They use fake Canvas 2D contexts and are not a substitute for a real browser test.
 
 For a browser benchmark, start a static server from the repository root:
 
