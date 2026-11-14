@@ -144,3 +144,50 @@ test("generated maximum-dimension checkerboard has bounded pixel and exact color
   }
   assert.deepEqual({ "#000000": colorA, "#FFFFFF": colorB }, fixture.expectedCounts);
 });
+
+
+const Raster = require("../js/pixel-primitives.js");
+const coords = points => points.map(point => [point.x, point.y]);
+
+test("AC-085 diagonal-line golden source matches the real Bresenham raster primitive", () => {
+  const fixture = corpus.fixtures.find(item => item.id === "diagonal-line-5x5");
+  const points = Raster.rasterizeLine(0, 0, 4, 4, { width: fixture.width, height: fixture.height });
+  assert.deepEqual(coords(points), [[0, 0], [1, 1], [2, 2], [3, 3], [4, 4]]);
+  const rasterized = Array(fixture.source.length).fill(null);
+  for (const point of points) rasterized[point.y * fixture.width + point.x] = fixture.source[point.y * fixture.width + point.x];
+  assert.deepEqual(rasterized, fixture.source);
+});
+
+test("AC-085 transparent-hole perimeter matches the real rectangle outline primitive", () => {
+  const fixture = corpus.fixtures.find(item => item.id === "transparent-hole-5x5");
+  const outline = Raster.rasterizeRectangle(1, 1, 3, 3, { width: fixture.width, height: fixture.height });
+  assert.deepEqual(coords(outline), fixture.expectedPoints.select4FromOneOne);
+  const rasterized = Array(fixture.source.length).fill(null);
+  for (const point of outline) rasterized[point.y * fixture.width + point.x] = fixture.source[point.y * fixture.width + point.x];
+  assert.deepEqual(rasterized, fixture.source);
+});
+
+test("AC-085 polygon golden points match the real even-odd polygon fill primitive", () => {
+  const fixture = corpus.fixtures.find(item => item.id === "transparent-hole-5x5");
+  const points = Raster.rasterizePolygon([
+    { x: 1, y: 1 }, { x: 4, y: 1 }, { x: 4, y: 4 }, { x: 1, y: 4 }
+  ], { width: fixture.width, height: fixture.height });
+  assert.deepEqual(coords(points), [
+    [1, 1], [2, 1], [3, 1],
+    [1, 2], [2, 2], [3, 2],
+    [1, 3], [2, 3], [3, 3]
+  ]);
+  assert.ok(points.some(point => point.x === 2 && point.y === 2), "polygon fill includes the transparent hole coordinate as geometry");
+});
+
+test("AC-085 maximum-dimension stress recipe is bounded by the real filled-rectangle raster primitive", () => {
+  const fixture = corpus.fixtures.find(item => item.id === "stress-512-checkerboard");
+  const points = Raster.rasterizeRectangle(0, 0, fixture.width, fixture.height, {
+    width: fixture.width,
+    height: fixture.height,
+    filled: true
+  });
+  assert.equal(points.length, fixture.expectedPixelCount);
+  assert.deepEqual(points[0], { x: 0, y: 0 });
+  assert.deepEqual(points.at(-1), { x: 511, y: 511 });
+});
