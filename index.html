@@ -2446,7 +2446,7 @@ grid.addEventListener("pointerup",e=>{
     if(selectionDragMode==="move"&&selectionPreview&&selection){
       const dx=selectionPreview.x-selection.x,dy=selectionPreview.y-selection.y;
       selectionPreview=null;
-      if(dx||dy)void moveSelectionPixels(dx,dy);
+      if(dx||dy)void moveSelectionPixels(dx,dy).catch(error=>toast(error.message));
     }else if(selectionDragMode==="marquee"){
       selection=selectionPreview||normalizeSelection(strokeStart,p);
       selectionPreview=null;documentRevision+=1;
