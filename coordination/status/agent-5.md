@@ -1,20 +1,33 @@
-### Submitted phase — AC-091: Professional workstation design system and interactive prototype
+### Completed phase — AC-091: Professional workstation design system and interactive prototype
 
-- **Status:** REVIEW — coordinator UI-00 acceptance pending.
-- **Branch:** `agent/workstation-design-system-current`
-- **Feature head:** `b3b9817e607c304aa9f06e026401548b1410dcdc` (non-force merge commit; current `main` is first parent).
-- **PR:** [#77 — AC-091: Design the One Pixel Studio workstation experience](https://github.com/faiev/ArtClub/pull/77) (open, draft; GitHub reports mergeable).
-- **Current comparison:** `main` at `dc647d10708e6a8596a8ab7df5b37b311729c66f`; branch is ahead with only the three AC-091 paths changed and 0 commits behind according to `compare_commits`.
-- **Deliverables:**
-  - `docs/ux/DESIGN_SYSTEM.md` — semantic graphite/accent tokens, typography, density, geometry, component rules, focus/selected/disabled/error states, accessibility and responsive rules. Screenshot section no longer links to nonexistent repository paths.
-  - `docs/ux/prototypes/workstation.html` — standalone interactive workstation with inline CSS/JS, original synthetic pixel-art sample, menus/document tab, tool rail/context strip, canvas, layer × frame × cel matrix, docked inspector/drawer, playback and import/export dialogs.
-  - `docs/ux/WORKSTATION_REVIEW.md` — design rationale, production comparison, responsive/interaction evidence and task-based acceptance checklist. The coordinator-owned production crosswalk remains in `coordination/UI_01_SOURCE_MAP.md`; it is not duplicated here.
-- **Review corrections:** Added explicit `for`/id associations and read-only semantics to Canvas size, Frame rate, Current frame and Active layer; wrapped the palette chooser in a real label; disclosed Line and Rectangle Select as demonstration-only in names/context/status; pointer and keyboard activation do not mutate sample pixels. Removed the incorrect claim that captures exist in a repository `screenshots/` directory and documented their actual handoff location.
-- **Visual evidence:** Four genuine Chromium captures are supplied as downloadable attachments in the Agent 5 handoff response (1440×900, 1280×800, 860×740 with inspector drawer open, 390×844 with drawer dismissed). They are **not committed to the repository** because the available GitHub connector does not expose a binary asset upload operation.
-- **Interaction validation:** Chromium 144.0.7559.96 / Playwright. `python /tmp/review_ac091.py` — 1440×900, 1280×800, 860×740 and 390×844 each reported no body-level horizontal overflow; 0 page errors; accessible-name lookups returned one matching control for all five reviewed labels; pointer activation of Line and Rectangle Select left the pixel buffer unchanged. A separate keyboard Space test confirmed both demonstration-only tools leave the pixel buffer unchanged and announce their limitation.
-- **Scope:** Only the three assigned `docs/ux/**` paths differ from current `main`. No production `index.html`, application JS/CSS, project model, shared tests, bridge or workflow files were edited. Import parser/apply, safe transaction integration, full layer composition, actual encoding/download, persistence and production undo remain illustrative or unimplemented. Opacity remains disabled pending consistent production composition/export semantics.
-- **Production tests:** Not run; this is documentation and a standalone prototype, not a production integration. No UI integration or release is claimed.
-- **Next actions:** (1) Coordinator reviews UI-00 using the four attached captures; (2) address any further AC-091 review notes within `docs/ux/**`; (3) keep PR #77 draft until UI-00 acceptance; (4) production UI work remains coordinator-owned and requires a separate explicit `index.html` lock; (5) do not start AC-087 or unrelated backlog expansion ahead of the coordinator's production UI priority.
+- **Status:** ACCEPTED and MERGED by coordinator (UI-00).
+- **PR:** [#77 — AC-091: Design the One Pixel Studio workstation experience](https://github.com/faiev/ArtClub/pull/77), merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610`.
+- **Merged deliverables:** `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, `docs/ux/prototypes/workstation.html`.
+- **Acceptance:** Coordinator explicitly accepted the graphite/olive direction, prototype and review handoff. The prototype remains non-production; no production UI ownership was granted.
+- **Pre-merge corrections:** Removed nonexistent relative screenshot references; labelled read-only values and palette file input; disclosed Line and Rectangle Select as demonstration-only and prevented pixel mutation from those tool selections.
+- **Evidence:** Chromium 144.0.7559.96 / Playwright review reported no body-level horizontal overflow or page errors at 1440×900, 1280×800, 860×740 and 390×844; accessible-name checks returned one control for each of the five review labels; pointer and keyboard tests confirmed Line/Rectangle Select leave sample pixels unchanged. Four WebP screenshots remain handoff attachments, not repository assets; coordinator recorded them as agent-reported evidence rather than independently inspected captures.
+- **Post-merge documentation correction:** Main's 390×844 caption said the inspector drawer was dismissed after Escape, while the actual handoff capture shows it open. Follow-up [PR #87](https://github.com/faiev/ArtClub/pull/87) changes only that sentence; it is open and awaits coordinator review.
+
+### Completed review — UI-01 production workstation shell (PR #84)
+
+- **Status:** REVIEW POSTED; coordinator merged UI-01.
+- **Reviewed PR head:** `64d68de63abae730623ac81b670562a950d66759`; reviewed `index.html` blob `4645281c1aad8580529e7feb99cd299a88543913`.
+- **Merged head:** `dee2e96ff2c3cf9b1927570d4248d95114f113c6`; merge commit `e22ddb35ebf802b3b719e74a7329effceab28747`. The merged `index.html` blob is identical to the source reviewed at `64d68de...`.
+- **Final exact-head CI:** Actions run [#43624220195](https://github.com/faiev/ArtClub/actions/runs/43624220195) passed both `test` and `browser-e2e` jobs, including editor Chromium E2E, GIF decode and MCP client steps.
+- **Review comment:** Posted on PR #84 as [comment #6881921768](https://github.com/faiev/ArtClub/pull/84#issuecomment-6881921768); it applies to the identical merged `index.html` blob.
+- **Ranked findings:** P1 — legacy `.project-name:focus` specificity overrides the new `input:focus-visible` rule, leaving an approximately 1.13:1 focus outline on the dark surface; P1 — active tool, palette swatch and frame states are class-only and not exposed with `aria-pressed` / `aria-current`; P2 — lock emoji and mixed Unicode tool glyphs break the restrained icon system; P2 — `theme-color` metadata still uses the old light background; P2 — several essential technical labels remain 8 px versus the design system's 9–10 px range.
+- **Positive review:** Graphite/olive tokens match AC-091; canvas remains the flexible dominant center; 190 px tool dock / 286 px inspector are balanced at 1280/1440 widths; 176 px timeline stays below canvas; responsive rules move inspector below the desktop workspace and stack panels at narrow widths. No prototype-only fake tabs or cel matrix were requested.
+- **Visual limitation:** Exact-head workflow artifacts were empty. No independent rendered screenshot inspection at 1440×900 or 1280×800 is claimed; the review used committed CSS/DOM and token comparison. The comment records this limitation.
+- **Scope:** No edits to PR #84, `index.html`, production CSS/JS, application tests, bridge or workflow. Agent 5 remains a design reviewer and owns documentation/prototype paths only.
+
+### Active follow-up — AC-091 screenshot-caption precision
+
+- **Branch:** `agent/ac091-screenshot-caption-fix`
+- **Latest branch head:** `6b0cc361eed64bf935145af6dc72f9dbc38878a6` (non-force sync commit; main at sync `2c69a407452def9bd90849b215dca2abc1d29d6d`; comparison 4 ahead / 0 behind; single changed file).
+- **PR:** [#87 — docs(ux): correct phone capture state description](https://github.com/faiev/ArtClub/pull/87), open; one file, one insertion / one deletion.
+- **Diff:** Only `docs/ux/DESIGN_SYSTEM.md`; changes 390×844 screenshot description to say the inspector drawer is open.
+- **Validation:** Verified the incorrect sentence in main, applied the exact correction and compared against the status-update base; main-to-branch contains only the design-system document. Docs-only change; no application tests run.
+- **Next actions:** (1) Coordinator reviews/merges PR #87; (2) re-check the single caption line after merge; (3) address specific UI-01 follow-up requests only within the documentation/review boundary; (4) do not edit production UI without a separate explicit assignment.
 - **Last updated:** 2026-11-14.
 
 # Status — Agent 5
