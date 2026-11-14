@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Art Club GIF export browser verification</title>
+</head>
+<body>
+  <pre id="result">RUNNING</pre>
+  <script src="../js/gif-export.js"></script>
+  <script>
+    (async function () {
+      const output = document.getElementById("result");
+      const layer = { id: "layer-1", name: "Layer 1", visible: true, locked: false, opacity: 1 };
+      const project = {
+        format: "one-pixel-studio",
+        version: 2,
+        id: "browser-gif-check",
+        name: "Browser GIF check",
+        canvas: { width: 2, height: 2, background: null },
+        palette: ["#ff0000", "#00ff00", "#0000ff"],
+        selectedColorIndex: 0,
+        layers: [layer],
+        frames: [
+          { id: "frame-red", name: "Red", durationMs: 100 },
+          { id: "frame-blue", name: "Blue", durationMs: 200 }
+        ],
+        cels: [
+          { layerId: layer.id, frameId: "frame-red", pixels: ["#ff0000", null, null, "#00ff00"] },
+          { layerId: layer.id, frameId: "frame-blue", pixels: ["#0000ff", null, "#ffffff", null] }
+        ],
+        activeLayerId: layer.id,
+        activeFrameId: "frame-red",
+        metadata: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      };
+
+      try {
+        const exported = window.ArtClubGIFExporter.exportGIF(project, { loopCount: 0 });
+        const bytes = new Uint8Array(await exported.blob.arrayBuffer());
+        if (String.fromCharCode.apply(null, Array.from(bytes.slice(0, 6))) !== "GIF89a") {
+          throw new Error("The exported blob does not begin with GIF89a.");
+        }
+
+        if (typeof ImageDecoder === "function") {
+          const decoder = new ImageDecoder({ data: bytes, type: "image/gif" });
+          await decoder.tracks.ready;
+          const track = decoder.tracks.selectedTrack;
+          if (!track || track.frameCount !== 2) throw new Error("Browser decoder did not find two animation frames.");
+          const samples = [];
+          const transparentAlpha = [];
+          for (let frameIndex = 0; frameIndex < track.frameCount; frameIndex += 1) {
+            const decoded = await decoder.decode({ frameIndex: frameIndex });
+            const frame = decoded.image;
+            const canvas = new OffscreenCanvas(2, 2);
+            const context = canvas.getContext("2d", { willReadFrequently: true });
+            context.drawImage(frame, 0, 0);
+            const data = context.getImageData(0, 0, 2, 2).data;
+            samples.push([data[0], data[1], data[2], data[3]]);
+            transparentAlpha.push(data[7]);
+            frame.close();
+          }
+          decoder.close();
+          if (JSON.stringify(samples) !== JSON.stringify([[255, 0, 0, 255], [0, 0, 255, 255]])) {
+            throw new Error("Decoded frame colors did not match the expected source pixels: " + JSON.stringify(samples));
+          }
+          if (JSON.stringify(transparentAlpha) !== JSON.stringify([0, 0])) {
+            throw new Error("Transparent pixels were not transparent in decoded frames: " + JSON.stringify(transparentAlpha));
+          }
+          output.textContent = "PASS " + JSON.stringify({
+            decoder: "ImageDecoder",
+            frameCount: track.frameCount,
+            firstPixelByFrame: samples,
+            transparentAlpha: transparentAlpha,
+            blobType: exported.blob.type,
+            blobSize: exported.blob.size
+          });
+          document.body.dataset.result = "PASS";
+        } else {
+          const url = URL.createObjectURL(exported.blob);
+          try {
+            const image = new Image();
+            image.src = url;
+            await image.decode();
+            const canvas = document.createElement("canvas");
+            canvas.width = 2;
+            canvas.height = 2;
+            const context = canvas.getContext("2d", { willReadFrequently: true });
+            context.drawImage(image, 0, 0);
+            const pixel = Array.from(context.getImageData(0, 0, 1, 1).data);
+            if (image.naturalWidth !== 2 || image.naturalHeight !== 2 || pixel.join(",") !== "255,0,0,255") {
+              throw new Error("Browser image decode returned an unexpected first frame.");
+            }
+            output.textContent = "PASS " + JSON.stringify({
+              decoder: "HTMLImageElement",
+              note: "First frame decoded; ImageDecoder API unavailable for per-frame inspection.",
+              dimensions: [image.naturalWidth, image.naturalHeight],
+              firstPixel: pixel,
+              blobType: exported.blob.type,
+              blobSize: exported.blob.size
+            });
+            document.body.dataset.result = "PASS";
+          } finally {
+            URL.revokeObjectURL(url);
+          }
+        }
+      } catch (error) {
+        output.textContent = "FAIL " + (error && error.stack ? error.stack : String(error));
+        document.body.dataset.result = "FAIL";
+      }
+    })();
+  </script>
+</body>
+</html>
