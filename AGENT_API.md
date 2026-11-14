@@ -53,7 +53,9 @@ The bridge acquires an exclusive filesystem lock for the canonical browser profi
 
 Within one bridge process, calls are also serialized. If two clients send edits through that same server using the same revision, the first accepted edit advances the document revision and the later stale edit is rejected. The rejected client must read the new status, inspect the current artwork and decide whether its planned change is still appropriate; the bridge does not automatically replay edits.
 
-Tool-handler failures return both an MCP text error and structured content with `ok: false` and `error: { tool, name, message }`. Input-schema failures may be rejected by the MCP SDK before the handler runs, so their error shape is SDK-controlled.
+MCP tool inputs use strict object schemas. Unknown top-level fields and unknown fields inside drawing batch commands are rejected. Batch command types are discriminated and each has a bounded field set; selection dimensions/offsets, IDs, names, batch counts and serialized UTF-8 input/output bytes are bounded. Imported project JSON is checked for valid syntax and an object root before the browser model validates the full document before persistence or replacement.
+
+Tool-handler failures return text and structured content with a stable code, request ID and `outcome_uncertain` flag. Error messages are sanitized, capped and redacted for local filesystem paths and URLs. Input-schema failures may be rejected by the MCP SDK before the handler runs, so their error shape is SDK-controlled.
 
 Each MCP request has a request ID, a per-tool deadline and cancellation support from the MCP request signal. Timeout/cancellation errors include a machine-readable code and an `outcome_uncertain` flag. Work cancelled while still queued is removed and never runs. For an active browser evaluation, the bridge closes the editor page to interrupt it and keeps the serial queue slot occupied until Playwright confirms the evaluation has unwound; later operations cannot overtake a potentially committed mutation. Clients must call `get_status` and inspect the project before deciding whether to retry.
 
