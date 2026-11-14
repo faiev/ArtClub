@@ -12,6 +12,7 @@ A browser-based pixel art editor. It is a static site: no build step, backend, a
 - Multi-layer editing with independent cels, visibility, lock, rename, reorder, duplicate, delete and composite export
 - Rectangular selection with move, copy, cut, paste, clear, horizontal/vertical flip and 90° rotation
 - Multi-frame timeline with independent layer cels, duplicate/delete/reorder, frame naming and per-frame duration
+- Animation preview with loop, once and ping-pong playback, plus previous/next onion-skin guides
 - Square and rectangular canvas presets, plus custom width and height from 1 to 512 pixels per side
 - Custom color palette
 - Undo and redo
@@ -22,7 +23,7 @@ A browser-based pixel art editor. It is a static site: no build step, backend, a
 
 ## AI-agent access
 
-One Pixel Studio exposes a versioned browser Agent API, so browser-connected agents can issue exact pixel operations instead of clicking screen coordinates. A local MCP bridge exposes drawing, inspection, layer/selection management, animation frame editing and timing, undo/redo, project-library and PNG-preview tools to compatible AI clients.
+One Pixel Studio exposes a versioned browser Agent API, so browser-connected agents can issue exact pixel operations instead of clicking screen coordinates. A local MCP bridge exposes drawing, inspection, layer/selection management, animation frame editing, playback and onion-skin controls, undo/redo, project-library and PNG-preview tools to compatible AI clients.
 
 - [Agent API reference](AGENT_API.md)
 - [Local MCP bridge setup](agent-bridge/README.md)
@@ -65,4 +66,4 @@ npm run test:e2e
 
 The GitHub Actions workflow runs both the unit/interaction checks and the Chromium end-to-end suite.
 
-The current editor exposes multiple editable layers, rectangular selection/transforms and a multi-frame timeline. Playback, onion skin, animated GIF and sprite-sheet export, layer opacity/merge-down and advanced selection tools remain future work. The browser Agent API can manage layers and frames, and draws into the active visible, unlocked cel on the selected frame.
+The current editor exposes multiple editable layers, rectangular selection/transforms, a multi-frame timeline, playback modes and onion skin. Animated GIF/sprite-sheet export, layer opacity/merge-down and advanced selection tools remain future work. The browser Agent API can manage layers and frames, and draws into the active visible, unlocked cel on the selected frame.
