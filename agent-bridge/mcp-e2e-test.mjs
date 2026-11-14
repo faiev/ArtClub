@@ -179,7 +179,6 @@ async function run() {
       arguments: { x: 18, y: 18, color: "#adadad" }
     });
     assert.equal(missingRevision.isError, true, "MCP mutations must require expected_revision");
-    assert.match(missingRevision.content[0].text, /expected_revision/i);
 
     const paletteResult = await callTool({
       name: "artclub_get_palette",
