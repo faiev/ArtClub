@@ -3,11 +3,12 @@
 - **Task:** AC-015 — Layer editing safety guard
 - **Status:** REVIEW
 - **Branch:** `agent/layer-safety`
-- **Synchronized base (main):** `6b86caf07d64f29b172def368f0fe5439354a0fd`
-- **Feature head:** `6874809bd64e5966372ac8a06ad9abd26a5f8827`
-- **Main merge commit:** `6874809bd64e5966372ac8a06ad9abd26a5f8827` (two-parent merge; latest main was second parent)
-- **PR:** [#14 — AC-015: Add isolated layer-edit safety guard](https://github.com/faiev/ArtClub/pull/14) — open, ready for review, mergeable
-- **Diff against synchronized main:** 3 assigned files only; 4 commits ahead, 0 behind at last comparison.
+- **Latest application base merged:** `56932bb16601ab5f5fd22c1d37bb877b8c06ab3f`
+- **Feature head tested:** `adb54668ebd4507e55dc6144b73a91b85f20afbe`
+- **Merge commit:** `adb54668ebd4507e55dc6144b73a91b85f20afbe` (two parents; latest main was second parent)
+- **PR:** [#14 — AC-015: Add isolated layer-edit safety guard](https://github.com/faiev/ArtClub/pull/14) — open, ready for review
+- **Diff against merged base:** 3 assigned application files only; 5 commits ahead, 0 behind at final synchronization.
+- **Subsequent main activity:** main advanced after synchronization through worker status-only updates; no application/workflow files changed in those commits. Current observed main at status write: `92a9b7e5646e6ec791e8cea7879da549a6558ccf`.
 
 ## Coordinator-requested correction
 
@@ -16,7 +17,7 @@
 - Each value must be explicit `null` or a valid `#RRGGBB` string.
 - Sparse holes and explicit `undefined` return `CEL_INVALID`.
 - Denial path is non-mutating.
-- Added three regression tests: sparse hole, explicit undefined, and valid null/HEX values; both rejection tests assert the project buffer and own-slot shape remain unchanged.
+- Added regression tests for sparse hole, explicit undefined, and valid null/HEX values. Both rejection tests assert that the project buffer and own-slot shape remain unchanged.
 
 ## Files changed
 
@@ -36,20 +37,21 @@ Runtime: Node.js 22.16.0.
 
 ## GitHub Actions revalidation
 
-Run #134 — [workflow run](https://github.com/faiev/ArtClub/actions/runs/43606295655), exact head `6874809bd64e5966372ac8a06ad9abd26a5f8827`.
+Run #149 — [workflow run](https://github.com/faiev/ArtClub/actions/runs/43606501403), exact feature head `adb54668ebd4507e55dc6144b73a91b85f20afbe`.
 
 - Node project job: `node --test tests/*.test.js` — **71 passed, 0 failed**.
-- Browser setup: `npm install --ignore-scripts` — completed successfully.
-- Chromium setup: `npx playwright install --with-deps chromium` — completed successfully.
+- The same Node job completed `node --check agent-bridge/server.mjs` successfully.
+- Browser setup: `npm install --ignore-scripts` — passed.
+- Chromium setup: `npx playwright install --with-deps chromium` — passed.
 - Real browser editor E2E: `npm run test:e2e` — passed. Log confirms mouse drawing, undo/redo, agent batch, layers, custom canvas, animation playback, onion skin, PNG, IndexedDB library and reload recovery.
 - MCP client integration: `npm run test:mcp` — passed. Log confirms drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
-- Both GitHub Actions jobs concluded `success`.
+- Both workflow jobs concluded `success`.
 
 ## Remaining risks / limitations
 
 - This remains an isolated guard library. It is not wired into the live editor, browser Agent API or MCP bridge.
 - Toolbar Clear and image import remain unprotected until the separately assigned integration work is authorized and its shared-file locks are granted.
-- Local focused tests ran on Node 22.16.0; CI ran on the repository's configured Node 24 environment.
+- Local focused tests ran on Node 22.16.0; GitHub Actions ran on Node 24.
 - No application integration or user-facing bug fix is claimed.
 
 ## Handoff
