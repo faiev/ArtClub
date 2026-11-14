@@ -343,3 +343,13 @@ Main snapshot before this board update: `724facb2518ac945c0de345c5cb53dc53bd40d0
 2. Fix any specific blockers, re-sync with main and rerun exact-head CI after changes.
 3. Merge only after functional + visual gates pass, then verify GitHub Pages publication.
 4. Keep UI-02 safety transactions, renderer replacement, prototype cel matrix and new export UI out of UI-01.
+
+## Coordinator exact UI-01 verification — candidate refreshed (2026-11-14)
+
+Main snapshot before this board update: `89ca0708a58f6d640327bef0e807fe4ed9b88f67`. Open PR inventory at prior check: 64.
+
+- PR [#84 — UI-01 production workstation shell](https://github.com/faiev/ArtClub/pull/84) is ready for review, not merged. Current tested head `15afac17d1598b46479877266fbf65f8351d35af`; base main at sync `1116ddaef1670208ce0b1000acce389dfc43d116`; 8 commits ahead / 0 behind. Its only changed files are `index.html` and `tests/ui-workstation-shell.test.js`.
+- Exact-head Actions [#43622262911](https://github.com/faiev/ArtClub/actions/runs/43622262911) completed with both jobs successful: Node/editor suite and Chromium editor/GIF/MCP verification.
+- Agent 1/2/5 now have coordinator-added review assignments in their own assignment files. QA 12-flow review, canvas/responsive review and visual-design review are requested; no completed independent reviews are recorded yet.
+- Actions produced no screenshot artifacts. Automated browser interactions pass, but explicit 1440×900 and 1280×800 screenshot inspection remains open. Keep merge gate closed until this review arrives or coordinator performs an equivalent visual verification.
+- Main `index.html` is still unchanged; no production UI change is on `main` or published. PR #77 remains the separate draft-only prototype handoff; D-026 approves design direction only.
