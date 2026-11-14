@@ -318,6 +318,76 @@ async function main() {
 
   registerTool(
     server,
+    "artclub_set_selection",
+    "Set a rectangular pixel selection. Coordinates are zero-based and the rectangle must fit inside the canvas.",
+    z.object({
+      x: z.number().int().nonnegative(),
+      y: z.number().int().nonnegative(),
+      width: z.number().int().positive(),
+      height: z.number().int().positive(),
+      expected_revision: revision
+    }),
+    async args => textResult(await invoke("set_selection", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_select_all",
+    "Select the entire active canvas.",
+    z.object({ expected_revision: revision }),
+    async args => textResult(await invoke("select_all", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_copy_selection",
+    "Copy the selected rectangle from the active layer into the local clipboard.",
+    z.object({ expected_revision: revision }),
+    async args => textResult(await invoke("copy_selection", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_cut_selection",
+    "Copy and clear the selected rectangle on the active layer.",
+    z.object({ expected_revision: revision }),
+    async args => textResult(await invoke("cut_selection", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_paste_selection",
+    "Paste the local clipboard at the current selection origin, or at the canvas origin when nothing is selected.",
+    z.object({ expected_revision: revision }),
+    async args => textResult(await invoke("paste_selection", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_clear_selection",
+    "Clear pixels inside the selected rectangle on the active layer.",
+    z.object({ expected_revision: revision }),
+    async args => textResult(await invoke("clear_selection", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_deselect",
+    "Remove the active marquee selection without changing artwork.",
+    z.object({ expected_revision: revision }),
+    async args => textResult(await invoke("deselect", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_move_selection",
+    "Move the selected pixels by integer dx/dy offsets. The move is constrained to the canvas and is one undoable edit.",
+    z.object({ dx: z.number().int(), dy: z.number().int(), expected_revision: revision }),
+    async args => textResult(await invoke("move_selection", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
     "artclub_undo",
     "Undo one editing transaction.",
     z.object({}),
