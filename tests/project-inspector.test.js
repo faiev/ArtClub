@@ -543,3 +543,26 @@ test("compare mode emits concise human output and rejects the wrong number of pa
   const report = JSON.parse(invalid.stdout);
   assert.equal(report.error.code, "INVALID_ARGUMENT");
 });
+
+
+test("mixed legacy/v2 cel differences are labelled unmatchable, not falsely removed by ID", (t) => {
+  const directory = temporaryDirectory(t);
+  const legacy = copyFixture(directory, "valid-legacy.json");
+  const v2 = copyFixture(directory, "valid-v2.json");
+
+  const legacyFirst = runCompare(legacy, v2);
+  const legacyFirstReport = JSON.parse(legacyFirst.stdout);
+  assert.equal(legacyFirstReport.ok, true);
+  assert.ok(legacyFirstReport.changes.cels.added.every((cel) =>
+    cel.reason === "source-identifiers-not-comparable"));
+  assert.ok(legacyFirstReport.changes.cels.removed.every((cel) =>
+    cel.reason === "source-identifiers-not-comparable"));
+
+  const v2First = runCompare(v2, legacy);
+  const v2FirstReport = JSON.parse(v2First.stdout);
+  assert.equal(v2FirstReport.ok, true);
+  assert.ok(v2FirstReport.changes.cels.added.every((cel) =>
+    cel.reason === "source-identifiers-not-comparable"));
+  assert.ok(v2FirstReport.changes.cels.removed.every((cel) =>
+    cel.reason === "source-identifiers-not-comparable"));
+});
