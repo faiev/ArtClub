@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Art Club — QA lifecycle harness</title>
+  <style>
+    :root { color-scheme: light; font-family: system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; grid-template-rows: auto minmax(0, 1fr); background: #eef1ee; color: #24332d; }
+    header { padding: 10px 16px; border-bottom: 1px solid #ccd5cf; background: #fff; }
+    header strong { font-size: 13px; letter-spacing: .04em; }
+    header p { margin: 3px 0 0; color: #58685f; font-size: 11px; }
+    iframe { width: 100%; height: 100%; min-height: 720px; border: 0; background: white; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>ART CLUB · QA LIFECYCLE HARNESS</strong>
+    <p>Isolated editor frame controlled by project-lifecycle.mjs. Uses a fresh browser context and real Chromium IndexedDB.</p>
+  </header>
+  <iframe id="editor" title="Art Club editor" src="../../../index.html"></iframe>
+</body>
+</html>
