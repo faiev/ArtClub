@@ -102,7 +102,7 @@ function bootEditor() {
     },
     querySelectorAll(selector) {
       if (selector !== ".tool") return [];
-      return ["brush", "eraser", "fill", "eyedropper", "line", "rect"].map(name => {
+      return ["brush", "eraser", "fill", "eyedropper", "line", "rect", "ellipse"].map(name => {
         const el = new FakeElement();
         el.ownerDocument = document;
         el.dataset.tool = name;
@@ -115,7 +115,7 @@ function bootEditor() {
     elementFromPoint() { return null; }
   };
   const grid = document.getElementById("pixelGrid");
-  const toolButtons = ["brush", "eraser", "fill", "eyedropper", "line", "rect"].map(name => {
+  const toolButtons = ["brush", "eraser", "fill", "eyedropper", "line", "rect", "ellipse"].map(name => {
     const el = new FakeElement();
     el.ownerDocument = document;
     el.dataset.tool = name;
@@ -263,4 +263,46 @@ test("agent batches become one undoable edit and support shapes and fill", async
   assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#ff0000");
   await editor.agent.undo();
   assert.equal((await editor.agent.get_pixel({ x: 1, y: 1 })).color, "#172b3a");
+});
+
+test("shape tools show a preview before committing a filled rectangle", async () => {
+  const editor = await bootEditor();
+  editor.tool("rect").emit("click");
+  editor.document.getElementById("shapeFillToggle").checked = true;
+  editor.document.getElementById("shapeFillToggle").emit("change");
+  editor.grid.emit("pointerdown", { target: editor.cell(25), pointerId: 1, clientX: 1, clientY: 1 });
+  editor.grid.emit("pointermove", { target: editor.cell(75), pointerId: 1, clientX: 2, clientY: 2 });
+
+  // A preview is painted visually, but is not yet part of the document pixels.
+  assert.equal(editor.cell(25).style.backgroundColor, "#e96f55");
+  assert.equal((await editor.agent.get_pixel({ x: 1, y: 1 })).color, "#172b3a");
+
+  editor.grid.emit("pointerup", { target: editor.cell(75), pointerId: 1, clientX: 2, clientY: 2 });
+  assert.equal((await editor.agent.get_pixel({ x: 1, y: 1 })).color, "#e96f55");
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#e96f55");
+});
+
+test("ellipse tool previews and commits an outlined ellipse", async () => {
+  const editor = await bootEditor();
+  editor.tool("ellipse").emit("click");
+  editor.grid.emit("pointerdown", { target: editor.cell(2 * 24 + 3), pointerId: 1, clientX: 1, clientY: 1 });
+  editor.grid.emit("pointermove", { target: editor.cell(7 * 24 + 9), pointerId: 1, clientX: 2, clientY: 2 });
+  editor.grid.emit("pointerup", { target: editor.cell(7 * 24 + 9), pointerId: 1, clientX: 2, clientY: 2 });
+  const pixels = (await editor.agent.get_canvas()).pixels;
+  assert.ok(pixels.some((color, index) => color === "#e96f55" && (index % 24) >= 3 && (index % 24) <= 9));
+  assert.equal((await editor.agent.get_pixel({ x: 6, y: 4 })).color, "#e96f55");
+});
+
+test("agents can draw a filled ellipse as one undoable command", async () => {
+  const editor = await bootEditor();
+  const status = editor.agent.get_status();
+  const result = await editor.agent.draw_ellipse({
+    x1: 4, y1: 4, x2: 10, y2: 10,
+    color: "#33aa77", filled: true,
+    expected_revision: status.revision
+  });
+  assert.equal(result.commands_applied, 1);
+  assert.equal((await editor.agent.get_pixel({ x: 7, y: 7 })).color, "#33aa77");
+  await editor.agent.undo();
+  assert.equal((await editor.agent.get_pixel({ x: 7, y: 7 })).color, "#172b3a");
 });
