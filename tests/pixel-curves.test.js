@@ -129,10 +129,9 @@ test("repeated calls with the same curve and options produce byte-for-byte equal
 
 test("rejects malformed control point counts, sparse arrays and non-finite coordinates", () => {
   assert.throws(() => Curves.rasterizeQuadratic(null, { x: 1, y: 1 }, { x: 2, y: 0 }, options), /control point 0 must be an/);
-  const sparse = new Array(3);
-  sparse[0] = { x: 0, y: 0 };
-  sparse[2] = { x: 2, y: 0 };
-  assert.throws(() => Curves.rasterizeQuadratic(...sparse, options), /must not be sparse/);
+  assert.throws(() => Curves.rasterizeQuadratic(
+    { x: 0, y: 0 }, undefined, { x: 2, y: 0 }, options
+  ), /control point 1 must be/);
   assert.throws(() => Curves.rasterizeQuadratic(
     { x: 0, y: 0 }, { x: NaN, y: 1 }, { x: 2, y: 0 }, options
   ), /safe integer/);
