@@ -219,7 +219,14 @@ async function run() {
     assert.equal(pausedState.playback.playing, false);
     assert.equal(pausedState.active_frame.id, frameTwoId);
     await page.evaluate(() => window.onePixelStudio.stop_playback());
-    await page.evaluate(() => window.onePixelStudio.save());
+
+    // Let the normal debounced autosave persist the frame/cel edits. Do not
+    // call the explicit save API here: this test must exercise autosave.
+    await page.waitForFunction(
+      () => document.querySelector("#saveState")?.textContent === "SAVED IN PROJECT LIBRARY",
+      null,
+      { timeout: 10_000 }
+    );
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => Boolean(window.onePixelStudio), null, { timeout: 30_000 });
