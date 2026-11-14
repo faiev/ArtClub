@@ -164,3 +164,68 @@ Current main at the time of this check: `38e980ffdb1c3d4512cb60e80a302874065520c
 - **Production UI:** no UI-01 implementation PR exists at this check. Agent 1 is ready to run its smoke plan, but Agent 5's AC-091 prototype is still outstanding. The coordinator remains sole writer of production `index.html`.
 
 This live section supersedes stale counts and status rows elsewhere in this historical board until the full table is reconciled.
+
+## Coordinator live check — 2026-11-14 16:41 UTC
+
+Main is now `79013ee60239dfb4665c34f258dd6d69fdb2dac0`. The latest open-PR search returned **58 open pull requests**. This addendum supersedes the earlier 16:30 UTC live check above.
+
+### New coordinator merges
+
+| PR | Phase | Merge commit | Exact-head validation |
+|---|---|---|---|
+| #34 | AC-034 Canvas viewport and navigation utility | `3bd35de8b75adf52945eb58c64407e74c815bcc7` | Run #600 on head `041bbb114db5a0618420ad330ff8a7d95814c053`: 175 Node tests; Chromium editor E2E, GIF browser verification and MCP E2E passed |
+| #43 | AC-035 Project-to-renderer state adapter | `79013ee60239dfb4665c34f258dd6d69fdb2dac0` | Run #601 on head `1af6025f09ad89bd0d62c266d13dba1e56e1d82f`: 180 Node tests; Chromium editor E2E, GIF browser verification and MCP E2E passed |
+
+Both were reviewed as isolated module/test/documentation changes. Neither modifies `index.html` or production editor wiring.
+
+### New active PRs and current gates
+
+- **#75 AC-038 renderer integration demo:** retargeted to `main` after #34/#43 merged. Exact-head CI #603 passed 185 Node tests and the existing editor/GIF/MCP browser jobs on `8d6e9b42d6019feaa99e0cd3a77ebe68a4eaea35`. The standalone demo was not exercised by that workflow. Its branch still needs a non-force merge of latest main; Git reports it 10 commits behind its merge base, and `js/canvas-viewport.js` still appears in the changed-file list despite its blob being identical to main. Keep draft until ancestry/diff is clean, exact CI is rerun, and the demo itself has a documented Chromium interaction run.
+- **#74 AC-089 async export APIs:** remains stacked on #55. Run #598 passed the current Node/editor Chromium/GIF/MCP workflow on `60a2c010d244f7f44d491dffa038ffd048fd9b82`. The PR still owes independent browser parity/cancellation coverage and API documentation; do not retarget before #55 merges.
+- **#76 AC-096 Bézier rasterization:** newly opened; not yet reviewed. It is not a reason to divert from the production UI milestone.
+- **Agent 5 / AC-091:** latest status still records AC-054 as the last deliverable and contains no workstation design-system/prototype evidence. Coordinator posted a direct PR #51 handoff requiring AC-091 on a fresh main branch, with interactive behavior and viewport screenshots. Production UI remains coordinator-owned.
+- **Production UI:** `index.html` blob SHA remains `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no production workstation shell has been merged. Agent 1's UI-01 smoke matrix remains unexecuted pending a real UI candidate.
+
+The engineering modules merged in #34/#43 are prerequisites for specialist integration work only. They do not constitute a production Canvas renderer switch or a published UI release.
+
+## Coordinator live check — AC-091 handoff and latest PR queue (2026-11-14)
+
+Latest main observed: `51d2557cd8f2d1562af6f8a89b8168b6dd0d4246`. Live open PR count: **60**. This section supersedes earlier live-check counts until the board is fully reconciled.
+
+### Production UI / UX milestone
+
+- **Agent 5 submitted AC-091 as PR #77** (`agent/workstation-design-system-current`; current PR head observed `7bec27e2c6df76d44931f0c1bd2155baea532526`). The three-file diff is exactly `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, and `docs/ux/prototypes/workstation.html` (934 additions). It describes a professional graphite workstation, tool/context rail, dominant canvas, layer×frame/cel matrix, inspector/drawer, playback and import/export dialogs. The prototype is explicitly isolated; production model, persistence, safe transactions, real palette parser/encoder, and export are not wired.
+- Handoff reports manual/headless Chromium interaction and responsive checks at 1440×900, 1280×800, 860×740, 390×844 and 320 px overflow check. No CI was triggered for the latest PR head. Screenshots are described as separate handoff attachments rather than committed repository assets. **Review issue:** `DESIGN_SYSTEM.md` still links to four nonexistent relative `screenshots/*.jpg` files and calls them included in `screenshots/`; coordinator requested that Agent 5 either commit accessible captures or remove/fix those broken links and reconcile the review document.
+- PR #77 is still draft, 0 commits behind? Its latest base observation was main `7265080...`, while main has since advanced to `51d2557...`; latest head is 2 commits behind current main by comparison, although GitHub currently reports it mergeable. Coordinator requested a non-force main sync and exact feature-head update in `coordination/status/agent-5.md`. UI-00 is **under review**, not yet accepted.
+- **Production UI remains unchanged:** `index.html` blob SHA `1a29a9eca58d9035287af1ff58b97f2ff4040a69`. No production UI-01 shell has been merged. Agent 1's 12-flow QA matrix awaits a coordinator implementation candidate.
+
+### Renderer and export queue
+
+- **PR #34 AC-034** merged as `3bd35de8b75adf52945eb58c64407e74c815bcc7`; refreshed exact-head run #600 passed 175 Node tests plus existing Chromium editor, GIF browser and MCP E2E jobs.
+- **PR #43 AC-035** merged as `79013ee60239dfb4665c34f258dd6d69fdb2dac0`; refreshed exact-head run #601 passed 180 Node tests plus existing Chromium editor, GIF browser and MCP E2E jobs.
+- **PR #75 AC-038 demo** remains draft, retargeted to `main`, head `8d6e9b42d6019feaa99e0cd3a77ebe68a4eaea35`. Exact run #603 passed 185 Node tests and the standard Chromium editor/GIF/MCP jobs, but those jobs do not interact with the standalone demo. Diff still includes `js/canvas-viewport.js` despite an identical blob now on main; branch ancestry compares 10 commits behind. Coordinator requested a non-force main merge, removal of the duplicate module from the PR diff, exact-head CI, and dedicated Chromium demo interaction evidence. Do not merge until those are done.
+- **PR #74 AC-089 async export** remains draft and stacked on PR #55. Latest observed head `71fd0112174551b91b0441581a749501bf9a12e0`; workflow run #628 is queued. Its diff now includes `EXPORT_ASYNC.md` and browser test pages in addition to GIF/sprite implementation and tests. Earlier head #598 passed, but does not validate this new head. Await run #628 plus parent #55; review browser parity/cancellation and 512×512 responsiveness before accepting.
+- **PR #76 AC-096 Bézier rasterization** is newly open and draft; exact-head workflow #626 was in progress at last check. Independent pure algorithm work; not a reason to postpone visible workstation integration.
+
+No production release claim is authorized until a coordinator-owned UI PR merges to main, GitHub Pages deployment succeeds, and the published editor is inspected.
+
+## Coordinator live check — UI-00 review / UI-01 preparation (2026-11-14)
+
+Main at this check: `394e232686923b1de7a5021c844a81f07fbdc5d6`. Live open PR count: **60**. Production `index.html` remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no user-visible production shell redesign is merged.
+
+### Coordinator preparation
+- Added `coordination/UI_01_SOURCE_MAP.md` to `main`. It maps the production UI's 86 current static IDs, primary tool values, live DOM targets and functions/event bindings across tools, selection, canvas, timeline, layers, palette, exports/import, project library, save/recovery and Agent API. It explicitly preserves the live DOM-grid renderer for UI-01 and prohibits synthetic placeholder matrices or fake controls.
+- Updated `coordination/INTEGRATION_PLAN.md`: UI-00 is now AC-091 PR #77 under review; its coordinator source map is linked. The UI-01 visual-token rule now follows approved UI-00 design rather than forcing the earlier warm-light palette against AC-091's proposed graphite/olive system.
+
+### AC-091 / PR #77 review
+- Current observed head: `7bec27e2c6df76d44931f0c1bd2155baea532526`; draft; still targets `main`, with base SHA `7265080a6e6596a10e1b455c49a2cf82176d0fc1`. Latest main has since advanced; GitHub reports mergeability false at this check. The status file still records older feature head `991931fbe935d257e1e3082a045ac81383a7f1c3`.
+- Three-file diff remains scoped correctly to `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, `docs/ux/prototypes/workstation.html`. Source static audit: 93 unique prototype IDs, no missing JS ID references, no external scripts/assets, and all buttons have text/ARIA names.
+- Review findings posted: fix broken/nonexistent screenshot links in DESIGN_SYSTEM.md (or make captures accessible and commit them); associate the read-only document values and palette file input with real accessible labels; disclose that Line/Rectangle Select are context-only, non-operational prototype selections (or implement sample behavior); sync latest main, update status head/evidence. Coordinator's source map now satisfies the separate production-control mapping requirement; Agent 5 need not duplicate it.
+- PR remains draft; no CI run exists for its current head. Agent 5's reported manual Chromium checks remain handoff evidence, not independently reproduced by coordinator. UI-00 is not accepted yet.
+
+### Related queue status
+- PR #75 AC-038 remains draft and stale: base is now main but parent ancestry is not reconciled, duplicate `js/canvas-viewport.js` remains in the changed files, and standalone demo interaction is not covered by run #603. Agent 2 has the required sync/Chromium evidence comment; no new head has been submitted.
+- PR #74 AC-089 remains draft on parent #55; latest observed head changed during this check. It is getting active workflow runs on newer commits, but exact latest-head success and parent acceptance are still required.
+- PR #76 AC-096 workflow #626 was in progress at the last exact-head query; isolated pixel algorithm work does not precede the workstation release.
+
+The next release action remains: finish UI-00 review, then coordinator-authored UI-01 shell PR preserving existing production commands, then Agent 1's browser smoke suite and published Pages inspection.
