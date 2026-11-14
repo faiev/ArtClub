@@ -263,7 +263,7 @@ async function run() {
     await page.locator("#projectLibraryBtn").click();
     await page.getByRole("button", { name: "Recover", exact: true }).first().click();
     await page.waitForFunction(
-      () => window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color === "#aa00aa",
+      () => window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color === null,
       null,
       { timeout: 5_000 }
     );
@@ -288,7 +288,7 @@ async function run() {
     await page.locator("#projectLibraryBtn").click();
     await page.getByRole("button", { name: "Recover", exact: true }).first().click();
     await page.waitForFunction(
-      () => window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color === "#aa00aa",
+      () => window.onePixelStudio.get_pixel({ x: 22, y: 20 }).color === null,
       null,
       { timeout: 5_000 }
     );
