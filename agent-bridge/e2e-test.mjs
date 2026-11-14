@@ -111,6 +111,20 @@ async function run() {
     const parsedProject = JSON.parse(projectJson);
     assert.equal(parsedProject.format, "one-pixel-studio");
 
+    // Exercise the browser agent import path as well as JSON serialization.
+    const importCandidate = JSON.parse(projectJson);
+    importCandidate.name = "Imported E2E artwork";
+    const importedStatus = await page.evaluate(project =>
+      window.onePixelStudio.import_project({ project }),
+      importCandidate
+    );
+    assert.equal(importedStatus.project_name, "Imported E2E artwork");
+    assert.equal(importedStatus.project_id, parsedProject.id);
+    const importedPixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 1, y: 1 })
+    );
+    assert.equal(importedPixel.color, "#ff0000", "import should restore exported pixel data");
+
     const firstSaved = await page.evaluate(() => window.onePixelStudio.save());
     assert.equal(firstSaved.ok, true);
     const firstProjectId = firstSaved.project_id;
