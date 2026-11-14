@@ -297,6 +297,9 @@ export function checkReleaseReadiness(options = {}) {
     root,
     generatedAt: new Date().toISOString(),
     ok: failures === 0,
+    localCheckStatus: failures === 0 ? "pass" : "fail",
+    releaseReady: false,
+    releaseStatus: "unverified",
     counts,
     checks,
     ci: {
