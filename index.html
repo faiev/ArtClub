@@ -946,64 +946,93 @@ function setSelectionRect(rect){
   selection={x,y,width,height};selectionPreview=null;documentRevision+=1;
   renderGrid();renderSelectionTools();
 }
-function moveSelectionPixels(dx,dy){
-  if(!selection||(!dx&&!dy))return;
-  if(!isActiveLayerEditable())throw new Error("The active layer is locked or hidden.");
-  const targetX=Math.max(0,Math.min(w-selection.width,selection.x+dx));
-  const targetY=Math.max(0,Math.min(h-selection.height,selection.y+dy));
-  const actualDx=targetX-selection.x,actualDy=targetY-selection.y;
-  if(!actualDx&&!actualDy)return;
-  remember();
-  const source=[];
-  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
-    source.push(pixels[(selection.y+y)*w+selection.x+x]);
+async function moveSelectionPixels(dx,dy){
+  if(!selection||(!dx&&!dy))return true;
+  if(safeEditBusy||drawing)return false;
+  const sourceRect={...selection};
+  const targetX=Math.max(0,Math.min(w-sourceRect.width,sourceRect.x+dx));
+  const targetY=Math.max(0,Math.min(h-sourceRect.height,sourceRect.y+dy));
+  const actualDx=targetX-sourceRect.x,actualDy=targetY-sourceRect.y;
+  if(!actualDx&&!actualDy)return true;
+  const source=createSafeEditProject();
+  const target={revision:documentRevision,projectId:source.id,layerId:source.activeLayerId,frameId:source.activeFrameId};
+  const cel=ProjectModel.getCel(source,target.layerId,target.frameId);
+  if(!cel)throw new Error("The active layer/frame cel is missing.");
+  const next=cel.pixels.slice();
+  const copied=[];
+  for(let row=0;row<sourceRect.height;row++){
+    for(let col=0;col<sourceRect.width;col++)copied.push(next[(sourceRect.y+row)*w+sourceRect.x+col]);
   }
-  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
-    pixels[(selection.y+y)*w+selection.x+x]=null;
+  for(let row=0;row<sourceRect.height;row++){
+    for(let col=0;col<sourceRect.width;col++)next[(sourceRect.y+row)*w+sourceRect.x+col]=null;
   }
-  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
-    const color=source[y*selection.width+x];
-    if(color!==null)pixels[(targetY+y)*w+targetX+x]=color;
+  for(let row=0;row<sourceRect.height;row++){
+    for(let col=0;col<sourceRect.width;col++){
+      const color=copied[row*sourceRect.width+col];
+      if(color!==null)next[(targetY+row)*w+targetX+col]=color;
+    }
   }
-  selection={x:targetX,y:targetY,width:selection.width,height:selection.height};
-  renderGrid();renderStats();renderSelectionTools();scheduleSave();
+  const result=window.ArtClubSafeEditOperations.replaceActiveCel(source,next,{layerId:target.layerId,frameId:target.frameId});
+  if(!result.ok){toast(safeEditDenialMessage(result));return false;}
+  if(result.changedPixels===0)return true;
+  const committed=await commitSafeEditResult(result,source,target,"Selection moved.");
+  if(committed){
+    selection={x:targetX,y:targetY,width:sourceRect.width,height:sourceRect.height};
+    documentRevision+=1;renderSelectionTools();
+  }
+  return committed;
 }
-function transformSelection(operation){
+async function transformSelection(operation){
   if(!selection)throw new Error("Create a selection before transforming pixels.");
-  if(!isActiveLayerEditable())throw new Error("The active layer is locked or hidden.");
+  if(safeEditBusy||drawing)throw new Error("Finish the current edit before transforming the selection.");
   if(!["flip_h","flip_v","rotate_cw","rotate_ccw"].includes(operation)){
     throw new Error("Unknown selection transform.");
   }
-  const sourceWidth=selection.width,sourceHeight=selection.height;
+  const sourceRect={...selection};
+  const sourceWidth=sourceRect.width,sourceHeight=sourceRect.height;
   const outputWidth=operation==="rotate_cw"||operation==="rotate_ccw"?sourceHeight:sourceWidth;
   const outputHeight=operation==="rotate_cw"||operation==="rotate_ccw"?sourceWidth:sourceHeight;
-  const outputX=selection.x,outputY=selection.y;
+  const outputX=sourceRect.x,outputY=sourceRect.y;
   if(outputX+outputWidth>w||outputY+outputHeight>h){
     throw new Error("The rotated selection will not fit at this position. Move it away from the canvas edge first.");
   }
-  const source=[];
-  for(let y=0;y<sourceHeight;y++)for(let x=0;x<sourceWidth;x++){
-    source.push(pixels[(selection.y+y)*w+selection.x+x]);
+  const source=createSafeEditProject();
+  const target={revision:documentRevision,projectId:source.id,layerId:source.activeLayerId,frameId:source.activeFrameId};
+  const cel=ProjectModel.getCel(source,target.layerId,target.frameId);
+  if(!cel)throw new Error("The active layer/frame cel is missing.");
+  const next=cel.pixels.slice(),input=[];
+  for(let row=0;row<sourceHeight;row++){
+    for(let col=0;col<sourceWidth;col++)input.push(next[(sourceRect.y+row)*w+sourceRect.x+col]);
   }
   const output=Array(outputWidth*outputHeight).fill(null);
-  for(let y=0;y<sourceHeight;y++)for(let x=0;x<sourceWidth;x++){
-    let targetX=x,targetY=y;
-    if(operation==="flip_h")targetX=sourceWidth-1-x;
-    else if(operation==="flip_v")targetY=sourceHeight-1-y;
-    else if(operation==="rotate_cw"){targetX=sourceHeight-1-y;targetY=x}
-    else if(operation==="rotate_ccw"){targetX=y;targetY=sourceWidth-1-x}
-    output[targetY*outputWidth+targetX]=source[y*sourceWidth+x];
+  for(let row=0;row<sourceHeight;row++){
+    for(let col=0;col<sourceWidth;col++){
+      let targetX=col,targetY=row;
+      if(operation==="flip_h")targetX=sourceWidth-1-col;
+      else if(operation==="flip_v")targetY=sourceHeight-1-row;
+      else if(operation==="rotate_cw"){targetX=sourceHeight-1-row;targetY=col;}
+      else if(operation==="rotate_ccw"){targetX=row;targetY=sourceWidth-1-col;}
+      output[targetY*outputWidth+targetX]=input[row*sourceWidth+col];
+    }
   }
-  remember();
-  for(let y=0;y<sourceHeight;y++)for(let x=0;x<sourceWidth;x++){
-    pixels[(selection.y+y)*w+selection.x+x]=null;
+  for(let row=0;row<sourceHeight;row++){
+    for(let col=0;col<sourceWidth;col++)next[(sourceRect.y+row)*w+sourceRect.x+col]=null;
   }
-  for(let y=0;y<outputHeight;y++)for(let x=0;x<outputWidth;x++){
-    const color=output[y*outputWidth+x];
-    if(color!==null)pixels[(outputY+y)*w+outputX+x]=color;
+  for(let row=0;row<outputHeight;row++){
+    for(let col=0;col<outputWidth;col++){
+      const color=output[row*outputWidth+col];
+      if(color!==null)next[(outputY+row)*w+outputX+col]=color;
+    }
   }
-  selection={x:outputX,y:outputY,width:outputWidth,height:outputHeight};
-  renderGrid();renderStats();renderSelectionTools();scheduleSave();
+  const result=window.ArtClubSafeEditOperations.replaceActiveCel(source,next,{layerId:target.layerId,frameId:target.frameId});
+  if(!result.ok)throw new Error(safeEditDenialMessage(result));
+  if(result.changedPixels===0)return true;
+  const committed=await commitSafeEditResult(result,source,target,"Selection transformed.");
+  if(committed){
+    selection={x:outputX,y:outputY,width:outputWidth,height:outputHeight};
+    documentRevision+=1;renderSelectionTools();
+  }
+  return committed;
 }
 function copySelection(){
   if(!selection){toast("Select an area first.");return false}
@@ -2221,12 +2250,12 @@ function agentMoveSelection(payload){
   payload=payload||{};assertAgentSelectionAction(payload);
   if(!Number.isInteger(payload.dx)||!Number.isInteger(payload.dy))throw new Error("dx and dy must be integer pixel offsets.");
   if(!selection)throw new Error("Create a selection before moving it.");
-  moveSelectionPixels(payload.dx,payload.dy);
+  if(!await moveSelectionPixels(payload.dx,payload.dy))throw new Error("The selection move could not be saved.");
   return getAgentStatus();
 }
-function agentTransformSelection(payload){
+async function agentTransformSelection(payload){
   payload=payload||{};assertAgentSelectionAction(payload);
-  transformSelection(payload.operation);
+  if(!await transformSelection(payload.operation))throw new Error("The selection transform could not be saved.");
   return getAgentStatus();
 }
 
@@ -2399,7 +2428,7 @@ grid.addEventListener("pointerup",e=>{
     if(selectionDragMode==="move"&&selectionPreview&&selection){
       const dx=selectionPreview.x-selection.x,dy=selectionPreview.y-selection.y;
       selectionPreview=null;
-      if(dx||dy)moveSelectionPixels(dx,dy);
+      if(dx||dy)void moveSelectionPixels(dx,dy);
     }else if(selectionDragMode==="marquee"){
       selection=selectionPreview||normalizeSelection(strokeStart,p);
       selectionPreview=null;documentRevision+=1;
