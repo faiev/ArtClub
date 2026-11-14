@@ -87,6 +87,9 @@ async function run() {
       saveState: document.getElementById("saveState").textContent,
       busy: document.body.inert,
       clickCount: window.__clearClickCount,
+      handlerRan: window.__clearHandlerRan,
+      clearStage: window.__safeClearStage,
+      safeResult: window.__safeClearResult,
       button: document.getElementById("clearBtn").outerHTML,
       activeLayer: window.onePixelStudio.get_status().active_layer,
       activeCel: JSON.parse(window.onePixelStudio.export_project()).cels.find(cel =>
