@@ -248,3 +248,22 @@ test("a stale tab cannot overwrite a deleted and recreated project with a reused
     newTab.close();
   }
 });
+
+test("rollback refuses to restore a recovery snapshot explicitly cleared after the commit", async () => {
+  const storage = await Storage.open({ indexedDB: createMemoryIndexedDB(), projectModel: Project });
+  try {
+    const p0 = Project.createProject({ width: 2, height: 2, name: "Recovery clear", palette: ["#112233", "#445566"] });
+    await storage.saveProject(p0);
+    const p1 = Project.cloneProject(p0);
+    p1.name = "Committed version";
+    const saved = await storage.saveProject(p1);
+    assert.ok(await storage.getRecovery(p0.id));
+    await storage.clearRecovery(p0.id);
+    await assert.rejects(storage.restoreIfCurrent(saved.rollbackReceipt), error =>
+      error && error.code === "PROJECT_REVISION_CONFLICT");
+    assert.equal((await storage.getProject(p0.id)).name, "Committed version");
+    assert.equal(await storage.getRecovery(p0.id), null);
+  } finally {
+    storage.close();
+  }
+});
