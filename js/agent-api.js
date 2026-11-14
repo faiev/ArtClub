@@ -14,7 +14,9 @@
   function requireAdapter(adapter) {
     const required = [
       "getStatus", "getCanvas", "getPixel", "execute",
-      "undo", "redo", "save", "exportProject", "importProject", "listProjects", "openProject", "exportPNG"
+      "undo", "redo", "save", "exportProject", "importProject", "listProjects", "openProject", "exportPNG",
+      "listLayers", "addLayer", "selectLayer", "setLayerVisibility", "setLayerLocked",
+      "renameLayer", "moveLayer", "duplicateLayer", "deleteLayer"
     ];
     const missing = required.filter(function (name) {
       return !adapter || typeof adapter[name] !== "function";
@@ -100,6 +102,33 @@
       },
       export_png: function () {
         return adapter.exportPNG();
+      },
+      list_layers: function () {
+        return adapter.listLayers().layers;
+      },
+      add_layer: function (args) {
+        return adapter.addLayer(args || {});
+      },
+      select_layer: function (args) {
+        return adapter.selectLayer(args || {});
+      },
+      set_layer_visibility: function (args) {
+        return adapter.setLayerVisibility(args || {});
+      },
+      set_layer_locked: function (args) {
+        return adapter.setLayerLocked(args || {});
+      },
+      rename_layer: function (args) {
+        return adapter.renameLayer(args || {});
+      },
+      move_layer: function (args) {
+        return adapter.moveLayer(args || {});
+      },
+      duplicate_layer: function (args) {
+        return adapter.duplicateLayer(args || {});
+      },
+      delete_layer: function (args) {
+        return adapter.deleteLayer(args || {});
       }
     });
   }
