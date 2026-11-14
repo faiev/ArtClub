@@ -21,7 +21,7 @@ This is the cross-agent decision log. The coordinator owns it. Workers should re
 - Never push application code directly to `main`.
 - Every code task must have a PR, test evidence and handoff summary.
 - Workers do not merge their own PRs.
-- Coordination metadata may be written to `main` only in the worker's own `coordination/status/agent-N.md` file.
+- Coordination metadata may be written only to the active coordination source: during bootstrap, workers update only their own `coordination/status/agent-N.md` on `coordination/orchestration-v1`; after PR #5 merges, workers update only their own status file on `main`. The coordinator alone changes board, backlog, decisions and assignments.
 
 ## D-005 — Single-writer ownership for shared files
 - One agent at a time may change shared UI/API/bridge files.
