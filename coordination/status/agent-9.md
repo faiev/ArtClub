@@ -125,3 +125,14 @@ Semantic canonical version 1 includes canvas geometry/background, palette orderi
 - Use the existing project model as the authoritative validation/migration boundary.
 - Do not edit project-model/storage, inspector CLI (for AC-095), editor UI, Agent API, bridge, workflow or any other agent's tests.
 - Report PR/CI completion separately from merge, deployment and user-visible integration. None of the Agent 9 diagnostics/fingerprint PRs are merged or integrated into the live editor UI.
+
+
+## 2026-11-15 — final branch-comparison refresh
+
+This addendum supersedes the earlier 88d2/99-behind comparison snapshot above.
+
+- **Comparison base:** `5890b9ef7c3f2db84656a50e3bb4d8db397bab21` (the preceding Agent 9 status-only correction commit on main).
+- Recompared all eight exact PR heads against that base. Every diagnostics branch has the same merge base `573bf6fd8963781613bb43179e9c7d10f49c418e`; main is **104 commits ahead** of each. Branch-side ahead counts remain #12 48, #46 80, #59 110, #64 136, #71 159, #83 163, #85 174, #89 182.
+- Recompared `agent/project-diagnostics-deep` head `381230afa60f7e3efdd6c09244bb45a188bc3b56` against that base: 63 ahead / 247 behind, merge base `b140cbefbcfb3cbe1a2774d1c0025e64efb052ba`.
+- No branch tip changed; all eight PR-head refs still match the SHAs in the table above. The historical exact-head CI results and dependency graph remain as recorded.
+- This addendum is a status-file-only commit on main; it follows the comparison base and therefore adds one main-only commit after the comparison snapshot.
