@@ -104,7 +104,7 @@ function bootEditor() {
     },
     querySelectorAll(selector) {
       if (selector !== ".tool") return [];
-      return ["brush", "eraser", "fill", "eyedropper", "line", "rect", "ellipse"].map(name => {
+      return ["brush", "eraser", "fill", "eyedropper", "line", "rect", "ellipse", "select"].map(name => {
         const el = new FakeElement();
         el.ownerDocument = document;
         el.dataset.tool = name;
@@ -117,7 +117,7 @@ function bootEditor() {
     elementFromPoint() { return null; }
   };
   const grid = document.getElementById("pixelGrid");
-  const toolButtons = ["brush", "eraser", "fill", "eyedropper", "line", "rect", "ellipse"].map(name => {
+  const toolButtons = ["brush", "eraser", "fill", "eyedropper", "line", "rect", "ellipse", "select"].map(name => {
     const el = new FakeElement();
     el.ownerDocument = document;
     el.dataset.tool = name;
@@ -286,6 +286,57 @@ test("duplicate, delete and undo preserve layer contents", async () => {
   status = editor.agent.get_status();
   assert.equal(status.layers.length, 2);
   assert.equal((await editor.agent.get_pixel({ x: 4, y: 4 })).color, "#abcdef");
+});
+
+test("rectangular marquee creates the right pixel bounds", async () => {
+  const editor = await bootEditor();
+  editor.tool("select").emit("click");
+  editor.grid.emit("pointerdown", {
+    target: editor.cell(1 * 24 + 1), pointerId: 1, clientX: 1, clientY: 1
+  });
+  editor.grid.emit("pointermove", {
+    target: editor.cell(3 * 24 + 4), pointerId: 1, clientX: 4, clientY: 3
+  });
+  editor.grid.emit("pointerup", {
+    target: editor.cell(3 * 24 + 4), pointerId: 1, clientX: 4, clientY: 3
+  });
+  assert.deepEqual(editor.agent.get_status().selection, { x: 1, y: 1, width: 4, height: 3 });
+  assert.equal(editor.document.getElementById("selectionStatus").textContent, "4 × 3 PX · X 1 · Y 1");
+});
+
+test("selection copy, cut, paste and move operate on active-layer pixels", async () => {
+  const editor = await bootEditor();
+  await editor.agent.draw_pixel({ x: 2, y: 2, color: "#aabbcc" });
+  await editor.agent.set_selection({ x: 2, y: 2, width: 1, height: 1 });
+  await editor.agent.copy_selection();
+  await editor.agent.cut_selection();
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, null);
+
+  await editor.agent.paste_selection();
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#aabbcc");
+
+  await editor.agent.move_selection({ dx: 2, dy: 1 });
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#172b3a");
+  assert.equal((await editor.agent.get_pixel({ x: 4, y: 3 })).color, "#aabbcc");
+
+  await editor.agent.undo();
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#aabbcc");
+  assert.equal((await editor.agent.get_pixel({ x: 4, y: 3 })).color, "#172b3a");
+});
+
+test("active selection constrains human and agent drawing and can be cleared", async () => {
+  const editor = await bootEditor();
+  await editor.agent.set_selection({ x: 1, y: 1, width: 2, height: 2 });
+  await editor.agent.draw_pixel({ x: 0, y: 0, color: "#ff0000" });
+  assert.equal((await editor.agent.get_pixel({ x: 0, y: 0 })).color, "#172b3a");
+
+  await editor.agent.draw_pixel({ x: 1, y: 1, color: "#00ff00" });
+  assert.equal((await editor.agent.get_pixel({ x: 1, y: 1 })).color, "#00ff00");
+
+  await editor.agent.clear_selection();
+  assert.equal((await editor.agent.get_pixel({ x: 1, y: 1 })).color, null);
+  await editor.agent.deselect();
+  assert.equal(editor.agent.get_status().selection, null);
 });
 
 test("brush paints on pointer down and commits the stroke", async () => {
