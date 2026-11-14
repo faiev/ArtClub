@@ -296,6 +296,7 @@ test("ellipse tool previews and commits an outlined ellipse", async () => {
 test("agents can draw a filled ellipse as one undoable command", async () => {
   const editor = await bootEditor();
   const status = editor.agent.get_status();
+  const beforeColor = (await editor.agent.get_pixel({ x: 7, y: 7 })).color;
   const result = await editor.agent.draw_ellipse({
     x1: 4, y1: 4, x2: 10, y2: 10,
     color: "#33aa77", filled: true,
@@ -304,5 +305,5 @@ test("agents can draw a filled ellipse as one undoable command", async () => {
   assert.equal(result.commands_applied, 1);
   assert.equal((await editor.agent.get_pixel({ x: 7, y: 7 })).color, "#33aa77");
   await editor.agent.undo();
-  assert.equal((await editor.agent.get_pixel({ x: 7, y: 7 })).color, "#172b3a");
+  assert.equal((await editor.agent.get_pixel({ x: 7, y: 7 })).color, beforeColor);
 });
