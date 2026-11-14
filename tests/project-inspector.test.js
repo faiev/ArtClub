@@ -180,3 +180,157 @@ test("accepts a UTF-8 BOM before an otherwise valid JSON project", (t) => {
   assert.equal(report.id, "project-v2-fixture");
   assert.equal(report.name, "Inspector fixture");
 });
+
+
+function runBatch(paths, options = []) {
+  return spawnSync(process.execPath, [CLI, "--batch", ...options, "--json", ...paths], {
+    encoding: "utf8",
+    maxBuffer: 4 * 1024 * 1024
+  });
+}
+
+test("batch mode inspects directory files in stable path order without recursing by default", (t) => {
+  const directory = temporaryDirectory(t);
+  const root = path.join(directory, "input");
+  const nested = path.join(root, "nested");
+  fs.mkdirSync(nested, { recursive: true });
+  copyFixture(root, "valid-v2.json");
+  copyFixture(root, "valid-legacy.json");
+  copyFixture(nested, "valid-v2.json");
+
+  const result = runBatch([root]);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.mode, "batch");
+  assert.equal(report.ok, true);
+  assert.equal(report.fileCount, 2);
+  assert.equal(report.successCount, 2);
+  assert.equal(report.failureCount, 0);
+  assert.deepEqual(report.results.map((entry) => path.basename(entry.file)), [
+    "valid-legacy.json",
+    "valid-v2.json"
+  ]);
+});
+
+test("recursive batch mode includes nested projects and preserves legacy source bytes", (t) => {
+  const directory = temporaryDirectory(t);
+  const root = path.join(directory, "input");
+  const nested = path.join(root, "nested");
+  fs.mkdirSync(nested, { recursive: true });
+  const nestedLegacy = copyFixture(nested, "valid-legacy.json");
+  const originalBytes = fs.readFileSync(nestedLegacy);
+  copyFixture(root, "valid-v2.json");
+
+  const result = runBatch([root], ["--recursive"]);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.fileCount, 2);
+  assert.equal(report.successCount, 2);
+  assert.ok(report.results.some((entry) => entry.migratedInMemory === true));
+  assert.deepEqual(fs.readFileSync(nestedLegacy), originalBytes);
+});
+
+test("batch mode reports missing and malformed files individually and continues", (t) => {
+  const directory = temporaryDirectory(t);
+  const valid = copyFixture(directory, "valid-v2.json");
+  const malformed = copyFixture(directory, "malformed-json.json");
+  const missing = path.join(directory, "missing.json");
+
+  const result = runBatch([valid, missing, malformed]);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.fileCount, 2);
+  assert.equal(report.successCount, 1);
+  assert.equal(report.failureCount, 2);
+  assert.ok(report.results.some((entry) => entry.ok && entry.name === "Inspector fixture"));
+  assert.ok(report.results.some((entry) => !entry.ok && entry.error.code === "JSON_PARSE_ERROR"));
+  assert.ok(report.discoveryErrors.some((entry) => entry.path === missing && entry.code === "PATH_ACCESS_ERROR"));
+});
+
+test("batch mode de-duplicates repeated file paths and reports a warning", (t) => {
+  const directory = temporaryDirectory(t);
+  const file = copyFixture(directory, "valid-v2.json");
+
+  const result = runBatch([file, file]);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.fileCount, 1);
+  assert.equal(report.successCount, 1);
+  assert.equal(report.warnings.length, 1);
+  assert.equal(report.warnings[0].code, "DUPLICATE_PATH");
+});
+
+test("batch mode does not follow directory symlinks", (t) => {
+  if (process.platform === "win32") {
+    t.skip("directory symlink creation requires elevated Windows permissions");
+    return;
+  }
+  const directory = temporaryDirectory(t);
+  const root = path.join(directory, "input");
+  const outside = path.join(directory, "outside");
+  fs.mkdirSync(root);
+  fs.mkdirSync(outside);
+  copyFixture(outside, "valid-v2.json");
+  fs.symlinkSync(outside, path.join(root, "linked"), "dir");
+
+  const result = runBatch([root], ["--recursive"]);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.fileCount, 0);
+  assert.ok(report.discoveryErrors.some((entry) => entry.code === "SYMLINK_NOT_FOLLOWED"));
+});
+
+test("batch mode rejects a file set above its count limit without partially inspecting it", (t) => {
+  const directory = temporaryDirectory(t);
+  const root = path.join(directory, "many");
+  fs.mkdirSync(root);
+  for (let index = 0; index < 501; index += 1) {
+    fs.writeFileSync(path.join(root, String(index).padStart(4, "0") + ".json"), "{}");
+  }
+
+  const result = runBatch([root]);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.results.length, 0);
+  assert.ok(report.discoveryErrors.some((entry) => entry.code === "BATCH_FILE_LIMIT"));
+});
+
+test("batch mode enforces its aggregate byte budget before reading the next file", (t) => {
+  const directory = temporaryDirectory(t);
+  const project = fs.readFileSync(path.join(FIXTURES, "valid-v2.json"));
+  const firstSize = 16 * 1024 * 1024;
+  const secondSize = 20 * 1024 * 1024;
+  fs.writeFileSync(path.join(directory, "a-project.json"), Buffer.concat([
+    project,
+    Buffer.alloc(firstSize - project.length, 0x20)
+  ]));
+  fs.writeFileSync(path.join(directory, "b-project.json"), Buffer.concat([
+    project,
+    Buffer.alloc(secondSize - project.length, 0x20)
+  ]));
+
+  const result = runBatch([directory]);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.successCount, 1);
+  assert.equal(report.failureCount, 1);
+  assert.equal(report.bytesRead, firstSize);
+  assert.equal(report.results[1].error.code, "BATCH_TOTAL_SIZE_LIMIT");
+});
+
+test("batch mode reports unreadable files without aborting other inputs", (t) => {
+  if (typeof process.getuid === "function" && process.getuid() === 0) {
+    t.skip("permission checks are not meaningful when running as root");
+    return;
+  }
+  const directory = temporaryDirectory(t);
+  const valid = copyFixture(directory, "valid-v2.json");
+  const unreadable = copyFixture(directory, "valid-legacy.json");
+  fs.chmodSync(unreadable, 0);
+
+  const result = runBatch([unreadable, valid]);
+  assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.successCount, 1);
+  assert.ok(report.results.some((entry) => !entry.ok && entry.error.code === "FILE_READ_ERROR"));
+});
