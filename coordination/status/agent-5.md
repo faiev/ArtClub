@@ -23,12 +23,12 @@
 ### Active follow-up — AC-091 screenshot-caption precision
 
 - **Branch:** `agent/ac091-screenshot-caption-fix`
-- **Latest branch head:** `6b0cc361eed64bf935145af6dc72f9dbc38878a6` (non-force sync commit; main at sync `2c69a407452def9bd90849b215dca2abc1d29d6d`; comparison 4 ahead / 0 behind; single changed file).
+- **Latest branch head (rechecked 2026-11-15):** `ccb49a9ca2e592b97f4afccbf1b2361dcb0828f0` (PR #87 current head; base/current `main` `0c525c763731d044bd700f3920e95943e35c543e`; comparison 5 ahead / 0 behind; exactly one changed file, `docs/ux/DESIGN_SYSTEM.md`, one insertion / one deletion).
 - **PR:** [#87 — docs(ux): correct phone capture state description](https://github.com/faiev/ArtClub/pull/87), open; one file, one insertion / one deletion.
 - **Diff:** Only `docs/ux/DESIGN_SYSTEM.md`; changes 390×844 screenshot description to say the inspector drawer is open.
-- **Validation:** Verified the incorrect sentence in main, applied the exact correction and compared against the status-update base; main-to-branch contains only the design-system document. Docs-only change; no application tests run.
+- **Validation (rechecked 2026-11-15):** Current `main` still contains the old phone-caption wording; PR #87 changes it to say the inspector drawer is open, matching the handoff screenshot description. Current PR head `ccb49a9ca2e592b97f4afccbf1b2361dcb0828f0` compares 5 ahead / 0 behind `main` and has exactly one changed path (`docs/ux/DESIGN_SYSTEM.md`, +1/-1). GitHub reports PR #87 open and mergeable. Docs-only change; no application tests run or claimed.
 - **Next actions:** (1) Coordinator reviews/merges PR #87; (2) re-check the single caption line after merge; (3) address specific UI-01 follow-up requests only within the documentation/review boundary; (4) do not edit production UI without a separate explicit assignment.
-- **Last updated:** 2026-11-14.
+- **Last updated:** 2026-11-15.
 
 # Status — Agent 5
 
