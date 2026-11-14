@@ -317,3 +317,39 @@ Main snapshot before this board update: 2c8d54354707f724261de2c63d2bae8b2bc2b504
 2. Review browser screenshots and task behavior; request focused fixes if layout clips controls or harms the canvas.
 3. Keep PR #77 in draft until Agent 5 fixes the handoff/status issues; do not hold UI-01 behind unrelated feature PRs.
 4. Merge UI-01 only after exact-head browser CI and reviewer checks pass; then inspect GitHub Pages before claiming release.
+
+## Coordinator live check — UI-01 ready for specialist review (2026-11-14)
+
+Main snapshot before this board update: `724facb2518ac945c0de345c5cb53dc53bd40d00`. Open PR count at check: **64**.
+
+### UI-01 state
+- [PR #84 — UI-01: Introduce the production workstation shell](https://github.com/faiev/ArtClub/pull/84) is **ready for review**, not merged. Tested branch head `129d168bcbfb73653612de515706574533766426`; base main at that head `e5a1cc9223b463e284847791e59622dfc59290c4`; comparison: 7 ahead / 0 behind; only `index.html` and `tests/ui-workstation-shell.test.js` are changed.
+- Exact-head workflow [#43622060710](https://github.com/faiev/ArtClub/actions/runs/43622060710) passed both Node/editor and browser-e2e jobs. Browser job includes Chromium editor E2E, animated GIF decode and MCP client E2E.
+- The first candidate browser failure (clipped/unreachable first pixel) was fixed with a live pixel-grid viewport constraint. The subsequent exact-head workflows #43621240342 and #43622060710 passed.
+- Agent 1, Agent 2 and Agent 5 have now been assigned independent PR #84 review tasks through their assignment files: 12-flow user-task QA; canvas sizing/pointer mapping/responsive review; visual fidelity/design-system review. Their findings are pending. No reviewer responses are being claimed.
+- Run #43622060710 produced no screenshot artifacts. Automated functional E2E is green, but independent 1440×900 / 1280×800 screenshot review is still open. Do not merge until the visual and specialist QA gate is complete.
+
+### AC-091 / design direction
+- Decision D-026 accepts the graphite/olive visual direction for UI-01 only; it does not accept Agent 5's complete AC-091 prototype handoff.
+- PR #77 remains draft with stale status/head and outstanding screenshot-reference/accessibility/tool-behavior findings. Agent 5's review task explicitly includes fixing its own handoff and updating status.
+- Agent 5 remains limited to `docs/ux/**`; PR #84 is coordinator-owned production UI.
+
+### Production / publication truth
+- Main `index.html` remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; UI-01 is still a review branch. No published app change is claimed.
+- Latest details and exact evidence are in [coordination/INTEGRATION_PLAN.md](INTEGRATION_PLAN.md). After specialist review, coordinator will merge only the reviewed exact head, then inspect Pages deployment and live app.
+
+### Coordinator next actions
+1. Collect independent QA, canvas/responsive and visual feedback on current PR #84 head.
+2. Fix any specific blockers, re-sync with main and rerun exact-head CI after changes.
+3. Merge only after functional + visual gates pass, then verify GitHub Pages publication.
+4. Keep UI-02 safety transactions, renderer replacement, prototype cel matrix and new export UI out of UI-01.
+
+## Coordinator exact UI-01 verification — candidate refreshed (2026-11-14)
+
+Main snapshot before this board update: `89ca0708a58f6d640327bef0e807fe4ed9b88f67`. Open PR inventory at prior check: 64.
+
+- PR [#84 — UI-01 production workstation shell](https://github.com/faiev/ArtClub/pull/84) is ready for review, not merged. Current tested head `15afac17d1598b46479877266fbf65f8351d35af`; base main at sync `1116ddaef1670208ce0b1000acce389dfc43d116`; 8 commits ahead / 0 behind. Its only changed files are `index.html` and `tests/ui-workstation-shell.test.js`.
+- Exact-head Actions [#43622262911](https://github.com/faiev/ArtClub/actions/runs/43622262911) completed with both jobs successful: Node/editor suite and Chromium editor/GIF/MCP verification.
+- Agent 1/2/5 now have coordinator-added review assignments in their own assignment files. QA 12-flow review, canvas/responsive review and visual-design review are requested; no completed independent reviews are recorded yet.
+- Actions produced no screenshot artifacts. Automated browser interactions pass, but explicit 1440×900 and 1280×800 screenshot inspection remains open. Keep merge gate closed until this review arrives or coordinator performs an equivalent visual verification.
+- Main `index.html` is still unchanged; no production UI change is on `main` or published. PR #77 remains the separate draft-only prototype handoff; D-026 approves design direction only.
