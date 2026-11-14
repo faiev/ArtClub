@@ -1,0 +1,494 @@
+{
+  "schemaVersion": 1,
+  "title": "Art Club pixel algorithm golden corpus",
+  "pixelFormat": "#RRGGBB strings or null; row-major dense buffers",
+  "fixtures": [
+    {
+      "id": "checkerboard-4x4",
+      "width": 4,
+      "height": 4,
+      "tags": [
+        "checkerboard",
+        "opaque",
+        "transform",
+        "color-ramp"
+      ],
+      "source": [
+        "#111111",
+        "#EEEEEE",
+        "#111111",
+        "#EEEEEE",
+        "#EEEEEE",
+        "#111111",
+        "#EEEEEE",
+        "#111111",
+        "#111111",
+        "#EEEEEE",
+        "#111111",
+        "#EEEEEE",
+        "#EEEEEE",
+        "#111111",
+        "#EEEEEE",
+        "#111111"
+      ],
+      "expectedBuffers": {
+        "flipHorizontal": [
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE",
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE"
+        ],
+        "flipVertical": [
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE",
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE"
+        ],
+        "rotate90": [
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE",
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#111111",
+          "#EEEEEE",
+          "#111111",
+          "#EEEEEE"
+        ]
+      }
+    },
+    {
+      "id": "diagonal-line-5x5",
+      "width": 5,
+      "height": 5,
+      "tags": [
+        "diagonal",
+        "transparent",
+        "line",
+        "connectivity"
+      ],
+      "source": [
+        "#FF3355",
+        null,
+        null,
+        null,
+        null,
+        null,
+        "#FF3355",
+        null,
+        null,
+        null,
+        null,
+        null,
+        "#FF3355",
+        null,
+        null,
+        null,
+        null,
+        null,
+        "#FF3355",
+        null,
+        null,
+        null,
+        null,
+        null,
+        "#FF3355"
+      ],
+      "expectedPoints": {
+        "select4FromOrigin": [
+          [
+            0,
+            0
+          ]
+        ],
+        "select8FromOrigin": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ]
+        ],
+        "border8FromOrigin": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            4,
+            4
+          ]
+        ]
+      },
+      "expectedBuffers": {
+        "flood8ToBlack": [
+          "#000000",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "#000000",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "#000000",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "#000000",
+          null,
+          null,
+          null,
+          null,
+          null,
+          "#000000"
+        ]
+      }
+    },
+    {
+      "id": "transparent-hole-5x5",
+      "width": 5,
+      "height": 5,
+      "tags": [
+        "transparent-hole",
+        "region-fill",
+        "border"
+      ],
+      "source": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "#2277AA",
+        "#2277AA",
+        "#2277AA",
+        null,
+        null,
+        "#2277AA",
+        null,
+        "#2277AA",
+        null,
+        null,
+        "#2277AA",
+        "#2277AA",
+        "#2277AA",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ],
+      "expectedPoints": {
+        "select4FromOneOne": [
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            3
+          ]
+        ],
+        "border4FromOneOne": [
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            3
+          ]
+        ]
+      },
+      "expectedBuffers": {
+        "fillBlue4": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          "#0000FF",
+          "#0000FF",
+          "#0000FF",
+          null,
+          null,
+          "#0000FF",
+          null,
+          "#0000FF",
+          null,
+          null,
+          "#0000FF",
+          "#0000FF",
+          "#0000FF",
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "gradient-ramp-4x1",
+      "width": 4,
+      "height": 1,
+      "tags": [
+        "gradient",
+        "quantize",
+        "ramp",
+        "opaque"
+      ],
+      "source": [
+        "#000000",
+        "#555555",
+        "#AAAAAA",
+        "#FFFFFF"
+      ],
+      "expectedBuffers": {
+        "posterize2": [
+          "#000000",
+          "#000000",
+          "#FFFFFF",
+          "#FFFFFF"
+        ],
+        "rec601Ramp3": [
+          "#000000",
+          "#808080",
+          "#808080",
+          "#FFFFFF"
+        ]
+      }
+    },
+    {
+      "id": "symmetric-sprite-5x5",
+      "width": 5,
+      "height": 5,
+      "tags": [
+        "symmetric",
+        "sprite",
+        "transparent",
+        "rotation"
+      ],
+      "source": [
+        null,
+        null,
+        "#FF66CC",
+        null,
+        null,
+        null,
+        "#FF66CC",
+        "#FF66CC",
+        "#FF66CC",
+        null,
+        "#FF66CC",
+        "#FF66CC",
+        "#FF66CC",
+        "#FF66CC",
+        "#FF66CC",
+        null,
+        "#FF66CC",
+        "#FF66CC",
+        "#FF66CC",
+        null,
+        null,
+        null,
+        "#FF66CC",
+        null,
+        null
+      ],
+      "expectedBuffers": {
+        "flipHorizontal": [
+          null,
+          null,
+          "#FF66CC",
+          null,
+          null,
+          null,
+          "#FF66CC",
+          "#FF66CC",
+          "#FF66CC",
+          null,
+          "#FF66CC",
+          "#FF66CC",
+          "#FF66CC",
+          "#FF66CC",
+          "#FF66CC",
+          null,
+          "#FF66CC",
+          "#FF66CC",
+          "#FF66CC",
+          null,
+          null,
+          null,
+          "#FF66CC",
+          null,
+          null
+        ],
+        "rotate90": [
+          null,
+          null,
+          "#FF66CC",
+          null,
+          null,
+          null,
+          "#FF66CC",
+          "#FF66CC",
+          "#FF66CC",
+          null,
+          "#FF66CC",
+          "#FF66CC",
+          "#FF66CC",
+          "#FF66CC",
+          "#FF66CC",
+          null,
+          "#FF66CC",
+          "#FF66CC",
+          "#FF66CC",
+          null,
+          null,
+          null,
+          "#FF66CC",
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "id": "stress-512-checkerboard",
+      "width": 512,
+      "height": 512,
+      "tags": [
+        "stress",
+        "maximum-dimension",
+        "generated"
+      ],
+      "generator": {
+        "type": "checkerboard",
+        "colorA": "#000000",
+        "colorB": "#FFFFFF",
+        "cellSize": 1,
+        "rule": "colorA when (x + y) is even; colorB otherwise"
+      },
+      "expectedPixelCount": 262144,
+      "expectedCounts": {
+        "#000000": 131072,
+        "#FFFFFF": 131072
+      }
+    }
+  ]
+}
