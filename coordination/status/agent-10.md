@@ -100,3 +100,9 @@ Still pending: full raw-buffer parity against AC-019 and AC-081–084 once those
 - **Recommendation summary:** Retain #15/#37/#44/#50/#69/#70/#72/#76 and their branches parked for coordinator review; mark #31 merged dependency and `agent/pixel-primitives` as a deletion candidate only (not deleted). Do not close or delete any of the eight unmerged branches based on age or this inventory alone.
 - **Tests / commands run locally:** None. Read-only GitHub API inspection only.
 - **Next actions:** (1) Await coordinator's branch disposition decision. (2) If any pixel PR is selected for future integration, sync it without force against then-current main and rerun full exact-head CI before merge. (3) Resume AC-085 parity only after relevant algorithm modules are merged and the pixel lane is reopened.
+
+
+### Branch-search scope clarification
+
+- Repeated branch discovery with GitHub branch search query `pixel` returned ten refs: the nine Agent 10 pixel refs already inventoried above, plus `agent/ac-047-export-pixel-adapters` at `77cc76ca4b6d75dece3e38f8864f11dc33642055`. A follow-up page returned no additional results.
+- The extra-named branch has **no associated open or closed PR** in the repository PR listing. Its comparison to current main showed 130 ahead / 75 behind and changes only in Agent API / bridge / guard / `index.html` paths (`AGENT_API.md`, `agent-bridge/**`, `js/agent-api.js`, `js/layer-edit-guard.js`, `tests/agent-api.test.js`, `tests/layer-edit-guard.test.js`). It contains no `js/pixel-*.js`, pixel algorithm tests, or pixel fixture paths in that comparison. Despite its branch name, this is cross-workstream Agent API/bridge work and is excluded from Agent 10's disposition; do not classify or modify it.
