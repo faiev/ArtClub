@@ -106,14 +106,16 @@ function runGit(root, args) {
   return result.stdout.trim();
 }
 
-function snapshotPaths(root, directory = root, prefix = "") {
+function snapshotTree(root, directory = root, prefix = "") {
   const entries = fs.readdirSync(directory, { withFileTypes: true });
   const output = [];
   for (const entry of entries) {
     const relative = path.posix.join(prefix, entry.name);
-    output.push(relative);
+    const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      output.push(...snapshotPaths(root, path.join(directory, entry.name), relative));
+      output.push(...snapshotTree(root, absolute, relative));
+    } else if (entry.isFile()) {
+      output.push(relative + "\\0" + fs.readFileSync(absolute).toString("base64"));
     }
   }
   return output.sort();
@@ -179,9 +181,9 @@ test("complete local fixture passes required-file checks but warns about nested 
   const root = temporaryRoot();
   try {
     populateCompleteFixture(root);
-    const before = snapshotPaths(root);
+    const before = snapshotTree(root);
     const report = checkReleaseReadiness({ root });
-    const after = snapshotPaths(root);
+    const after = snapshotTree(root);
 
     assert.equal(report.ok, true);
     assert.ok(report.counts.pass > 0);
@@ -195,6 +197,41 @@ test("complete local fixture passes required-file checks but warns about nested 
     assert.ok(nested.details.includes("tests/qa/release/qa-release-check.test.js"));
     const browser = report.checks.find(check => check.id === "lifecycle-browser-ci");
     assert.equal(browser.status, "warn");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("does not call an Agent 1 status-only commit stale", t => {
+  const root = temporaryRoot();
+  try {
+    const version = spawnSync("git", ["--version"], { encoding: "utf8" });
+    if (version.error || version.status !== 0) {
+      t.skip("Git executable is unavailable in this environment.");
+      return;
+    }
+
+    populateCompleteFixture(root);
+    runGit(root, ["init", "-b", "main"]);
+    runGit(root, ["config", "user.name", "QA Fixture"]);
+    runGit(root, ["config", "user.email", "qa-fixture@example.invalid"]);
+    runGit(root, ["add", "."]);
+    runGit(root, ["commit", "-m", "Initial state"]);
+    const recordedSha = runGit(root, ["rev-parse", "HEAD"]);
+
+    writeFile(root, "coordination/status/agent-1.md", [
+      "# Agent 1 status",
+      "Coordination source: main",
+      "Latest main: " + recordedSha
+    ].join("\\n"));
+    runGit(root, ["add", "coordination/status/agent-1.md"]);
+    runGit(root, ["commit", "-m", "Update Agent 1 status"]);
+    runGit(root, ["update-ref", "refs/remotes/origin/main", "HEAD"]);
+
+    const report = checkReleaseReadiness({ root });
+    const freshness = report.checks.find(check => check.id === "coordination-freshness");
+    assert.equal(freshness.status, "pass");
+    assert.equal(freshness.details.recordedMain, recordedSha);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -263,13 +300,13 @@ test("CLI help exits successfully without inspecting or changing the repository"
   const root = temporaryRoot();
   try {
     const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../tools/qa-release-check.mjs");
-    const before = snapshotPaths(root);
+    const before = snapshotTree(root);
     const result = spawnSync(process.execPath, [script, "--help", "--root", root], {
       encoding: "utf8"
     });
     assert.equal(result.status, 0);
     assert.match(result.stdout, /Usage:/);
-    assert.deepEqual(snapshotPaths(root), before);
+    assert.deepEqual(snapshotTree(root), before);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
