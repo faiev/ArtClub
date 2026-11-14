@@ -1,25 +1,68 @@
 # Status — Agent 7
 
-- **Task:** AC-016 — Sync current main and rerun full CI for tiled preview
+- **Active phase:** AC-093 — Deterministic autotile rule resolver
 - **Status:** REVIEW
 - **Role:** Tile workflows
-- **Feature branch:** `agent/tile-preview`
-- **Latest main incorporated:** `220c2b5033ccd8752dd8e3e357be3fcd8bfc7b7a`
-- **Original implementation commit:** `142b4e1cc1f605ff69bc7911676266b3c0ff607e`
-- **First main sync commit:** `d54b3e5899e57607bd61e4c13c9717dd7540318b`
-- **Final head after later coordination-only main updates:** `0aafc29aff13505ceabd288b3b5d1ab793ce35d7`
-- **Pull request:** https://github.com/faiev/ArtClub/pull/13 (open, draft)
-- **Files changed in PR:** `js/tile-preview.js`, `tests/tile-preview.test.js`, `docs/tile-preview.md` only.
-- **Main comparison:** `main...agent/tile-preview` is ahead by 3 and behind by 0 at final sync; PR diff is exactly the three assigned files.
-- **Local isolated evidence from original implementation:** `node --check js/tile-preview.js`, `node --check tests/tile-preview.test.js`, `node --test tests/tile-preview.test.js` — 11 passed, 0 failed.
-- **Current-head GitHub Actions:** run #137, https://github.com/faiev/ArtClub/actions/runs/43606323497 — fully passed on `0aafc29aff13505ceabd288b3b5d1ab793ce35d7`.
-  - `node --test tests/*.test.js` — 69 passed, 0 failed, 0 skipped.
-  - `node --check agent-bridge/server.mjs` — passed.
-  - `npm run test:e2e` — passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, animation playback, onion skin, PNG, IndexedDB library and reload recovery.
-  - `npm run test:mcp` — passed: drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
-- **Earlier stale-base issue:** run #110 failed at the refresh/persistence assertion before PR #10 was on the branch base. Current-main runs #122 and #137 pass the persistence/reload E2E.
-- **Integration boundary:** No Canvas, DOM, UI, renderer, Agent API, persistence, bridge or export wiring. Preview output is transient and must not be saved to project cels or included in exports.
-- **Known limitations:** Diagnostics compare corresponding opposing edge values and report mismatches; they do not repair seams. Output size is bounded by exported `LIMITS`.
-- **Blockers:** None for AC-016.
-- **Coordinator decision required:** Review PR #13. No merge or AC-021 UI integration performed.
-- **Last updated:** 2026-11-14 — final current-main CI passed; submitted for coordinator review.
+- **Coordination source:** `main`
+
+## Submitted tile work
+
+### AC-016 — Tile preview
+- **PR:** https://github.com/faiev/ArtClub/pull/13 (open, draft)
+- **Branch/head:** `agent/tile-preview` / `2ee8ae84417aeb1c52015d6a74c0156a39763e6d`
+- **Last recorded CI:** run #335 — 81 passed; Chromium editor E2E, animated GIF verification and MCP E2E passed.
+
+### AC-061 — Tile transforms and offset preview
+- **PR:** https://github.com/faiev/ArtClub/pull/28 (open, draft)
+- **Branch/head:** `agent/tile-transform` / `10053534d4c90a02cd84f1e4cf8cb5a16ce2206f`
+- **Last recorded CI:** run #336 — 94 passed; Chromium editor E2E, animated GIF verification and MCP E2E passed.
+
+### AC-062 — Tile-map data model
+- **PR:** https://github.com/faiev/ArtClub/pull/58 (open, draft)
+- **Branch/head:** `agent/tile-map` / `e8c7e8d61646bd2aba24c1a4b937c50ac5033347`
+- **Last recorded CI:** run #338 — 85 passed; Chromium editor E2E, animated GIF verification and MCP E2E passed.
+
+### AC-063 — Seam diagnostics and suggestions
+- **PR:** https://github.com/faiev/ArtClub/pull/65 (open, draft)
+- **Branch/head:** `agent/tile-seam-diagnostics` / `ae4988deef1b4ea496b8b593f0a7e96cd4efaedc`
+- **Main sync base:** `573bf6fd8963781613bb43179e9c7d10f49c418e`
+- **Current exact-head CI:** run #699 / `43619183785` — 249 passed, 0 failed, 0 skipped; Chromium editor E2E, animated GIF verification and MCP E2E passed.
+- **Scope:** advisory edge/corner/transparency/shift/repeated-join diagnostics; no automatic pixel repair.
+
+### AC-064 — Atlas/layout planning
+- **PR:** https://github.com/faiev/ArtClub/pull/67 (open, draft)
+- **Branch/head:** `agent/tile-atlas-planner` / `8fd902892ee0e0705bed280c1aaf9119c2e5d6ea`
+- **Main sync base:** `573bf6fd8963781613bb43179e9c7d10f49c418e`
+- **Current exact-head CI:** run #700 / `43619194268` — 247 passed, 0 failed, 0 skipped; Chromium editor E2E, animated GIF verification and MCP E2E passed.
+- **Scope:** deterministic metadata layout only; no PNG encoding/exporter changes.
+
+### AC-065 — Tile workflow fixtures and validation suite
+- **PR:** https://github.com/faiev/ArtClub/pull/79 (open, draft)
+- **Branch/head:** `agent/tile-workflow-fixtures` / `98dd69aed7a68578304b0146bbf18903ca9b5fe3`
+- **Main sync base:** `573bf6fd8963781613bb43179e9c7d10f49c418e`
+- **Current exact-head CI:** run #701 / `43619202739` — 246 passed, 0 failed, 0 skipped; Chromium editor E2E, animated GIF verification and MCP E2E passed.
+- **Scope:** seven versioned fixture cases, browser-independent runner and bounded 4 MiB maximum-allocation sample.
+
+### AC-066 — Tiled canvas integration contract
+- **PR:** https://github.com/faiev/ArtClub/pull/80 — **merged by coordinator** on 2026-11-14.
+- **File:** `docs/TILE_WORKFLOW_INTEGRATION.md`
+- **Scope:** documentation and keyboard/mouse acceptance matrix only; production UI and renderer ownership was not requested or taken.
+
+### AC-093 — Deterministic autotile rule resolver
+- **PR:** https://github.com/faiev/ArtClub/pull/81 (open, draft; submitted for coordinator review)
+- **Feature commit:** `7a8a7bae2b0f429442ff9342d2d7a1809a97aeb3`
+- **Current main-sync branch head:** `73e2990d21a746740200553e7ce00094cb80e7b6`
+- **Main sync base:** `573bf6fd8963781613bb43179e9c7d10f49c418e`
+- **Files:** `js/autotile.js`, `tests/autotile.test.js`, `docs/autotile.md`, four nested fixtures under `tests/fixtures/tiles/autotile/`.
+- **Current exact-head CI:** run #713 / `43619328416` — 252 passed, 0 failed, 0 skipped, 0 todo; Chromium editor E2E, animated GIF browser verification and MCP client E2E passed.
+- **Contract:** versioned 4/8-neighbor masks, fixed direction order, deterministic priority/specificity/lexical tie-break, opt-in fallback, explicit unresolved entries, no guessed rotation/mirroring and no input/pixel mutation.
+- **Status:** REVIEW; not merged or self-accepted.
+
+## Next authorized actions
+
+1. Address coordinator review feedback on PRs #65, #67, #79 and #81 if requested.
+2. Keep each draft PR current with exact branch/head and any later base-sync CI evidence.
+3. Do not merge own PRs or claim production UI integration; all remaining submitted work is standalone until separately authorized.
+
+- **Blockers:** None.
+- **Last updated:** 2026-11-14 — AC-063 through AC-065 re-synced to main and full CI passed; AC-066 merged by coordinator; AC-093 full CI passed on current main-sync head in run #724.

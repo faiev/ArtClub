@@ -49,3 +49,22 @@ All phases are pre-authorized. After refreshing PR #15, start raster primitives 
 
 ## Handoff
 Update only coordination/status/agent-10.md with phases, branch/PR ledger, exact test evidence, known algorithm limits and next 3–5 actions. Do not merge or self-accept.
+
+## Coordinator-added extension — AC-096: Deterministic quadratic and cubic curve rasterization
+
+After AC-086, add pixel-grid curve primitives that can support a future Pencil/Curve tool without introducing antialiasing or floating-point pixel output.
+
+### Deliverable
+- Add `js/pixel-curves.js` and `tests/pixel-curves.test.js`.
+- Implement quadratic and cubic Bézier rasterization with a documented deterministic flattening/tessellation policy, integer output coordinates, stable endpoint inclusion and duplicate removal.
+- Define coordinate precision, rounding, flatness tolerance, recursion/segment ceilings and clipping behavior. Reject non-finite/out-of-budget inputs before expensive work.
+- Preserve input order where meaningful; return unique coordinates in deterministic path order and never mutate supplied control points.
+- Add exact fixtures for straight-line degeneration, closed loops, cusps, coincident points, horizontal/vertical curves, mirrored curves, out-of-bounds clipping and maximum-iteration rejection.
+- Demonstrate deterministic output across repeated runs and document why the result is pixel-grid-only rather than antialiased vector rendering.
+- Provide a pure API that can be consumed by a future shape/curve tool, but do not wire it into the live editor.
+
+**Allowed files:** `js/pixel-curves.js`, `tests/pixel-curves.test.js`, synthetic curve fixtures and pixel-algorithm documentation only. Do not edit existing pixel primitive/effect modules, Agent 7 tile code, renderer, index.html, project model or Agent API.
+
+
+## Coordinator restart directive — 2026-11-15
+Refresh PRs #15/#37/#44/#50/#69/#70/#72/#76 against current main. Reconcile exact heads/bases/dependencies/tests. Close bounded AC-085 golden-parity gaps (raw-buffer coverage for AC-019 and AC-081–084, repeated-run determinism, allocation/runtime guards, non-mutation stress) where dependencies permit; report unmerged dependencies honestly. Pause new algorithms during UI-02. No UI/renderer/model/palette/API/bridge/workflow edits.
