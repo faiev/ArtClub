@@ -1,17 +1,25 @@
 # Status — Agent 7
 
 - **Task:** AC-016 — Sync current main and rerun full CI for tiled preview
-- **Status:** IN_PROGRESS
+- **Status:** REVIEW
 - **Role:** Tile workflows
-- **Branch:** `agent/tile-preview`
+- **Feature branch:** `agent/tile-preview`
+- **Latest main incorporated:** `220c2b5033ccd8752dd8e3e357be3fcd8bfc7b7a`
 - **Original implementation commit:** `142b4e1cc1f605ff69bc7911676266b3c0ff607e`
-- **Latest main base incorporated:** `6759e751074e16eaf328fe5a073318bcc2bc2ba6`
-- **Branch merge commit:** `d54b3e5899e57607bd61e4c13c9717dd7540318b`
-- **Pull request:** https://github.com/faiev/ArtClub/pull/13
-- **Files in feature PR:** `js/tile-preview.js`, `tests/tile-preview.test.js`, `docs/tile-preview.md`
-- **Progress:** Merged latest main into the feature branch without force-pushing. GitHub comparison showed no overlapping changes to the three owned files. Waiting for the new-head full CI run.
-- **Previous exact evidence:** Isolated tile suite 11/11 passed; prior PR CI Node job passed; previous Chromium E2E was from the stale base and failed at the old persistence refresh assertion before PR #10 was on the test base.
-- **Required current evidence:** Full Node, Chromium editor E2E and MCP workflow on merge commit `d54b3e5899e57607bd61e4c13c9717dd7540318b`.
-- **Constraints:** Keep changes to the three owned files only. No UI, renderer, Agent API, persistence or bridge edits. Do not merge PR.
-- **Blockers:** None currently.
-- **Last updated:** 2026-11-14 — merged latest main into feature branch; current-head validation underway.
+- **First main sync commit:** `d54b3e5899e57607bd61e4c13c9717dd7540318b`
+- **Final head after later coordination-only main updates:** `0aafc29aff13505ceabd288b3b5d1ab793ce35d7`
+- **Pull request:** https://github.com/faiev/ArtClub/pull/13 (open, draft)
+- **Files changed in PR:** `js/tile-preview.js`, `tests/tile-preview.test.js`, `docs/tile-preview.md` only.
+- **Main comparison:** `main...agent/tile-preview` is ahead by 3 and behind by 0 at final sync; PR diff is exactly the three assigned files.
+- **Local isolated evidence from original implementation:** `node --check js/tile-preview.js`, `node --check tests/tile-preview.test.js`, `node --test tests/tile-preview.test.js` — 11 passed, 0 failed.
+- **Current-head GitHub Actions:** run #137, https://github.com/faiev/ArtClub/actions/runs/43606323497 — fully passed on `0aafc29aff13505ceabd288b3b5d1ab793ce35d7`.
+  - `node --test tests/*.test.js` — 69 passed, 0 failed, 0 skipped.
+  - `node --check agent-bridge/server.mjs` — passed.
+  - `npm run test:e2e` — passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, animation playback, onion skin, PNG, IndexedDB library and reload recovery.
+  - `npm run test:mcp` — passed: drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
+- **Earlier stale-base issue:** run #110 failed at the refresh/persistence assertion before PR #10 was on the branch base. Current-main runs #122 and #137 pass the persistence/reload E2E.
+- **Integration boundary:** No Canvas, DOM, UI, renderer, Agent API, persistence, bridge or export wiring. Preview output is transient and must not be saved to project cels or included in exports.
+- **Known limitations:** Diagnostics compare corresponding opposing edge values and report mismatches; they do not repair seams. Output size is bounded by exported `LIMITS`.
+- **Blockers:** None for AC-016.
+- **Coordinator decision required:** Review PR #13. No merge or AC-021 UI integration performed.
+- **Last updated:** 2026-11-14 — final current-main CI passed; submitted for coordinator review.
