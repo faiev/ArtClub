@@ -1,49 +1,40 @@
 # Status — Agent 4
 
-- **Task:** AC-004 — Reconcile and revalidate bridge/API hardening PR #8.
-- **Status:** REVIEW — branch reconciled with latest main, combined browser/MCP E2E revalidated, latest CI green; coordinator review/acceptance pending.
-- **Feature branch:** `agent/bridge-hardening`
-- **Feature head:** `239d746d61c3af4f49bba84a3debb7c3f1bfceac`
-- **Latest main at final sync:** `65f989757131b9db6756a41d1b8a6f65196e91ef`
-- **Latest sync:** normal non-force two-parent merge commit `239d746d61c3af4f49bba84a3debb7c3f1bfceac`, with previous feature head `8cce39fa6bfa0b160c4e3ec2037fbc495c1c0364` and latest main `65f989757131b9db6756a41d1b8a6f65196e91ef` as parents. Earlier main advances were also merged with non-force commits. No commits were discarded and no force-push was used.
-- **Branch comparison:** 31 commits ahead, 0 behind main; merge base is `65f989757131b9db6756a41d1b8a6f65196e91ef`.
-- **PR:** [#8 — AC-004: Harden the Art Club MCP bridge and Agent API](https://github.com/faiev/ArtClub/pull/8) — open, draft, unmerged; GitHub reports mergeable / clean.
-- **Changed application files (8):** `AGENT_API.md`, `agent-bridge/README.md`, `agent-bridge/mcp-e2e-test.mjs`, `agent-bridge/package.json`, `agent-bridge/server.mjs`, bridge-related `index.html` lines, `js/agent-api.js`, and `tests/agent-api.test.js`. No project-persistence or renderer files were changed by Agent 4.
+- **Current task:** AC-048 — Bridge recovery, resilience and observability.
+- **Status:** IMPLEMENTED / REVIEW — draft PR #92 is open. The exact-head browser/MCP integration job passed, including page-close, navigation-away and Chromium-disconnect recovery. The separate repository test job remains blocked by five Agent 6-owned safe-edit assertions.
+- **Feature branch:** `agent/ac-048-resilience-observability`
+- **Feature head:** `d059c6d60e639371102d9560660eff20c5fc97e3`
+- **Stack base:** `agent/ac-046-capability-contract` at `77cc76ca4b6d75dece3e38f8864f11dc33642055`
+- **Main baseline observed:** `6acf60ffb048947b42b375d7e9e9e09987356b38`
+- **Comparison at observation:** 144 commits ahead, 37 behind; merge base `dc647d10708e6a8596a8ab7df5b37b311729c66f`. Main continues to advance; compare again before any integration. PR #8 currently reports non-mergeable. Do not merge/rebase this stack independently or touch coordinator-owned shared `index.html`.
+- **PR:** [#92 — AC-048: Add bridge recovery diagnostics and queue observability](https://github.com/faiev/ArtClub/pull/92) — open, draft, base `agent/ac-046-capability-contract`, not merged.
+- **Parent bridge PR chain:** [#8 AC-004](https://github.com/faiev/ArtClub/pull/8) → [#38 AC-043](https://github.com/faiev/ArtClub/pull/38) → [#54 AC-044](https://github.com/faiev/ArtClub/pull/54) → [#82 AC-045](https://github.com/faiev/ArtClub/pull/82) → [#86 AC-046](https://github.com/faiev/ArtClub/pull/86) → [#92 AC-048](https://github.com/faiev/ArtClub/pull/92). All remain open and draft; downstream PRs are stacked and must be integrated in order.
 
-## E2E reconciliation
+## AC-048 implementation
 
-- `agent-bridge/e2e-test.mjs` now matches latest main. It preserves PR #10's A/B/no-op-save/Recover regression workflow and frame-aware pixel checks.
-- The correct frame is selected **after reload** for per-frame pixel assertions. The earlier PR #8 pre-save frame-reselection workaround was not retained because it prevented a meaningful check of selected-frame restoration.
-- PR #8 bridge/API-specific test coverage remains in `agent-bridge/mcp-e2e-test.mjs`, including revision-required schemas, missing/stale revision rejection, structured handler errors, concurrent-write rejection, invalid URL startup validation and tool behavior.
+- Added read-only `artclub_get_bridge_diagnostics` with connection state, reconnect counters, page/browser lifecycle counters, queue metrics and one sanitized last event.
+- Added queue counters for accepted/completed/failed/cancelled/timed-out/rejected operations, queue wait/execution totals, outstanding high-water mark and request IDs. Tool payloads are not retained.
+- Instrumented page close/crash/error/navigation, browser-context close, browser disconnect and shutdown transitions.
+- Added deterministic MCP/Chromium checks for closing the editor page, navigating it away, and closing the browser context; the next status call must reconnect.
+- Test fault injection is registered only with both `NODE_ENV=test` and `ARTCLUB_TEST_RECOVERY_FAULTS=1`.
+- Bumped package/capability version to `0.7.0`; updated the tool catalog and fixture.
+- Changed 11 files under `agent-bridge/**`; no `index.html`, shared browser E2E owner file, editor, renderer, storage or workflow file changed.
 
-## Implementation
+## Exact-head test evidence
 
-- Made `expected_revision` required for all 37 document-changing MCP tools and verify it in the editor immediately before invoking the API.
-- Serialize requests within one bridge process and reject stale writes. There is no distributed lock across separate bridge processes.
-- Added structured MCP success envelopes and structured tool-handler errors.
-- Added editor-page close/crash/navigation detection and reconnect behavior; uncertain in-flight edits are not blindly retried.
-- Validate `ARTCLUB_URL`: HTTPS is required except for loopback development URLs; embedded credentials are rejected.
-- Forward revision options through browser API undo/redo and guard project import/open across asynchronous storage work.
-- Document compatibility changes, single-writer use, lifecycle, security, timeout limitation and future encoder extension point.
+GitHub Actions run [#942](https://github.com/faiev/ArtClub/actions/runs/43631517622) on `d059c6d60e639371102d9560660eff20c5fc97e3`:
 
-## Test evidence
+- **browser-e2e: passed.**
+- `npm run test:runtime`: **33 passed, 0 failed**, including lifecycle/redaction and queue-metric tests.
+- `npm run test:e2e`: passed.
+- Animated GIF browser verification: passed.
+- `npm run test:mcp`: passed. The log explicitly confirms queue metrics, deadlines, and browser close/navigation/disconnect recovery.
+- **test job: failed** with 223 passed / 5 failed. All five are Agent 6-owned: three assertions in `tests/safe-edit-conformance.test.js` (stale revision / zero-opacity denial) and two in `tests/safe-edit-operations.test.js` (null versus undefined). Agent 4 did not change those paths.
 
-**GitHub Actions run #173:** [all jobs passed](https://github.com/faiev/ArtClub/actions/runs/43607096727) on exact PR head `239d746d61c3af4f49bba84a3debb7c3f1bfceac`.
+## Prior bridge phases and next actions
 
-- `node --test tests/*.test.js` — **61 passed, 0 failed**.
-- `node --check agent-bridge/server.mjs` — passed.
-- `npm run test:e2e` — passed in Chromium, including IndexedDB recovery and frame-aware persistence.
-- `npm run test:mcp` — passed with the actual MCP client, including structured reads/errors, revision-guarded writes, concurrency rejection, layers, selections, animation, export/import, PNG and input validation.
-- Dependency installation reported **0 vulnerabilities**.
-
-## Remaining risks / unverified cases
-
-- There is no hard per-operation timeout or cancellation for a hung `page.evaluate`; a stuck evaluation can hold the serialized queue.
-- The operation queue is per bridge process, not a distributed lock. Multiple bridge processes against one persistent browser profile do not coordinate writes.
-- If the browser disconnects during a mutation, its outcome can be uncertain; clients must read status before retrying.
-- A deliberate forced-crash/reconnect scenario remains outside automated browser E2E coverage.
-- MCP SDK input-schema validation errors may retain the SDK's own response shape; handler failures use the structured error envelope.
-
-## Handoff
-
-Coordinator: review PR #8 and run #173 evidence. PR remains draft and has not been merged. Agent 4 does not self-accept or merge. AC-008 remains queued until AC-004 is reviewed/accepted.
+- AC-043 deadlines/cancellation, AC-044 profile locking, AC-045 schema/security hardening, and AC-046 capability negotiation are in the parent PR chain; none is merged into main yet.
+- **Coordinator integration required:** reconcile the bridge stack with the latest main and resolve PR #8's non-mergeable state while respecting the shared `index.html` lock. Agent 4 must not independently force-merge/rebase or edit shared UI.
+- **AC-047** export/pixel adapters remain blocked until the shared exporter and pixel modules are integrated on the authoritative branch.
+- **AC-090** read-only bridge doctor follows AC-048 review/acceptance.
+- No Agent 4 PR in this chain is merged or deployed.
