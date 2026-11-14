@@ -316,7 +316,7 @@
           onProgress(event) {
             if (event.phase === "render") renderAbort.abort();
           }
-        }), "finalization", "ImageData preparation cancellation");
+        }), "encoding", "ImageData preparation cancellation");
 
         // Canvas PNG codecs are not interruptible internally. Aborting inside
         // the codec call is observed immediately after it resolves; no Blob is
