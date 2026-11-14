@@ -2,20 +2,40 @@
 
 ## Active workstream — UX / accessibility / interaction design
 
-### Phase 2 — AC-050: Layer, frame and timeline workflow specification
+### Phase 3 — AC-051: Palette and export user-journey specification
 
 - **Status:** IN_PROGRESS
-- **Branch:** `agent/layer-timeline-spec` (create from latest main after this status commit)
-- **Allowed deliverable:** `docs/ux/LAYER_TIMELINE_SPEC.md`
-- **Scope:** Documentation/specification only. Do not edit `index.html`, app JS, CSS, existing tests, bridge, exporter modules or workflow. No UI lock is granted.
-- **AC-049 completed:** `docs/ux/CANVAS_WORKSPACE_SPEC.md` (359 additions) submitted in [PR #24](https://github.com/faiev/ArtClub/pull/24), open/draft/unmerged. PR head `2cde5e9bc8ad4ad3b25bd79b939880b2b43d6502`; one changed file. It may need latest-main refresh because main advanced after PR creation; no review/merge dependency for AC-050.
-- **Source inspection:** v2 project model stores ordered `layers[]`, ordered `frames[]`, and `cels[]` keyed by `layerId`/`frameId`; each layer has name/visible/locked/opacity and each frame has name/durationMs. Current UI has a separate layer list and frame-card strip. Frame cards have names/duration/reorder but no thumbnails or layer×frame cel grid. Layer controls expose select/rename/visibility/lock/reorder, but no opacity slider. The model stores opacity, but current `getCompositePixels()` checks visibility and opaque pixels without applying layer opacity.
-- **Safety dependency:** Agent 6's AC-055 contract rejects hidden, locked, zero-opacity, non-active or stale targets and rejects missing/invalid cels. AC-056 safe-edit transactions and later audit are in Agent 6's authorized queue. AC-050 will distinguish structural blank-cel creation from pixel mutation and require fail-closed edits.
-- **Export dependency:** Agent 3's AC-039 layout/metadata contract and AC-040 export planner retain stable frame IDs, durations and explicit selected frame order. The timeline's order and timing must be the export source of truth; this spec will not edit exporter files.
-- **Next queue:** (1) finish AC-050 layer/frame/cel/timeline spec; (2) AC-051 palette/export journeys; (3) AC-052 accessibility audit; (4) AC-053 static interaction prototypes; (5) AC-054 integrated UX implementation sequence.
-- **Tests:** No application tests run; this is documentation-only. Validate source claims and the required workflow/acceptance matrix before submission.
-- **Blockers:** None for documentation. Production UI and shared editor integration remain coordinator-controlled.
+- **Branch:** `agent/palette-export-spec` (create from latest main after this status commit)
+- **Allowed deliverable:** `docs/ux/PALETTE_EXPORT_SPEC.md`
+- **Scope:** Documentation/specification only. No `index.html`, app JS, CSS, existing tests, bridge, exporter modules or workflow edits. No UI lock is granted.
+- **AC-050 completed:** `docs/ux/LAYER_TIMELINE_SPEC.md` (548 additions) submitted in [PR #30](https://github.com/faiev/ArtClub/pull/30), open/draft/unmerged; current PR file list contains only that document. Branch `agent/layer-timeline-spec`; head `756467e3ea1975f08447ffe95304720f883dc958`; synced against main `811906b09779b7f22733afe12d177f9e78cdd58d` at submission.
+- **AC-050 validation:** fetched the committed document, verified 14 sections and workflow/test-matrix coverage. No app tests run for documentation-only work. Source-backed findings include the separate layer list/frame strip, no cel matrix/thumbnails, model opacity unused by current compositing, and distinct layer/frame/cel IDs.
+- **AC-051 inputs:** Agent 8 owns palette formats (GPL/JASC-PAL/JSON), palette analysis and transformations; PR #16 current status reports 17 local tests and run #166 with 75 Node tests + Chromium/MCP. Agent 3 owns sprite-sheet/GIF exporters and export-planning; PRs #21/#22 are open, with stable frame IDs/order/duration metadata, explicit frame selections, budgets and manifests. PR #11 GIF exporter has merged, but UI/file-picker/export integration remains unassigned.
+- **Next queue:** (1) complete AC-051 journeys/acceptance matrix; (2) AC-052 accessibility audit; (3) AC-053 static interaction prototypes; (4) AC-054 integrated UX implementation sequence.
+- **Tests:** No application tests run; AC-051 is documentation-only. Validate source facts, format limitations and acceptance-matrix completeness.
+- **Blockers:** None for documentation. Palette/export production UI and Agent API wiring remain coordinator-controlled.
 - **Last updated:** 2026-11-14.
+
+### Submitted phase — AC-050: Layer, frame and timeline workflow specification
+
+- **Status:** REVIEW
+- **Branch:** `agent/layer-timeline-spec`
+- **Synchronized main base:** `811906b09779b7f22733afe12d177f9e78cdd58d`
+- **Feature head:** `756467e3ea1975f08447ffe95304720f883dc958`
+- **PR:** [#30 — AC-050: Specify layer, frame and timeline workflows](https://github.com/faiev/ArtClub/pull/30) (open, draft; GitHub reported mergeable)
+- **Deliverable:** `docs/ux/LAYER_TIMELINE_SPEC.md` (549 lines, 14 sections; PR diff 548 additions).
+- **Scope boundary:** Documentation only; no model, UI, exporter, safety, test, bridge or workflow files changed.
+- **Current-source audit:** v2 model uses ordered `layers[]`, ordered `frames[]`, and `cels[]` keyed by stable layer/frame IDs. Current UI shows a separate layer list and frame-card strip; no unified matrix or thumbnails; layer opacity exists in the model but current `getCompositePixels()` does not apply it. Current Add/Duplicate/Delete paths were reviewed against cel lifecycle.
+- **Safety / export alignment:** Uses Agent 6 AC-055 fail-closed guard decisions and future AC-056 immutable safe-edit transactions; distinguishes missing cels from blank allocated cels. Aligns frame order/duration and explicit ordered frame-ID requests with Agent 3 AC-039/AC-040 contracts.
+- **Validation:** Re-fetched committed document; verified 14 sections and required topics. Branch comparison at PR submission: 2 commits ahead / 0 behind; only `docs/ux/LAYER_TIMELINE_SPEC.md` added. No application tests because docs-only.
+- **Next action:** Coordinator review of PR #30. No implementation or shared UI work self-assigned.
+
+### Earlier submitted phase — AC-049: Canvas navigation and workspace interaction specification
+
+- **PR:** [#24 — AC-049: Specify canvas navigation and workspace interactions](https://github.com/faiev/ArtClub/pull/24), open/draft/unmerged at last verification.
+- **Branch:** `agent/canvas-workspace-spec`; spec `docs/ux/CANVAS_WORKSPACE_SPEC.md`.
+- **Key handoff:** Fit vs 100% distinction, cursor anchored zoom, bounded pan, input/touch/trackpad policy, DPR-safe pointer mapping, responsive behavior; minimap explicitly deferred.
+- **Current review note:** main advanced after PR creation; refresh/revalidate before merge. Does not block AC-051.
 
 ## Previous task — AC-009
 
