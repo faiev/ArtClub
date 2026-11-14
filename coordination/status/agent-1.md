@@ -35,6 +35,13 @@
 - **AC-025:** PR #1 remains open/stale and non-mergeable. The read-only audit was handed to Agent 4; do not edit `agent-bridge/e2e-test.mjs`.
 - These nested QA suites/harnesses still require execution on a current checkout and exact-head validation. Standard root CI is not evidence for tests excluded by its glob.
 
+### Phase 6 — Renderer boundary regression triage
+- **PR:** [#61 — Canvas renderer boundary contract tests](https://github.com/faiev/ArtClub/pull/61), open/draft; only `tests/qa/renderer/canvas-renderer-contract.test.js` is in scope.
+- **Head:** `21c7b412df53182df5a3923ae738531022ca471c`. Branch compares as 4 commits ahead / 181 behind current `main`; GitHub currently reports it not mergeable.
+- **Read-only verification:** current main's `js/canvas-renderer.js` blob `96eaa69872d6090e89c0e773483c5f8211e6b9b4` confirms `rgba(color)` caches a mutable channel array in `COLORS`, returns that same array, and exports the function publicly as `parseColor`. A caller can mutate shared cache state and corrupt subsequent renders.
+- **Handoff:** Posted the concrete cache-mutation explanation and a performance-conscious fix direction (keep cached internal `rgba()`; export a defensive-copy wrapper) to [PR #61](https://github.com/faiev/ArtClub/pull/61#issuecomment-6882677914) for Agent 2. Agent 1 has not changed renderer implementation.
+- **Test limitation:** the regression test for this finding is still `todo`; the nested QA file is not run by root-only CI and has not been executed locally because the shell cannot resolve GitHub. Sync the branch non-force and run the focused test before acceptance.
+
 ## UI-01 production workstation shell — post-release QA
 - **PR #84:** merged successfully as `e22ddb35ebf802b3b719e74a7329effceab28747`.
 - **Merged candidate head:** `dee2e96ff2c3cf9b1927570d4248d95114f113c6`.
@@ -55,8 +62,8 @@
 1. On an available current checkout, run `node --test tests/qa/runner/run-qa.test.mjs` and `node tools/run-qa.mjs --suite all --json`; verify the expected missing-file/browser-skip statuses and record exact output/Node version/head SHA.
 2. Reconcile PR #57 with current `main` using the repository's non-force policy, then sync stacked PR #66 to the refreshed parent; rerun focused tests and exact-head CI after synchronization.
 3. Execute UI01-01…UI01-12 in real Chromium at 1440×900 and 1280×800, including pixel/state checks, console/page errors and screenshots; keep the matrix NOT RUN until actually executed.
-4. Re-review the UI-01 focus and selected-state accessibility issues after the authorized production owner submits fixes; do not modify production UI from this assignment.
-5. Continue independent negative/boundary-test triage for PRs #25/#32/#36/#42/#61 in Agent 1-owned QA paths only.
+4. Reconcile PR #61 with current main, coordinate Agent 2's `parseColor` cache fix, then run the focused renderer QA contract on the exact refreshed head.
+5. Re-review the UI-01 accessibility issues after the authorized production owner submits fixes; continue negative/boundary-test triage for PRs #25/#32/#36/#42 in Agent 1-owned QA paths only.
 
 ## Ownership, exclusions and blockers
 - **Owned:** `tests/qa/**`, `tests/fixtures/qa/**`, `tools/qa-release-check.mjs`, `tools/run-qa.mjs`, `docs/QA_MATRIX.md`, `docs/RELEASE_CHECKLIST.md`, and this status file.
