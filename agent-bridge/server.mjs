@@ -2,6 +2,7 @@
 import os from "node:os";
 import path from "node:path";
 import process from "node:process";
+import { fileURLToPath } from "node:url";
 
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
@@ -324,7 +325,13 @@ async function main() {
   await serveStdio(() => server);
 }
 
-main().catch(error => {
-  console.error("[Art Club MCP] Startup failed:", error);
-  process.exitCode = 1;
-});
+export { main };
+
+const invokedDirectly = process.argv[1] &&
+  path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedDirectly) {
+  main().catch(error => {
+    console.error("[Art Club MCP] Startup failed:", error);
+    process.exitCode = 1;
+  });
+}
