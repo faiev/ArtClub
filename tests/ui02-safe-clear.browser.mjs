@@ -90,6 +90,10 @@ async function run() {
       handlerRan: window.__clearHandlerRan,
       clearStage: window.__safeClearStage,
       safeResult: window.__safeClearResult,
+      confirmation: window.__safeClearConfirmation,
+      confirmCalled: window.__safeClearConfirmCalled,
+      confirmAccepted: window.__safeClearConfirmAccepted,
+      confirmType: String(window.confirm),
       button: document.getElementById("clearBtn").outerHTML,
       activeLayer: window.onePixelStudio.get_status().active_layer,
       activeCel: JSON.parse(window.onePixelStudio.export_project()).cels.find(cel =>

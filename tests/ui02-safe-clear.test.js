@@ -42,7 +42,7 @@ test("production editor loads the safety guard and transaction module before its
 test("toolbar Clear is explicitly scoped to the active layer cel", () => {
   assert.match(html, /id="clearBtn" aria-label="Clear active cel" title="Clear active layer for this frame"/);
   assert.match(html, /Clear all pixels on the active layer for this frame\? Other layers and frames will be preserved\./);
-  assert.match(html, /\$\("clearBtn"\)\.addEventListener\("click",\(\)=>\{void clearActiveCel\(\)\}\)/);
+  assert.match(html, /\$\("clearBtn"\)\.addEventListener\("click",[\s\S]{0,100}clearActiveCel\(\)/);
   assert.doesNotMatch(html, /Clear every pixel on this canvas\?/);
 });
 

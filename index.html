@@ -1123,6 +1123,7 @@ async function commitSafeEditResult(result,previousProject,target,successMessage
 }
 async function runSafeClear(options,confirmation,successMessage){
   window.__safeClearStage="entered";
+  window.__safeClearConfirmation=confirmation;
   if(safeEditBusy){toast("Another safe edit is already being saved.");return false;}
   if(drawing){toast("Finish the current stroke before clearing pixels.");return false;}
   if(isPlaying||playbackFrameId)resetPlayback();
@@ -1139,7 +1140,11 @@ async function runSafeClear(options,confirmation,successMessage){
   window.__safeClearResult={ok:result.ok,reason:result.reason,changedPixels:result.changedPixels};
   if(!result.ok){toast(safeEditDenialMessage(result));return false;}
   if(result.changedPixels===0){toast("There are no pixels to clear in this area.");return true;}
-  if(confirmation&&!confirm(confirmation))return false;
+  if(confirmation){
+    window.__safeClearConfirmCalled=true;
+    window.__safeClearConfirmAccepted=window.confirm(confirmation);
+    if(!window.__safeClearConfirmAccepted)return false;
+  }
   return commitSafeEditResult(result,source,target,successMessage);
 }
 async function clearSelectedPixels(){
