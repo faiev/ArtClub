@@ -1,0 +1,30 @@
+# Art Club coordination decisions
+
+The coordinator owns this log. All workers must follow these decisions unless a later decision explicitly supersedes one.
+
+## D-001 — Keep static and local-first
+Art Club remains deployable on GitHub Pages. Do not add a mandatory backend, paid service, login, account, API key or phone-number verification for core editor use. The local MCP bridge is optional.
+
+## D-002 — Plain JavaScript
+Use plain JavaScript, not TypeScript. Avoid build tooling unless a task gives a concrete, approved reason.
+
+## D-003 — GitHub is shared state, not an autonomous runtime
+GitHub coordinates assignments, status, dependencies and handoffs. A file change does not wake a ChatGPT chat or deliver a message to another chat. The user/coordinator must send a resume prompt.
+
+## D-004 — Agents should not idle behind unrelated PRs
+A worker continues independent work while an earlier PR is under review. Only a real dependency or same-file edit conflict may block work. If blocked on one file, continue tests, documentation, isolated modules or other non-conflicting acceptance criteria.
+
+## D-005 — Branch and PR policy
+All application code belongs on the worker's dedicated feature branch. Never commit application code directly to main. Open a PR for review. Workers do not merge their own PRs. Coordination metadata is separate: during bootstrap, workers update only their own status file on `coordination/orchestration-v2`; after PR #7 merges, they update only their own status file on `main`.
+
+## D-006 — Single-writer ownership
+Only one agent edits a shared file at a time. Agent 1 owns the recovery files listed on BOARD.md; Agent 2 owns renderer/benchmark files; Agent 3 owns GIF exporter files; Agent 4 owns bridge/API files; Agent 5 owns the implementation-plan document. No UI/API integration is authorized yet.
+
+## D-007 — Pixel fidelity
+Preserve exact pixel colors and integer boundaries. Do not introduce smoothing/interpolation into artwork, transforms or exports. UI overlays must not enter exported artwork unless requested.
+
+## D-008 — Evidence before claims
+Separate unit tests with mocks, real browser tests, CI, benchmark measurements, PR review, merge and integration. A browser benchmark page is not proof of a speedup until it has been run. A module is not integrated just because it exists.
+
+## D-009 — Tasks have a testable finish line
+Every assignment contains acceptance criteria, allowed files, required tests, and an explicit handoff. No worker should be left with a vague task or an indefinite "wait for coordinator" instruction.
