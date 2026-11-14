@@ -203,3 +203,27 @@ test("pure operations leave caller-owned point, pixel and tone arrays unchanged"
   assert.deepEqual(pixels, originalPixels);
   assert.deepEqual(tones, originalTones);
 });
+
+test("rejects sparse stroke point arrays without mutating the caller's array", () => {
+  const points = new Array(2);
+  points[0] = { x: 1, y: 1 };
+  const original = points.slice();
+
+  assert.throws(
+    () => Effects.expandSymmetry(points, { width: 3, height: 3, mode: "horizontal" }),
+    /point 1 must be an own array entry/
+  );
+  assert.deepEqual(points, original);
+  assert.equal(Object.prototype.hasOwnProperty.call(points, 1), false);
+});
+
+test("rejects explicit undefined stroke points without mutating the caller's array", () => {
+  const points = [{ x: 0, y: 0 }, undefined];
+  const original = points.slice();
+
+  assert.throws(
+    () => Effects.expandSymmetry(points, { width: 3, height: 3, mode: "horizontal" }),
+    /point 1 must contain safe integer/
+  );
+  assert.deepEqual(points, original);
+});
