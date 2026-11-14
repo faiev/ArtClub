@@ -83,8 +83,8 @@ The status file is not a diary; keep it accurate and useful for the next resume.
 ## Shared-file locks and safe autonomy
 
 - One writer per shared file.
-- Agent 4 owns bridge/API files and bridge-related index.html work while reconciling PR #8.
-- Agent 3 owns the project test workflow while reconciling PR #11. Agent 2 can prepare browser tests/docs but must not change the workflow until Agent 3 releases it.
+- Agent 4 owns bridge/API files and bridge-related `index.html` work while reconciling PR #8. Agent 1's AC-025 audit is complete and read-only; Agent 4 must decide how to port the non-duplicative PR #1 persistence assertions before closing the stale overlap.
+- PR #11 is merged. Agent 3 currently owns `.github/workflows/project-tests.yml` for AC-027 sprite-sheet browser verification and CI wiring. Agent 2 may prepare/run its own renderer browser harness, but must coordinate before changing the shared workflow; Agent 3 releases the lock when AC-027 workflow work is complete.
 - Agent 1's PR #1 audit is read-only; Agent 1 does not edit the shared bridge E2E file.
 - index.html remains coordinator-controlled for feature UI integrations. A worker may complete isolated modules, tests, docs, browser harnesses and static prototypes, but may not take the UI lock implicitly.
 - When blocked on a locked file, continue all work that stays within your own paths.
@@ -106,10 +106,10 @@ The status file is not a diary; keep it accurate and useful for the next resume.
 
 ## Coordinator workflow
 
-1. Review all ten status files and PRs.
+1. Review all ten status files and PRs from main.
 2. Keep agents supplied with several authorized, non-overlapping phases—not one tiny task.
-3. Reserve shared files explicitly and release locks promptly.
-4. Review and merge coherent PRs in small increments.
+3. Reserve shared files explicitly and release locks promptly, including after a dependency merges.
+4. Review and merge coherent PRs in small increments, only after the exact current head has passing required checks and the diff against main is limited to assigned files.
 5. Update workstream queues only when the existing queue is exhausted, unsafe or superseded.
 
 This design reduces coordinator bottlenecks but does not create background execution or automatic wakeups. To make a chat act again, the user still needs to resume that chat unless a separate scheduler/orchestrator is added.
