@@ -175,21 +175,21 @@ function bootEditor() {
   }));
 }
 
-test("editor script parses and initializes a real pixel grid", () => {
-  const editor = bootEditor();
+test("editor script parses and initializes a real pixel grid", async () => {
+  const editor = await bootEditor();
   assert.equal(editor.grid.children.length, 24 * 24);
   assert.equal(editor.document.getElementById("dimensionLabel").textContent, "24 × 24 PX");
 });
 
-test("brush paints on pointer down and commits the stroke", () => {
-  const editor = bootEditor();
+test("brush paints on pointer down and commits the stroke", async () => {
+  const editor = await bootEditor();
   editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
   assert.equal(editor.cell(0).style.backgroundColor, "#e96f55");
   editor.grid.emit("pointerup", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
 });
 
-test("dragging the brush fills the cells along the stroke", () => {
-  const editor = bootEditor();
+test("dragging the brush fills the cells along the stroke", async () => {
+  const editor = await bootEditor();
   editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
   editor.grid.emit("pointermove", { target: editor.cell(5), pointerId: 1, clientX: 5, clientY: 1 });
   editor.grid.emit("pointerup", { target: editor.cell(5), pointerId: 1, clientX: 5, clientY: 1 });
@@ -198,8 +198,8 @@ test("dragging the brush fills the cells along the stroke", () => {
   }
 });
 
-test("undo and redo restore the exact canvas pixels", () => {
-  const editor = bootEditor();
+test("undo and redo restore the exact canvas pixels", async () => {
+  const editor = await bootEditor();
   const original = editor.cell(0).style.backgroundColor;
   editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
   editor.grid.emit("pointerup", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
@@ -211,8 +211,8 @@ test("undo and redo restore the exact canvas pixels", () => {
   assert.equal(editor.cell(0).style.backgroundColor, "#e96f55");
 });
 
-test("eraser removes a pixel and flood fill paints a connected area", () => {
-  const editor = bootEditor();
+test("eraser removes a pixel and flood fill paints a connected area", async () => {
+  const editor = await bootEditor();
   editor.tool("eraser").emit("click");
   editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
   editor.grid.emit("pointerup", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
