@@ -3,7 +3,7 @@
 **Product:** One Pixel Studio  
 **Document:** Feature list, product requirements and implementation roadmap  
 **Version:** 0.1 · Planning baseline  
-**Status:** Proposed — this document does not imply that the listed features have been implemented.
+**Status:** Active development — implementation is proceeding in small, verified slices. The feature list below is the target, not a claim that every item exists.
 
 ---
 
@@ -74,6 +74,22 @@ This inventory was checked against the current `index.html` in the repository. I
 | Advanced pixel-art tools | Not implemented | No symmetry, dithering, outline, shading or tile preview tools |
 
 **Key conclusion:** the current app is a promising drawing prototype. It is not yet a complete pixel-art studio. Layers, animation, selection, project reliability and sprite-sheet export are the major product gaps.
+
+### Implementation log
+
+#### Step A1 — Versioned project document model (implemented)
+
+- Added a shared project-model module with a versioned `one-pixel-studio` document schema (v2).
+- The schema represents canvas dimensions, palette, selected color, named layers, animation frames, per-frame duration, layer/frame cels, active layer/frame and metadata.
+- Added structural validation for dimensions, pixel-buffer lengths, colors, layer/frame references, IDs, durations and safe data limits.
+- Added migration from the old flat-canvas save/export format into a one-layer, one-frame v2 project.
+- Wired the editor's current canvas, undo snapshots, local save and project JSON import/export to the v2 schema.
+- Kept the visible editor behavior at one layer and one frame. The data model is prepared for future layers and timeline UI; those features are **not** exposed yet.
+- Added Node's built-in test runner and automated GitHub Actions tests for project creation, cel creation, compositing, migration, serialization round-trip and invalid-file rejection.
+
+**Verified:** 8 project-model tests passed in GitHub Actions. The Pages build was also triggered for the same repository revision.
+
+**Still outstanding in foundation:** IndexedDB project library, multi-project handling, recoverable autosave and a complete bounded command-history system. These are the next foundation slices, not completed work.
 
 ---
 
