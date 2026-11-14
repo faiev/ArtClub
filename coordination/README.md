@@ -79,6 +79,23 @@ Workers do not mark their own work `ACCEPTED` or `DONE`.
 
 > Resume your Art Club work from the GitHub coordination system. Fetch the latest README, BOARD, BACKLOG, DECISIONS, your assignment and your status from ref `coordination/orchestration-v2` (until PR #7 merges; afterward use `main`). Read dependencies, confirm your task ID/state/branch/base commit, and begin immediately if it is READY. Do not wait for unrelated PRs. Respect file ownership, update only your own status file, keep code on your assigned feature branch, run and report real tests, and submit a reviewable PR. Do not self-assign or merge.
 
+## Adding more agents (repeatable process)
+
+To extend the team beyond ten:
+
+1. Choose the next unused agent number and a role with a real, bounded deliverable.
+2. Pick a task ID and define a user-facing problem, exact acceptance criteria, tests and a clear handoff.
+3. Create a feature branch from the latest `main` commit (or current agreed integration base). Do not reuse another agent's branch.
+4. Add `coordination/assignments/agent-N.md` with the task, feature branch, allowed files, constraints, dependencies and tests.
+5. Add `coordination/status/agent-N.md` with the same task ID, `READY` state, branch and base SHA.
+6. Add the worker and task to BOARD.md, reserve exclusive file ownership, and add later follow-ups to BACKLOG.md.
+7. Check that the task does not overlap existing file locks. If it must touch a shared file, schedule that edit after the current owner hands it off.
+8. Commit coordination metadata to the active coordination branch during bootstrap, or to `main` after this PR merges.
+9. Open a new ChatGPT chat and paste the generic resume prompt, replacing N with the new agent number.
+10. Verify that the worker fetched the intended assignment before allowing code changes.
+
+An agent is not "added" until its assignment, status, board row, file ownership, branch and prompt all agree. Never create empty agents merely to increase the count.
+
 ## Coordinator workflow
 
 1. Read all worker status files and open PRs.
