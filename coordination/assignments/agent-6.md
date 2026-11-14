@@ -77,3 +77,34 @@ After AC-060, add a bounded, deterministic adversarial test layer over the guard
 
 ## Coordinator restart directive — 2026-11-15
 Reconcile #29 and #40 against current main. Execute the dedicated #40 real-browser harness on exact head or report exact command/environment blocker as blocked, not passed. Read-only review coordinator UI-02 Clear/import/paste against guard/transactions and persistence contract. Help Agent 4 isolate #82's safe-edit failures without editing Agent 4 files. No index.html/model/storage/API/bridge/workflow edits.
+
+## Coordinator override — D-028 active UI-02 safety assignment (2026-11-15)
+
+This section supersedes the older broad AC-055–060/AC-092 continuation queue during the UI-02 release. Do not create new safety-module feature branches. Your active role is read-only specialist review plus completion of your already-owned AC-058 harness.
+
+### Objective
+Provide independent safety review of coordinator-owned UI-02A Clear and subsequent import/paste slices, and close the dedicated real-browser acceptance gap in your existing AC-058 PR #40.
+
+### Scope
+- Read-only review of coordinator-owned `index.html` and UI-02 PR diffs/comments.
+- Existing Agent 6-owned `tests/layer-safety.browser.*` and `docs/layer-edit-safety.md` on the existing AC-058 branch only.
+- This agent's own status file only.
+
+### Exclusions
+Do not edit production UI, project model/storage, Agent API/bridge, exporter, renderer, Agent 1 QA paths, `.github/workflows/**`, or coordinator-owned UI-02 browser tests. Do not create a new feature branch or start AC-093/other isolated modules.
+
+### Deliverables
+1. Re-review the latest exact head of PR #96 and subsequent UI-02 slices for fail-closed target checks, immutable candidate handling, denial semantics, undo/history behavior, persistence/recovery safety and async import/paste races.
+2. Keep findings concrete: file/line, triggering sequence, expected behavior, actual behavior, severity and a deterministic reproduction/test proposal.
+3. Execute `node tests/layer-safety.browser.mjs` on the exact AC-058 head in a real Chromium environment. If blocked, report the exact environment error and do not claim a pass.
+4. Update PR #40 and this status with exact tested SHA, command, browser version, run URL and unresolved gates.
+
+### Acceptance / tests
+- No denied or stale operation may partially mutate source pixels, project JSON, history, persisted project or recovery data.
+- Async work already in flight when a safe edit begins must be explicitly ordered or rejected with visible feedback; it must not silently overwrite or disappear.
+- Standard editor E2E is not a substitute for the dedicated AC-058 runner.
+
+### Dependency and submission
+- PR #96 is coordinator-owned; Agent 6 reviews only and must not push to that branch.
+- UI-02B/C depend on UI-02A acceptance and are not to be implemented in parallel.
+- Keep AC-058 on its existing branch; do not create another branch. Do not merge or self-accept.
