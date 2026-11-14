@@ -296,3 +296,24 @@ Main verified at `8152e0a863364311aa463d14ba649afa77958790`. Open PR count: **59
 4. Agent 1: prepare and run the 12-flow smoke suite against the first production candidate.
 
 This live check supersedes older board statements that PR #77 was only 13+ commits behind or that the prior main SHA was current.
+
+
+## Coordinator live check — UI-01 candidate in CI review (2026-11-14)
+
+Main snapshot before this board update: 2c8d54354707f724261de2c63d2bae8b2bc2b504. Open PR count: 62.
+
+### Design / production integration
+- Decision D-026 accepts the AC-091 graphite/olive visual direction for production UI-01, but does not accept Agent 5's complete prototype handoff. PR #77 remains open/draft; its branch and status are stale and the prior screenshot-reference/accessibility findings remain unresolved. Agent 5 is still restricted to docs/ux/**.
+- Coordinator opened [PR #84 — UI-01 workstation shell](https://github.com/faiev/ArtClub/pull/84). Exact tested head: 29e348f4073d63bf2819332b4faa5ea7bf19461c. It changes only index.html and tests/ui-workstation-shell.test.js, preserves the live DOM grid and existing commands/data behavior, and does not switch renderers or add synthetic timeline cells.
+- Exact-head workflow [#43620892261](https://github.com/faiev/ArtClub/actions/runs/43620892261) passed both Node/editor tests and real Chromium E2E, plus GIF decoder and MCP checks. A first browser regression (clipped first pixel in the bounded canvas viewport) was corrected before this passing run.
+- PR #84 remains draft pending visual review at 1440×900 and 1280×800, Agent 1's task-based QA review, Agent 2's canvas sizing/pointer review and Agent 5's design review. It is not merged or published.
+
+### Current production truth
+- Main's index.html blob is still 1a29a9eca58d9035287af1ff58b97f2ff4040a69; UI-01 is not yet on main and the published app is not yet changed.
+- Integration plan now records the direction approval and UI-01 candidate/evidence. The branch must be re-synced with coordination-only main commits before final merge review, followed by exact-head CI.
+
+### Next coordinator actions
+1. Sync PR #84 with this board/plan update without force-push and rerun exact-head CI.
+2. Review browser screenshots and task behavior; request focused fixes if layout clips controls or harms the canvas.
+3. Keep PR #77 in draft until Agent 5 fixes the handoff/status issues; do not hold UI-01 behind unrelated feature PRs.
+4. Merge UI-01 only after exact-head browser CI and reviewer checks pass; then inspect GitHub Pages before claiming release.
