@@ -263,3 +263,27 @@ This update supersedes the earlier UI-01 status that referenced head `29e348...`
 - **Visual verification limitation:** direct fetching of the public Pages URL is blocked in this coordinator session. Deployment status and the target commit are verified, but a rendered-page screenshot/visual inspection is not claimed. Ask a reviewer with browser access to inspect the published site at 1440×900 and 1280×800 and report any clipping/density issues.
 - Specialist reports (Agent 1's 12-flow matrix, Agent 2's responsive/pointer review, Agent 5's production visual review) were requested but had not yet appeared in their status files at the time of merge. The functional suite is green; keep these manual reviews as post-release QA follow-up and fix any verified issues in a new narrowly scoped PR.
 - Scope remains UI shell only: original DOM-grid renderer, project model/storage, commands, data behavior, local-first architecture and current exports are preserved. No renderer switch, schema migration, bridge, server/backend or new tool capability was included.
+
+## Coordinator reset — 2026-11-15 (authoritative addendum)
+
+### UI-01 verified state
+UI-00 / AC-091 is merged via PR #77. UI-01 production shell is merged via PR #84 as e22ddb35ebf802b3b719e74a7329effceab28747. Exact-head project/browser workflow passed on PR head dee2e96ff2c3cf9b1927570d4248d95114f113c6 in run #43624220195. Pages deployment for the merge commit succeeded in run #311 (43624328006).
+
+PR #87 was subsequently merged as 9296ca08e1e8143bb5b82c0ad48608e9c9a0b344; this is a docs-only screenshot caption correction. Pages run #319 (43629304356) for the main containing that merge was in progress at the last query. Do not claim that post-#87 main is deployed until the run succeeds and the live URL is inspected.
+
+### UI-02 — next active product milestone
+The production editor has not yet been wired to the accepted safe-edit guard/transaction modules:
+- Toolbar Clear mutates the active pixel buffer directly and says “Clear canvas”, although it clears only the active cel.
+- Selection Clear directly nulls pixels after only a visible/unlocked check; zero opacity is not rejected through the guard.
+- Image import decodes asynchronously and writes to live pixels without complete staging and final target revalidation.
+- Selection paste clips to canvas bounds and writes directly instead of rejecting a partial transaction.
+
+Coordinator owns the narrow production integration PRs and is sole writer of index.html. Agent 1 owns QA-only coverage; Agent 6 reviews safety integration but may not change production UI; Agent 5 provides docs/design/accessibility guidance; Agent 4 is consulted only if bridge/API changes are required.
+
+Implementation order: (A) guarded active-cel Clear + selection Clear; (B) staged asynchronous image import with pre/post-decode target checks and rollback; (C) atomic selection paste/replace. Every slice needs focused tests and real Chromium editor coverage. Do not claim the helper modules alone provide persistence rollback. Preserve project, undo/redo and saved storage on failure. Do not fabricate separate project/frame/composite counters from the existing single documentRevision.
+
+All agents must reconcile their own status to actual PR state and exact heads. Existing PRs may be reviewed/synchronized where useful, but no new AC-087–096 feature expansion takes priority over UI-02. Workflow and bridge E2E locks remain with their named owners until explicitly released.
+
+Current public app URL: https://faiev.github.io/ArtClub/
+Main before this coordination commit: 1c4b1e439b6ac816c0e81ffb94c8dd4324859df2
+Open PR count in the immediately preceding snapshot: 62 (re-query live state).
