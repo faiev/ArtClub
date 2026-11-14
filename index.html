@@ -1560,11 +1560,11 @@ function renameLayer(layerId,providedName){
 }
 function toggleLayerVisibility(layerId){
   const layer=ProjectModel.getLayer(projectDoc,layerId);if(!layer)return;
-  remember();layer.visible=!layer.visible;renderGrid();renderLayers();renderStats();scheduleSave();
+  remember();layer.visible=!layer.visible;renderGrid();renderLayers();renderStats();renderSelectionTools();scheduleSave();
 }
 function toggleLayerLock(layerId){
   const layer=ProjectModel.getLayer(projectDoc,layerId);if(!layer)return;
-  remember();layer.locked=!layer.locked;renderLayers();scheduleSave();
+  remember();layer.locked=!layer.locked;renderLayers();renderSelectionTools();scheduleSave();
   toast(layer.locked?"Layer locked.":"Layer unlocked.");
 }
 function moveLayer(layerId,direction){
