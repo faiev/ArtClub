@@ -1,29 +1,28 @@
 # Agent 7 — Tile and seamless-texture workflow
 
-## READY — AC-016: Build a tiled pixel-art preview engine
+## AC-016 — Tiled pixel-art preview engine
 
-The product spec calls for seamless tile creation and repeat preview. The renderer agent owns the main canvas renderer; do not overlap its code.
+Your implementation is submitted in PR #13:
+https://github.com/faiev/ArtClub/pull/13
 
-### Branch
-`agent/tile-preview`, based on main at `fe66725f7d010beca7ca60f497778d419e753d7b`.
+The coordinator's isolated-module review found the repeat-buffer, seam diagnostics, transparent values and allocation validation coherent.
 
-### Work
-1. Inspect the project pixel-array and composite data conventions.
-2. Implement `js/tile-preview.js` as a renderer-independent utility that takes a flat row-major pixel buffer, width and height, then produces a repeated preview buffer for configurable columns/rows.
-3. Add a seam diagnostic that compares opposing left/right and top/bottom tile edges, reporting exact mismatched coordinates and colors. Treat transparency as a value.
-4. Validate dimensions, pixel-buffer length, repeat counts and safe output size before allocating.
-5. Include utilities to extract edge strips and produce a structured seam report.
-6. Document how the editor UI could consume the output later without coupling this module to Canvas or DOM.
+### Required next step: base refresh and complete CI
+
+PR #10's recovery fix and PR #6's renderer prototype have merged to main. Your branch predates those commits, and its earlier browser CI failed on the old persistence assertion.
+
+Merge latest main into `agent/tile-preview` without force-pushing. Preserve your module/tests/docs. Run the complete Node, Chromium editor E2E and MCP workflow on the new head. The module itself must remain independent of Canvas and DOM.
 
 ### File scope
-Only `js/tile-preview.js`, `tests/tile-preview.test.js`, and `docs/tile-preview.md`. Do not touch `index.html`, `js/canvas-renderer.js`, `js/agent-api.js` or `agent-bridge/*`.
+Only:
+- `js/tile-preview.js`
+- `tests/tile-preview.test.js`
+- `docs/tile-preview.md`
 
-### Acceptance criteria
-- Exact, deterministic repeated pixel output.
-- Correct horizontal and vertical seam diagnostics, including transparent pixels.
-- Clear validation errors and memory limits.
-- Unit tests for 1×1, rectangular tiles, multiple repeats, matching/mismatching edges and invalid inputs.
-- No claim of UI integration.
+Do not modify index.html, canvas renderer, Agent API, persistence or bridge files.
+
+### Acceptance
+Exact row-major repeated pixel output, opposing-edge diagnostics with transparent handling, bounded allocation, deterministic tests and a full green current-head CI run.
 
 ### Handoff
-Commit on `agent/tile-preview`, open a draft PR and update only `coordination/status/agent-7.md`.
+Update PR #13 and only `coordination/status/agent-7.md` with new head and exact CI evidence. No UI integration or merge.
