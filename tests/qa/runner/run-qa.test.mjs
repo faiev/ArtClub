@@ -194,7 +194,9 @@ test("missing manifest files are explicitly marked not-run and never spawned", a
     const report = await runQASuites({ root, suite: "lifecycle", spawnImpl });
     const suite = findSuite(report, "lifecycle");
 
-    assert.equal(report.exitCode, 0);
+    assert.equal(report.exitCode, 2,
+      "an absent manifest file must prevent a clean suite exit");
+    assert.equal(suite.exitCode, 2);
     assert.equal(suite.status, "partial");
     assert.equal(suite.files[0].status, "passed");
     assert.equal(suite.files[1].status, "not-run");
@@ -382,6 +384,18 @@ test("returns a stable JSON-ready summary and human output without mutating file
     assert.ok(Number.isInteger(report1.summary.files.notRun));
     assert.ok(Number.isInteger(report1.summary.suites.passed));
     assert.ok(Number.isInteger(report1.summary.suites.failed));
+    assert.deepEqual(
+      Object.keys(report1).sort(),
+      ["exitCode", "notRunSuites", "root", "schemaVersion", "selectedSuites", "suites", "summary"].sort()
+    );
+    assert.deepEqual(
+      Object.keys(report1.summary).sort(),
+      ["files", "suites"].sort()
+    );
+    assert.deepEqual(
+      Object.keys(report1.suites[0].files[0]).sort(),
+      ["exitCode", "path", "reason", "runner", "signal", "status", "stderr", "stdout"].sort()
+    );
     assert.deepEqual(treeSnapshot(root), before, "runner must not create, change or remove files");
 
     const human = formatHumanReport(report1);
