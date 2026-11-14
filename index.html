@@ -198,6 +198,14 @@ input[type=color]{width:40px;height:36px}
 .layer-footer{display:flex;gap:6px;margin-top:8px}
 .layer-footer .small-button{flex:1}
 .layer-caption{font:9px ui-monospace,monospace;color:#88928b;letter-spacing:.08em;text-transform:uppercase}
+.selection-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:10px}
+.selection-tools .small-button{min-width:0;padding:7px 4px;font-size:9px}
+.selection-status{margin-top:7px;font:9px ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;color:#839087}
+.selection-status.active{color:#526b54}
+.pixel-cell.selection-top{border-top:1px dashed var(--coral)}
+.pixel-cell.selection-right{border-right:1px dashed var(--coral)}
+.pixel-cell.selection-bottom{border-bottom:1px dashed var(--coral)}
+.pixel-cell.selection-left{border-left:1px dashed var(--coral)}
 @media(max-width:600px){.project-dialog-inner{padding:16px}.project-entry{align-items:flex-start;flex-direction:column}.project-entry-actions{justify-content:flex-start}.project-dialog-toolbar{align-items:flex-start;flex-direction:column}.canvas-form-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -222,7 +230,17 @@ input[type=color]{width:40px;height:36px}
       <button class="tool" data-tool="line" title="Line"><span class="glyph">／</span>Line</button>
       <button class="tool" data-tool="rect" title="Rectangle"><span class="glyph">□</span>Rect</button>
       <button class="tool" data-tool="ellipse" title="Ellipse"><span class="glyph">◯</span>Ellipse</button>
+      <button class="tool" data-tool="select" title="Rectangular selection (M)"><span class="glyph">▧</span>Select</button>
     </div>
+    <div class="selection-tools" id="selectionTools">
+      <button class="small-button" id="selectionCopyBtn" type="button" disabled>Copy</button>
+      <button class="small-button" id="selectionCutBtn" type="button" disabled>Cut</button>
+      <button class="small-button" id="selectionPasteBtn" type="button" disabled>Paste</button>
+      <button class="small-button" id="selectionClearBtn" type="button" disabled>Clear</button>
+      <button class="small-button" id="selectionAllBtn" type="button">Select all</button>
+      <button class="small-button" id="selectionDeselectBtn" type="button" disabled>Deselect</button>
+    </div>
+    <div class="selection-status" id="selectionStatus">NO SELECTION · M TO SELECT</div>
     <label class="check-row hidden" id="shapeFillOption"><input type="checkbox" id="shapeFillToggle"> Filled shape</label>
     <div class="rule"></div>
     <div class="size-area">
@@ -422,6 +440,7 @@ const PALETTE_SETS = {
 };
 let w=24,h=24,pixels=[],palette=DEFAULT_PALETTE.slice(),selected=8,tool="brush",projectName="Untitled artwork",zoom=1;
 let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,saveTimer=null,focusedIndex=0;
+let selection=null,selectionPreview=null,selectionDragMode=null,selectionClipboard=null;
 let projectDoc=null;
 let projectStorage=null;
 let activeProjectId=null;
@@ -528,7 +547,7 @@ function loadProjectIntoEditor(source,resetHistory=true){
   $("projectName").value=projectName;
   syncDimensionSelect();
   drawing=false;
-  if(resetHistory){undoStack.length=0;redoStack.length=0;}
+  if(resetHistory){undoStack.length=0;redoStack.length=0;selection=null;selectionPreview=null;}
   renderAll();updateHistoryButtons();
 }
 function restore(source){
@@ -545,6 +564,142 @@ function remember(){
 function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());}
 function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());}
 function updateHistoryButtons(){$("undoBtn").disabled=!undoStack.length;$("redoBtn").disabled=!redoStack.length}
+function selectionContainsPoint(rect,x,y){
+  return Boolean(rect&&x>=rect.x&&y>=rect.y&&x<rect.x+rect.width&&y<rect.y+rect.height);
+}
+function selectionContainsIndex(index){
+  if(!selection)return true;
+  return selectionContainsPoint(selection,index%w,Math.floor(index/w));
+}
+function normalizeSelection(start,end){
+  return {
+    x:Math.min(start.x,end.x),y:Math.min(start.y,end.y),
+    width:Math.abs(end.x-start.x)+1,height:Math.abs(end.y-start.y)+1
+  };
+}
+function renderSelectionOverlay(){
+  const rect=selectionPreview||selection;
+  if(!rect)return;
+  const left=Math.max(0,rect.x),top=Math.max(0,rect.y);
+  const right=Math.min(w-1,rect.x+rect.width-1),bottom=Math.min(h-1,rect.y+rect.height-1);
+  if(left>right||top>bottom)return;
+  for(let y=top;y<=bottom;y++)for(let x=left;x<=right;x++){
+    const cell=grid.children[y*w+x];if(!cell)continue;
+    if(y===top)cell.classList.add("selection-top");
+    if(y===bottom)cell.classList.add("selection-bottom");
+    if(x===left)cell.classList.add("selection-left");
+    if(x===right)cell.classList.add("selection-right");
+  }
+}
+function renderSelectionTools(){
+  const active=Boolean(selection);
+  $("selectionCopyBtn").disabled=!active;
+  $("selectionCutBtn").disabled=!active||!isActiveLayerEditable();
+  $("selectionClearBtn").disabled=!active||!isActiveLayerEditable();
+  $("selectionPasteBtn").disabled=!selectionClipboard||!isActiveLayerEditable();
+  $("selectionDeselectBtn").disabled=!active;
+  $("selectionStatus").textContent=active
+    ?selection.width+" × "+selection.height+" PX · X "+selection.x+" · Y "+selection.y
+    :"NO SELECTION · M TO SELECT";
+  $("selectionStatus").classList.toggle("active",active);
+}
+function setSelectionRect(rect){
+  if(!rect){selection=null;selectionPreview=null;renderGrid();renderSelectionTools();return}
+  const x=Number(rect.x),y=Number(rect.y),width=Number(rect.width),height=Number(rect.height);
+  if(![x,y,width,height].every(Number.isInteger)||width<1||height<1||x<0||y<0||x+width>w||y+height>h){
+    throw new Error("Selection must be a non-empty integer rectangle inside the canvas.");
+  }
+  selection={x,y,width,height};selectionPreview=null;
+  renderGrid();renderSelectionTools();
+}
+function moveSelectionPixels(dx,dy){
+  if(!selection||(!dx&&!dy))return;
+  if(!isActiveLayerEditable())throw new Error("The active layer is locked or hidden.");
+  const targetX=Math.max(0,Math.min(w-selection.width,selection.x+dx));
+  const targetY=Math.max(0,Math.min(h-selection.height,selection.y+dy));
+  const actualDx=targetX-selection.x,actualDy=targetY-selection.y;
+  if(!actualDx&&!actualDy)return;
+  remember();
+  const source=[];
+  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
+    source.push(pixels[(selection.y+y)*w+selection.x+x]);
+  }
+  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
+    pixels[(selection.y+y)*w+selection.x+x]=null;
+  }
+  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
+    const color=source[y*selection.width+x];
+    if(color!==null)pixels[(targetY+y)*w+targetX+x]=color;
+  }
+  selection={x:targetX,y:targetY,width:selection.width,height:selection.height};
+  renderGrid();renderStats();renderSelectionTools();scheduleSave();
+}
+function copySelection(){
+  if(!selection){toast("Select an area first.");return false}
+  const copied=[];
+  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
+    copied.push(pixels[(selection.y+y)*w+selection.x+x]);
+  }
+  selectionClipboard={width:selection.width,height:selection.height,pixels:copied};
+  renderSelectionTools();toast("Selection copied.");return true;
+}
+function cutSelection(){
+  if(!selection){toast("Select an area first.");return false}
+  if(!isActiveLayerEditable()){toast("The active layer is locked or hidden.");return false}
+  copySelection();remember();
+  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
+    pixels[(selection.y+y)*w+selection.x+x]=null;
+  }
+  renderGrid();renderStats();scheduleSave();toast("Selection cut.");return true;
+}
+function clearSelectedPixels(){
+  if(!selection){toast("Select an area first.");return false}
+  if(!isActiveLayerEditable()){toast("The active layer is locked or hidden.");return false}
+  remember();
+  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
+    pixels[(selection.y+y)*w+selection.x+x]=null;
+  }
+  renderGrid();renderStats();scheduleSave();return true;
+}
+function pasteSelection(){
+  if(!selectionClipboard){toast("Copy or cut a selection first.");return false}
+  if(!isActiveLayerEditable()){toast("The active layer is locked or hidden.");return false}
+  const x=Math.max(0,Math.min(w-1,selection?selection.x:0));
+  const y=Math.max(0,Math.min(h-1,selection?selection.y:0));
+  const width=Math.min(selectionClipboard.width,w-x);
+  const height=Math.min(selectionClipboard.height,h-y);
+  if(width<1||height<1)return false;
+  remember();
+  for(let row=0;row<height;row++)for(let col=0;col<width;col++){
+    const color=selectionClipboard.pixels[row*selectionClipboard.width+col];
+    if(color!==null)pixels[(y+row)*w+x+col]=color;
+  }
+  selection={x,y,width,height};
+  renderGrid();renderStats();renderSelectionTools();scheduleSave();toast("Selection pasted.");
+  return true;
+}
+function selectAll(){
+  selection={x:0,y:0,width:w,height:h};selectionPreview=null;
+  renderGrid();renderSelectionTools();
+}
+function deselect(){
+  selection=null;selectionPreview=null;
+  renderGrid();renderSelectionTools();
+}
+function beginSelectionInteraction(point,event){
+  if(selection&&selectionContainsPoint(selection,point.x,point.y)){
+    if(!isActiveLayerEditable()){toast("The active layer is locked or hidden.");return}
+    selectionDragMode="move";
+    selectionPreview={...selection};
+  }else{
+    selectionDragMode="marquee";
+    selectionPreview=normalizeSelection(point,point);
+  }
+  drawing=true;strokeStart=point;strokeLast=point;
+  grid.setPointerCapture(event.pointerId);
+  renderSelectionOverlay();
+}
+
 function colorAt(i){return pixels[i]||"transparent"}
 function renderGrid(){
   focusedIndex=Math.min(focusedIndex,pixels.length-1);
@@ -566,6 +721,7 @@ function renderGrid(){
     frag.appendChild(cell);
   }
   grid.replaceChildren(frag);
+  renderSelectionOverlay();
   $("dimensionLabel").textContent=w+" × "+h+" PX";
   $("gridCaption").textContent=w+" × "+h;
   syncDimensionSelect();
@@ -700,7 +856,7 @@ function renderStats(){
   $("usedColorStat").textContent=used.size;
   $("fillCaption").textContent=painted.length.toLocaleString();
 }
-function renderAll(){renderGrid();renderPalette();renderLayers();renderStats();updateHistoryButtons();setTool(tool);applyZoom()}
+function renderAll(){renderGrid();renderPalette();renderLayers();renderStats();renderSelectionTools();updateHistoryButtons();setTool(tool);applyZoom()}
 function syncDimensionSelect(){
   const value=w+"x"+h;
   const known=["16x16","24x24","32x32","32x48","48x32","48x48","64x64"];
@@ -779,7 +935,7 @@ function getCell(e){
   const i=Number(target.dataset.index);return {i,x:i%w,y:Math.floor(i/w),el:target};
 }
 function paint(i,c){
-  if(i<0||i>=pixels.length||pixels[i]===c)return;
+  if(i<0||i>=pixels.length||!selectionContainsIndex(i)||pixels[i]===c)return;
   pixels[i]=c;
   const visibleColor=compositePixelAt(i);
   const el=grid.children[i];if(el){el.style.backgroundColor=visibleColor||"transparent";el.setAttribute("aria-label","Pixel "+(i%w+1)+", "+(Math.floor(i/w)+1)+", "+(visibleColor||"transparent"));}
@@ -788,7 +944,7 @@ function floodFill(start,replacement){
   const target=pixels[start];if(target===replacement)return;
   const stack=[start],seen=new Uint8Array(pixels.length);
   while(stack.length){
-    const i=stack.pop();if(i<0||i>=pixels.length||seen[i]||pixels[i]!==target)continue;
+    const i=stack.pop();if(i<0||i>=pixels.length||seen[i]||!selectionContainsIndex(i)||pixels[i]!==target)continue;
     seen[i]=1;paint(i,replacement);
     const x=i%w,y=Math.floor(i/w);
     if(x>0)stack.push(i-1);if(x<w-1)stack.push(i+1);if(y>0)stack.push(i-w);if(y<h-1)stack.push(i+w);
