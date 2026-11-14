@@ -66,7 +66,7 @@ Target:
 - replace the promotional/editorial hero layout with a compact creative-workstation structure;
 - introduce a restrained menu/document bar, persistent tool rail, dominant canvas viewport, docked inspector and bottom timeline region;
 - keep current working editor commands and project data behavior intact;
-- preserve warm-light brand identity initially; visual theme changes must not obscure functional review;
+- apply the palette and visual system approved at UI-00. The AC-091 submission currently proposes graphite/olive chrome; do not silently force the older warm-light palette or combine an unreviewed theme change with functional migration. Keep pixel artwork visually dominant and retain verified focus/contrast states;
 - ensure desktop and compact layouts, keyboard focus, useful labels and sensible panel collapse.
 
 Do not:
@@ -173,7 +173,7 @@ Exit gate:
 
 ## Current status
 
-- UI-00: awaiting Agent 5 AC-091 prototype.
+- UI-00: AC-091 submitted as draft PR #77 and under coordinator review. Pending accessible screenshot evidence / corrected screenshot references, accessible labels for read-only controls and palette file input, explicit disclosure of prototype-only Line/Rectangle Select behavior, and a status update synchronized to the latest feature head. No production UI authorization yet.
 - UI-01: queued; production UI owner is coordinator.
 - UI-02: contracts and modules submitted across open PRs; coordinator review/dependency acceptance required.
 - UI-03: viewport and adapter modules submitted; renderer remains separate until evidence gate.
