@@ -699,8 +699,8 @@ function summarizeCel(cel, index, migratedInMemory) {
     transparentPixels
   };
 }
-function celRemovalReason(cel, targetProject, targetIsLegacy, direction) {
-  if (targetIsLegacy) return "source-identifiers-not-comparable";
+function celRemovalReason(cel, targetProject, identifiersComparable, direction) {
+  if (!identifiersComparable) return "source-identifiers-not-comparable";
   if (!targetProject.layers.some((layer) => layer.id === cel.layerId)) {
     return direction === "removed" ? "layer-removed" : "layer-added";
   }
@@ -742,6 +742,7 @@ function compareCelCollections(left, right) {
   const bothLegacy = left.migratedInMemory && right.migratedInMemory;
   const bothVersioned = !left.migratedInMemory && !right.migratedInMemory;
   const matchBy = bothLegacy ? "position" : bothVersioned ? "layerId+frameId" : "none-across-source-formats";
+  const identifiersComparable = bothLegacy || bothVersioned;
   const beforeMatched = new Set();
   const afterMatched = new Set();
   const pairs = [];
@@ -772,7 +773,7 @@ function compareCelCollections(left, right) {
     if (!afterMatched.has(index)) {
       added.push({
         ...summarizeCel(cel, index, right.migratedInMemory),
-        reason: celRemovalReason(cel, left.project, left.migratedInMemory, "added")
+        reason: celRemovalReason(cel, left.project, identifiersComparable, "added")
       });
     }
   });
@@ -780,7 +781,7 @@ function compareCelCollections(left, right) {
     if (!beforeMatched.has(index)) {
       removed.push({
         ...summarizeCel(cel, index, left.migratedInMemory),
-        reason: celRemovalReason(cel, right.project, right.migratedInMemory, "removed")
+        reason: celRemovalReason(cel, right.project, identifiersComparable, "removed")
       });
     }
   });
