@@ -1,34 +1,47 @@
 # Agent 3 — Animation / export
 
-## READY — AC-011: Implement animated GIF export as an isolated module
+## AC-011 — Standalone animated GIF exporter
 
-You completed a standalone sprite-sheet exporter in PR #3. Continue with a new independent export capability. Do not wait for PR #3 to merge.
+Your coordinator-requested GIF corrections are implemented, and CI run #43605119104 passed:
+- 48 Node/model/editor tests.
+- Real Chromium editor E2E.
+- GIF ImageDecoder verification of native dimensions and every RGBA byte across both frames.
+- MCP client E2E.
 
-### Branch
-Use `agent/gif-export`, created from current main commit `fe66725f7d010beca7ca60f497778d419e753d7b`. Keep PR #3 and `agent/animation-export` unchanged.
+PR #11:
+https://github.com/faiev/ArtClub/pull/11
 
-### Work
-Implement a browser-compatible animated GIF encoder/export module for existing Art Club v2 project data.
+Latest feature head:
+`da81f74ecccf2d74d8a1033e9eee42c98b7845b5`
 
-The exported animation must:
-1. Respect frame order and each frame's `durationMs`.
-2. Support loop count/forever looping.
-3. Preserve transparency with a documented GIF transparency policy; GIF's one-bit transparency limitation must be handled explicitly.
-4. Use a global or per-frame palette with a documented color quantization strategy for projects exceeding GIF's 256-color limit.
-5. Preserve native frame dimensions; do not scale or smooth pixels.
-6. Handle malformed projects and unreasonable frame counts/dimensions safely.
-7. Return a Blob and metadata/diagnostics without directly modifying UI or project state.
+The coordinator accepted the isolated GIF implementation. Do not add UI/API/MCP integration.
 
-First inspect the existing project model and sprite-sheet exporter. Prefer a small dependency-free implementation if correctness is practical. If a dependency is genuinely necessary, justify its size, license, maintenance and offline behavior before adding it.
+### Immediate handoff: reconcile PR #11 with latest main
 
-### File scope
-Create `js/gif-export.js`, GIF-specific unit tests, and `GIF_EXPORT.md`. Do not edit `index.html`, `js/agent-api.js` or `agent-bridge/*`. Do not duplicate the sprite-sheet exporter.
+PR #6 has now merged to main as:
+`1ba0aaee597d5bf11083c97a03a312c7ee434530`
 
-### Acceptance criteria
-- Validate GIF file signature, dimensions, frame count, delays, loop extension and transparent index with a parser or independent decoder test.
-- Include tests for 1-frame, multi-frame, transparency, palette overflow, invalid input and duration handling.
-- At least one real-browser export test must decode or inspect the produced GIF; a mocked Blob alone is insufficient.
-- Document any color loss or format limitations honestly.
+Your GIF branch is now behind main. Merge latest main into `agent/gif-export` without force-pushing, preserve the quantization/full-raster/memory corrections, and rerun the complete Node, Chromium, GIF ImageDecoder and MCP workflow on the new head. Update PR #11 description and your status file with the exact new head and CI run. Do not merge it yourself.
+
+## NEXT ASSIGNMENT — AC-027: Complete sprite-sheet PNG browser verification (PR #3)
+
+After PR #11's branch reconciliation is complete, resume the existing sprite-sheet branch:
+
+`agent/animation-export`
+
+PR #3:
+https://github.com/faiev/ArtClub/pull/3
+
+Update it against latest main without discarding work. Add a real-browser PNG verification that:
+- Exports a deterministic multi-frame fixture.
+- Decodes the PNG in Chromium.
+- Compares every RGBA pixel against expected sheet data.
+- Checks dimensions, spacing/margins, transparency, frame ordering and JSON metadata correspondence.
+- Rejects invalid/oversized inputs as documented.
+
+Files may include the existing sprite-sheet module/tests/docs plus new browser test files. Coordinate any workflow-file edit with the coordinator first: do not touch `.github/workflows/project-tests.yml` while its current base changes are being reconciled. You may prepare the test page/runner and document the exact command meanwhile.
+
+Do not edit `index.html`, Agent API or MCP. Do not wire UI download controls.
 
 ### Handoff
-Commit to `agent/gif-export`, open a draft PR and update only `coordination/status/agent-3.md`.
+Keep PR #11 and PR #3 separate. Update only your own status file. Report exact commit SHAs, browser verification and CI evidence. Never merge your own PRs.
