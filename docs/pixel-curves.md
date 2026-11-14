@@ -39,7 +39,7 @@ Default options:
 - maxIterations: integer 1..16383; counts each popped subdivision node.
 - maxRasterSteps: integer 1..1,048,576; counts the total major-axis Bresenham work across flattened chords.
 
-If the curve cannot reach the requested flatness within maxDepth, exceeds maxIterations or maxSegments, or would exceed maxRasterSteps, the operation throws RangeError and returns no partial coordinate list. Invalid/sparse control point arrays, non-finite/fractional coordinates, invalid canvas dimensions and out-of-policy coordinates are rejected before subdivision. The function does not mutate supplied point objects.
+If the curve cannot reach the requested flatness within maxDepth, exceeds maxIterations or maxSegments, or would exceed maxRasterSteps, the operation throws RangeError and returns no partial coordinate list. Missing/malformed control point arguments, non-finite/fractional coordinates, invalid canvas dimensions and out-of-policy coordinates are rejected before subdivision. The function does not mutate supplied point objects.
 
 ## Complexity and output guarantees
 
