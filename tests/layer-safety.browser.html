@@ -10,7 +10,6 @@
   <p id="harness-status">Running safety cases…</p>
   <pre id="test-result" data-status="running">pending</pre>
 
-  <script src="../js/project-model.js"></script>
   <script src="../js/layer-edit-guard.js"></script>
   <script src="../js/safe-edit-operations.js"></script>
   <script>
@@ -18,18 +17,50 @@
       "use strict";
 
       function makeProject() {
-        return window.ArtClubProject.createProject({
-          width: 3,
-          height: 2,
+        const layer = {
+          id: "layer-active", name: "Layer 1", visible: true, locked: false, opacity: 1
+        };
+        const frame = { id: "frame-active", name: "Frame 1", durationMs: 100 };
+        return {
+          format: "one-pixel-studio",
+          version: 2,
+          id: "project-browser-fixture",
           name: "Layer safety browser fixture",
-          pixels: ["#112233", null, "#445566", null, "#778899", null]
+          canvas: { width: 3, height: 2, background: null },
+          palette: ["#112233"],
+          selectedColorIndex: 0,
+          layers: [layer],
+          frames: [frame],
+          cels: [{
+            layerId: layer.id,
+            frameId: frame.id,
+            pixels: ["#112233", null, "#445566", null, "#778899", null]
+          }],
+          activeLayerId: layer.id,
+          activeFrameId: frame.id,
+          metadata: { createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" }
+        };
+      }
+
+      function composeRaster(project) {
+        const output = Array(project.canvas.width * project.canvas.height).fill(null);
+        project.layers.forEach(layer => {
+          if (!layer.visible) return;
+          const cel = project.cels.find(item =>
+            item.layerId === layer.id && item.frameId === project.activeFrameId
+          );
+          if (!cel) return;
+          cel.pixels.forEach((color, index) => {
+            if (color !== null) output[index] = color;
+          });
         });
+        return output;
       }
 
       function snapshot(project) {
         return {
-          savedProject: window.ArtClubProject.serializeProject(project, 0),
-          composedRaster: JSON.stringify(window.ArtClubProject.getCompositePixels(project))
+          savedProject: JSON.stringify(project),
+          composedRaster: JSON.stringify(composeRaster(project))
         };
       }
 
@@ -138,7 +169,7 @@
             snapshot(validProject).composedRaster !== validBefore.composedRaster) {
           throw new Error("successful immutable edit changed the caller-owned source project.");
         }
-        if (window.ArtClubProject.getCompositePixels(validResult.project)[1] !== "#abcdef") {
+        if (composeRaster(validResult.project)[1] !== "#abcdef") {
           throw new Error("successful transaction did not update the returned raster.");
         }
         results.push({ name: "successful detached transaction", status: "passed" });
