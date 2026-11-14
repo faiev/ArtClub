@@ -161,13 +161,31 @@ input[type=color]{width:40px;height:36px}
 @media(max-width:700px){.shell{padding:13px 12px 20px}.topbar{padding-bottom:15px}.intro{padding:20px 0 17px}.workspace{grid-template-columns:1fr}.tools-panel{padding:12px}.stage{padding:13px}.stage-head{align-items:flex-start}.stage-title{flex:1 1 100%;justify-content:space-between}.project-name{width:min(62vw,230px)}.stage-actions{width:100%;justify-content:flex-end}.canvas-toolbar{margin-bottom:8px}.canvas-wrap{min-height:0;padding:14px 10px}.pixel-grid{max-width:none}.inspector{grid-column:auto;display:grid;grid-template-columns:1fr 1fr;gap:13px}.inspector .palette-area{grid-column:1/-1;grid-row:auto}.palette-presets{margin-top:11px}.canvas-tip{font-size:8px}.bottom-note{font-size:8px}}
 @media(max-width:390px){.local-pill{padding:7px 8px;font-size:8px}.brandname{font-size:13px}.brandname span{margin-left:2px}.stage-actions{gap:3px}.action-divider{margin:0 1px}.zoom-button{width:22px}.zoom-value{min-width:38px}.icon-button{width:29px;height:29px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
+.project-dialog{width:min(760px,calc(100vw - 24px));max-width:760px;max-height:min(82vh,760px);padding:0;border:1px solid #d8ded5;border-radius:18px;background:#fffefa;color:var(--ink);box-shadow:0 25px 80px rgba(20,35,35,.24)}
+.project-dialog::backdrop{background:rgba(24,35,35,.45);backdrop-filter:blur(3px)}
+.project-dialog-inner{padding:22px}
+.project-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.project-dialog-head h2{margin:6px 0 0;font-size:23px;letter-spacing:-.045em}
+.project-dialog-copy{font-size:12px;line-height:1.55;color:#74807b;margin:12px 0 18px}
+.project-dialog-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.project-dialog-toolbar span{font:10px ui-monospace,monospace;color:#77817c;text-transform:uppercase;letter-spacing:.1em}
+.project-list{display:grid;gap:8px;max-height:48vh;overflow:auto;padding:2px}
+.project-entry{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px;border:1px solid #e4e8e0;border-radius:11px;background:#fbfcf8}
+.project-entry-main{min-width:0;display:grid;gap:5px}
+.project-entry-main strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-entry-main span{font:10px ui-monospace,monospace;color:#7c8780}
+.project-entry-actions{display:flex;align-items:center;justify-content:flex-end;gap:5px;flex-wrap:wrap}
+.project-entry-actions .small-button{min-height:30px;padding:6px 8px;font-size:9px}
+.project-empty{padding:30px 15px;text-align:center;border:1px dashed #d9dfd5;border-radius:11px;color:#7b867f;font-size:12px;line-height:1.6}
+.project-recovery-note{color:#b56845!important}
+@media(max-width:600px){.project-dialog-inner{padding:16px}.project-entry{align-items:flex-start;flex-direction:column}.project-entry-actions{justify-content:flex-start}.project-dialog-toolbar{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
 <div class="shell">
 <header class="topbar">
   <div class="brand"><div class="brandmark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="brandname">ONE PIXEL <span>/ STUDIO</span></div></div>
-  <div class="topmeta"><span class="local-pill">Private by design</span><span class="save-state" id="saveState">LOCAL SAVE · READY</span></div>
+  <div class="topmeta"><button class="small-button" id="projectLibraryBtn" type="button">Projects</button><span class="local-pill">Private by design</span><span class="save-state" id="saveState">LOCAL SAVE · READY</span></div>
 </header>
 <section class="intro">
   <div><div class="eyebrow">A tiny studio for exact pixel art</div><h1>One cell. One color.<br>Zero ambiguity.</h1><p>Draw at the grid level. Every square is a real pixel — no blur, no surprise sub-pixels.</p></div>
@@ -284,9 +302,21 @@ input[type=color]{width:40px;height:36px}
 </main>
 <footer class="bottom-note"><span><strong>ONE PIXEL STUDIO</strong> · BUILT FOR THE GRID, NOT THE BLUR</span><span>NO ACCOUNT · NO UPLOADS · NO SUBSCRIPTIONS</span></footer>
 </div>
+<dialog class="project-dialog" id="projectDialog" aria-labelledby="projectDialogTitle">
+  <div class="project-dialog-inner">
+    <div class="project-dialog-head">
+      <div><div class="eyebrow">Local library</div><h2 id="projectDialogTitle">Your projects</h2></div>
+      <button class="icon-button" id="closeProjectDialog" type="button" aria-label="Close project library">×</button>
+    </div>
+    <p class="project-dialog-copy">Projects are saved in this browser on this device. Nothing is uploaded. Export a JSON project file when you need a portable backup.</p>
+    <div class="project-dialog-toolbar"><span id="projectCount">0 PROJECTS</span><button class="small-button primary" id="dialogNewProjectBtn" type="button">＋ New project</button></div>
+    <div class="project-list" id="projectList"><div class="project-empty">Loading your projects…</div></div>
+  </div>
+</dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="./js/project-model.js"></script>
+<script src="./js/project-storage.js"></script>
 <script>
 (function(){
 "use strict";
