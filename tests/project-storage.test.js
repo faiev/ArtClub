@@ -217,3 +217,26 @@ test("rollback receipt cannot overwrite a newer commit from another tab", async 
     tabB.close();
   }
 });
+
+test("a stale tab cannot overwrite a deleted and recreated project with a reused revision", async () => {
+  const indexedDB = createMemoryIndexedDB();
+  const oldTab = await Storage.open({ indexedDB, projectModel: Project });
+  const newTab = await Storage.open({ indexedDB, projectModel: Project });
+  try {
+    const original = Project.createProject({ width: 2, height: 2, name: "Original", palette: ["#112233"] });
+    await oldTab.saveProject(original);
+    const stale = await oldTab.getProject(original.id);
+    await newTab.deleteProject(original.id);
+    const replacement = Project.createProject({ width: 2, height: 2, name: "Replacement", palette: ["#445566"] });
+    replacement.id = original.id;
+    await newTab.saveProject(replacement);
+    const staleCandidate = Project.cloneProject(stale);
+    staleCandidate.name = "Stale overwrite";
+    await assert.rejects(oldTab.saveProject(staleCandidate), error =>
+      error && error.code === "PROJECT_REVISION_CONFLICT");
+    assert.equal((await newTab.getProject(original.id)).name, "Replacement");
+  } finally {
+    oldTab.close();
+    newTab.close();
+  }
+});
