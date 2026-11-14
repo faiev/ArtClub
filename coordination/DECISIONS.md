@@ -28,3 +28,13 @@ Separate unit tests with mocks, real browser tests, CI, benchmark measurements, 
 
 ## D-009 — Tasks have a testable finish line
 Every assignment contains acceptance criteria, allowed files, required tests, and an explicit handoff. No worker should be left with a vague task or an indefinite "wait for coordinator" instruction.
+
+
+## D-010 — Ten-agent team and isolated work packages
+The team may have ten worker chats plus the coordinator. Agents 6–10 own isolated modules/diagnostic tools as defined in BOARD.md. They must not edit shared UI, storage, renderer, project model or Agent API files unless a later assignment grants a specific file lock.
+
+## D-011 — Module-first feature development
+Where integration would collide with another active worker, deliver a tested, documented module with a clear integration contract first. Mark it as an isolated deliverable, not a shipped user-facing feature. The coordinator schedules integration after review.
+
+## D-012 — Keep exports and pixel algorithms deterministic
+Palette import/export, tiled preview, pixel effects and project inspection must be deterministic, bounded, local-only and independently tested. No network dependencies or silent data mutation.
