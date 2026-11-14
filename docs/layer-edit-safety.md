@@ -147,3 +147,16 @@ Available helpers:
 Every helper delegates target, opacity, selection, canvas and optional revision checks to `ArtClubLayerEditGuard`. A success returns `{ ok: true, project, layerId, frameId, changedPixels }`, where `project` is a deep detached copy with the complete new cel. A denial returns `{ ok: false, reason, message }` and never returns a partially changed project.
 
 The module preserves sparse array shape during deep cloning and rejects cyclic/non-data project values with `PROJECT_CLONE_FAILED`. It has no storage, UI, browser API or network side effects.
+
+
+## AC-058: browser safety harness
+
+Run the isolated browser harness from the repository root:
+
+```sh
+node tests/layer-safety.browser.mjs
+```
+
+The runner uses a local Chromium/Chrome executable. Set `CHROMIUM_PATH` when it is not in a standard location. The page loads the real project model, layer guard and safe-edit operations. It verifies denial behavior for hidden, locked and zero-opacity layers, stale revisions, missing cels, invalid payloads and out-of-canvas selections. For each denial it compares the serialized project and composed raster before and after. It also checks that a successful transaction changes only the returned detached project.
+
+The harness uses project serialization and the project model's composed RGBA-source pixel array as saved-state/export invariants. It does not claim to exercise the live editor's IndexedDB adapter or its PNG download button; those remain integration/browser-E2E responsibilities after the shared UI lock is granted.

@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Layer safety browser harness</title>
+</head>
+<body>
+  <h1>Layer safety browser harness</h1>
+  <p id="harness-status">Running safety cases…</p>
+  <pre id="test-result" data-status="running">pending</pre>
+
+  <script src="../js/project-model.js"></script>
+  <script src="../js/layer-edit-guard.js"></script>
+  <script src="../js/safe-edit-operations.js"></script>
+  <script>
+    (function () {
+      "use strict";
+
+      function makeProject() {
+        return window.ArtClubProject.createProject({
+          width: 3,
+          height: 2,
+          name: "Layer safety browser fixture",
+          pixels: ["#112233", null, "#445566", null, "#778899", null]
+        });
+      }
+
+      function snapshot(project) {
+        return {
+          savedProject: window.ArtClubProject.serializeProject(project, 0),
+          composedRaster: JSON.stringify(window.ArtClubProject.getCompositePixels(project))
+        };
+      }
+
+      function assertUnchanged(project, before, label) {
+        const after = snapshot(project);
+        if (after.savedProject !== before.savedProject) {
+          throw new Error(label + ": serialized project state changed after denial.");
+        }
+        if (after.composedRaster !== before.composedRaster) {
+          throw new Error(label + ": composed raster/export pixels changed after denial.");
+        }
+      }
+
+      function runDeniedCase(name, mutateProject, operation, expectedReason) {
+        const project = makeProject();
+        if (mutateProject) mutateProject(project);
+        const before = snapshot(project);
+        const result = operation(project);
+        if (!result || result.ok !== false || result.reason !== expectedReason) {
+          throw new Error(name + ": expected denial " + expectedReason +
+            ", received " + (result && result.reason));
+        }
+        assertUnchanged(project, before, name);
+        return { name: name, status: "passed", reason: result.reason };
+      }
+
+      function run() {
+        const results = [];
+        const guardReasons = window.ArtClubLayerEditGuard.REASONS;
+        const operationReasons = window.ArtClubSafeEditOperations.REASONS;
+
+        results.push(runDeniedCase(
+          "hidden active layer",
+          project => { project.layers[0].visible = false; },
+          project => window.ArtClubSafeEditOperations.clearActiveCel(project),
+          guardReasons.LAYER_HIDDEN
+        ));
+
+        results.push(runDeniedCase(
+          "locked active layer",
+          project => { project.layers[0].locked = true; },
+          project => window.ArtClubSafeEditOperations.clearActiveCel(project),
+          guardReasons.LAYER_LOCKED
+        ));
+
+        results.push(runDeniedCase(
+          "zero-opacity active layer",
+          project => { project.layers[0].opacity = 0; },
+          project => window.ArtClubSafeEditOperations.clearActiveCel(project),
+          guardReasons.LAYER_ZERO_OPACITY
+        ));
+
+        results.push(runDeniedCase(
+          "stale project revision",
+          null,
+          project => window.ArtClubSafeEditOperations.clearActiveCel(project, {
+            expectedRevisions: { project: 3, frame: 2, composite: 1 },
+            currentRevisions: { project: 4, frame: 2, composite: 1 }
+          }),
+          guardReasons.PROJECT_REVISION_STALE
+        ));
+
+        results.push(runDeniedCase(
+          "missing active cel",
+          project => { project.cels = []; },
+          project => window.ArtClubSafeEditOperations.applyPixelPatches(
+            project, [{ x: 0, y: 0, color: "#abcdef" }]
+          ),
+          guardReasons.CEL_NOT_FOUND
+        ));
+
+        results.push(runDeniedCase(
+          "invalid patch payload",
+          null,
+          project => window.ArtClubSafeEditOperations.applyPixelPatches(
+            project, [{ x: 0, y: 0, color: "not-a-color" }]
+          ),
+          operationReasons.PATCHES_INVALID
+        ));
+
+        results.push(runDeniedCase(
+          "invalid replacement buffer",
+          null,
+          project => window.ArtClubSafeEditOperations.replaceActiveCel(
+            project, ["#123456", undefined, null, null, null, null]
+          ),
+          operationReasons.PIXEL_BUFFER_INVALID
+        ));
+
+        results.push(runDeniedCase(
+          "out-of-canvas selection",
+          null,
+          project => window.ArtClubSafeEditOperations.clearActiveCel(project, {
+            selection: { x: 2, y: 1, width: 2, height: 1 }
+          }),
+          guardReasons.SELECTION_INVALID
+        ));
+
+        const validProject = makeProject();
+        const validBefore = snapshot(validProject);
+        const validResult = window.ArtClubSafeEditOperations.applyPixelPatches(
+          validProject, [{ x: 1, y: 0, color: "#abcdef" }]
+        );
+        if (!validResult.ok) throw new Error("valid patch was denied: " + validResult.reason);
+        if (snapshot(validProject).savedProject !== validBefore.savedProject ||
+            snapshot(validProject).composedRaster !== validBefore.composedRaster) {
+          throw new Error("successful immutable edit changed the caller-owned source project.");
+        }
+        if (window.ArtClubProject.getCompositePixels(validResult.project)[1] !== "#abcdef") {
+          throw new Error("successful transaction did not update the returned raster.");
+        }
+        results.push({ name: "successful detached transaction", status: "passed" });
+
+        return { ok: true, total: results.length, passed: results.length, failed: 0, results: results };
+      }
+
+      const output = document.getElementById("test-result");
+      const status = document.getElementById("harness-status");
+      try {
+        const result = run();
+        output.textContent = JSON.stringify(result);
+        output.dataset.status = "passed";
+        status.textContent = "All layer safety browser cases passed.";
+      } catch (error) {
+        const result = { ok: false, error: error.message, stack: error.stack || "" };
+        output.textContent = JSON.stringify(result);
+        output.dataset.status = "failed";
+        status.textContent = "Layer safety browser harness failed.";
+      }
+    })();
+  </script>
+</body>
+</html>
