@@ -15,6 +15,7 @@ A browser-based pixel art editor. It is a static site: no build step, backend, a
 - Import an image and convert it to the current pixel grid
 - Export transparent PNG at native size or 16× scale, crisp SVG, and portable JSON project files
 - Automatic local save in the current browser
+- Versioned editable project format (v2), with automatic migration from earlier single-canvas project files
 
 ## Privacy
 
@@ -31,3 +32,13 @@ No build command or package installation is needed.
 ## Product roadmap
 
 See [FEATURES.md](FEATURES.md) for the full product specification, current capability audit, prioritized feature backlog, user workflows, acceptance criteria and implementation milestones.
+
+## Developer checks
+
+Run the project document model tests with Node.js 24 or later:
+
+```bash
+node --test tests/project-model.test.js
+```
+
+The current editor UI still exposes one layer and one frame. The document model already stores layer/frame/cel structure to support the next development steps; this does not mean layer or animation editing is available yet.
