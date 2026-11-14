@@ -39,7 +39,7 @@ This bootstrap exception exists only to make the first coordination PR usable. I
 
 At the beginning of **every** new work session, and after completing any task:
 
-1. Fetch the latest versions from the default branch: `coordination/BOARD.md`, your `assignments/agent-N.md`, your own `status/agent-N.md`, `coordination/DECISIONS.md`, and any task documents linked by your assignment.
+1. Fetch the latest versions of `coordination/BOARD.md`, your `assignments/agent-N.md`, your own `status/agent-N.md`, `coordination/DECISIONS.md`, and any task documents linked by your assignment. During bootstrap, use ref `coordination/orchestration-v1`; after PR #5 merges, use the default branch `main`.
 2. Read the other agents' status files when your task depends on their work or touches a shared interface.
 3. Confirm the task ID, acceptance criteria, dependencies, allowed files, and current main commit. Do not rely on an old chat prompt if the repository has newer instructions.
 4. Before coding, update only your own status file to `IN_PROGRESS`, recording task ID, branch, base commit, and planned file scope. Commit that status update to `main` if the GitHub connection permits it.
@@ -75,7 +75,7 @@ A worker cannot mark its own work `DONE`. It can only submit it for review.
 
 ## Resume prompt to paste into any worker chat
 
-> Resume your Art Club assignment using the GitHub coordination system. Fetch the latest files from the default branch: coordination/README.md, coordination/BOARD.md, coordination/assignments/<your-agent-file>.md, coordination/status/<your-agent-file>.md, and coordination/DECISIONS.md. Read any referenced dependencies. Report the current task ID, its status, your branch and base commit, and any blockers before continuing. Follow the repository instructions over stale chat instructions. Update only your own status file; keep code changes on your assigned feature branch. Do not self-assign or merge.
+> Resume your Art Club assignment using the GitHub coordination system. Fetch the latest coordination files: coordination/README.md, coordination/BOARD.md, coordination/assignments/<your-agent-file>.md, coordination/status/<your-agent-file>.md, and coordination/DECISIONS.md. Until PR #5 is merged, fetch these files from ref coordination/orchestration-v1; after it merges, fetch from the default branch main. Read any referenced dependencies. Report the current task ID, status, branch, base commit, and blockers before continuing. Follow the repository instructions over stale chat instructions. Update only your own status file on the coordination branch during bootstrap, or on main after PR #5 merges. Keep application code on your assigned feature branch. Do not self-assign or merge.
 
 Replace `<your-agent-file>` with your own agent number, for example `agent-3.md`.
 
