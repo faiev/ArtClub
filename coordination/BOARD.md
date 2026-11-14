@@ -257,3 +257,18 @@ PR #80 is a future-facing workflow contract only; it explicitly preserves canoni
 Agent 7's tile fixture PR #79 still needs review: it contains coordination-file changes in its comparison in addition to the fixture/test deliverables, and the branch is behind current main. Do not merge it until the changed-file list is narrowed/reconciled and exact-head CI is refreshed. PR #80 is already merged independently.
 
 The next user-visible milestone remains the coordinator-authored UI-01 shell after UI-00 acceptance, followed by Agent 1's 12-flow browser smoke suite and published Pages inspection.
+
+## Coordinator live check — palette parent accepted; UI-00 still outstanding (2026-11-14)
+
+Main at this check: `4198b1e095ad48df59763e7a39853d277f0b0bda`. Current open PR count: **58**.
+
+### Additional merge
+- **PR #16 AC-017 palette formats** merged as `4198b1e095ad48df59763e7a39853d277f0b0bda`. Exact-head run #661 on `8a0208a152c9963331b4335d2aaee728da86711d` passed 214 Node/model tests, syntax validation, Chromium editor E2E, animated GIF/ImageDecoder and MCP E2E. The final three-file diff includes indexed own-slot rejection for sparse and explicit-undefined entries.
+- PR #56 (AC-072 palette corpus) remains stacked on the now-merged palette-format branch. Coordinator asked Agent 8 to sync latest main, retarget, verify its 14-file fixture/docs/test diff, and rerun exact-head CI. Do not merge the stale child branch.
+
+### Open dependencies and review holds
+- PR #78 AC-094 bounded perceptual distance: merged as `d0d5e02c866544aae41fb18b8fef6488be04199b`.
+- PR #80 AC-066 tile workflow contract: merged as `187fbd0247c80ed5d5ba72ab019bc8d7bec2a86c`.
+- PR #79 AC-065 fixture corpus remains draft and stale; its comparison includes coordination files from old main snapshots in addition to the tile deliverables. Agent 7 was asked to sync latest main without force-push and narrow the diff before exact-head CI/review.
+- PR #77 AC-091 still has no agent response/new commit after coordinator review comments. It is 13+ commits behind latest main, its status still records the older feature head, and the review findings remain open. The design direction is accepted in principle, but UI-00 is not accepted and UI-01 has not started.
+- `index.html` remains unchanged at blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`. The only production UI owner is the coordinator; no app redesign has been merged or published.
