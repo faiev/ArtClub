@@ -73,6 +73,18 @@ Merged coordination/feature checkpoints include PRs #6 (Canvas renderer module),
 - **Project model/storage:** no agent may alter these shared foundations outside a future explicit coordinator assignment.
 - One writer per shared file; a dependency waiting on review does not stop independent work in owned paths.
 
+## Production UI integration is now the primary product priority
+
+The coordinator has created [coordination/INTEGRATION_PLAN.md](INTEGRATION_PLAN.md). The next objective is a visible production release, not simply more isolated modules.
+
+- **Production UI owner / sole writer:** coordinator for `index.html` and production UI wiring.
+- **Design lead:** Agent 5 completes AC-091 as a self-contained prototype; no production UI lock.
+- **QA:** Agent 1 prepares user-flow smoke coverage and confirms visible behavior in Chromium.
+- **Specialist reviews:** Agent 2 (viewport/renderer), Agent 3 (export), Agent 6 (safe editing), Agent 4 where Agent API behavior changes.
+- **Current first milestone:** UI-00 design approval, followed by UI-01 workstation shell.
+- **Backlog discipline:** AC-087–096 remain authorized but are not the immediate team priority. Existing critical work continues; do not expand into new feature phases ahead of the first production UI integration.
+- No user-visible claim until the integration is merged to `main`, Pages deployment is verified and the published app is inspected.
+
 ## Immediate coordinator priorities
 
 1. Review the parent PRs with current exact-head evidence before stacked descendants: #8, #14, #3, #12 and #16.
