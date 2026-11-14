@@ -117,6 +117,7 @@ Example batch:
 ```json
 {
   "label": "Simple flower",
+  "expected_revision": 42,
   "commands": [
     { "type": "draw_line", "x1": 11, "y1": 8, "x2": 11, "y2": 15, "color": "#53717a" },
     { "type": "draw_line", "x1": 7, "y1": 10, "x2": 11, "y2": 7, "color": "#87a7a0" },
@@ -127,7 +128,7 @@ Example batch:
 }
 ```
 
-For safe collaborative work, call `artclub_get_status` before editing and pass its `revision` as `expected_revision`. If the human or another operation changed the canvas since that read, Art Club rejects the stale batch instead of silently overwriting the newer edit. A batch is one undoable transaction.
+For safe collaborative work, call `artclub_get_status` before editing and pass its `revision` as `expected_revision`. The `42` in the sample is illustrative; always use the current revision returned by your own status read. If the human or another operation changed the canvas since that read, Art Club rejects the stale batch instead of silently overwriting the newer edit. A batch is one undoable transaction.
 
 ## Agent workflow recommendation
 
