@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Art Club GIF export browser verification</title>
+</head>
+<body>
+  <pre id="result">RUNNING</pre>
+  <script src="../js/gif-export.js"></script>
+  <script>
+    (async function () {
+      const output = document.getElementById("result");
+      const layer = { id: "layer-1", name: "Layer 1", visible: true, locked: false, opacity: 1 };
+      const project = {
+        format: "one-pixel-studio",
+        version: 2,
+        id: "browser-gif-check",
+        name: "Browser GIF check",
+        canvas: { width: 2, height: 2, background: null },
+        palette: ["#ff0000", "#00ff00", "#0000ff"],
+        selectedColorIndex: 0,
+        layers: [layer],
+        frames: [
+          { id: "frame-red", name: "Red", durationMs: 100 },
+          { id: "frame-blue", name: "Blue", durationMs: 200 }
+        ],
+        cels: [
+          { layerId: layer.id, frameId: "frame-red", pixels: ["#ff0000", null, null, "#00ff00"] },
+          { layerId: layer.id, frameId: "frame-blue", pixels: ["#0000ff", null, "#ffffff", null] }
+        ],
+        activeLayerId: layer.id,
+        activeFrameId: "frame-red",
+        metadata: { createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      };
+
+      try {
+        const exported = window.ArtClubGIFExporter.exportGIF(project, { loopCount: 0 });
+        const bytes = new Uint8Array(await exported.blob.arrayBuffer());
+        if (String.fromCharCode.apply(null, Array.from(bytes.slice(0, 6))) !== "GIF89a") {
+          throw new Error("The exported blob does not begin with GIF89a.");
+        }
+
+        if (typeof ImageDecoder === "function") {
+          const decoder = new ImageDecoder({ data: bytes, type: "image/gif" });
+          await decoder.tracks.ready;
+          const track = decoder.tracks.selectedTrack;
+          if (!track || track.frameCount !== 2) throw new Error("Browser decoder did not find two animation frames.");
+
+          const expectedRasters = [
+            [255, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 255],
+            [0, 0, 255, 255, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 0]
+          ];
+          const dimensions = [];
+          const rasters = [];
+          for (let frameIndex = 0; frameIndex < track.frameCount; frameIndex += 1) {
+            const decoded = await decoder.decode({ frameIndex: frameIndex });
+            const frame = decoded.image;
+            const width = frame.displayWidth || frame.codedWidth;
+            const height = frame.displayHeight || frame.codedHeight;
+            dimensions.push([width, height]);
+            if (width !== 2 || height !== 2) {
+              frame.close();
+              throw new Error("Decoded frame " + frameIndex + " had unexpected dimensions " + width + "×" + height + ".");
+            }
+            const canvas = new OffscreenCanvas(width, height);
+            const context = canvas.getContext("2d", { willReadFrequently: true });
+            context.drawImage(frame, 0, 0);
+            rasters.push(Array.from(context.getImageData(0, 0, width, height).data));
+            frame.close();
+          }
+          decoder.close();
+
+          if (JSON.stringify(dimensions) !== JSON.stringify([[2, 2], [2, 2]])) {
+            throw new Error("Decoded frame dimensions did not match the native canvas: " + JSON.stringify(dimensions));
+          }
+          if (JSON.stringify(rasters) !== JSON.stringify(expectedRasters)) {
+            throw new Error("Decoded full RGBA rasters did not match source frames (including disposal/transparent overlap): " + JSON.stringify(rasters));
+          }
+          output.textContent = "PASS " + JSON.stringify({
+            decoder: "ImageDecoder",
+            frameCount: track.frameCount,
+            dimensions: dimensions,
+            fullRgbaRasters: rasters,
+            checked: "every pixel of every decoded frame, including transparent disposal overlap",
+            blobType: exported.blob.type,
+            blobSize: exported.blob.size
+          });
+          document.body.dataset.result = "PASS";
+        } else {
+          const url = URL.createObjectURL(exported.blob);
+          try {
+            const image = new Image();
+            image.src = url;
+            await image.decode();
+            const canvas = document.createElement("canvas");
+            canvas.width = 2;
+            canvas.height = 2;
+            const context = canvas.getContext("2d", { willReadFrequently: true });
+            context.drawImage(image, 0, 0);
+            const raster = Array.from(context.getImageData(0, 0, 2, 2).data);
+            const expectedFirstFrame = [255, 0, 0, 255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 0, 255];
+            if (image.naturalWidth !== 2 || image.naturalHeight !== 2 ||
+                JSON.stringify(raster) !== JSON.stringify(expectedFirstFrame)) {
+              throw new Error("Browser image decode returned an unexpected first-frame RGBA raster: " + JSON.stringify(raster));
+            }
+            output.textContent = "PASS " + JSON.stringify({
+              decoder: "HTMLImageElement",
+              note: "ImageDecoder unavailable; fallback verifies the complete first-frame raster only.",
+              dimensions: [image.naturalWidth, image.naturalHeight],
+              fullFirstFrameRgba: raster,
+              blobType: exported.blob.type,
+              blobSize: exported.blob.size
+            });
+            document.body.dataset.result = "PASS";
+          } finally {
+            URL.revokeObjectURL(url);
+          }
+        }
+      } catch (error) {
+        output.textContent = "FAIL " + (error && error.stack ? error.stack : String(error));
+        document.body.dataset.result = "FAIL";
+      }
+    })();
+  </script>
+</body>
+</html>
