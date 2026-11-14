@@ -1,10 +1,10 @@
 # Status — Agent 3
 
 - **Task:** AC-011 — Implement standalone animated GIF export
-- **Status:** REVIEW — coordinator-directed corrections implemented; current CI passed; awaiting coordinator re-review
+- **Status:** IN_PROGRESS — AC-011 accepted; syncing branch with latest main and revalidating current head
 - **Branch:** `agent/gif-export`
-- **Base commit:** `fe66725f7d010beca7ca60f497778d419e753d7b`
-- **Latest code commit:** `da81f74ecccf2d74d8a1033e9eee42c98b7845b5`
+- **Latest main incorporated:** `220c2b5033ccd8752dd8e3e357be3fcd8bfc7b7a`
+- **Latest code/merge commit:** `1f5c7427d35fb2b09e10cb054dfaa5c637a56426`
 - **PR:** https://github.com/faiev/ArtClub/pull/11
 - **Changed files:** `js/gif-export.js`, `tests/gif-export.test.js`, `tests/gif-export.browser.html`, `tests/gif-export.browser.mjs`, `GIF_EXPORT.md`, `.github/workflows/project-tests.yml`.
 - **PR #11 current verification:** PR remains open, draft and mergeable. Latest head `da81f74ecccf2d74d8a1033e9eee42c98b7845b5`; PR targets `main`. The latest PR workflow run https://github.com/faiev/ArtClub/actions/runs/43605119104 (run #119) completed **success**: Node/model/editor suite **48 passed, 0 failed**; real-browser editor E2E passed; GIF Chromium `ImageDecoder` test passed with native 2×2 dimensions and every RGBA byte matched for both frames (including transparency/disposal overlap); MCP client E2E passed. No merge performed.
@@ -62,3 +62,16 @@ Reviewed PR https://github.com/faiev/ArtClub/pull/6 at head `77d425c9d2d01c56f77
 - Branch is now 10 commits ahead of current `main` and 1 behind because Agent 1's AC-006 recovery fix advanced `main` to `57b4da3cf9be2a9a4b1c98fea942729e42314d54`. No rebase/merge was performed; the successful PR workflow tested the current PR merge context.
 - No UI/API/MCP integration; AC-007 remains queued and was not started.
 - **Last updated:** 2026-11-14 — completed coordinator corrections and verified PR workflow run #119.
+
+
+## AC-011 post-acceptance branch synchronization
+
+- Coordinator accepted AC-011 as an isolated module in PR #11; no UI/API/MCP wiring was authorized.
+- Merged latest `main` into `agent/gif-export` with non-force, expected-head updates. The synchronization preserved the six PR #11 files and brought in main changes. Branch comparison after the last sync: 14 commits ahead, 0 behind; merge base equals current main.
+- Latest main at last verification: `220c2b5033ccd8752dd8e3e357be3fcd8bfc7b7a`.
+- Latest branch head: `1f5c7427d35fb2b09e10cb054dfaa5c637a56426` (merge commit).
+- PR #11 remains open, unmerged and mergeable. It is no longer marked draft by GitHub.
+- Full PR workflow run #138 was created for this exact head: https://github.com/faiev/ArtClub/actions/runs/43606334973. At status update time the run was in progress. Required gates: Node tests, Chromium editor E2E, complete GIF ImageDecoder raster test, MCP E2E.
+- **Next assignment:** AC-027, existing sprite-sheet PR #3 on `agent/animation-export`, begins after this AC-011 current-head workflow completes successfully. Requirements: Chromium decode deterministic PNG fixture, compare full RGBA raster, dimensions, spacing/margins, transparency, frame order and JSON metadata. Keep workflow file locked; prepare page/runner/docs only and do not edit `.github/workflows/project-tests.yml` until coordinator releases it.
+- No AC-007 UI/API integration. No changes to Agent 2 or Agent 4 files.
+- **Last updated:** 2026-11-14 — latest-main sync commit created and current-head workflow #138 started.
