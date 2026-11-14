@@ -157,6 +157,22 @@ test("reports a missing bridge test script even when the package file exists", (
   }
 });
 
+test("reports a missing documented QA command as a failure", () => {
+  const root = temporaryRoot();
+  try {
+    populateCompleteFixture(root);
+    writeFile(root, "docs/RELEASE_CHECKLIST.md", "node --test tests/project-model.test.js\\n");
+    const report = checkReleaseReadiness({ root });
+    assert.equal(
+      report.checks.find(check => check.id.startsWith("qa-command:node --test tests/qa/release/qa-release-check.test.js")).status,
+      "fail"
+    );
+    assert.equal(report.ok, false);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("complete local fixture passes required-file checks but warns about nested QA and CI integration", () => {
   const root = temporaryRoot();
   try {
