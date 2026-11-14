@@ -218,11 +218,20 @@ function registerTool(server, name, description, inputSchema, handler) {
     try {
       return await handler(args || {});
     } catch (error) {
+      const message = error && error.message ? error.message : String(error);
       return {
         content: [{
           type: "text",
-          text: name + " failed: " + (error && error.message ? error.message : String(error))
+          text: name + " failed: " + message
         }],
+        structuredContent: {
+          ok: false,
+          error: {
+            tool: name,
+            name: error && error.name ? error.name : "Error",
+            message
+          }
+        },
         isError: true
       };
     }
