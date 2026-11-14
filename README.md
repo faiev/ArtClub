@@ -27,3 +27,7 @@ This repository is hosted with GitHub Pages from the `main` branch and repositor
 To check or change this setting, open **Settings → Pages → Build and deployment** and select **Deploy from a branch**, branch `main`, folder `/(root)`.
 
 No build command or package installation is needed.
+
+## Product roadmap
+
+See [FEATURES.md](FEATURES.md) for the full product specification, current capability audit, prioritized feature backlog, user workflows, acceptance criteria and implementation milestones.
