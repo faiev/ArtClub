@@ -2545,9 +2545,9 @@ async function commitImportedProject(stagedProject,target,previousProject){
     }
     remember();
     selection=null;selectionPreview=null;selectionClipboard=null;selectionDragMode=null;
+    published=true;
     loadProjectIntoEditor(imported,false);
     documentRevision+=1;
-    published=true;
     const backupSaved=writeLocalBackup(imported);
     $("saveState").textContent=projectStorage
       ?(backupSaved?"SAVED IN PROJECT LIBRARY":"LIBRARY SAVED · LOCAL BACKUP UNAVAILABLE")
