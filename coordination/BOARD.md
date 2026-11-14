@@ -2,6 +2,9 @@
 
 **The team is in product-delivery mode. Stop creating isolated modules, speculative tooling, extra prototypes, benchmark-only work, and documentation-only PRs unless the Coordinator explicitly requests them for the current release.**
 
+**Inventory snapshot (2026-11-15):** 101 branches (100 on the first page plus `main` on page 2) and 71 open PRs. This is a cleanup backlog, not 71 active tasks. Existing branch/PR ownership must be classified before closure or deletion.
+
+
 ## One active release lane
 - **P0: UI-02 production editing safety.** Coordinator owns production UI integration. Deliver and verify active-cel/selection Clear, then staged image import, then atomic selection paste. Only one production integration PR is active at a time.
 - Agent 1: QA-only denial/immutability tests and exact-head review for the active UI-02 slice.
