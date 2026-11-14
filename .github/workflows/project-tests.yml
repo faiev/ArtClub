@@ -54,3 +54,6 @@ jobs:
       - name: Run real-browser editor tests
         run: npm run test:e2e
         working-directory: agent-bridge
+      - name: Run MCP client integration test
+        run: npm run test:mcp
+        working-directory: agent-bridge
