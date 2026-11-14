@@ -23,24 +23,8 @@ From the repository root:
 - [ ] `node --test tests/qa/compatibility/gif-export-contract.test.js`
 - [ ] `node --test tests/qa/release/qa-release-check.test.js`
 - [ ] `node --test tests/qa/renderer/canvas-renderer-contract.test.js`
-- [ ] `node --test tests/qa/runner/run-qa.test.mjs`
 
 The current root test command only expands top-level `tests/*.test.js`. It does not include nested QA suites; running the root suite alone does not satisfy the focused QA commands above.
-
-Run the explicit QA manifest from the repository root:
-
-```bash
-node tools/run-qa.mjs --suite all
-node tools/run-qa.mjs --suite all --json
-```
-
-The default run reports the browser suite as skipped. After Playwright and Chromium are already installed, run the real-browser suite explicitly:
-
-```bash
-node tools/run-qa.mjs --suite browser --include-browser
-```
-
-The runner never installs dependencies; review skipped and not-run entries rather than treating them as passes.
 
 ## 3. Real-browser and bridge tests
 
@@ -89,3 +73,20 @@ If sprite-sheet export is included in the release, also require the sprite-sheet
 - [ ] Coordinator reviews/merges PRs and explicitly declares release readiness.
 
 **Important:** The local QA release checker does not query GitHub, inspect remote CI, deploy, mutate project data or prove tests passed. Its machine-readable CI state is always reported as unverified. CI can be marked green only from a verifiable workflow run associated with the exact release SHA.
+
+
+## 7. Production UI — UI-01 workstation shell smoke gate
+
+**Prepared for the coordinator's UI-01 integration PR. Not yet executed.** Agent 1 does not modify `index.html` or production CSS and will test only after an approved candidate is available.
+
+- [ ] Capture a 1440×900 desktop screenshot and verify menu/document bar, tool rail, dominant canvas, inspector and timeline.
+- [ ] Capture a 1280×800 compact screenshot; verify no essential action becomes clipped or unreachable.
+- [ ] Run UI01-01…UI01-12 in `docs/QA_MATRIX.md`: orientation, draw/erase, selection, layers, frames, playback, save/reload/recovery, import, export, keyboard/focus, compact layout and denial/error states.
+- [ ] Assert known pixel coordinates/colors and exact state after project/frame/layer switching.
+- [ ] Verify grid/selection/onion overlays do not alter stored artwork pixels.
+- [ ] Verify import cancellation/failure and denied edits preserve source project bytes, pixels and recovery state.
+- [ ] Record PR URL, exact tested SHA, browser/version, viewport/DPR, screenshots, failed/blocked IDs and console/page errors.
+- [ ] Run root Node tests, Chromium editor E2E, and relevant specialist browser/decoder tests against the exact candidate head.
+- [ ] After merge, verify Pages deployment and directly inspect the published URL before any user-visible release claim.
+
+The coordinator is the sole production UI integrator. Any missing control, placeholder interaction, or removed existing workflow is a regression—not a pass because the new shell looks correct.
