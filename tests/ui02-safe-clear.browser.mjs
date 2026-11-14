@@ -200,7 +200,7 @@ async function run() {
     await racePage.locator("#clearBtn").click();
     await racePage.waitForFunction(() => window.__safeClearSaveProbe.active === 1, null, { timeout: 5000 });
     await racePage.evaluate(() => window.__pendingSafeClearImage.onload());
-    assert.match(await racePage.locator("#toast").textContent(), /another edit is being saved/i,
+    assert.match(await racePage.locator("#toast").textContent(), /project or edit target changed while the image was loading/i,
       "an image decode already in flight must be explicitly rejected while safe Clear commits");
     await racePage.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 23, y: 23 }).color === null, null, { timeout: 10000 });
     await racePage.waitForFunction(() => window.__safeClearSaveProbe.snapshots.length >= 2 && window.__safeClearSaveProbe.active === 0, null, { timeout: 10000 });
