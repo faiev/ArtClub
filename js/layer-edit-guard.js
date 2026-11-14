@@ -19,16 +19,33 @@
     LAYER_METADATA_INVALID: "LAYER_METADATA_INVALID",
     LAYER_HIDDEN: "LAYER_HIDDEN",
     LAYER_LOCKED: "LAYER_LOCKED",
+    LAYER_ZERO_OPACITY: "LAYER_ZERO_OPACITY",
     FRAME_ID_INVALID: "FRAME_ID_INVALID",
     FRAME_NOT_FOUND: "FRAME_NOT_FOUND",
     FRAME_AMBIGUOUS: "FRAME_AMBIGUOUS",
     FRAME_NOT_ACTIVE: "FRAME_NOT_ACTIVE",
+    FRAME_METADATA_INVALID: "FRAME_METADATA_INVALID",
+    PROJECT_REVISION_STALE: "PROJECT_REVISION_STALE",
+    FRAME_REVISION_STALE: "FRAME_REVISION_STALE",
+    COMPOSITE_REVISION_STALE: "COMPOSITE_REVISION_STALE",
+    REVISION_CONTEXT_INVALID: "REVISION_CONTEXT_INVALID",
+    SELECTION_INVALID: "SELECTION_INVALID",
+    CANVAS_SIZE_INVALID: "CANVAS_SIZE_INVALID",
     CEL_NOT_FOUND: "CEL_NOT_FOUND",
     CEL_AMBIGUOUS: "CEL_AMBIGUOUS",
     CEL_INVALID: "CEL_INVALID"
   });
 
   const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+  const LIMITS = Object.freeze({
+    maxDimension: 512,
+    maxCanvasPixels: 512 * 512
+  });
+  const REVISION_FIELDS = Object.freeze([
+    { key: "project", reason: "PROJECT_REVISION_STALE" },
+    { key: "frame", reason: "FRAME_REVISION_STALE" },
+    { key: "composite", reason: "COMPOSITE_REVISION_STALE" }
+  ]);
 
   function isRecord(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -68,6 +85,50 @@
     return true;
   }
 
+  function validateRevisionContext(options) {
+    const hasExpected = Object.prototype.hasOwnProperty.call(options, "expectedRevisions");
+    const hasCurrent = Object.prototype.hasOwnProperty.call(options, "currentRevisions");
+    if (!hasExpected && !hasCurrent) return null;
+    if (!hasExpected || !hasCurrent ||
+        !isRecord(options.expectedRevisions) || !isRecord(options.currentRevisions)) {
+      return denial(REASONS.REVISION_CONTEXT_INVALID,
+        "Expected and current project, frame and composite revisions must be supplied together.");
+    }
+
+    for (const field of REVISION_FIELDS) {
+      const expected = options.expectedRevisions[field.key];
+      const current = options.currentRevisions[field.key];
+      if (!Number.isSafeInteger(expected) || expected < 0 ||
+          !Number.isSafeInteger(current) || current < 0) {
+        return denial(REASONS.REVISION_CONTEXT_INVALID,
+          "Revision values must be non-negative safe integers.");
+      }
+      if (expected !== current) {
+        return denial(REASONS[field.reason],
+          "The " + field.key + " revision is stale; read the target again before editing.");
+      }
+    }
+    return null;
+  }
+
+  function validateSelection(selection, width, height) {
+    if (selection === undefined || selection === null) return null;
+    if (!isRecord(selection)) {
+      return denial(REASONS.SELECTION_INVALID, "Selection must be null or an integer rectangle.");
+    }
+    const x = selection.x;
+    const y = selection.y;
+    const selectionWidth = selection.width;
+    const selectionHeight = selection.height;
+    if (![x, y, selectionWidth, selectionHeight].every(Number.isInteger) ||
+        x < 0 || y < 0 || selectionWidth < 1 || selectionHeight < 1 ||
+        x + selectionWidth > width || y + selectionHeight > height) {
+      return denial(REASONS.SELECTION_INVALID,
+        "Selection must be a non-empty integer rectangle fully inside the canvas.");
+    }
+    return null;
+  }
+
   /**
    * Resolve the active layer/frame cel for a pixel-edit operation.
    * Explicit IDs are accepted only when they identify the current active layer
@@ -81,10 +142,17 @@
     }
     if (!isRecord(project) || project.format !== "one-pixel-studio" || project.version !== 2 ||
         !Array.isArray(project.layers) || !Array.isArray(project.frames) ||
-        !Array.isArray(project.cels) || !isRecord(project.canvas) ||
-        !Number.isInteger(project.canvas.width) || project.canvas.width < 1 || project.canvas.width > 512 ||
-        !Number.isInteger(project.canvas.height) || project.canvas.height < 1 || project.canvas.height > 512) {
+        !Array.isArray(project.cels) || !isRecord(project.canvas)) {
       return denial(REASONS.PROJECT_INVALID, "The project document is malformed or incomplete.");
+    }
+    const canvasWidth = project.canvas.width;
+    const canvasHeight = project.canvas.height;
+    if (!Number.isInteger(canvasWidth) || !Number.isInteger(canvasHeight) ||
+        canvasWidth < 1 || canvasHeight < 1 ||
+        canvasWidth > LIMITS.maxDimension || canvasHeight > LIMITS.maxDimension ||
+        canvasWidth * canvasHeight > LIMITS.maxCanvasPixels) {
+      return denial(REASONS.CANVAS_SIZE_INVALID,
+        "Canvas dimensions must be whole numbers from 1 to " + LIMITS.maxDimension + " per side.");
     }
 
     if (typeof project.activeLayerId !== "string" || !project.activeLayerId) {
@@ -110,14 +178,24 @@
     if (layerId !== project.activeLayerId) {
       return denial(REASONS.LAYER_NOT_ACTIVE, "Only the active layer can be edited by this editor operation.", { layerId: layerId });
     }
-    if (typeof layer.visible !== "boolean" || typeof layer.locked !== "boolean") {
-      return denial(REASONS.LAYER_METADATA_INVALID, "The target layer must have boolean visible and locked flags.", { layerId: layerId });
+    if (typeof layer.name !== "string" || !layer.name.trim() ||
+        typeof layer.visible !== "boolean" || typeof layer.locked !== "boolean" ||
+        typeof layer.opacity !== "number" || !Number.isFinite(layer.opacity) ||
+        layer.opacity < 0 || layer.opacity > 1) {
+      return denial(REASONS.LAYER_METADATA_INVALID,
+        "The target layer must have a name, boolean visible/locked flags and opacity from 0 to 1.",
+        { layerId: layerId });
     }
     if (!layer.visible) {
       return denial(REASONS.LAYER_HIDDEN, "The target layer is hidden and cannot be edited.", { layerId: layerId });
     }
     if (layer.locked) {
       return denial(REASONS.LAYER_LOCKED, "The target layer is locked and cannot be edited.", { layerId: layerId });
+    }
+    if (layer.opacity === 0) {
+      return denial(REASONS.LAYER_ZERO_OPACITY,
+        "The target layer has zero opacity and cannot receive an invisible edit.",
+        { layerId: layerId });
     }
 
     const frameId = options.frameId === undefined ? project.activeFrameId : options.frameId;
@@ -133,6 +211,26 @@
     }
     if (frameId !== project.activeFrameId) {
       return denial(REASONS.FRAME_NOT_ACTIVE, "Only the active frame can be edited by this editor operation.", { layerId: layerId, frameId: frameId });
+    }
+    const frame = frameMatch.value;
+    if (typeof frame.name !== "string" || !frame.name.trim() ||
+        !Number.isInteger(frame.durationMs) || frame.durationMs < 10 || frame.durationMs > 60000) {
+      return denial(REASONS.FRAME_METADATA_INVALID,
+        "The target frame must have a name and duration from 10 to 60000 milliseconds.",
+        { layerId: layerId, frameId: frameId });
+    }
+
+    const revisionDenial = validateRevisionContext(options);
+    if (revisionDenial) {
+      revisionDenial.layerId = layerId;
+      revisionDenial.frameId = frameId;
+      return revisionDenial;
+    }
+    const selectionDenial = validateSelection(options.selection, canvasWidth, canvasHeight);
+    if (selectionDenial) {
+      selectionDenial.layerId = layerId;
+      selectionDenial.frameId = frameId;
+      return selectionDenial;
     }
 
     const matchingCels = project.cels.filter(function (cel) {
@@ -158,7 +256,7 @@
       layerId: layerId,
       frameId: frameId,
       layer: layer,
-      frame: frameMatch.value,
+      frame: frame,
       cel: cel
     };
   }
@@ -179,6 +277,7 @@
 
   return Object.freeze({
     REASONS: REASONS,
+    LIMITS: LIMITS,
     resolveEditableTarget: resolveEditableTarget,
     assertEditableTarget: assertEditableTarget
   });
