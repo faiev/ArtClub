@@ -1,0 +1,89 @@
+{
+  "format": "one-pixel-studio",
+  "version": 2,
+  "id": "project-v2-fixture",
+  "name": "Inspector fixture",
+  "canvas": {
+    "width": 0,
+    "height": 513,
+    "background": null
+  },
+  "palette": [
+    "#000000",
+    "#ffffff",
+    "#ff0000"
+  ],
+  "selectedColorIndex": 1,
+  "layers": [
+    {
+      "id": "layer-base",
+      "name": "Base",
+      "visible": true,
+      "locked": false,
+      "opacity": 1
+    },
+    {
+      "id": "layer-guide",
+      "name": "Guide",
+      "visible": false,
+      "locked": true,
+      "opacity": 0.5
+    }
+  ],
+  "frames": [
+    {
+      "id": "frame-a",
+      "name": "Frame 1",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-b",
+      "name": "Frame 2",
+      "durationMs": 250
+    }
+  ],
+  "cels": [
+    {
+      "layerId": "layer-base",
+      "frameId": "frame-a",
+      "pixels": [
+        "#000000",
+        null,
+        null,
+        null,
+        null,
+        "#ffffff",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "layerId": "layer-guide",
+      "frameId": "frame-b",
+      "pixels": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "#ff0000",
+        null
+      ]
+    }
+  ],
+  "activeLayerId": "layer-guide",
+  "activeFrameId": "frame-b",
+  "metadata": {
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+}
