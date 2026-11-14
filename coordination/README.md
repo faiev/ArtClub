@@ -20,6 +20,21 @@ The goal is to eliminate repeated one-off prompts, hidden handoffs, duplicate wo
 
 The application source remains in the normal source tree. Worker code must be committed to that worker's feature branch and submitted as a pull request. Coordination status is metadata and should be committed to `main` in the worker's own status file so the other chats can read it immediately.
 
+## Bootstrap mode (while the coordination PR is still open)
+
+The initial coordination system is introduced in PR #5. Until that PR is merged into `main`, the coordination files do not exist on the default branch. **Do not report this as a blocker.**
+
+Temporary source of truth:
+- Read `coordination/README.md`, `BOARD.md`, `BACKLOG.md`, `DECISIONS.md`, your assignment and your status from ref `coordination/orchestration-v1`.
+- In GitHub file fetch operations, explicitly set `ref=coordination/orchestration-v1`. Do not omit the ref during bootstrap.
+- Update only your own `coordination/status/agent-N.md` on the same `coordination/orchestration-v1` branch. Fetch the latest file first and use its current blob SHA. Do not update another agent's status or coordinator-owned files.
+- Keep all application code commits on your assigned feature branch, never on the coordination branch.
+- Because several agents may update separate status files, re-fetch the branch and your file immediately before writing. If the write is rejected because the file/branch changed, re-fetch and reconcile; never force-push or overwrite another worker's update.
+- The coordinator alone updates BOARD.md, BACKLOG.md, DECISIONS.md and assignments.
+- After PR #5 is merged, switch the source of truth to the default branch `main`. Confirm the merge commit contains all coordination files before changing the ref.
+
+This bootstrap exception exists only to make the first coordination PR usable. It does not authorize application-code changes on the coordination branch.
+
 ## Worker start/resume protocol
 
 At the beginning of **every** new work session, and after completing any task:
