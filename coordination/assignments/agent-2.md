@@ -58,3 +58,18 @@ All phases are authorized. PRs are checkpoints, not stop points. Use a new branc
 
 ## Handoff
 Update only coordination/status/agent-2.md with active phase, branches/PRs, exact test results, benchmark raw-data locations and next 3–5 tasks. Do not merge or self-accept.
+
+## Coordinator-added extension — AC-088: Live-editor versus Canvas renderer workload study
+
+After AC-037 and AC-038, produce an evidence-based decision package for whether and where the isolated Canvas renderer should replace the current production DOM-grid renderer.
+
+### Deliverable
+- Add a reproducible real-Chromium workload harness and report under the existing renderer benchmark ownership.
+- Measure representative editor actions: initial render, repeated brush strokes, erasing, fill-like full updates, zoom/resize, grid/selection overlays, frame switches and repeated project reopen/close.
+- Keep three result categories separate: production editor end-to-end, isolated DOM-grid renderer, and isolated Canvas renderer. Do not present renderer-only numbers as editor-level performance.
+- Use representative 32, 64, 128, 256 and 512 canvases; sparse and dense artwork; repeated warm-ups and enough measured samples to report median, p95, variance and raw samples.
+- Record browser/runtime, OS, DPR, viewport, hardware context when known, memory/DOM-node estimates and any failed/slow workload.
+- Define explicit adoption gates: pixel parity, input latency, frame budget, accessibility/focus behavior, cleanup and fallback. Recommend adopt, defer or reject with evidence.
+- Do not alter production UI or claim a speedup from a single run.
+
+**Allowed files:** renderer browser harnesses, `benchmarks/renderer-*`, renderer validation/integration documentation only. No index.html, project model, shared workflow or UI integration.
