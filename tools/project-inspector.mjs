@@ -8,6 +8,10 @@ const require = createRequire(import.meta.url);
 const Project = require("../js/project-model.js");
 const MAX_FILE_BYTES = 64 * 1024 * 1024;
 const READ_BUFFER_BYTES = 64 * 1024;
+const MAX_BATCH_FILES = 500;
+const MAX_BATCH_TOTAL_BYTES = 32 * 1024 * 1024;
+const MAX_BATCH_DIRECTORY_ENTRIES = 10000;
+const MAX_BATCH_DIRECTORY_DEPTH = 32;
 
 function inspectorError(code, message, exitCode = 1) {
   const error = new Error(message);
@@ -15,38 +19,69 @@ function inspectorError(code, message, exitCode = 1) {
   error.exitCode = exitCode;
   return error;
 }
+function lexicalCompare(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
 function usage() {
   return [
-    "Usage: node tools/project-inspector.mjs [--json] <project-file>",
+    "Usage:",
+    "  node tools/project-inspector.mjs [--json] <project-file>",
+    "  node tools/project-inspector.mjs --batch [--recursive] [--json] <file-or-directory>...",
     "",
-    "Inspect a One Pixel Studio project without modifying it.",
+    "Inspect One Pixel Studio projects without modifying them.",
     "",
     "Options:",
-    "  --json    Print a stable machine-readable JSON report.",
-    "  --help    Show this help message.",
+    "  --json        Print a stable machine-readable JSON report.",
+    "  --batch       Inspect multiple files and/or directory inputs.",
+    "  --recursive   Recurse into child directories (requires --batch).",
+    "  --help        Show this help message.",
     "",
-    "The inspector accepts v2 documents and legacy single-canvas documents.",
-    "Input files larger than 64 MiB are rejected before JSON parsing."
+    "Single-file and batch inspection accept v2 documents and legacy single-canvas documents.",
+    "Input files larger than 64 MiB are rejected before JSON parsing.",
+    "Batch limits: 500 files and 32 MiB total input bytes.",
+    "Directory symlinks are not followed."
   ].join("\n");
 }
 function parseArguments(argv) {
-  const result = { json: false, help: false, filePath: null, error: null };
+  const result = {
+    json: false,
+    help: false,
+    batch: false,
+    recursive: false,
+    filePath: null,
+    inputPaths: [],
+    error: null
+  };
   let positionalOnly = false;
   for (const argument of argv) {
     if (!positionalOnly && argument === "--") { positionalOnly = true; continue; }
     if (!positionalOnly && argument === "--json") { result.json = true; continue; }
     if (!positionalOnly && argument === "--help") { result.help = true; continue; }
+    if (!positionalOnly && argument === "--batch") { result.batch = true; continue; }
+    if (!positionalOnly && argument === "--recursive") { result.recursive = true; continue; }
     if (!positionalOnly && argument.startsWith("-")) {
       result.error = inspectorError("INVALID_ARGUMENT", "Unknown option: " + argument + ". Use --help to see supported options.", 2);
       return result;
     }
-    if (result.filePath !== null) {
-      result.error = inspectorError("INVALID_ARGUMENT", "Only one project file may be inspected at a time.", 2);
+    if (result.batch) {
+      result.inputPaths.push(argument);
+    } else if (result.filePath === null) {
+      result.filePath = argument;
+    } else {
+      result.error = inspectorError("INVALID_ARGUMENT", "Only one project file may be inspected at a time. Use --batch for multiple inputs.", 2);
       return result;
     }
-    result.filePath = argument;
   }
-  if (!result.help && result.filePath === null) {
+  if (result.help) return result;
+  if (result.recursive && !result.batch) {
+    result.error = inspectorError("INVALID_ARGUMENT", "--recursive requires --batch.", 2);
+    return result;
+  }
+  if (result.batch && result.inputPaths.length === 0) {
+    result.error = inspectorError("INVALID_ARGUMENT", "At least one file or directory path is required with --batch.", 2);
+    return result;
+  }
+  if (!result.batch && result.filePath === null) {
     result.error = inspectorError("INVALID_ARGUMENT", "A project file path is required. Use --help for usage.", 2);
   }
   return result;
@@ -54,8 +89,18 @@ function parseArguments(argv) {
 function readProjectFile(filePath) {
   let descriptor;
   try {
-    descriptor = fs.openSync(filePath, "r");
+    const pathStats = fs.lstatSync(filePath);
+    if (pathStats.isSymbolicLink()) {
+      throw inspectorError("SYMLINK_NOT_FOLLOWED", "Symbolic links are not followed by the project inspector: " + filePath);
+    }
+    if (!pathStats.isFile()) throw inspectorError("NOT_A_FILE", "The supplied path is not a regular file: " + filePath);
+    if (pathStats.size > MAX_FILE_BYTES) {
+      throw inspectorError("FILE_TOO_LARGE", "Project file is " + pathStats.size + " bytes; the inspection limit is " + MAX_FILE_BYTES + " bytes (64 MiB).");
+    }
+    const noFollow = fs.constants.O_NOFOLLOW || 0;
+    descriptor = fs.openSync(filePath, fs.constants.O_RDONLY | noFollow);
   } catch (error) {
+    if (error && error.code) throw error;
     throw inspectorError("FILE_READ_ERROR", "Unable to open project file " + JSON.stringify(filePath) + ": " + error.message);
   }
   try {
@@ -160,6 +205,27 @@ function inspectProject(data, filePath, fileSizeBytes) {
     totalDurationMs: frames.reduce((sum, frame) => sum + frame.durationMs, 0)
   };
 }
+function inspectOneFile(filePath) {
+  try {
+    const input = readProjectFile(filePath);
+    let data;
+    try {
+      data = JSON.parse(input.text.replace(/^\uFEFF/, ""));
+    } catch (error) {
+      throw inspectorError("JSON_PARSE_ERROR", "Invalid JSON in " + JSON.stringify(filePath) + ": " + error.message);
+    }
+    return { report: inspectProject(data, filePath, input.bytes), bytesRead: input.bytes };
+  } catch (error) {
+    return {
+      report: {
+        ok: false,
+        file: filePath,
+        error: { code: error.code || "INSPECTION_FAILED", message: error.message || "Project inspection failed." }
+      },
+      bytesRead: 0
+    };
+  }
+}
 function renderHumanReport(report) {
   const visibleLayers = report.layers.filter((layer) => layer.visible).map((layer) => layer.name);
   const hiddenLayers = report.layers.filter((layer) => !layer.visible).map((layer) => layer.name);
@@ -194,6 +260,204 @@ function renderHumanReport(report) {
     "Total animation duration: " + report.totalDurationMs + " ms"
   ].join("\n");
 }
+function batchFailure(filePath, code, message) {
+  return {
+    ok: false,
+    file: filePath,
+    error: { code, message }
+  };
+}
+function collectBatchFiles(inputPaths, recursive) {
+  const files = [];
+  const discoveryErrors = [];
+  const warnings = [];
+  const seenFiles = new Set();
+  const seenDirectories = new Set();
+  let visitedEntries = 0;
+  let fatalLimit = false;
+
+  function addFile(filePath) {
+    const normalized = path.resolve(filePath);
+    if (seenFiles.has(normalized)) {
+      warnings.push({ code: "DUPLICATE_PATH", path: normalized, message: "Duplicate input path was ignored." });
+      return;
+    }
+    seenFiles.add(normalized);
+    if (files.length >= MAX_BATCH_FILES) {
+      discoveryErrors.push({
+        path: normalized,
+        code: "BATCH_FILE_LIMIT",
+        message: "Batch input exceeds the " + MAX_BATCH_FILES + "-file limit; no partial batch was inspected."
+      });
+      fatalLimit = true;
+      return;
+    }
+    files.push(normalized);
+  }
+
+  function addDiscoveryError(filePath, code, message) {
+    discoveryErrors.push({ path: filePath, code, message });
+  }
+
+  function visit(inputPath, depth) {
+    if (fatalLimit) return;
+    const normalized = path.resolve(inputPath);
+    let stats;
+    try {
+      stats = fs.lstatSync(normalized);
+    } catch (error) {
+      addDiscoveryError(normalized, "PATH_ACCESS_ERROR", "Unable to inspect input path: " + error.message);
+      return;
+    }
+    if (stats.isSymbolicLink()) {
+      addDiscoveryError(normalized, "SYMLINK_NOT_FOLLOWED", "Symbolic links are not followed by the project inspector.");
+      return;
+    }
+    if (stats.isFile()) {
+      addFile(normalized);
+      return;
+    }
+    if (!stats.isDirectory()) {
+      addDiscoveryError(normalized, "NOT_A_FILE_OR_DIRECTORY", "Input path is neither a regular file nor a directory.");
+      return;
+    }
+    if (depth > MAX_BATCH_DIRECTORY_DEPTH) {
+      addDiscoveryError(normalized, "DIRECTORY_DEPTH_LIMIT", "Directory traversal exceeded the " + MAX_BATCH_DIRECTORY_DEPTH + "-level depth limit.");
+      return;
+    }
+    if (seenDirectories.has(normalized)) return;
+    seenDirectories.add(normalized);
+
+    let directory;
+    const entries = [];
+    try {
+      directory = fs.opendirSync(normalized);
+      while (true) {
+        const entry = directory.readSync();
+        if (entry === null) break;
+        visitedEntries += 1;
+        if (visitedEntries > MAX_BATCH_DIRECTORY_ENTRIES) {
+          addDiscoveryError(normalized, "DIRECTORY_ENTRY_LIMIT",
+            "Directory traversal exceeded the " + MAX_BATCH_DIRECTORY_ENTRIES + "-entry safety limit; no partial batch was inspected.");
+          fatalLimit = true;
+          break;
+        }
+        entries.push(entry);
+      }
+    } catch (error) {
+      addDiscoveryError(normalized, "DIRECTORY_READ_ERROR", "Unable to read directory: " + error.message);
+      return;
+    } finally {
+      if (directory) {
+        try { directory.closeSync(); } catch {}
+      }
+    }
+    entries.sort((left, right) => lexicalCompare(left.name, right.name));
+    for (const entry of entries) {
+      if (fatalLimit) break;
+      const entryPath = path.join(normalized, entry.name);
+      if (entry.isSymbolicLink()) {
+        addDiscoveryError(entryPath, "SYMLINK_NOT_FOLLOWED", "Symbolic links are not followed by the project inspector.");
+      } else if (entry.isFile()) {
+        addFile(entryPath);
+      } else if (entry.isDirectory() && recursive) {
+        visit(entryPath, depth + 1);
+      }
+    }
+  }
+
+  const roots = inputPaths.map((inputPath) => path.resolve(inputPath)).sort(lexicalCompare);
+  for (const root of roots) {
+    if (fatalLimit) break;
+    visit(root, 0);
+  }
+  files.sort(lexicalCompare);
+  discoveryErrors.sort((left, right) => lexicalCompare(left.path || "", right.path || "") || lexicalCompare(left.code, right.code));
+  warnings.sort((left, right) => lexicalCompare(left.path, right.path));
+  return { files, discoveryErrors, warnings, fatalLimit, visitedEntries };
+}
+function inspectBatch(inputPaths, recursive) {
+  const collected = collectBatchFiles(inputPaths, recursive);
+  const results = [];
+  let bytesRead = 0;
+  if (!collected.fatalLimit) {
+    for (const filePath of collected.files) {
+      let fileSize;
+      try {
+        const stats = fs.lstatSync(filePath);
+        if (stats.isSymbolicLink()) {
+          results.push(batchFailure(filePath, "SYMLINK_NOT_FOLLOWED", "Symbolic links are not followed by the project inspector."));
+          continue;
+        }
+        if (!stats.isFile()) {
+          results.push(batchFailure(filePath, "NOT_A_FILE", "The input is no longer a regular file."));
+          continue;
+        }
+        fileSize = stats.size;
+      } catch (error) {
+        results.push(batchFailure(filePath, "FILE_READ_ERROR", "Unable to inspect file: " + error.message));
+        continue;
+      }
+      if (fileSize <= MAX_FILE_BYTES && bytesRead + fileSize > MAX_BATCH_TOTAL_BYTES) {
+        results.push(batchFailure(filePath, "BATCH_TOTAL_SIZE_LIMIT",
+          "Reading this file would exceed the batch total input limit of " + MAX_BATCH_TOTAL_BYTES + " bytes (32 MiB)."));
+        continue;
+      }
+      const inspected = inspectOneFile(filePath);
+      bytesRead += inspected.bytesRead;
+      results.push(inspected.report);
+    }
+  }
+  const successCount = results.filter((result) => result.ok).length;
+  const failureCount = results.length - successCount + collected.discoveryErrors.length;
+  return {
+    ok: failureCount === 0 && !collected.fatalLimit,
+    mode: "batch",
+    recursive,
+    inputCount: inputPaths.length,
+    fileCount: collected.files.length,
+    successCount,
+    failureCount,
+    bytesRead,
+    limits: {
+      maxFiles: MAX_BATCH_FILES,
+      maxFileBytes: MAX_FILE_BYTES,
+      maxTotalBytes: MAX_BATCH_TOTAL_BYTES,
+      maxDirectoryEntries: MAX_BATCH_DIRECTORY_ENTRIES,
+      maxDirectoryDepth: MAX_BATCH_DIRECTORY_DEPTH
+    },
+    warnings: collected.warnings,
+    discoveryErrors: collected.discoveryErrors,
+    results
+  };
+}
+function renderHumanBatchReport(report) {
+  const lines = [
+    "Project Inspector — Batch",
+    "Status: " + (report.ok ? "VALID" : "COMPLETED WITH ERRORS"),
+    "Files: " + report.fileCount + " discovered; " + report.successCount + " valid; " + report.failureCount + " errors",
+    "Bytes read: " + report.bytesRead,
+    "Limits: " + report.limits.maxFiles + " files; " + report.limits.maxTotalBytes + " total bytes; " +
+      report.limits.maxFileBytes + " bytes per file",
+    ""
+  ];
+  for (const result of report.results) {
+    if (result.ok) {
+      lines.push("VALID " + result.file + " — " + result.name + " — " +
+        result.canvas.width + " × " + result.canvas.height + " — " +
+        result.layerCount + " layers, " + result.frameCount + " frames");
+    } else {
+      lines.push("INVALID " + result.file + " — Error [" + result.error.code + "]: " + result.error.message);
+    }
+  }
+  for (const error of report.discoveryErrors) {
+    lines.push("ERROR " + (error.path || "(batch)") + " — Error [" + error.code + "]: " + error.message);
+  }
+  for (const warning of report.warnings) {
+    lines.push("WARNING " + warning.path + " — " + warning.message);
+  }
+  return lines.join("\n");
+}
 function emitFailure(filePath, jsonMode, error) {
   const failure = {
     ok: false,
@@ -216,18 +480,19 @@ function main(argv) {
   const args = parseArguments(argv);
   if (args.help) { process.stdout.write(usage() + "\n"); return; }
   if (args.error) { emitFailure(args.filePath, args.json, args.error); return; }
-  try {
-    const input = readProjectFile(args.filePath);
-    let data;
-    try {
-      data = JSON.parse(input.text.replace(/^\uFEFF/, ""));
-    } catch (error) {
-      throw inspectorError("JSON_PARSE_ERROR", "Invalid JSON in " + JSON.stringify(args.filePath) + ": " + error.message);
-    }
-    const report = inspectProject(data, args.filePath, input.bytes);
+  if (args.batch) {
+    const report = inspectBatch(args.inputPaths, args.recursive);
     if (args.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
-    else process.stdout.write(renderHumanReport(report) + "\n");
-  } catch (error) {
+    else process.stdout.write(renderHumanBatchReport(report) + "\n");
+    if (!report.ok) process.exitCode = 1;
+    return;
+  }
+  const inspected = inspectOneFile(args.filePath);
+  if (inspected.report.ok) {
+    if (args.json) process.stdout.write(JSON.stringify(inspected.report, null, 2) + "\n");
+    else process.stdout.write(renderHumanReport(inspected.report) + "\n");
+  } else {
+    const error = inspectorError(inspected.report.error.code, inspected.report.error.message);
     emitFailure(args.filePath, args.json, error);
   }
 }
