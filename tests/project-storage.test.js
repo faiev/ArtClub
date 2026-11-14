@@ -187,6 +187,11 @@ test("conditional rollback restores the exact previous primary and recovery snap
     await storage.restoreIfCurrent(saved.rollbackReceipt);
     assert.deepEqual(await storage.getProject(p0.id), primaryBefore);
     assert.deepEqual(await storage.getRecovery(p0.id), recoveryBefore);
+    const afterRollback = Project.cloneProject(primaryBefore);
+    afterRollback.name = "Next committed version";
+    const nextSave = await storage.saveProject(afterRollback);
+    assert.equal(nextSave.revision, 5,
+      "rollback restores exact content but advances the independent revision sequence");
   } finally {
     storage.close();
   }
