@@ -1,45 +1,69 @@
-# Agent 1 — QA / release
+# Agent 1 — QA engineering / release reliability
 
-## ASSIGNED — AC-025: Audit remaining frame-aware QA coverage in PR #1
+## Continuous workstream: build and maintain Art Club's regression safety net
 
-Your AC-006 recovery fix was merged as PR #10:
-https://github.com/faiev/ArtClub/pull/10
+You are not assigned a one-off audit. You own a rolling QA workstream with the phases below. Every phase is pre-authorized. Complete them in order where possible, open narrow PRs, and continue to the next phase without waiting for coordinator review.
 
-Merge commit:
-`57b4da3cf9be2a9a4b1c98fea942729e42314d54`
+### Phase 0 — AC-025: Audit remaining QA coverage in PR #1
+PR #1: https://github.com/faiev/ArtClub/pull/1
+Compare the diff against current main and PR #8. Identify exactly which frame-aware assertions are unique, duplicated by PR #10 or likely to conflict with Agent 4's bridge coverage. Produce a keep/drop recommendation. This phase is read-only: do not modify the bridge E2E file or PR #1.
 
-Issue #2 is closed as completed.
+### Phase 1 — AC-029: Project lifecycle regression matrix
+Create an independent, maintainable QA suite for project lifecycle behavior:
+- create, save, autosave, explicit no-op save, recover, rename, duplicate, switch and delete projects;
+- ensure recovery slots rotate only on meaningful content changes;
+- switching projects must not leak active layer/frame/selection/pixel state;
+- test active layer/frame and visibility/lock state across reload;
+- verify save errors and quota/storage failures do not report false success.
+Use new files under tests/qa/lifecycle/ and focused fixtures under tests/fixtures/qa/. Do not edit index.html, storage implementation, agent-bridge/e2e-test.mjs or existing worker tests.
 
-### Active task
+### Phase 2 — AC-030: Project format and migration compatibility suite
+Build a broad fixture-driven compatibility matrix:
+- current v2 valid projects at minimum/maximum dimensions and boundary metadata;
+- legacy v1 migration and repeated deterministic in-memory migration;
+- malformed JSON, missing references, duplicate IDs, sparse/undefined pixel slots, invalid HEX, invalid frame durations, excessive palette/layer/frame/cel counts and oversized documents;
+- verify validation does not mutate inputs and migration does not overwrite source bytes;
+- produce stable diagnostic expectations.
+Own tests/qa/compatibility/ and tests/fixtures/qa/compatibility/. Reuse the real project model; do not fork its schema.
 
-Perform a read-only QA audit of your earlier PR #1 after the recovery fix has landed:
+### Phase 3 — AC-031: Import/export round-trip acceptance matrix
+As the GIF, sprite-sheet and palette modules land on main, add independent contract tests for:
+- source frame order and duration metadata;
+- sprite-sheet dimensions, frame rectangles, transparency and metadata correspondence;
+- GIF frame timing, loop metadata and transparency policy;
+- GPL/JASC-PAL/JSON color ordering, duplicates and names where supported;
+- malformed/oversized imports failing before project mutation.
+Do not edit the exporters or palette module. If a dependency PR is still open, document the expected contract and continue other phases; do not idle.
 
-https://github.com/faiev/ArtClub/pull/1
+### Phase 4 — AC-032: Standalone Chromium regression harness
+Create a separate browser QA harness, not a modification to the shared agent bridge test:
+- tests/qa/browser/project-lifecycle.html
+- tests/qa/browser/project-lifecycle.mjs
+Exercise project creation, switching, editing, reload persistence and recovery using real Chromium/IndexedDB. Capture console errors and page errors. Include deterministic fixtures and exact pixel assertions. Agent 4 alone owns agent-bridge/e2e-test.mjs; do not touch it.
+Do not edit the shared GitHub Actions workflow while Agent 3 owns it. Provide an exact local command and CI integration note.
 
-Compare:
-- PR #1's current diff.
-- Current main, including PR #10.
-- Agent 4's PR #8 E2E changes.
+### Phase 5 — AC-033: Release readiness tooling and evidence
+Create docs/QA_MATRIX.md, docs/RELEASE_CHECKLIST.md and tools/qa-release-check.mjs. The checker must be read-only and report missing required files/scripts/test commands, stale coordination state where reliably detectable, and a clear machine-readable summary. It must not deploy, mutate projects or claim CI is green without a CI source.
+Add tests for the checker.
 
-Identify:
-1. Which frame-aware persistence assertions are unique to PR #1.
-2. Which assertions are now covered by PR #10.
-3. Which export/import checks are still missing from main.
-4. Any duplicated or contradictory frame-selection setup.
-5. The safest way to preserve useful QA coverage without conflicting with PR #8.
+### Phase 6 — Ongoing regression triage
+For each accepted module PR, review its acceptance contract and identify missing negative/boundary tests. Add tests only in your QA-owned paths, without changing feature implementation files. Maintain a concise bug/risk ledger in docs/QA_MATRIX.md.
 
-### File / branch rules
+## Your ownership
+- tests/qa/**
+- tests/fixtures/qa/**
+- tools/qa-release-check.mjs
+- docs/QA_MATRIX.md
+- docs/RELEASE_CHECKLIST.md
 
-- This is a read-only audit.
-- Do not edit `agent-bridge/e2e-test.mjs`.
-- Do not update or force-push PR #1.
-- Do not modify Agent 4's branch or any other worker's files.
-- Agent 4 is the sole worker authorized to edit the shared bridge E2E file during PR #8 reconciliation.
+Do not edit agent-bridge/e2e-test.mjs, .github/workflows/project-tests.yml, index.html, storage/model implementation, exporter implementation or another worker's tests.
 
-### Handoff
+## Working rules
+- This queue is authorized end-to-end. Do not ask the coordinator for a new task after Phase 0 or after any PR.
+- Open one PR per coherent phase/group. After the PR is open, immediately move to the next phase on a new branch.
+- If an implementation dependency is not merged, write contract fixtures/spec tests where possible, then work on another phase.
+- Keep the next 3–5 items in your status file.
+- Report exact commands, counts, runtime version and tested SHA. Never call unit-test-double coverage a browser test.
 
-Update only `coordination/status/agent-1.md`.
-
-Report a concise keep/drop recommendation with exact test names or assertion descriptions, relevant file/line references, and the required integration sequence. No new code PR is required.
-
-Do not merge or close PR #1. Coordinator retains that decision.
+## Required handoff
+Maintain coordination/status/agent-1.md with phase completion, branches/PRs, current-head CI, next queue and actual blockers. You do not merge PRs or self-accept work.
