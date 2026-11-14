@@ -303,3 +303,79 @@ PR #82's seven-file diff is limited to AGENT_API.md and agent-bridge files; it c
 3. Coordinator/Agent 4: resolve #82's stale #54 parent guard dependency and rerun exact-head Node/Chromium/MCP CI.
 4. Keep UI-02B/C gated until UI-02A's P0 persistence findings close.
 5. Keep #29 parked pending coordinator review; no deletion or PR closure recommendation.
+
+
+---
+
+# P0 branch-hygiene assignment — 2026-11-15 (live recheck)
+
+## Assignment and source snapshot
+- Followed the current BOARD.md row for Agent 6: read-only P0 integrity gate; reconfirm PR #96 cross-tab stale-write and rollback/recovery defects; specify the smallest CAS/transaction contract and deterministic two-tab IndexedDB + rollback-preservation tests; reconcile #29/#40 and safe-edit chain #14/#23/#26/#40/#48/#49.
+- Current main at review: dff91f0d63cec89f388276f6e41a87def5ff4596.
+- Current Agent 6 assignment blob: 5a0a07ff5816b15f2b0158f453fe85732ff5b1f0.
+- Read-only work only. No production/test/workflow changes, branch/PR mutations, comments, merges, or deletion actions. This status file is the only file updated.
+
+## Current PR/branch evidence
+
+| PR | Branch head | Ahead / behind main | Merge base | Changed scope / disposition |
+|---|---|---:|---|---|
+| #96 | 7071f9550f94f413f4dd414416a804079ee179c4 | 26 / 32 | 95e9a83efc0d024b4aa4abde709768db2b9a82b9 | UI-02A implementation + dedicated workflow/tests; coordinator-owned; keep draft pending P1/P2 |
+| #29 | c5f27591506eb9584e8489dc6b83a3eaf978e531 | 17 / 31 | e7bcd76a7413fcb4f9e373ade67d71651da0064a | docs/SAFE_EDIT_PATH_AUDIT.md only; keep parked pending coordinator review |
+| #40 | 2b900a79c4094b274db6c8611c101cbf75c7adc6 | 28 / 31 | e7bcd76a7413fcb4f9e373ade67d71651da0064a | docs/layer-edit-safety.md + three tests/layer-safety.browser.* files; keep draft pending dedicated runner |
+
+- #29 and #40 are parallel, not stacked: compare #29 → #40 is 28 ahead / 17 behind, and reverse compare is 17 ahead / 28 behind; common base e7bcd76a7413fcb4f9e373ade67d71651da0064a.
+- PR #29 exact-head Actions query returned no workflow runs for c5f27591506eb9584e8489dc6b83a3eaf978e531.
+- PR #40 exact-head standard Project workflow [#43639272626](https://github.com/faiev/ArtClub/actions/runs/43639272626) passed. Its own PR description confirms 247 Node tests, standard Chromium editor E2E, GIF raster verification and MCP E2E passed. This workflow does not invoke node tests/layer-safety.browser.mjs; dedicated runner remains NOT EXECUTED. Earlier execution attempts were blocked by absent checkout / GitHub DNS and unusable local Node/Chromium environment; no dedicated-harness pass is claimed.
+- PR #96 exact head still has successful runs [#43637386209](https://github.com/faiev/ArtClub/actions/runs/43637386209) (dedicated UI-02 browser) and [#43637386219](https://github.com/faiev/ArtClub/actions/runs/43637386219) (standard Project workflow). Both are for head 7071f9550f94f413f4dd414416a804079ee179c4, now 32 commits behind main; neither exercises the CAS/rollback acceptance cases below.
+- The live compare of PR #96 against current main reports the five intended files: .github/workflows/ui02-safe-clear-browser.yml, index.html, tests/editor-interactions.test.js, tests/ui02-safe-clear.browser.mjs, tests/ui02-safe-clear.test.js. The PR changed-filenames endpoint also surfaced five coordination files from an older comparison snapshot; current main-to-head compare is the basis used for the current diff inventory.
+
+## PR #96 — P1/P2 re-confirmed at exact branch head
+
+Reviewed:
+- index.html blob a65bdd8be6a28f4d08924420198279b7822d1df6.
+- js/project-storage.js blob 242bd0c6fcc3fa7675d0d7af68080c507a4efef6.
+
+### P1 — cross-tab stale overwrite (confirmed)
+- index.html:1075 calls projectStorage.saveProject(nextProject) without a persisted expected revision.
+- js/project-storage.js:82–134 creates a readwrite transaction over PROJECTS and RECOVERY, reads the previous primary, and unconditionally puts the candidate at lines 103–123. It rotates the previous primary into the one-slot recovery store when content differs, but never compares the caller's version.
+- Deterministic race: Tab A and Tab B load P0 at revision V0. A saves P1. B still holds P0 and saves stale P2. B overwrites P1 and rotates it to RECOVERY; the next content-changing save can evict that one-slot recovery copy. IndexedDB transaction serialization does not prevent stale snapshots from being submitted.
+
+### P2 — rollback is not exact restoration (confirmed)
+- index.html:1080–1085 persists candidate before editor publication.
+- index.html:1091–1105 catches failure and calls ordinary saveProject(previousProject) at lines 1098–1100.
+- That save treats the rejected candidate as the previous primary and rotates it into RECOVERY, potentially replacing the pre-existing recovery snapshot. It cannot restore the original primary + recovery pair byte-for-byte.
+
+### Smallest safe CAS / rollback contract
+1. Store a monotonically increasing revision token on each primary project record (separate from updatedAt). Load returns {project, revision}; every writer, including autosave and safe-edit save, must submit expectedRevision. New-project creation uses an explicit absent/null expectation.
+2. saveProject(project, expectedRevision) opens one readwrite transaction over PROJECTS and RECOVERY, reads the current primary, compares its revision before issuing any put, and aborts/returns a typed STALE_REVISION conflict with zero writes on mismatch.
+3. On match, snapshot the exact existing primary and exact existing recovery record, write the previous primary to recovery only when a content-changing commit is accepted, then write candidate at revision + 1. Return the new revision and an opaque rollback receipt containing the exact pre-transaction primary/recovery state (including absence).
+4. restoreIfCurrent(receipt) uses one readwrite transaction over both stores. It verifies the current primary still has the receipt's committed revision (and project identity); only then restores/deletes the old primary and restores/deletes the old recovery exactly. If a newer writer committed, return a typed rollback conflict and perform zero writes.
+5. Publish editor state/history only after CAS succeeds. If publication fails, call conditional restoreIfCurrent; on conflict, reload current persisted state and surface the conflict rather than overwriting the newer writer.
+
+### Deterministic acceptance tests (two independent browser contexts)
+- Seed primary P0/V0 and recovery R0. Open two contexts/connections sharing the same IndexedDB. Both load V0. A commits P1 with V0 → V1. B submits stale P2 with V0 → typed conflict. Assert primary remains P1 and recovery remains byte-identical R0; no writes from B. B reloads V1, commits P2 → V2; assert primary P2 and recovery P1.
+- Post-persist publication failure: A commits P1 and receives receipt. Force editor publication to throw. restoreIfCurrent(receipt) must restore primary P0 and recovery R0 byte-for-byte, including metadata and record presence/absence.
+- Concurrent-writer rollback race: after P1 commits, another context commits P2; then attempt rollback with P1 receipt. It must return conflict and leave P2 plus its recovery record byte-for-byte unchanged.
+- Include metadata-only save and new-project creation cases; ensure all production save paths carry the revision token and stale conflicts do not mutate either store.
+- Use explicit barriers/promises or transaction gates, not sleeps. Assert canonical serialized primary/recovery records, revision values, visible project JSON, pixel raster and undo/redo history. A single-tab mock or UI-only pixel assertion is insufficient.
+
+## Safe-edit dependency chain reconciliation
+
+| PR | Merge commit checked | Current-main compare | Result |
+|---|---|---|---|
+| #14 AC-015 | b53708dd73a4a0d00a7fdd2c79048054a2024295 | 0 ahead / 238 behind; merge base equals commit | Ancestor of current main; integrated |
+| #23 AC-055 | 8ae25528af84c8fa4808ad375e4053e0f934eb14 | 0 ahead / 217 behind; merge base equals commit | Ancestor of current main; integrated |
+| #26 AC-056 | fc0c36e8e59108f21a9bb90886d053d6dfe02153 | 0 ahead / 207 behind; merge base equals commit | Ancestor of current main; integrated |
+| #48 AC-059 | 103b5c488c262a0c34807d38361f193895e1e7db | 0 ahead / 197 behind; merge base equals commit | Ancestor of current main; integrated |
+| #49 AC-060 | 87c15b08d41653e255922e3961698608ab991708 | 0 ahead / 188 behind; merge base equals commit | Ancestor of current main; integrated |
+| #29 AC-057 | c5f27591506eb9584e8489dc6b83a3eaf978e531 | 17 ahead / 31 behind | Open, docs-only, park pending review |
+| #40 AC-058 | 2b900a79c4094b274db6c8611c101cbf75c7adc6 | 28 ahead / 31 behind | Open, harness/docs-only, dedicated runner gap |
+
+- PR #14, #23, #26, #48 and #49 are closed; each recorded merge commit is an ancestor of current main (compare merge base exactly equals the commit). Their merged work is not a deletion candidate requiring re-integration.
+- #29 and #40 are open and independent branches from the same old base. Do not stack one on the other or delete either merely because it is behind main. #40 contains the dedicated runner deliverable; keep it parked/draft until that runner is actually executed and exact-head evidence recorded. #29 remains documentation-only and needs coordinator disposition.
+
+## Commands / evidence / scope
+- GitHub read operations used: fetch current main commit; fetch BOARD.md, Agent 6 assignment/status, PR issues and changed filenames; fetch exact branch commits and source files; compare PR refs and historical merge SHAs to main and to each other; fetch exact-head workflow runs.
+- No local shell command/test was executed in this review. This dispatch is read-only; prior documented local attempts for AC-058 remain blocked and are not represented as a pass.
+- No code, shared tests, workflows, branches, PR state, PR comments, merges, or other agent status files were changed.
+- Unresolved release blocker: PR #96 remains unsafe to accept until persisted-revision CAS, conditional exact rollback, and the deterministic two-context tests above exist and pass on a synchronized exact head. PR #40's dedicated runner remains unexecuted.
