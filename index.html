@@ -1152,22 +1152,51 @@ async function clearActiveCel(){
     "Clear all pixels on the active layer for this frame? Other layers and frames will be preserved.",
     "Active cel cleared.");
 }
-function pasteSelection(){
-  if(!selectionClipboard){toast("Copy or cut a selection first.");return false}
-  if(!isActiveLayerEditable()){toast("The active layer is locked or hidden.");return false}
-  const x=Math.max(0,Math.min(w-1,selection?selection.x:0));
-  const y=Math.max(0,Math.min(h-1,selection?selection.y:0));
-  const width=Math.min(selectionClipboard.width,w-x);
-  const height=Math.min(selectionClipboard.height,h-y);
-  if(width<1||height<1)return false;
-  remember();
-  for(let row=0;row<height;row++)for(let col=0;col<width;col++){
-    const color=selectionClipboard.pixels[row*selectionClipboard.width+col];
-    if(color!==null)pixels[(y+row)*w+x+col]=color;
+async function pasteSelection(){
+  if(!selectionClipboard){toast("Copy or cut a selection first.");return false;}
+  if(safeEditBusy){toast("Another safe edit is already being saved.");return false;}
+  if(drawing){toast("Finish the current stroke before pasting.");return false;}
+  let source;
+  try{source=createSafeEditProject();}
+  catch(error){toast(error.message||"The active edit target is unavailable.");return false;}
+  const target={
+    revision:documentRevision,
+    projectId:source.id,
+    layerId:source.activeLayerId,
+    frameId:source.activeFrameId
+  };
+  const clipboard=selectionClipboard;
+  const x=selection?selection.x:0;
+  const y=selection?selection.y:0;
+  if(!Number.isInteger(clipboard.width)||!Number.isInteger(clipboard.height)||
+     clipboard.width<1||clipboard.height<1||
+     !Array.isArray(clipboard.pixels)||clipboard.pixels.length!==clipboard.width*clipboard.height||
+     x<0||y<0||x+clipboard.width>w||y+clipboard.height>h||
+     (selection&&(clipboard.width>selection.width||clipboard.height>selection.height))){
+    toast("The copied selection does not fit completely in the current target. Nothing was pasted.");
+    return false;
   }
-  selection={x,y,width,height};
-  renderGrid();renderStats();renderSelectionTools();scheduleSave();toast("Selection pasted.");
-  return true;
+  const patches=[];
+  for(let row=0;row<clipboard.height;row++){
+    for(let col=0;col<clipboard.width;col++){
+      patches.push({x:x+col,y:y+row,color:clipboard.pixels[row*clipboard.width+col]});
+    }
+  }
+  const targetSelection={x,y,width:clipboard.width,height:clipboard.height};
+  const result=window.ArtClubSafeEditOperations.applyPixelPatches(source,patches,{
+    layerId:target.layerId,frameId:target.frameId,selection:targetSelection
+  });
+  if(!result.ok){toast(safeEditDenialMessage(result));return false;}
+  if(result.changedPixels===0){toast("The copied selection already matches this area.");return true;}
+  const committed=await commitSafeEditResult(result,source,target,"Selection pasted.");
+  if(committed){
+    selection=targetSelection;
+    selectionPreview=null;
+    selectionDragMode=null;
+    documentRevision+=1;
+    renderSelectionTools();
+  }
+  return committed;
 }
 function selectAll(){
   selection={x:0,y:0,width:w,height:h};selectionPreview=null;documentRevision+=1;
