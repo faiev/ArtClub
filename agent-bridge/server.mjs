@@ -24,6 +24,11 @@ import {
   sanitizeToolErrorMessage,
   validateAppUrl
 } from "./security-utils.mjs";
+import {
+  assertCompatibleClientProtocolVersion,
+  BRIDGE_VERSION,
+  createCapabilities
+} from "./capabilities.mjs";
 
 const APP_URL = validateAppUrl(
   process.env.ARTCLUB_URL || "https://faiev.github.io/ArtClub/"
@@ -300,7 +305,9 @@ async function invokeNow(method, args, scope = {}) {
         }
         currentStatus = api.get_status();
         if (currentStatus.revision !== expected) {
-          throw new Error("The project changed since your last read. Call artclub_get_status again, review the updated state, and retry with its revision.");
+          const error = new Error("The project changed since your last read. Call artclub_get_status again, review the updated state, and retry with its revision.");
+          error.code = "STALE_REVISION";
+          throw error;
         }
       }
 
@@ -466,7 +473,7 @@ async function main() {
     await connectToEditor();
 
   const server = new McpServer(
-    { name: "art-club-pixel-studio", version: "0.5.0" },
+    { name: "art-club-pixel-studio", version: BRIDGE_VERSION },
     { maxToolInputElements: 12_000 }
   );
 
@@ -476,6 +483,15 @@ async function main() {
   const identifier = z.string().trim().min(1).max(128);
   const layerName = z.string().trim().min(1).max(60);
   const frameName = z.string().trim().min(1).max(60);
+  const CAPABILITIES = createCapabilities({
+    bridgeVersion: BRIDGE_VERSION,
+    maxToolInputBytes: MAX_TOOL_INPUT_BYTES,
+    maxToolOutputBytes: MAX_TOOL_OUTPUT_BYTES,
+    maxPendingOperations: MAX_PENDING_OPERATIONS,
+    defaultToolDeadlineMs: DEFAULT_TOOL_DEADLINE_MS,
+    maxToolDeadlineMs: MAX_TOOL_DEADLINE_MS,
+    toolDeadlinesMs: Object.fromEntries(TOOL_DEADLINES_MS)
+  });
   const agentCommand = z.discriminatedUnion("type", [
     z.strictObject({ type: z.literal("draw_pixel"), x: coordinate, y: coordinate, color: color.optional() }),
     z.strictObject({ type: z.literal("erase_pixel"), x: coordinate, y: coordinate, color: color.optional() }),
@@ -487,6 +503,17 @@ async function main() {
     z.strictObject({ type: z.literal("clear_canvas") }),
     z.strictObject({ type: z.literal("set_color"), color })
   ]);
+
+  registerTool(
+    server,
+    "artclub_get_capabilities",
+    "Return the versioned machine-readable bridge contract: tool access, revision rules, size/deadline limits, cancellation semantics and feature availability. Pass client_protocol_version to validate compatibility.",
+    z.strictObject({ client_protocol_version: z.number().int().optional() }),
+    async args => {
+      assertCompatibleClientProtocolVersion(args.client_protocol_version);
+      return textResult(CAPABILITIES);
+    }
+  );
 
   registerTool(
     server,

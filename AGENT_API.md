@@ -33,6 +33,14 @@ const projects = await studio.list_projects();
 
 `get_canvas({ include_pixels: false })` returns metadata without the pixel array. The status includes a monotonically increasing `revision`, undo/redo availability and whether a human pointer stroke is in progress.
 
+## MCP protocol and capability discovery
+
+The browser Agent API reports `protocol` and `protocol_version` in status. The local MCP bridge also provides `artclub_get_capabilities`, a versioned machine-readable contract covering supported client protocol versions, read-only/document/session/storage tool classes, revision requirements, maximum canvas/project/batch sizes, configured tool deadlines, cancellation semantics and available exports/diagnostics.
+
+Clients should query capabilities before using optional tools and pass their protocol version as `client_protocol_version`. A mismatch returns `PROTOCOL_VERSION_UNSUPPORTED` with an actionable compatibility message. Protocol version 1 is currently supported.
+
+A stale document write returns the stable error code `STALE_REVISION`. Re-read status, inspect the current project and make a new decision; the bridge never replays a conflicting operation automatically. The capability document distinguishes document writes from session controls and local-library persistence, so clients must not assume every mutating tool has the same revision requirement.
+
 ## Revision and concurrency safety
 
 Every state-changing MCP tool requires an `expected_revision` value. Read `get_status` immediately before an edit and pass its `revision`:

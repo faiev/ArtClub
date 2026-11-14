@@ -143,6 +143,7 @@ async function run() {
     const toolList = await client.listTools();
     const names = new Set(toolList.tools.map(tool => tool.name));
     for (const required of [
+      "artclub_get_capabilities",
       "artclub_get_status",
       "artclub_get_canvas",
       "artclub_get_palette",
@@ -213,6 +214,37 @@ async function run() {
     assert.notEqual(statusResult.isError, true);
     const status = statusResult.structuredContent;
     assert.equal(status.protocol, "one-pixel-studio-agent");
+    assert.equal(status.protocol_version, 1);
+
+    const capabilitiesResult = await callTool({
+      name: "artclub_get_capabilities",
+      arguments: { client_protocol_version: 1 }
+    });
+    assert.notEqual(capabilitiesResult.isError, true);
+    const capabilities = capabilitiesResult.structuredContent;
+    assert.equal(capabilities.document_version, 1);
+    assert.equal(capabilities.protocol.name, status.protocol);
+    assert.equal(capabilities.protocol.version, status.protocol_version);
+    assert.equal(capabilities.bridge.version, "0.6.0");
+    assert.equal(capabilities.tools.total, toolList.tools.length);
+    assert.equal(capabilities.tools.catalog.length, toolList.tools.length);
+    assert.ok(capabilities.tools.catalog.every(tool => names.has(tool.name)));
+    assert.ok(capabilities.tools.revision_required.includes("artclub_draw_pixel"));
+    assert.equal(capabilities.revision_policy.conflict.error_code, "STALE_REVISION");
+
+    const incompatibleClient = await rawCallTool({
+      name: "artclub_get_capabilities",
+      arguments: { client_protocol_version: 99 }
+    });
+    assert.equal(incompatibleClient.isError, true);
+    assert.equal(
+      incompatibleClient.structuredContent.error.code,
+      "PROTOCOL_VERSION_UNSUPPORTED"
+    );
+    assert.match(
+      incompatibleClient.structuredContent.error.message,
+      /supports protocol version 1.*Update the client/
+    );
 
     // Strict root schemas and discriminated command schemas reject unexpected
     // object shapes before any editor operation can start.
@@ -680,6 +712,7 @@ async function run() {
     assert.match(staleWrite.content[0].text, /changed since your last read|revision/i);
     assert.equal(staleWrite.structuredContent.ok, false);
     assert.equal(staleWrite.structuredContent.error.tool, "artclub_draw_pixel");
+    assert.equal(staleWrite.structuredContent.error.code, "STALE_REVISION");
     assert.match(staleWrite.structuredContent.error.message, /changed since your last read/i);
 
     // Client cancellation during a post-mutation hold must cancel the caller

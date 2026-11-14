@@ -58,10 +58,29 @@ Generic MCP configuration:
 
 Restart or reload the MCP client after adding the server. The server should expose tools with the `artclub_` prefix.
 
+## Protocol and capability discovery
+
+Call `artclub_get_capabilities` during client startup. The returned document has its own `document_version`, the Agent API protocol version, bridge version, an access classification for every tool, the exact set that requires `expected_revision`, configured payload/queue/deadline limits, cancellation semantics and feature availability.
+
+Pass `client_protocol_version` to request compatibility validation:
+
+```json
+{
+  "client_protocol_version": 1
+}
+```
+
+Protocol version 1 is currently supported. An unsupported or malformed version returns the structured error code `PROTOCOL_VERSION_UNSUPPORTED` with an upgrade/compatibility instruction. Clients that omit the version still receive the current capability document. The same protocol version is exposed in `artclub_get_status`.
+
+Treat the capability document as authoritative for the current bridge process. Effective byte caps, pending-operation limits and configured deadlines can differ when the matching `ARTCLUB_*` environment options are set. A document revision conflict is returned with code `STALE_REVISION`; do not replay it automatically. Re-read status and inspect the artwork before deciding what to submit next.
+
+The current bridge does not expose sprite-sheet/GIF tools, palette-format tools or project-diagnostics tools. The capability flags explicitly report those as unavailable rather than implying that standalone modules in the repository are wired into MCP.
+
 ## Available tools
 
 | Tool | Purpose |
 |---|---|
+| `artclub_get_capabilities` | Read protocol, tool access, limits, deadline/cancellation and feature availability |
 | `artclub_get_status` | Read project, dimensions, palette, revision and undo state |
 | `artclub_get_canvas` | Read all pixels in row-major order |
 | `artclub_get_pixel` | Inspect one coordinate |

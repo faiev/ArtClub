@@ -1,0 +1,466 @@
+{
+  "document_version": 1,
+  "protocol": {
+    "name": "one-pixel-studio-agent",
+    "version": 1,
+    "supported_client_versions": [
+      1
+    ],
+    "minimum_client_version": 1,
+    "maximum_client_version": 1
+  },
+  "bridge": {
+    "name": "art-club-mcp-bridge",
+    "version": "0.6.0",
+    "transport": "stdio",
+    "local_only": true
+  },
+  "tools": {
+    "total": 53,
+    "read_only": [
+      "artclub_get_status",
+      "artclub_get_canvas",
+      "artclub_get_pixel",
+      "artclub_get_palette",
+      "artclub_list_layers",
+      "artclub_list_frames",
+      "artclub_list_projects",
+      "artclub_export_project",
+      "artclub_export_png",
+      "artclub_get_capabilities"
+    ],
+    "document_mutating": [
+      "artclub_draw_pixel",
+      "artclub_draw_line",
+      "artclub_draw_rectangle",
+      "artclub_draw_ellipse",
+      "artclub_fill",
+      "artclub_erase_pixel",
+      "artclub_erase_rectangle",
+      "artclub_set_color",
+      "artclub_execute",
+      "artclub_undo",
+      "artclub_redo",
+      "artclub_add_layer",
+      "artclub_select_layer",
+      "artclub_set_layer_visibility",
+      "artclub_set_layer_locked",
+      "artclub_rename_layer",
+      "artclub_move_layer",
+      "artclub_duplicate_layer",
+      "artclub_delete_layer",
+      "artclub_set_selection",
+      "artclub_select_all",
+      "artclub_copy_selection",
+      "artclub_cut_selection",
+      "artclub_paste_selection",
+      "artclub_clear_selection",
+      "artclub_deselect",
+      "artclub_move_selection",
+      "artclub_transform_selection",
+      "artclub_add_frame",
+      "artclub_duplicate_frame",
+      "artclub_select_frame",
+      "artclub_delete_frame",
+      "artclub_move_frame",
+      "artclub_set_frame_duration",
+      "artclub_rename_frame",
+      "artclub_open_project",
+      "artclub_import_project"
+    ],
+    "session_mutating": [
+      "artclub_play_animation",
+      "artclub_pause_animation",
+      "artclub_stop_animation_preview",
+      "artclub_set_playback_mode",
+      "artclub_set_onion_skin"
+    ],
+    "storage_mutating": [
+      "artclub_save"
+    ],
+    "revision_required": [
+      "artclub_draw_pixel",
+      "artclub_draw_line",
+      "artclub_draw_rectangle",
+      "artclub_draw_ellipse",
+      "artclub_fill",
+      "artclub_erase_pixel",
+      "artclub_erase_rectangle",
+      "artclub_set_color",
+      "artclub_execute",
+      "artclub_undo",
+      "artclub_redo",
+      "artclub_add_layer",
+      "artclub_select_layer",
+      "artclub_set_layer_visibility",
+      "artclub_set_layer_locked",
+      "artclub_rename_layer",
+      "artclub_move_layer",
+      "artclub_duplicate_layer",
+      "artclub_delete_layer",
+      "artclub_set_selection",
+      "artclub_select_all",
+      "artclub_copy_selection",
+      "artclub_cut_selection",
+      "artclub_paste_selection",
+      "artclub_clear_selection",
+      "artclub_deselect",
+      "artclub_move_selection",
+      "artclub_transform_selection",
+      "artclub_add_frame",
+      "artclub_duplicate_frame",
+      "artclub_select_frame",
+      "artclub_delete_frame",
+      "artclub_move_frame",
+      "artclub_set_frame_duration",
+      "artclub_rename_frame",
+      "artclub_open_project",
+      "artclub_import_project"
+    ],
+    "catalog": [
+      {
+        "name": "artclub_get_status",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_get_canvas",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_get_pixel",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_get_palette",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_list_layers",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_list_frames",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_list_projects",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_export_project",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_export_png",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_get_capabilities",
+        "access": "read_only",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_draw_pixel",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_draw_line",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_draw_rectangle",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_draw_ellipse",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_fill",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_erase_pixel",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_erase_rectangle",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_set_color",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_execute",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_undo",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_redo",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_add_layer",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_select_layer",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_set_layer_visibility",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_set_layer_locked",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_rename_layer",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_move_layer",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_duplicate_layer",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_delete_layer",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_set_selection",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_select_all",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_copy_selection",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_cut_selection",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_paste_selection",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_clear_selection",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_deselect",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_move_selection",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_transform_selection",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_add_frame",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_duplicate_frame",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_select_frame",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_delete_frame",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_move_frame",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_set_frame_duration",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_rename_frame",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_open_project",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_import_project",
+        "access": "document_mutation",
+        "requires_expected_revision": true
+      },
+      {
+        "name": "artclub_play_animation",
+        "access": "session_mutation",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_pause_animation",
+        "access": "session_mutation",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_stop_animation_preview",
+        "access": "session_mutation",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_set_playback_mode",
+        "access": "session_mutation",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_set_onion_skin",
+        "access": "session_mutation",
+        "requires_expected_revision": false
+      },
+      {
+        "name": "artclub_save",
+        "access": "storage_mutation",
+        "requires_expected_revision": false
+      }
+    ]
+  },
+  "revision_policy": {
+    "field": "expected_revision",
+    "required_for": "document_mutating",
+    "conflict": {
+      "behavior": "reject_without_replay",
+      "error_code": "STALE_REVISION",
+      "recovery": "Call artclub_get_status, inspect the current document, then decide whether to submit a new operation with the latest revision."
+    },
+    "concurrency": {
+      "within_one_bridge_process": "serialized",
+      "across_bridge_processes": "exclusive_profile_lock",
+      "automatic_retry": false
+    }
+  },
+  "limits": {
+    "max_canvas_width": 512,
+    "max_canvas_height": 512,
+    "max_layers": 32,
+    "max_frames": 256,
+    "max_palette_colors": 256,
+    "max_total_cel_pixels": 16777216,
+    "max_batch_commands": 1000,
+    "max_tool_input_bytes": 8388608,
+    "max_tool_output_bytes": 16777216,
+    "max_pending_operations": 64
+  },
+  "execution": {
+    "default_deadline_ms": 30000,
+    "maximum_deadline_ms": 120000,
+    "per_tool_deadline_ms": {
+      "artclub_get_status": 10000,
+      "artclub_get_pixel": 10000,
+      "artclub_get_canvas": 30000,
+      "artclub_execute": 45000,
+      "artclub_save": 30000,
+      "artclub_open_project": 60000,
+      "artclub_export_project": 45000,
+      "artclub_import_project": 90000,
+      "artclub_export_png": 25000
+    },
+    "cancellation": {
+      "supported": true,
+      "queued_request": "removed_before_execution",
+      "active_request": "page_interrupted_and_queue_slot_held_until_evaluation_unwinds",
+      "outcome_may_be_uncertain": true,
+      "error_codes": [
+        "OPERATION_CANCELLED",
+        "OPERATION_TIMEOUT",
+        "QUEUE_FULL"
+      ]
+    }
+  },
+  "exports": {
+    "editable_project_json": {
+      "import": true,
+      "export": true
+    },
+    "png_preview": true,
+    "sprite_sheet": false,
+    "gif": false,
+    "palette_formats": false
+  },
+  "diagnostics": {
+    "available": false,
+    "bridge_doctor": false,
+    "read_only_project_inspection": false
+  },
+  "features": {
+    "layers": true,
+    "selections": true,
+    "animation_timeline": true,
+    "animation_preview": true,
+    "project_library": true,
+    "onion_skin": true,
+    "cross_process_profile_lock": true,
+    "operation_deadlines": true,
+    "request_cancellation": true
+  }
+}
