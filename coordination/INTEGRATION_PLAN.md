@@ -211,3 +211,10 @@ The PR branch must be synchronized with coordination-only main advances before f
 - Production `index.html` on main remains unchanged at blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no published UI change is claimed. After review and merge, GitHub Pages deployment and the live URL must be inspected.
 
 This update supersedes the earlier UI-01 status that referenced head `29e348...` / run #43620892261 and the draft state. Do not treat prior runs as validation of a newer head.
+
+## UI-01 exact-head update — 2026-11-14
+
+- The review branch was synchronized non-force with the latest assignment/board/plan coordination commits. Current tested head: `15afac17d1598b46479877266fbf65f8351d35af`; current main base at this sync: `1116ddaef1670208ce0b1000acce389dfc43d116`; comparison: 8 commits ahead / 0 behind; changed-file scope remains `index.html` plus `tests/ui-workstation-shell.test.js`.
+- Exact-head workflow [#43622262911](https://github.com/faiev/ArtClub/actions/runs/43622262911) completed successfully. Node/editor and Chromium jobs passed; the browser job's real editor E2E, animated GIF decoder and MCP client steps all passed.
+- PR #84 is ready for review, not merged. Agent 1/2/5 review tasks are now written to their assignment files. Their independent review findings have not yet arrived, and no visual screenshot artifact was produced by Actions.
+- Current production `index.html` on main is still unchanged. Do not claim Pages publication until a later merge and deployment inspection.
