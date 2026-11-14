@@ -43,6 +43,7 @@ th:last-child,td:last-child{border-right:0}
 .legend{display:flex;gap:14px;flex-wrap:wrap;padding:14px 3px;color:var(--muted);font-size:10px}
 .key{display:inline-block;width:10px;height:10px;border:1px solid #bfc9bf;margin-right:4px;vertical-align:-1px}.key.pop{background:#d8f06f}.key.blank{background:#f7f8f3}.key.miss{border-style:dashed}
 .note{margin-top:9px;background:#f8eee8;border-left:3px solid var(--coral);padding:10px 13px;color:#5f524b;font-size:10px;line-height:1.55}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important}}
 @media(max-width:700px){.shell{padding:14px}.intro h1{font-size:26px}.toolbar{align-items:flex-start;flex-direction:column}.corner,tbody th{width:190px}}
 </style>
 </head>
@@ -62,24 +63,24 @@ th:last-child,td:last-child{border-right:0}
 <tbody>
 <tr>
 <th scope="row"><div class="rowhead"><span class="visibility" aria-label="Visible">◉</span><div><span class="layername">Plant</span><span class="rowmeta">ACTIVE · VISIBLE · UNLOCKED</span></div></div></th>
-<td class="cell"><button type="button" class="cel-button"><span class="thumb"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="3" y="1" width="2" height="5" fill="#344b55"/><rect x="1" y="2" width="3" height="2" fill="#72a7a1"/><rect x="2" y="6" width="4" height="1" fill="#e97960"/></svg></span><span class="status">POPULATED</span></button></td>
-<td class="cell"><button type="button" class="cel-button" aria-current="true"><span class="thumb"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="3" y="1" width="2" height="5" fill="#344b55"/><rect x="1" y="2" width="3" height="2" fill="#72a7a1"/><rect x="4" y="1" width="3" height="2" fill="#b6d9a4"/><rect x="2" y="6" width="4" height="1" fill="#e97960"/></svg></span><span class="status">ACTIVE CEL</span></button></td>
-<td class="cell"><button type="button" class="cel-button"><span class="thumb"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="3" y="1" width="2" height="5" fill="#344b55"/><rect x="1" y="2" width="3" height="2" fill="#72a7a1"/><rect x="4" y="1" width="3" height="2" fill="#b6d9a4"/><rect x="3" y="0" width="2" height="2" fill="#e97960"/><rect x="2" y="6" width="4" height="1" fill="#e97960"/></svg></span><span class="status">POPULATED</span></button></td>
-<td class="cell"><button type="button" class="cel-button"><span class="thumb"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="3" y="1" width="2" height="5" fill="#344b55"/><rect x="1" y="2" width="3" height="2" fill="#72a7a1"/><rect x="4" y="1" width="3" height="2" fill="#b6d9a4"/><rect x="2" y="6" width="4" height="1" fill="#e97960"/></svg></span><span class="status">POPULATED</span></button></td>
+<td class="cell"><button type="button" class="cel-button" aria-label="Plant, frame 1, populated cel"><span class="thumb"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="3" y="1" width="2" height="5" fill="#344b55"/><rect x="1" y="2" width="3" height="2" fill="#72a7a1"/><rect x="2" y="6" width="4" height="1" fill="#e97960"/></svg></span><span class="status">POPULATED</span></button></td>
+<td class="cell"><button type="button" class="cel-button" aria-current="true" aria-label="Plant, frame 2, active populated cel"><span class="thumb"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="3" y="1" width="2" height="5" fill="#344b55"/><rect x="1" y="2" width="3" height="2" fill="#72a7a1"/><rect x="4" y="1" width="3" height="2" fill="#b6d9a4"/><rect x="2" y="6" width="4" height="1" fill="#e97960"/></svg></span><span class="status">ACTIVE CEL</span></button></td>
+<td class="cell"><button type="button" class="cel-button" aria-label="Plant, frame 3, populated cel"><span class="thumb"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="3" y="1" width="2" height="5" fill="#344b55"/><rect x="1" y="2" width="3" height="2" fill="#72a7a1"/><rect x="4" y="1" width="3" height="2" fill="#b6d9a4"/><rect x="3" y="0" width="2" height="2" fill="#e97960"/><rect x="2" y="6" width="4" height="1" fill="#e97960"/></svg></span><span class="status">POPULATED</span></button></td>
+<td class="cell"><button type="button" class="cel-button" aria-label="Plant, frame 4, populated cel"><span class="thumb"><svg viewBox="0 0 8 8" aria-hidden="true"><rect x="3" y="1" width="2" height="5" fill="#344b55"/><rect x="1" y="2" width="3" height="2" fill="#72a7a1"/><rect x="4" y="1" width="3" height="2" fill="#b6d9a4"/><rect x="2" y="6" width="4" height="1" fill="#e97960"/></svg></span><span class="status">POPULATED</span></button></td>
 </tr>
 <tr>
 <th scope="row"><div class="rowhead"><span class="visibility" aria-label="Visible">◉</span><div><span class="layername">Ink</span><span class="rowmeta">VISIBLE · LOCKED</span></div></div></th>
-<td class="cell"><button type="button" class="cel-button locked"><span class="thumb">✎</span><span class="status">POPULATED · LOCKED</span></button></td>
-<td class="cell"><button type="button" class="cel-button locked"><span class="thumb">✎</span><span class="status">POPULATED · LOCKED</span></button></td>
-<td class="cell"><button type="button" class="cel-button blank"><span class="thumb"></span><span class="status">BLANK CEL</span></button></td>
-<td class="cell"><button type="button" class="cel-button missing"><span aria-hidden="true">＋</span><span class="status">CREATE CEL</span></button></td>
+<td class="cell"><button type="button" class="cel-button locked" aria-label="Ink, frame 1, populated cel, locked"><span class="thumb">✎</span><span class="status">POPULATED · LOCKED</span></button></td>
+<td class="cell"><button type="button" class="cel-button locked" aria-label="Ink, frame 2, populated cel, locked"><span class="thumb">✎</span><span class="status">POPULATED · LOCKED</span></button></td>
+<td class="cell"><button type="button" class="cel-button blank" aria-label="Ink, frame 3, blank cel"><span class="thumb"></span><span class="status">BLANK CEL</span></button></td>
+<td class="cell"><button type="button" class="cel-button missing" aria-label="Ink, frame 4, cel not allocated, create blank cel"><span aria-hidden="true">＋</span><span class="status">CREATE CEL</span></button></td>
 </tr>
 <tr>
 <th scope="row"><div class="rowhead"><span class="visibility" aria-label="Hidden">○</span><div><span class="layername">Reference</span><span class="rowmeta">HIDDEN · UNLOCKED</span></div></div></th>
-<td class="cell"><button type="button" class="cel-button missing"><span aria-hidden="true">＋</span><span class="status">CREATE CEL</span></button></td>
-<td class="cell"><button type="button" class="cel-button blank"><span class="thumb"></span><span class="status">BLANK · HIDDEN</span></button></td>
-<td class="cell"><button type="button" class="cel-button blank"><span class="thumb"></span><span class="status">BLANK · HIDDEN</span></button></td>
-<td class="cell"><button type="button" class="cel-button missing"><span aria-hidden="true">＋</span><span class="status">CREATE CEL</span></button></td>
+<td class="cell"><button type="button" class="cel-button missing" aria-label="Reference, frame 1, cel not allocated, create blank cel"><span aria-hidden="true">＋</span><span class="status">CREATE CEL</span></button></td>
+<td class="cell"><button type="button" class="cel-button blank" aria-label="Reference, frame 2, blank cel, hidden layer"><span class="thumb"></span><span class="status">BLANK · HIDDEN</span></button></td>
+<td class="cell"><button type="button" class="cel-button blank" aria-label="Reference, frame 3, blank cel, hidden layer"><span class="thumb"></span><span class="status">BLANK · HIDDEN</span></button></td>
+<td class="cell"><button type="button" class="cel-button missing" aria-label="Reference, frame 4, cel not allocated, create blank cel"><span aria-hidden="true">＋</span><span class="status">CREATE CEL</span></button></td>
 </tr>
 </tbody></table></div>
 <div class="legend"><span><i class="key pop"></i>Populated cel</span><span><i class="key blank"></i>Allocated, transparent cel</span><span><i class="key miss"></i>Unallocated cel</span><span>Active editing target is outlined and named</span></div>
