@@ -2367,7 +2367,8 @@ grid.addEventListener("pointermove",e=>{
   }
 });
 grid.addEventListener("pointerup",e=>{
-  if(!drawing)return;const p=getCell(e)||strokeLast||strokeStart;
+  if(!drawing)return;
+  const p=getCell(e)||strokeLast||strokeStart;
   if(tool==="select"){
     if(selectionDragMode==="move"&&selectionPreview&&selection){
       const dx=selectionPreview.x-selection.x,dy=selectionPreview.y-selection.y;
@@ -2381,20 +2382,33 @@ grid.addEventListener("pointerup",e=>{
     drawing=false;strokeStart=null;strokeLast=null;selectionDragMode=null;
     renderSelectionOverlay();renderSelectionTools();return;
   }
-  if(tool==="line"&&p){clearShapePreview();line(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected]);}
-  if(tool==="rect"&&p){clearShapePreview();drawRectangle(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected],$("shapeFillToggle").checked);}
-  if(tool==="ellipse"&&p){clearShapePreview();drawEllipse(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected],$("shapeFillToggle").checked);}
-  drawing=false;strokeStart=null;strokeLast=null;renderGrid();renderStats();scheduleSave();
+  let candidate=null;
+  if(tool==="brush"||tool==="eraser"){
+    candidate=pixels.slice();
+  }else if((tool==="line"||tool==="rect"||tool==="ellipse")&&p&&strokeBeforePixels){
+    clearShapePreview();
+    pixels=strokeBeforePixels.slice();
+    if(tool==="line")line(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected]);
+    if(tool==="rect")drawRectangle(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected],$("shapeFillToggle").checked);
+    if(tool==="ellipse")drawEllipse(strokeStart.x,strokeStart.y,p.x,p.y,palette[selected],$("shapeFillToggle").checked);
+    candidate=pixels.slice();
+  }
+  const previousPixels=strokeBeforePixels;
+  const target=strokeTarget;
+  if(previousPixels)pixels=previousPixels.slice();
+  drawing=false;strokeStart=null;strokeLast=null;strokeBeforePixels=null;strokeTarget=null;
+  clearShapePreview();
+  renderGrid();renderStats();
+  if(candidate)void commitCanvasStroke(candidate,target);
 });
 grid.addEventListener("pointercancel",()=>{
   if(tool==="select"){
     drawing=false;strokeStart=null;strokeLast=null;selectionDragMode=null;selectionPreview=null;
     renderSelectionOverlay();renderSelectionTools();return;
   }
-  if(tool==="line"||tool==="rect"||tool==="ellipse"){
-    clearShapePreview();if(undoStack.length)undoStack.pop();updateHistoryButtons();
-  }
-  drawing=false;strokeStart=null;strokeLast=null;scheduleSave();
+  if(strokeBeforePixels)pixels=strokeBeforePixels.slice();
+  drawing=false;strokeStart=null;strokeLast=null;strokeBeforePixels=null;strokeTarget=null;
+  clearShapePreview();renderGrid();renderStats();
 });
 grid.addEventListener("keydown",e=>{
   const current=document.activeElement;
