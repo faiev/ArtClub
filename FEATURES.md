@@ -48,8 +48,8 @@ This inventory was checked against the current `index.html` in the repository. I
 
 ### Already present
 
-- Single-canvas drawing with brush, eraser, flood fill, eyedropper, line and outlined rectangle tools.
-- Fixed square canvas sizes: 16, 24, 32, 48 and 64 pixels.
+- Single-canvas drawing with brush, eraser, flood fill, eyedropper, line, outlined/filled rectangle and outlined/filled ellipse tools. Shape tools show a preview before committing.
+- Square and rectangular canvas presets plus custom dimensions from 1 to 512 pixels per side. New projects can be created at a custom aspect ratio; existing artwork can be resampled to new dimensions.
 - A small built-in palette, custom color entry and several palette presets.
 - Undo and redo.
 - Zoom controls, project naming and a responsive three-panel layout.
@@ -74,7 +74,7 @@ This inventory was checked against the current `index.html` in the repository. I
 | Frames and timeline | Not implemented | No animation workflow |
 | Playback and onion skin | Not implemented | Cannot create or inspect frame-to-frame motion |
 | Selection and transforms | Not implemented | Cannot move, copy, flip, rotate or scale a selected part |
-| Filled shapes and ellipse tools | Not implemented | Basic geometric editing is limited |
+| Polygon and freeform shape tools | Not implemented | Other than line, rectangle and ellipse, freeform geometry is still missing |
 | Custom rectangular canvas | Not implemented | Users are restricted to a short list of square sizes |
 | Sprite-sheet export | Not implemented | No direct game-engine animation asset workflow |
 | Animated GIF export | Not implemented | No shareable animated output |
@@ -123,6 +123,20 @@ This inventory was checked against the current `index.html` in the repository. I
 - Added `AGENT_API.md` and `agent-bridge/README.md` with protocol, tools, setup and privacy details.
 
 **Verified:** agent interaction tests pass; the Chromium end-to-end suite exercised both mouse and API drawing, undo/redo, batch edits, project storage/reopen/refresh and PNG preview output. The MCP adapter's dependency imports and JavaScript syntax are checked in CI; actual registration with each MCP client still needs a host-specific smoke test.
+
+
+#### Step B1 — Rectangular and custom canvas dimensions (implemented)
+
+- Added common portrait and landscape presets, including 32×48 and 48×32.
+- Added a canvas setup dialog for exact custom width and height, with a 1–512 pixel limit per side.
+- New projects can start at any valid rectangular size.
+- Existing artwork can be resized with deterministic nearest-neighbor resampling; the operation is included in undo history.
+- Updated the canvas viewport to preserve square logical pixels while fitting the new aspect ratio.
+- Updated PNG, SVG, JSON, pixel addressing and project persistence paths to use independent width and height values.
+
+**Verified:** automated editor tests cover a new 32×48 canvas, row-major coordinate access, resize preservation and undo. Chromium E2E also creates a 32×48 project, saves it in the library, opens the earlier project and confirms its pixels survive refresh.
+
+**Still outstanding in F-101:** nine-point canvas anchoring, separate canvas-vs-artwork resize modes and crop/expand without resampling.
 
 ---
 
