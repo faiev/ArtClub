@@ -1,0 +1,11 @@
+{
+  "format": "one-pixel-studio-palette",
+  "version": 1,
+  "name": "Fixture duplicate set",
+  "colors": [
+    { "hex": "#abc", "name": "Fog" },
+    { "hex": "#12aB34", "name": "Leaf" },
+    { "hex": "#AABBCC", "name": "Fog duplicate" },
+    { "hex": "#12AB34", "name": "Leaf duplicate" }
+  ]
+}
