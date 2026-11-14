@@ -23,8 +23,13 @@ From the repository root:
 - [ ] `node --test tests/qa/compatibility/gif-export-contract.test.js`
 - [ ] `node --test tests/qa/release/qa-release-check.test.js`
 - [ ] `node --test tests/qa/renderer/canvas-renderer-contract.test.js`
+- [ ] `node --test tests/qa/runner/run-qa.test.mjs`
+- [ ] `node tools/run-qa.mjs --suite all`
+- [ ] `node tools/run-qa.mjs --suite browser --include-browser`
 
 The current root test command only expands top-level `tests/*.test.js`. It does not include nested QA suites; running the root suite alone does not satisfy the focused QA commands above.
+
+For the explicit QA runner, review the human or JSON report rather than interpreting every non-zero exit as a test assertion failure. A missing manifest entry is `not-run` and makes `--suite all` exit 2; an existing browser suite not opted into is `skipped`. A release is not QA-complete while required suites remain `not-run` or `skipped` without an explicit accepted reason. The runner does not install Playwright/Chromium or launch browser tests unless `--include-browser` is supplied.
 
 ## 3. Real-browser and bridge tests
 
