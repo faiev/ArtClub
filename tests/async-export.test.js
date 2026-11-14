@@ -353,3 +353,95 @@ test("async export uses cooperative signal polling and does not leak abort liste
   assert.equal(added, 0, "polling cancellation does not register abort listeners");
   assert.equal(removed, 0, "polling cancellation leaves no abort listeners to remove");
 });
+
+
+test("async GIF Blob API matches synchronous output and withholds the Blob after late abort", async () => {
+  const project = makeProject({ width: 20, height: 12, frameCount: 3 });
+  const sync = GIF.exportGIF(project, { loopCount: 2 });
+  const events = [];
+  const asyncResult = await GIF.exportGIFAsync(project, {
+    loopCount: 2,
+    yieldEvery: 23,
+    onProgress(event) { events.push(event); }
+  });
+  assert.equal(asyncResult.blob.type, "image/gif");
+  assert.deepEqual(await blobBytes(asyncResult.blob), await blobBytes(sync.blob));
+  assert.deepEqual(asyncResult.metadata, sync.metadata);
+  assert.deepEqual(asyncResult.diagnostics, sync.diagnostics);
+  assert.equal(events.at(-1).phase, "completed");
+  assert.equal(events.at(-1).progress, 100);
+
+  const controller = new AbortController();
+  let returned = false;
+  await expectAbort(GIF.exportGIFAsync(project, {
+    signal: controller.signal,
+    onProgress(event) {
+      // This callback runs after the local Blob has been built but before the
+      // success object is returned to the caller.
+      if (event.phase === "completed") controller.abort();
+    }
+  }).then(result => {
+    returned = true;
+    return result;
+  }), "finalization");
+  assert.equal(returned, false, "an aborted final Blob must never escape");
+});
+
+test("GIF missing-cel composition still yields and can be interrupted", async () => {
+  const project = makeProject({ width: 128, height: 128, frameCount: 3 });
+  project.cels = [];
+  const controller = new AbortController();
+  await expectAbort(GIF.encodeGIFAsync(project, {
+    signal: controller.signal,
+    yieldEvery: 128,
+    onProgress(event) {
+      if (event.phase === "composition" && event.progress > 5) controller.abort();
+    }
+  }), "composition");
+});
+
+test("AbortSignal timers run while GIF async work yields to the host", async () => {
+  const project = makeLargeSingleFrameProject(256, 256);
+  const controller = new AbortController();
+  const pending = GIF.encodeGIFAsync(project, {
+    signal: controller.signal,
+    yieldEvery: 64
+  });
+  setTimeout(() => controller.abort(), 0);
+  await assert.rejects(pending, error => {
+    assert.equal(error.code, "EXPORT_ABORTED");
+    assert.ok(["validation", "composition"].includes(error.stage));
+    return true;
+  });
+});
+
+test("sprite-sheet PNG finalization checks cancellation after an asynchronous codec returns", async () => {
+  const controller = new AbortController();
+  let returned = false;
+  const factory = (width, height) => {
+    let rgba = null;
+    return {
+      getContext() {
+        return {
+          createImageData(w, h) { return { data: new Uint8ClampedArray(w * h * 4) }; },
+          putImageData(imageData) { rgba = imageData.data.slice(); }
+        };
+      },
+      toBlob(callback) {
+        setTimeout(() => {
+          controller.abort();
+          callback(new Blob([rgba], { type: "image/png" }));
+        }, 0);
+      }
+    };
+  };
+  await expectAbort(Sprite.exportSpriteSheetAsync(makeProject(), {
+    signal: controller.signal,
+    yieldEvery: 4096,
+    canvasFactory: factory
+  }).then(result => {
+    returned = true;
+    return result;
+  }), "finalization");
+  assert.equal(returned, false, "the PNG and metadata must not escape after late cancellation");
+});
