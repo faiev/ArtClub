@@ -1,3 +1,21 @@
+### Submitted phase — AC-091: Professional workstation design system and interactive prototype
+
+- **Status:** REVIEW
+- **Branch:** `agent/workstation-design-system-current`
+- **Feature head:** `991931fbe935d257e1e3082a045ac81383a7f1c3`
+- **PR:** [#77 — AC-091: Design the One Pixel Studio workstation experience](https://github.com/faiev/ArtClub/pull/77) (open, draft; current main advanced one commit after branch creation; 3 assigned files only).
+- **Deliverables:**
+  - `docs/ux/DESIGN_SYSTEM.md` — semantic graphite/accent tokens, typography, spacing, geometry, icon rules, focus/selected/disabled/error states, component behavior and responsive rules.
+  - `docs/ux/prototypes/workstation.html` — standalone interactive workstation with inline CSS/JS, original synthetic pixel-art sample, menus/document tab, tool rail/context strip, canvas, real layer × frame × cel matrix, docked inspector/drawer, playback and import/export dialogs.
+  - `docs/ux/WORKSTATION_REVIEW.md` — design rationale, comparison against current production UI, viewport review and task-based acceptance checklist.
+- **Visual review:** Chromium captures at 1440×900, 1280×800, 860×740 and 390×844; 320 CSS-pixel body-overflow check. Captures are delivered separately in the Agent 5 handoff because the repository connector exposes text file writes but no binary-asset upload action; no screenshot files are claimed as committed.
+- **Interaction review:** Tool/context changes, pointer drawing/eraser on synthetic canvas, keyboard pixel cursor, Hand pan, Fit/Actual Size/manual zoom, layer/frame/cel selection and matrix keys, visibility/lock, playback state, frame/layer addition, inspector tab/collapse/resize/drawer, native dialog open/close, export preflight, text-field shortcut protection and narrow-layout overflow.
+- **Corrections made during review:** One frame per activation (not two); hidden inspector sections remain hidden; compact menus fold under More; narrow inspector opens as a drawer.
+- **Scope:** Three documentation/prototype files only. No production `index.html`, app JS/CSS, project model, shared tests, bridge or workflow edits. Import/parser/apply, safe transaction integration, complete layer composition, real encoder/download, persistence and production undo remain illustrative or unimplemented. Opacity is intentionally read-only until production composition and export semantics agree.
+- **Validation:** Committed three-file diff is 934 additions / 0 deletions. Manual Chromium review only; no production suite or automated repository CI run claimed. Exact feature head above.
+- **Next 3–5 actions:** (1) respond to review feedback on PR #77; (2) keep AC-091 isolated from production UI; (3) production integration requires a coordinator-appointed UI owner and explicit `index.html` lock; (4) refresh the six coordination files on main when resuming; (5) no further Agent 5 workstream phase is currently authorized beyond AC-091.
+- **Last updated:** 2026-11-14.
+
 # Status — Agent 5
 
 ## Active workstream — UX / interaction design / accessibility
