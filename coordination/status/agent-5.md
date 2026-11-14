@@ -1,38 +1,35 @@
-# Status — Agent 5: UX / product workflows
+# Status — Agent 5
 
-Worker-owned file. Updated 2026-11-14 after resuming from the coordination snapshot on `coordination/orchestration-v1`.
+- **Task:** AC-009 — Turn UX audit into implementation-ready roadmap
+- **Status:** REVIEW
+- **Branch:** `agent/ux-implementation-plan`
+- **Base:** `fe66725f7d010beca7ca60f497778d419e753d7b`
+- **Commit:** `17e258a44a257d89556a80fb7977ef32a36d50ba`
+- **PR:** [#9 — AC-009: Add implementation-ready UX roadmap](https://github.com/faiev/ArtClub/pull/9) (draft; not merged)
+- **Deliverable:** `UX_IMPLEMENTATION_PLAN.md` (647 lines).
+- **Plan scope:** Eight prioritized tasks: safe Clear, safe image import, Canvas 2D renderer integration, canvas pan/zoom, sprite-sheet/GIF export UI, visual timeline/cel workflows, AI-agent onboarding, and interaction/feedback polish.
+- **Required details:** Each task includes user problem/current workflow, source facts vs browser-validation assumptions, exact proposed behavior, acceptance criteria, affected files, dependencies/ownership conflicts, scope estimate and test plan.
+- **Branch comparison:** 1 commit ahead of main, 0 behind; only `UX_IMPLEMENTATION_PLAN.md` is added.
+- **Source review:** Full `UX_AUDIT.md` read; inspected current main `index.html`, `js/project-model.js`, `js/project-storage.js`, `tests/editor-interactions.test.js`, `agent-bridge/e2e-test.mjs`, README and FEATURES; inspected Agent 2's renderer branch and Agent 3's sprite-sheet exporter branch.
+- **Tests / validation:** Documentation-only check: fetched the committed plan from the feature branch; verified 647 lines, all eight task IDs, and presence of acceptance criteria, affected-file lists and test plans. No application tests were run because no application source or test files changed.
+- **Known validation limits:** No live-browser usability/accessibility session or performance benchmark was run by Agent 5. The plan explicitly leaves these as future task acceptance evidence and makes no unmeasured performance claims.
+- **Coordination:** Respects ownership for Agent 1's persistence/E2E files, Agent 2's renderer files, Agent 3's export modules and Agent 4's bridge/API/shared UI. Calls out the `index.html` integration lock and recommends serialized implementation.
+- **Blockers:** None to submit AC-009. Actual implementation work described by the roadmap requires future coordinator assignments and release of shared-file ownership.
+- **Next handoff:** Coordinator reviews PR #9 and accepts or returns the plan with specific changes. Agent 5 has not merged the PR and has not self-assigned a follow-up.
+- **Last updated:** 2026-11-14.
 
-- **Current task:** AC-005 — UX/product audit
-- **Status:** REVIEW — worker verification complete; coordinator acceptance pending
-- **Branch:** `agent/ux-audit`
-- **Original base commit:** `c7ff0702c27cba22e443f9012fc482c217363613`
-- **Current main HEAD at review:** `b5beddb49e27d8520f4c0b5133942b1237ea39e1`
-- **Branch comparison:** 0 commits ahead, 1 behind main; merge base is `c434013166cc25d5bfb881530a31db42633b0701`.
-- **PR:** #4 was merged; audit is present on main at `UX_AUDIT.md`. No duplicate PR is needed.
-- **Deliverable verification:** Fetched `UX_AUDIT.md` from main and from `agent/ux-audit`; contents match. The main copy contains 541 lines (the earlier board/assignment snapshot reported 540).
+## Coordinator-directed integration review — 2026-11-14
 
-## Five highest-impact findings
-
-1. **UX-01 — Clear/import bypass layer protection and Clear scope is misleading.** Source-verified: the Clear handler and image-import handler write to the active cel without the normal hidden/locked-layer editability guard; Clear changes only the active layer's current cel despite saying it clears every pixel on the canvas.
-2. **UX-02 — Image import is destructive and lacks a conversion preview/target choice.** Source-verified: import converts to the current dimensions, maps to the existing palette and replaces the active cel; there is no preview, fit-mode selector or import-as-new-layer choice.
-3. **UX-03 — Large-canvas navigation is incomplete.** Source-verified: the canvas viewport clips overflow, zoom is limited to 50–200%, and no pan interaction is implemented. Actual usability impact still needs live browser testing.
-4. **UX-04 — DOM-per-pixel rendering risks large-canvas responsiveness.** Source-verified: `renderGrid()` creates one DOM element per pixel and replaces the grid; 512×512 means 262,144 pixel elements. Performance degradation is a risk, not a measured result; Agent 2's benchmark is still required.
-5. **UX-05 — Animation export is missing.** Source-verified: the UI exposes PNG/SVG/current-frame and editable JSON export, but no sprite-sheet, frame PNG sequence, metadata or GIF export workflow. Agent 3 owns the isolated sprite-sheet exporter work.
-
-## Validation and limitations
-
-- The audit is a source-backed review of `index.html`, `FEATURES.md`, `README.md`, `AGENT_API.md` and `agent-bridge/README.md`.
-- The live application was not available for a hands-on browser session in the audit environment. Real interaction/usability, mobile behavior and assistive-technology checks remain unverified.
-- No application tests or performance benchmarks were run by Agent 5. Do not treat the renderer risk as a measured performance defect.
-- No application source was changed in this task.
-
-## Blockers / coordination notes
-
-- All five coordination files requested by the resume protocol returned 404 on the repository default branch `main`. They were recovered from `coordination/orchestration-v1`; that branch is not the default branch.
-- This status update is being written to the worker-owned path on `main` as required by the coordination README. The coordinator should merge/publish the coordination system so future workers can fetch the assignment and board directly from the default branch.
-- AC-005 remains `REVIEW` until the coordinator accepts or returns the report. Agent 5 does not self-accept.
-- **Next assigned task:** AC-009 — convert accepted UX findings into an implementation plan. It remains `QUEUED`; do not start unless the coordinator updates `coordination/assignments/agent-5.md` to `READY`.
-
-## Handoff
-
-Coordinator: review `UX_AUDIT.md` and accept or return specific findings. After AC-005 is accepted, update the assignment to `READY` before Agent 5 starts AC-009.
+- **Review scope:** PR #3 sprite-sheet exporter, #6 Canvas renderer, #8 Agent API/MCP, #10 recovery fix, #11 GIF exporter; compared against `UX_IMPLEMENTATION_PLAN.md` on `agent/ux-implementation-plan`.
+- **AC-009 verification:** PR #9 remains open, draft, unmerged and GitHub reports mergeable. Head `17e258a44a257d89556a80fb7977ef32a36d50ba`; one commit ahead of `main`; adds only `UX_IMPLEMENTATION_PLAN.md` (647 lines, eight UX tasks). No application test is expected for this docs-only PR.
+- **PR #10:** Open/draft/mergeable, 8 ahead/0 behind. CI run #108 fully passed: 36 Node tests, real Chromium/IndexedDB recovery E2E and MCP E2E. No-op saves preserve the recovery slot. Recommended first merge after coordinator review.
+- **PR #8:** Open/draft/mergeable, 22 ahead/0 behind. CI run #104 fully passed (unit/editor tests, Chromium E2E and MCP client E2E). Adds required MCP `expected_revision`, serialized per-process operations, structured envelopes/errors and reconnect handling. Risks: no operation timeout/cancellation, no cross-process lock, and forced-crash reconnect is not E2E tested.
+- **Shared E2E collision:** PR #8 and PR #10 both modify `agent-bridge/e2e-test.mjs` around the reload/persistence test. Board ownership is ambiguous because Agent 1 explicitly owns this file while Agent 4's broad `agent-bridge/*` scope includes it. Merge/update these changes serially; keep one owner for this file and rerun full CI on the combined result.
+- **PR #3:** Open/draft/mergeable but 3 commits ahead and 3 behind `main` (merge base `c7ff0702c27cba22e443f9012fc482c217363613`). Isolated sprite-sheet module and 10/10 local Node tests; CI run #96 Node job passed but browser E2E failed at the old persistence assertion (`null !== #ff0000`). PNG encoding is tested with a canvas double, not a real-browser decoded export. Refresh against main and add/obtain real-browser PNG pixel + metadata verification before UX-05 integration.
+- **PR #11:** Open/draft/mergeable, 6 ahead/0 behind. CI run #107 Node job passed; new GIF ImageDecoder browser step passed (two frames, expected pixels and transparent alpha), while the aggregate browser job failed earlier at the same old persistence assertion and skipped MCP. The module has 10/10 local tests and independent FFmpeg/ImageMagick decode evidence. Rerun full CI after PR #10's fix is on the base.
+- **PR #6:** Open/draft/mergeable, 10 ahead/0 behind. CI run #101 renderer/unit job passed (52 total, including 17 renderer tests); browser E2E failed at the same old persistence assertion. Canvas tests use fake contexts; browser benchmark timings remain unmeasured. Keep it isolated/fallback-only until real-browser pixel parity, overlays, pointer mapping, accessibility and benchmark evidence exist.
+- **Roadmap readiness:** UX-01 can start with isolated tests/spec work; actual Clear UI waits for the `index.html` slot and safe layer-target contract. UX-02 can prepare pure conversion helpers/tests independently, but UI integration follows UX-01 rules and the same UI slot. UX-05 module review/test work can proceed, but UI integration requires accepted/current PR #3 and accepted PR #11. UX-07 content can be drafted after AC-004 acceptance; the visible entry waits for Agent 4's handoff. UX-03 integration waits for AC-010 browser evidence; UX-04 waits for a stable renderer/coordinate contract; UX-06 waits for stable timeline/rendering ownership; UX-08 stays last.
+- **UI integration ownership:** `index.html` is a single-writer file; Agent 4 currently owns bridge-related edits. Recommend one coordinator-appointed UI integrator for UX-01/02/03/04/05/06/07/08, with serialized commits and specialist reviews. Avoid adding integration assertions to Agent 1's E2E file until its owner releases it; prefer new focused test files.
+- **Recommended order:** (1) review/merge PR #10; (2) reconcile the shared E2E edits and update/retest PR #8; (3) refresh PR #3 and add real-browser PNG verification; (4) rerun/review PR #11 after the persistence fix; (5) complete PR #6 browser correctness and benchmark evidence before deciding on renderer integration; (6) schedule UI slices in roadmap order: UX-01, UX-02, UX-03, UX-04, UX-05, UX-06, UX-07, UX-08.
+- **Most visible wins:** safe Clear/import (prevents destructive edits), then pan/zoom and usable animation export. The five implementation PRs do not yet expose new editor UI controls; PR #10 is an immediate Project Library reliability improvement, and PR #8 improves agent-write safety rather than ordinary editor discoverability.
+- **No changes made:** No app source, another agent's files, assignments, board or backlog changed. No implementation work self-assigned.
