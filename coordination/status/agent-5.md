@@ -23,11 +23,11 @@
 ### Active follow-up — AC-091 screenshot-caption precision
 
 - **Branch:** `agent/ac091-screenshot-caption-fix`
-- **Feature head before status sync:** `3a111fe3e6d915e6d546d12259bcfb552a12da2d` (a non-force merge commit with current main as first parent).
+- **Feature/source head before this status snapshot:** `5634fccecd6976611543c025663ff73390f7c6cd` (non-force merge commit after syncing the status update; current comparison is 3 commits ahead / 0 behind).
 - **PR:** [#87 — docs(ux): correct phone capture state description](https://github.com/faiev/ArtClub/pull/87), open; one file, one insertion / one deletion.
 - **Diff:** Only `docs/ux/DESIGN_SYSTEM.md`; changes 390×844 screenshot description to say the inspector drawer is open.
 - **Validation:** Verified the incorrect sentence in main, applied the exact correction and compared against the status-update base; main-to-branch contains only the design-system document. Docs-only change; no application tests run.
-- **Next actions:** (1) Refresh PR #87 against this status commit using a non-force sync; (2) confirm the one-file diff remains clean; (3) leave review/merge to coordinator; (4) address specific UI-01 follow-up requests only within the documentation/review boundary.
+- **Next actions:** (1) Coordinator reviews/merges PR #87; (2) re-check the single caption line after merge; (3) address specific UI-01 follow-up requests only within the documentation/review boundary; (4) do not edit production UI without a separate explicit assignment.
 - **Last updated:** 2026-11-14.
 
 # Status — Agent 5
