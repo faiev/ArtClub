@@ -413,6 +413,7 @@
     const done = transactionResult(tx);
     let version = null;
     let previous = null;
+    let deletedToken = null;
     let ready = 0;
     const finish = function () {
       ready += 1;
@@ -423,7 +424,7 @@
       projects.delete(id);
       recovery.delete(id);
       versions.put({ projectId: id, revision: revision, commitToken: commitToken });
-      this.revisions.set(id, { revision: revision, commitToken: commitToken });
+      deletedToken = { revision: revision, commitToken: commitToken };
     }.bind(this);
     const versionRequest = versions.get(id);
     versionRequest.onsuccess = function () { version = versionRequest.result || null; finish(); };
@@ -432,6 +433,7 @@
     projectRequest.onsuccess = function () { previous = projectRequest.result || null; finish(); };
     projectRequest.onerror = function () { try { tx.abort(); } catch (_) {} };
     await done;
+    this.revisions.set(id, deletedToken);
   };
 
   ProjectStorage.prototype.close = function () {
