@@ -3,7 +3,7 @@
 ## Current snapshot
 - **Role:** QA engineering / release reliability.
 - **Coordination source:** `main`.
-- **Main SHA observed before this status commit:** `c92f6ab1c25cd2ed62c963b3f8da90aba46f3d43`.
+- **Main SHA observed before this status commit:** `cdfab1598052a7a7226c9b753174758d2b6f3f35`.
 - **This session's repository changes:** QA-owned tooling and docs on feature branches PR #91/#93, plus this status file on main. No production editor/UI, project model/storage, exporter, bridge or workflow files were changed.
 - **Local execution blocker:** `git ls-remote https://github.com/faiev/ArtClub.git refs/heads/main` still fails with `Could not resolve host: github.com`. GitHub API access works, but this shell cannot clone/download the repository or launch Chromium. The focused nested test commands and 12-flow browser smoke remain unexecuted locally.
 
@@ -46,7 +46,7 @@
 
 ## Next 3–5 actions
 1. Obtain the Coordinator's bounded workflow lock (or a suitable approved CI mechanism), then run the AC-087 release test, runner test and `verify-qa-runner-ci.mjs` on the exact current head.
-2. Verify Actions run #43633121814 completes both jobs on PR #93 head `df5ed11986b0a99b744d31749882bc32e7955e2d`; keep standard CI separate from focused nested-suite evidence.
+2. After a Coordinator-approved workflow lock (or another authorized CI path), add only the focused release/runner/verifier commands to the Node job and run them against PR #93's exact head; keep standard CI separate from focused nested-suite evidence.
 3. After Agent 2 PR #90 is merged, refresh PR #61 against latest main, remove the cache-test TODO only after the public behavior is on main, and run `node --test tests/qa/renderer/canvas-renderer-contract.test.js` on its exact head.
 4. Reconcile PR #91 with current main before coordinator review/merge; preserve the four-file scope and non-force merge history.
 5. Execute UI01-01…UI01-12 in real Chromium at 1440×900 and 1280×800 when a browser-enabled checkout is available; keep the gate NOT RUN until completed.
