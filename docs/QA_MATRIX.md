@@ -65,6 +65,7 @@ The explicit runner manifest is maintained in `tools/run-qa.mjs`. It executes on
 
 ```bash
 node --test tests/qa/runner/run-qa.test.mjs
+node tests/qa/runner/verify-qa-runner-ci.mjs
 node tools/run-qa.mjs --suite runner --json
 node tools/run-qa.mjs --suite all
 node tools/run-qa.mjs --suite all --json
@@ -76,6 +77,7 @@ Interpretation:
 - A browser entry that exists but is not explicitly enabled is reported as `skipped`; an absent browser entry is `not-run`.
 - `--include-browser` is an explicit opt-in. Install the documented Playwright/Chromium prerequisites separately; the runner never installs dependencies or launches a browser by surprise.
 - CI must run the focused runner test and verify the real `--suite all` JSON/report on the exact tested SHA. The root-only `node --test tests/*.test.js` glob does not discover this nested test.
+- `verify-qa-runner-ci.mjs` runs the real all-suite command, validates its JSON against the manifest and checkout, and requires the release/runner suites to pass. It reports `complete: false` while required files are missing or skipped; a successful verifier proves the runner reported its state accurately, not that missing suites passed.
 ### Standalone project lifecycle browser harness
 
 ```bash
