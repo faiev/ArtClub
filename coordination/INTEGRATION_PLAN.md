@@ -253,3 +253,13 @@ This update supersedes the earlier UI-01 status that referenced head `29e348...`
 - The first candidate's clipped first-pixel drawing regression was fixed before this final run. The current tested tree includes the `#pixelGrid` viewport constraint.
 - Specialist reviews are still outstanding: Agent 1's independent 12-flow task matrix, Agent 2's viewport/pointer/responsive review and Agent 5's production visual-design review. The existing workflow does not emit desktop screenshots, so manual 1440×900 / 1280×800 visual evidence remains open. Do not mark these review gates complete from the standard E2E result.
 - Current production `index.html` on main remains the original blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; PR #84 is not merged and no published workstation redesign is claimed.
+
+## UI-01 production release — merged and deployed (2026-11-14)
+
+- **PR #84** merged successfully as `e22ddb35ebf802b3b719e74a7329effceab28747`.
+- Production `index.html` on main is now blob `4645281c1aad8580529e7feb99cd299a88543913` (the prior production blob was `1a29a9eca58d9035287af1ff58b97f2ff4040a69`). The production workstation shell is now part of main.
+- Pre-merge exact-head CI [#43624220195](https://github.com/faiev/ArtClub/actions/runs/43624220195) passed. Post-merge push test workflow [#43624328658](https://github.com/faiev/ArtClub/actions/runs/43624328658) also passed both Node and Chromium/GIF/MCP jobs.
+- GitHub Pages build/deploy [#43624328006](https://github.com/faiev/ArtClub/actions/runs/43624328006) completed successfully on merge commit `e22ddb35...`; build, artifact upload and deployment steps all passed. Deploy log reported environment URL: [https://faiev.github.io/ArtClub/](https://faiev.github.io/ArtClub/).
+- **Visual verification limitation:** direct fetching of the public Pages URL is blocked in this coordinator session. Deployment status and the target commit are verified, but a rendered-page screenshot/visual inspection is not claimed. Ask a reviewer with browser access to inspect the published site at 1440×900 and 1280×800 and report any clipping/density issues.
+- Specialist reports (Agent 1's 12-flow matrix, Agent 2's responsive/pointer review, Agent 5's production visual review) were requested but had not yet appeared in their status files at the time of merge. The functional suite is green; keep these manual reviews as post-release QA follow-up and fix any verified issues in a new narrowly scoped PR.
+- Scope remains UI shell only: original DOM-grid renderer, project model/storage, commands, data behavior, local-first architecture and current exports are preserved. No renderer switch, schema migration, bridge, server/backend or new tool capability was included.
