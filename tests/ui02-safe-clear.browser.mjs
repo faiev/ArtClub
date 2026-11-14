@@ -139,9 +139,10 @@ async function run() {
         configurable: true,
         set(api) {
           const originalOpen = api.open;
-          const probe = window.__safeClearSaveProbe = { active: 0, maxActive: 0, snapshots: [] };
+          const probe = window.__safeClearSaveProbe = { active: 0, maxActive: 0, snapshots: [], storageOpened: false };
           api.open = async function (...args) {
             const storage = await originalOpen.apply(this, args);
+            probe.storageOpened = true;
             const originalSave = storage.saveProject.bind(storage);
             storage.saveProject = async function (project) {
               probe.active += 1;
@@ -163,6 +164,7 @@ async function run() {
     });
     await racePage.goto(url, { waitUntil: "domcontentloaded" });
     await racePage.waitForFunction(() => Boolean(window.onePixelStudio && window.__safeClearSaveProbe), null, { timeout: 30000 });
+    await racePage.waitForFunction(() => window.__safeClearSaveProbe.storageOpened, null, { timeout: 30000 });
     await racePage.evaluate(() => window.onePixelStudio.draw_pixel({ x: 23, y: 23, color: "#123456" }));
     await racePage.waitForFunction(() => window.__safeClearSaveProbe.active === 1, null, { timeout: 5000 });
     await racePage.locator("#clearBtn").click();
