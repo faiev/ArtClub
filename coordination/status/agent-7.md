@@ -1,56 +1,68 @@
 # Status — Agent 7
 
-- **Active phase:** AC-065 — Tile workflow fixtures and validation suite
-- **Status:** IN_PROGRESS
+- **Active phase:** AC-093 — Deterministic autotile rule resolver
+- **Status:** REVIEW
 - **Role:** Tile workflows
 - **Coordination source:** `main`
-- **Active branch:** `agent/tile-workflow-fixtures` (created from the status commit below)
 
-## Submitted work and validation
+## Submitted tile work
 
 ### AC-016 — Tile preview
 - **PR:** https://github.com/faiev/ArtClub/pull/13 (open, draft)
 - **Branch/head:** `agent/tile-preview` / `2ee8ae84417aeb1c52015d6a74c0156a39763e6d`
-- **CI:** run #335 — 81 passed, 0 failed, 0 skipped; Chromium editor E2E, animated GIF browser verification and MCP E2E passed.
+- **Last recorded CI:** run #335 — 81 passed; Chromium editor E2E, animated GIF verification and MCP E2E passed.
 
 ### AC-061 — Tile transforms and offset preview
 - **PR:** https://github.com/faiev/ArtClub/pull/28 (open, draft)
 - **Branch/head:** `agent/tile-transform` / `10053534d4c90a02cd84f1e4cf8cb5a16ce2206f`
-- **CI:** run #336 — 94 passed, 0 failed, 0 skipped; Chromium editor E2E, animated GIF browser verification and MCP E2E passed.
+- **Last recorded CI:** run #336 — 94 passed; Chromium editor E2E, animated GIF verification and MCP E2E passed.
 
 ### AC-062 — Tile-map data model
 - **PR:** https://github.com/faiev/ArtClub/pull/58 (open, draft)
 - **Branch/head:** `agent/tile-map` / `e8c7e8d61646bd2aba24c1a4b937c50ac5033347`
-- **CI:** run #338 — 85 passed, 0 failed, 0 skipped; Chromium editor E2E, animated GIF browser verification and MCP E2E passed.
+- **Last recorded CI:** run #338 — 85 passed; Chromium editor E2E, animated GIF verification and MCP E2E passed.
 
 ### AC-063 — Seam diagnostics and suggestions
-- **PR:** https://github.com/faiev/ArtClub/pull/65 (open, draft; submitted for coordinator review)
-- **Branch/head:** `agent/tile-seam-diagnostics` / `029ecf0a52ee1ea6491da27a61d150248d24134e`
-- **CI:** run #406 / `43613381767` — success; 82 passed, 0 failed, 0 skipped, 0 todo; Chromium editor E2E, animated GIF browser verification and MCP client E2E passed.
-- **Status:** REVIEW; not merged or self-accepted.
+- **PR:** https://github.com/faiev/ArtClub/pull/65 (open, draft)
+- **Branch/head:** `agent/tile-seam-diagnostics` / `ae4988deef1b4ea496b8b593f0a7e96cd4efaedc`
+- **Main sync base:** `573bf6fd8963781613bb43179e9c7d10f49c418e`
+- **Current exact-head CI:** run #699 / `43619183785` — 249 passed, 0 failed, 0 skipped; Chromium editor E2E, animated GIF verification and MCP E2E passed.
+- **Scope:** advisory edge/corner/transparency/shift/repeated-join diagnostics; no automatic pixel repair.
 
 ### AC-064 — Atlas/layout planning
 - **PR:** https://github.com/faiev/ArtClub/pull/67 (open, draft)
-- **Branch/head:** `agent/tile-atlas-planner` / `f87822e2e21d241d2f6053adf7a3d74b2e1e8e3c`
-- **Base used:** `b140cbefbcfb3cbe1a2774d1c0025e64efb052ba`
-- **Files:** `js/tile-atlas-planner.js`, `tests/tile-atlas-planner.test.js`, `docs/tile-atlas-planner.md`
-- **Focused local checks:** syntax checks passed; 10 tests passed, 0 failed.
-- **Exact-head full CI:** run #441 / `43613786160` in progress (Node job and browser E2E were running at last check).
-- **Scope:** deterministic ID ordering and row-major layout with margins, spacing, padding and bounded metadata rectangles; no PNG encoding/exporter/UI.
-- **Status:** IN_PROGRESS pending exact-head CI.
+- **Branch/head:** `agent/tile-atlas-planner` / `8fd902892ee0e0705bed280c1aaf9119c2e5d6ea`
+- **Main sync base:** `573bf6fd8963781613bb43179e9c7d10f49c418e`
+- **Current exact-head CI:** run #700 / `43619194268` — 247 passed, 0 failed, 0 skipped; Chromium editor E2E, animated GIF verification and MCP E2E passed.
+- **Scope:** deterministic metadata layout only; no PNG encoding/exporter changes.
 
-## AC-065 starting
+### AC-065 — Tile workflow fixtures and validation suite
+- **PR:** https://github.com/faiev/ArtClub/pull/79 (open, draft)
+- **Branch/head:** `agent/tile-workflow-fixtures` / `98dd69aed7a68578304b0146bbf18903ca9b5fe3`
+- **Main sync base:** `573bf6fd8963781613bb43179e9c7d10f49c418e`
+- **Current exact-head CI:** run #701 / `43619202739` — 246 passed, 0 failed, 0 skipped; Chromium editor E2E, animated GIF verification and MCP E2E passed.
+- **Scope:** seven versioned fixture cases, browser-independent runner and bounded 4 MiB maximum-allocation sample.
 
-- **Goal:** fixture sets for seamless/non-seamless and rectangular/non-square patterns, alpha/transparency, wrapped edges, map stamping and maximum allocations; exact deterministic fixture tests and browser-independent example runner.
-- **Integration boundary:** fixtures and validation only; no production UI, renderer, exporter, project model, bridge or index.html changes.
+### AC-066 — Tiled canvas integration contract
+- **PR:** https://github.com/faiev/ArtClub/pull/80 — **merged by coordinator** on 2026-11-14.
+- **File:** `docs/TILE_WORKFLOW_INTEGRATION.md`
+- **Scope:** documentation and keyboard/mouse acceptance matrix only; production UI and renderer ownership was not requested or taken.
 
-## Next 3–5 authorized tasks
+### AC-093 — Deterministic autotile rule resolver
+- **PR:** https://github.com/faiev/ArtClub/pull/81 (open, draft; submitted for coordinator review)
+- **Feature commit:** `7a8a7bae2b0f429442ff9342d2d7a1809a97aeb3`
+- **Current main-sync branch head:** `73e2990d21a746740200553e7ce00094cb80e7b6`
+- **Main sync base:** `573bf6fd8963781613bb43179e9c7d10f49c418e`
+- **Files:** `js/autotile.js`, `tests/autotile.test.js`, `docs/autotile.md`, four nested fixtures under `tests/fixtures/tiles/autotile/`.
+- **Current exact-head CI:** run #713 / `43619328416` — 252 passed, 0 failed, 0 skipped, 0 todo; Chromium editor E2E, animated GIF browser verification and MCP client E2E passed.
+- **Contract:** versioned 4/8-neighbor masks, fixed direction order, deterministic priority/specificity/lexical tie-break, opt-in fallback, explicit unresolved entries, no guessed rotation/mirroring and no input/pixel mutation.
+- **Status:** REVIEW; not merged or self-accepted.
 
-1. Complete AC-065 fixtures, exact assertions and browser-independent example runner.
-2. Complete AC-066 `docs/TILE_WORKFLOW_INTEGRATION.md` and keyboard/mouse interaction matrix without UI integration.
-3. Complete AC-093 deterministic autotile rule resolver after AC-066.
-4. Recheck AC-064 run #441 and update PR #67 with exact-head result; fix only direct AC-064 issues if found.
-5. Keep PR #65/#67 draft and exact-head evidence current; do not merge.
+## Next authorized actions
+
+1. Address coordinator review feedback on PRs #65, #67, #79 and #81 if requested.
+2. Keep each draft PR current with exact branch/head and any later base-sync CI evidence.
+3. Do not merge own PRs or claim production UI integration; all remaining submitted work is standalone until separately authorized.
 
 - **Blockers:** None.
-- **Last updated:** 2026-11-14 — AC-063 CI passed; AC-064 submitted and running CI; AC-065 started.
+- **Last updated:** 2026-11-14 — AC-063 through AC-065 re-synced to main and full CI passed; AC-066 merged by coordinator; AC-093 full CI passed on current main-sync head in run #724.

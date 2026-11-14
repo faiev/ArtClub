@@ -1,60 +1,56 @@
 # Status — Agent 10
 
-- **Workstream:** Pixel-art algorithm library
-- **Status:** IN_PROGRESS
+- **Workstream:** Deterministic pixel-art algorithm library
+- **State:** IN_PROGRESS
 - **Coordination source:** main
-- **Latest main snapshot:** `156fe5675a5e1aef54cabe251752e24d293dd385`
+- **Latest main snapshot:** `12711ca8de277125b6529c4f4c34826fcc5b7d59`
 
-## Submitted phases
+## Phase / PR ledger
 
-### Phase 0 — AC-019: Pixel-art craft algorithms
-- **Branch:** `agent/pixel-effects`
-- **PR:** https://github.com/faiev/ArtClub/pull/15 (open draft)
-- **Last validated feature head:** `b6d8988a161d740450b148db0866f61f4a07a71a`
-- **CI:** workflow #43610309527 — Node 24 **91 passed, 0 failed, 0 skipped**; server syntax check passed; Chromium editor E2E passed; MCP E2E passed.
-- **Files:** `js/pixel-effects.js`, `tests/pixel-effects.test.js`, `docs/pixel-effects.md`.
+| Task | Branch | PR / state | Tested head | Node 24 CI |
+|---|---|---|---|---|
+| AC-019 craft effects | `agent/pixel-effects` | [#15](https://github.com/faiev/ArtClub/pull/15), open draft | `d1be42920e63a24f27c3e85bb357f63c43941a89` | #43621354072 — **258 passed, 0 failed, 0 skipped** |
+| AC-080 raster primitives | `agent/pixel-primitives` | [#31](https://github.com/faiev/ArtClub/pull/31), **MERGED** | `12010cd3f17ba0f0227e3adeb58a01cb1bdf7c5d` | #43613997761 — **109 passed**, browser/MCP passed |
+| AC-081 regions/flood fill | `agent/pixel-regions` | [#37](https://github.com/faiev/ArtClub/pull/37), open draft | `7a18ea210d200339fb879912d35a832b0d05b5dd` | #43621364162 — **255 passed, 0 failed, 0 skipped** |
+| AC-082 color/gradients | `agent/pixel-color` | [#44](https://github.com/faiev/ArtClub/pull/44), open draft | `7af6576dcb2321c0b16eb732809c1b3266840f3d` | #43621362635 — **256 passed, 0 failed, 0 skipped** |
+| AC-083 transforms | `agent/pixel-transform` | [#50](https://github.com/faiev/ArtClub/pull/50), open draft | `d348c12b9dfaaf67ef775d068c53a49d1351428a` | #43621358774 — **257 passed, 0 failed, 0 skipped** |
+| AC-084 advanced dithering/outlines | `agent/pixel-advanced-dither` | [#69](https://github.com/faiev/ArtClub/pull/69), open draft | `c8e6978f691a5708cbfc3a7c715e91c9bfceef06` | #43621411011 — **258 passed, 0 failed, 0 skipped** |
+| AC-085 golden/stress corpus | `agent/pixel-golden-fixtures` | [#70](https://github.com/faiev/ArtClub/pull/70), open draft; first tranche | `ddb164ae3c04fb64b10919f8106881146c277cc6` | #43621413409 — **251 passed, 0 failed, 0 skipped** |
+| AC-086 algorithm catalog | `agent/pixel-catalog` | [#72](https://github.com/faiev/ArtClub/pull/72), open draft; docs-only | `b4c4803c75bcce5d8963680c6777b09114f44fdc` | No project workflow; documentation only |
+| AC-096 Bézier curves | `agent/pixel-curves` | [#76](https://github.com/faiev/ArtClub/pull/76), open draft | `1fbbb000c253eeef1741e2b23bc79715fd5fa316` | #43621422980 — **260 passed, 0 failed, 0 skipped** |
 
-### Phase 1 — AC-080: Raster primitives
-- **Branch:** `agent/pixel-primitives`
-- **PR:** https://github.com/faiev/ArtClub/pull/31 (open draft)
-- **Last validated feature head:** `e713cf8b032e06690ac79b2827dc1ff0ec47129b`
-- **Focused local tests (Node v22.16.0):** `node --check` for module and tests passed; `node --test /tmp/ac080/tests/pixel-primitives.test.js` — **25 passed, 0 failed, 0 skipped**.
-- **CI:** workflow #43610315854 — Node 24 **95 passed, 0 failed, 0 skipped**; server syntax check passed; Chromium editor E2E passed; MCP E2E passed.
-- **Files:** `js/pixel-primitives.js`, `tests/pixel-primitives.test.js`, `docs/PIXEL_EFFECTS_CATALOG.md`.
+For every code-phase run above: Node 24 used; `node --check agent-bridge/server.mjs` passed; Chromium editor E2E and MCP client E2E passed. CI evidence is tied to the exact listed feature head and base `12711ca8`.
 
-### Phase 2 — AC-081: Region selection, border extraction and flood fill
-- **Branch:** `agent/pixel-regions`
-- **PR:** https://github.com/faiev/ArtClub/pull/37 (open draft)
-- **Last validated feature head:** `b76d309b0a5091567aafe1fbc5f78f9a3f998b67`
-- **Focused local tests (Node v22.16.0):** `node --check` for module and tests passed; `node --test /tmp/ac081/tests/pixel-regions.test.js` — **18 passed, 0 failed, 0 skipped**.
-- **CI:** workflow #43610323886 — Node 24 **88 passed, 0 failed, 0 skipped**; server syntax check passed; Chromium editor E2E passed; MCP E2E passed.
-- **Files:** `js/pixel-regions.js`, `tests/pixel-regions.test.js`, `docs/pixel-regions.md`.
+## AC-096 deliverable summary
 
-### Phase 3 — AC-082: Color, gradients, quantization and ramps
-- **Branch:** `agent/pixel-color`
-- **PR:** https://github.com/faiev/ArtClub/pull/44 (open draft)
-- **Feature head:** `9a8796206f51998e75f21f0ff9aeaba0acf54f8a`
-- **Focused local tests (Node v22.16.0):** `node --check` for module and tests passed; `node --test /tmp/ac082/tests/pixel-color.test.js` — **19 passed, 0 failed, 0 skipped**.
-- **CI:** workflow #43610446907 — Node 24 **89 passed, 0 failed, 0 skipped**; server syntax check passed; Chromium editor E2E passed; MCP E2E passed.
-- **Files:** `js/pixel-color.js`, `tests/pixel-color.test.js`, `docs/pixel-color.md`.
+- **Module:** `js/pixel-curves.js`, browser global `window.ArtClubPixelCurves`, CommonJS.
+- **APIs:** `rasterizeQuadratic(p0,p1,p2,options)` and `rasterizeCubic(p0,p1,p2,p3,options)`.
+- Deterministic fixed-point De Casteljau flattening (1024 subpixel units/pixel), integer midpoint rounding, finite-chord flatness tests (BigInt cross-product comparisons), explicit stack preserving path order and integer major-axis segment rasterization.
+- Validated coordinate limit ±8192; canvas 1..512; flatness 1..1024; maxDepth 16; maxSegments 8192; maxIterations 16383; maxRasterSteps 1,048,576. Work-limit failures throw without partial output.
+- Exact fixtures include straight-line degenerations, horizontal/vertical paths, coincident points, clipped and fully off-canvas curves, closed loop, cusp-like cubic and mirrored paths. Closed-loop/cusp coordinate outputs are stored as exact goldens; horizontal and vertical reflection tests pass.
+- **Files:** `js/pixel-curves.js`, `tests/pixel-curves.test.js`, `tests/fixtures/pixel-effects/curves.json`, `docs/pixel-curves.md`.
+- Isolated algorithm only; no live Pencil/Curve tool, renderer, UI, project model or Agent API integration.
 
-## Technical boundaries and risks
+## AC-085 remaining scope
 
-- All phases are isolated pure modules. No UI, index.html, renderer, project model, palette implementation, Agent API, MCP bridge or shared workflow files were edited.
-- AC-019: fixed canvas-center symmetry; one-pixel opaque/null outline; normalized-tone dithering.
-- AC-080: coordinate-only output; line/shape limits and even-odd polygon fill edge rules are documented.
-- AC-081: dense exact-HEX/null buffers, 4/8 connectivity, bounded typed queue, maxIterations and synchronous cancellation; no partial results.
-- AC-082: exact mappings; masked gradients preserving null; integer half-up channel interpolation; integer quantization and Rec.601 luma ramp mapping.
-- All feature branches were last synced to main snapshot `a5c1a008a12e919a1b8a74f0dde58920d944acbc`. Main has since advanced only through Agent 1 and Agent 2 coordination status updates; those branches need a non-force sync before the next CI snapshot.
+The first synthetic corpus tranche includes checkerboard, diagonal, transparent-hole, grayscale ramp, symmetric sprite and generated 512×512 stress fixtures. It directly validates merged AC-080 line/rectangle/polygon/filled-rectangle operations. Full raw-buffer golden parity for AC-019 and AC-081–084, repeated-run tests, allocation/runtime guards and broader non-mutation stress remain unfinished until those module PRs merge. This limitation is explicitly documented in PR #70.
 
-## Next queue (authorized)
+## Boundaries / risks
 
-1. Sync feature branches with latest main and record current-head CI for PRs #15, #31, #37 and #44.
-2. Begin **AC-083** on a separate branch: flips, quarter-turn rotations, crop, pad and nearest-neighbor scaling with exact raster fixtures.
-3. Continue **AC-084**: bounded error-diffusion dithering and configurable shading/outline options.
-4. Build **AC-085** synthetic golden fixtures plus max-dimension, memory/runtime and non-mutation stress corpus.
-5. Complete **AC-086** with the full catalog, API schemas, complexity/bounds and preview/commit integration contract.
+- Plain JavaScript only; all algorithms are dependency-free local modules.
+- No edits to index.html, renderer, project model, palette implementation, bridge, shared workflows, Agent API or another worker's files.
+- No UI feature is claimed shipped.
+- AC-080 is merged; PRs #15/#37/#44/#50/#69/#70/#72/#76 remain open drafts.
+- AC-085 is partially complete because its remaining integration assertions depend on unmerged modules.
+- AC-096 exact-output fixtures and current-head full CI are complete.
 
-- **Blockers:** none. UI/API integration remains coordinator-controlled and is not required for these isolated phases.
-- **Worker merge policy:** do not merge PRs or mark work ACCEPTED/DONE.
+## Next 3–5 actions
+
+1. Address coordinator review comments on PRs #15, #37, #44, #50, #69, #70, #72 and #76 only within Agent 10's owned paths.
+2. Extend AC-085 raw-buffer parity tests for each module as its PR merges; add repeated-run, max-dimension, runtime/allocation and non-mutation guards.
+3. Revalidate all affected PR heads after every main update; CI results apply only to the exact SHA tested.
+4. Preserve the module-first boundary; wait for explicit coordinator authorization before editor/UI/Agent API integration.
+5. Do not merge own PRs or self-mark ACCEPTED/DONE.
+
+- **Blockers:** AC-085 parity work depends on the other Agent 10 module PRs merging; no blocker prevents source review or isolated test/documentation improvements.
 - **Last updated:** 2026-11-14.
