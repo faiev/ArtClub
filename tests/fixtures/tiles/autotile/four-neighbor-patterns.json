@@ -1,0 +1,119 @@
+{
+  "schema": "artclub.autotile-fixture.v1",
+  "id": "four-neighbor-patterns",
+  "description": "Four-neighbor corner, top edge, inner cell and explicit fallback on a square map.",
+  "map": {
+    "width": 3,
+    "height": 3,
+    "cells": [
+      "grass-source",
+      "grass-source",
+      "grass-source",
+      "grass-source",
+      "grass-source",
+      "grass-source",
+      "grass-source",
+      "grass-source",
+      "grass-source"
+    ]
+  },
+  "catalog": [
+    {
+      "id": "grass-source",
+      "group": "ground"
+    },
+    {
+      "id": "grass-corner",
+      "group": "ground"
+    },
+    {
+      "id": "grass-edge",
+      "group": "ground"
+    },
+    {
+      "id": "grass-inner",
+      "group": "ground"
+    },
+    {
+      "id": "grass-default",
+      "group": "ground"
+    }
+  ],
+  "ruleset": {
+    "schema": "artclub.autotile-rules.v1",
+    "maskMode": 4,
+    "directions": [
+      "N",
+      "E",
+      "S",
+      "W"
+    ],
+    "groups": [
+      {
+        "id": "ground",
+        "variants": [
+          "grass-corner",
+          "grass-edge",
+          "grass-inner",
+          "grass-default"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "ground-corner-nw",
+        "group": "ground",
+        "mask": "0110",
+        "variant": "grass-corner",
+        "priority": 100
+      },
+      {
+        "id": "ground-north-edge",
+        "group": "ground",
+        "mask": "0111",
+        "variant": "grass-edge",
+        "priority": 90
+      },
+      {
+        "id": "ground-inner",
+        "group": "ground",
+        "mask": "1111",
+        "variant": "grass-inner",
+        "priority": 100
+      },
+      {
+        "id": "ground-fallback",
+        "group": "ground",
+        "mask": "????",
+        "variant": "grass-default",
+        "priority": 0,
+        "fallback": true
+      }
+    ]
+  },
+  "expect": {
+    "variantCells": [
+      "grass-corner",
+      "grass-edge",
+      "grass-default",
+      "grass-default",
+      "grass-inner",
+      "grass-default",
+      "grass-default",
+      "grass-default",
+      "grass-default"
+    ],
+    "unresolvedCount": 0,
+    "masks": [
+      "0110",
+      "0111",
+      "0011",
+      "1110",
+      "1111",
+      "1011",
+      "1100",
+      "1101",
+      "1001"
+    ]
+  }
+}
