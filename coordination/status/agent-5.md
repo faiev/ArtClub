@@ -1,32 +1,33 @@
 # Status — Agent 5
 
-## Active workstream — UX / accessibility / interaction design
+## Active workstream — UX / interaction design / accessibility
 
-### Phase 5 — AC-053: Static interaction prototypes and design patterns
-
-- **Status:** IN_PROGRESS
-- **Branch:** `agent/ux-prototypes` (create from latest main after this status commit)
-- **Allowed deliverables:** self-contained static HTML/CSS prototypes under `docs/ux/prototypes/` for shortcut reference, canvas workspace navigation, layer/timeline panel, and palette import/export dialogs.
-- **Scope:** Static prototypes only. Do not edit production `index.html`, app JS/CSS, existing tests, bridge, export modules or workflow. Clearly label all prototypes as non-production and not wired into the editor.
-- **AC-052 completed:** `docs/ux/ACCESSIBILITY_AUDIT.md` (609 lines, 14 findings) submitted in [PR #41](https://github.com/faiev/ArtClub/pull/41), open/draft/unmerged; only the audit document is changed. Branch `agent/accessibility-audit`; head `5f66531de9ac55b62b808742a267a932527504f5`; synchronized main base `b825ae16b79e90d3bc5fd27fe865ec8da163ee7a`; 4 ahead/0 behind at submission.
-- **AC-052 validation:** Fetched committed audit; verified 14 IDs, severity summary, source/reproduction/target/validation structure, remediation order and manual/automated checklists. Preliminary contrast calculations include alpha-composited focus color; no live browser/SR or formal WCAG audit was run, and no conformance claim is made.
-- **Next phase:** AC-054 integrated UX implementation sequence after the four static prototypes are submitted.
-- **Tests:** AC-053 is static HTML/CSS only. Validate each prototype is self-contained, uses no external assets/services, includes non-production labels, and has keyboard/focus/semantics appropriate to the prototype.
-- **Blockers:** None. No production UI lock is granted.
-- **Last updated:** 2026-11-14.
-
-### Submitted phase — AC-052: Accessibility and interaction audit
+### Submitted phase — AC-054: Integrated UX implementation roadmap
 
 - **Status:** REVIEW
-- **PR:** [#41 — AC-052: Audit accessibility and editor interactions](https://github.com/faiev/ArtClub/pull/41) (open, draft; mergeability pending current GitHub calculation)
-- **Branch:** `agent/accessibility-audit`
-- **Synchronized main base:** `b825ae16b79e90d3bc5fd27fe865ec8da163ee7a`
-- **Feature head:** `5f66531de9ac55b62b808742a267a932527504f5`
-- **Deliverable:** `docs/ux/ACCESSIBILITY_AUDIT.md` (609 lines; 14 findings).
-- **Key findings:** Global shortcuts intercept native input Undo/browser Save; focus indicators and some small labels have low calculated contrast; canvas grid has flat gridcell structure and can create 262,144 cell nodes; active/selected states and glyph-only controls need accessible semantics; palette removal is right-click-only; save state lacks a live region; fallback dialogs lack explicit focus management; reduced-motion CSS does not govern JS playback; zoom status and form errors need stronger accessible feedback.
-- **Positive foundations:** HTML language, main landmark, native controls/labels, grid coordinate labels and arrow/activate behavior, labelled native dialogs, toast status region, reduced-motion CSS for transitions.
-- **Validation:** Fetched document from branch, verified the audit structure and 14 findings; static color pair calculations recorded; no browser, keyboard-only or screen-reader session, no formal WCAG review and no application tests.
-- **Scope boundary:** Audit only; no production code/tests/bridge/workflow changes.
+- **Branch:** `agent/ux-implementation-sequence`
+- **Feature head:** `205ededc586ab84cf5546c19bfa7baf83f514b11`
+- **PR:** [#51 — AC-054: Publish integrated UX implementation sequence](https://github.com/faiev/ArtClub/pull/51) (open, draft; GitHub currently reports not mergeable after subsequent coordination-only main commits; PR changed-file list remains the single assigned roadmap document)
+- **Base:** Branch was created from main `4192df678b48167eb1f76558a75523138970d7ee`; main later advanced with coordination-only status update `4b5055b0195271ad74761b6c1551d53fe682c6a0`. PR file list remains only the assigned roadmap file.
+- **Deliverable:** `docs/ux/IMPLEMENTATION_SEQUENCE.md` (374 lines, 10 sections; PR diff 373 additions).
+- **Roadmap:** P0 keyboard/focus and safe edit workflows; P1 canvas navigation, layer/frame/cel matrix, palette and animation export; P2 tile/pixel tools and developer diagnostics; final accessibility, responsive and release gates.
+- **Dependencies:** Documents current PR/head/CI state and gates for Agent 2 renderer/viewport/adapter, Agent 3 sprite-sheet/GIF/export planner, Agent 4 bridge/API, Agent 6 edit guard/transactions, Agent 7 tile subsystem, Agent 8 palette subsystem, Agent 9 diagnostics and Agent 10 pixel algorithms.
+- **Ownership:** Explicitly preserves coordinator control of `index.html`, Agent 4's bridge E2E ownership, Agent 3's workflow lock and all specialist module paths. Recommends one coordinator-appointed UI integrator and serialized UI slices; no file lock is granted.
+- **Validation:** Fetched committed roadmap; verified all 10 sections, the six UX deliverables, module contract references, ownership boundaries, release gates and coordinator next steps. Main-to-branch comparison before the status update was 2 commits ahead / 0 behind and the feature diff contained only `docs/ux/IMPLEMENTATION_SEQUENCE.md`. No app tests run for docs-only work.
+- **Blockers:** None to submit. No implementation or shared UI work is self-assigned.
+- **Next handoff:** Coordinator reviews PR #51 and selects the first UI integration owner/slice. Agent 5's pre-authorized specification/prototype sequence is submitted through AC-054.
+- **Last updated:** 2026-11-14.
+
+### Submitted phase — AC-053: Static interaction prototypes and design patterns
+
+- **Status:** REVIEW
+- **PR:** [#47 — AC-053: Add static UX interaction prototypes](https://github.com/faiev/ArtClub/pull/47) (open, draft; GitHub reports mergeable)
+- **Branch:** `agent/ux-prototypes`
+- **Synchronized main base:** `0690c19687b951f4d80ab947e1964f9b82de4f4e`
+- **Feature head:** `59a37efa04e33dee7d01f2e690fb2f8ce91bf08f`
+- **Files:** `docs/ux/prototypes/shortcut-reference.html`, `canvas-workspace.html`, `layer-timeline.html`, `palette-export.html` (374 additions total).
+- **Scope boundary:** Self-contained static HTML/CSS only; no scripts, external assets, production UI wiring or shared files.
+- **Validation:** Re-fetched four files; verified language, viewport, non-production label, visible focus, reduced-motion styles, no scripts/external resources, complete document closing. No browser visual/session test; controls remain illustrative.
 
 ### Submitted phase — AC-051: Palette and export user journeys
 
