@@ -5,7 +5,7 @@
 - **Status:** REVIEW
 - **Branch:** `agent/keyboard-shortcuts-plan`
 - **Feature document commit:** `22f3ad53310c6fc0b1ff394898e35c7b42f21592`
-- **PR:** [#18 — AC-026: Specify keyboard shortcuts and command discoverability](https://github.com/faiev/ArtClub/pull/19) (draft; fresh-base PR to be opened immediately after branch synchronization)
+- **PR:** [#19 — AC-026: Specify keyboard shortcuts and command discoverability](https://github.com/faiev/ArtClub/pull/19) (draft; fresh-base PR to be opened immediately after branch synchronization)
 - **Allowed deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md` only.
 - **Scope:** Documentation/specification only. No application JS, HTML, CSS, tests, command-palette or shortcut UI implementation.
 - **Coordinator source:** `main`; PR #7 is merged.
