@@ -67,7 +67,16 @@ GIF uses an indexed palette. When selected frames fit the palette, RGB values ar
 
 ## Reproduce the examples
 
-From the repository root, the sample files are already checked in. To inspect their structure:
+The checked-in source fixture, sample PNG/GIF and companion metadata are under `examples/exports/`. To regenerate all four derived sample files (PNG, GIF and both JSON metadata files), install the optional Pillow authoring dependency and run:
+
+```bash
+python3 -m pip install Pillow
+python3 examples/exports/generate_examples.py
+```
+
+Pillow is used only to generate this documentation gallery. The application GIF and sprite-sheet exporters remain dependency-free JavaScript; the sample GIF is explicitly a format illustration, not a byte-for-byte copy of the application encoder output.
+
+To inspect the checked-in sample structure:
 
 ```bash
 file examples/exports/walk-cycle.project.json \
