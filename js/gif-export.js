@@ -905,7 +905,7 @@
     return { frames: output, transparentPixelCount: transparentPixelCount };
   }
 
-  async function lzwCompressAsync(indexes, minimumCodeSize, control) {
+  async function lzwCompressAsync(indexes, minimumCodeSize, control, progressStart, progressEnd) {
     const clearCode = 1 << minimumCodeSize;
     const endCode = clearCode + 1;
     const dictionary = new Map();
@@ -947,6 +947,9 @@
           prefix = symbol;
         }
         if (index % control.yieldEvery === 0) {
+          control.report("encoding",
+            phaseProgress(progressStart, progressEnd, index, Math.max(1, indexes.length - 1)),
+            index, indexes.length, "encoding");
           await control.yieldToHost("encoding");
         }
       }
@@ -1032,7 +1035,11 @@
       writer.word(dimensions.height);
       writer.byte(0);
       writer.byte(minimumCodeSize);
-      const compressed = await lzwCompressAsync(frame.indexes, minimumCodeSize, control);
+      const frameStart = 60 + 35 * (frameIndex / encodedTotal);
+      const frameEnd = 60 + 35 * ((frameIndex + 1) / encodedTotal);
+      const compressed = await lzwCompressAsync(
+        frame.indexes, minimumCodeSize, control, frameStart, frameEnd
+      );
       await appendSubBlocksAsync(writer, compressed, control);
       frameMetadata.push({
         index: frameIndex,
