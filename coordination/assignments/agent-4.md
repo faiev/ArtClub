@@ -63,3 +63,7 @@ After AC-048, build a read-only diagnostic command that helps users understand w
 - Document exit codes and troubleshooting. Ensure diagnostics work offline.
 
 **Allowed files:** `agent-bridge/doctor.mjs`, focused bridge doctor tests and `agent-bridge/README.md` / `AGENT_API.md` diagnostics sections. Do not change shared bridge E2E without the existing lock, index.html, editor storage, workflow or exporter code.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile #8/#38/#54/#82/#86 and exact dependencies/head tests. PR #82 reports five failures in Agent 6-owned safe-edit tests; coordinate diagnosis with Agent 6, do not edit their files, rerun complete CI. Maintain agent-bridge/e2e-test.mjs ownership until #8 is reconciled. No production UI/API lock.
