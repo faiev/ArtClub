@@ -20,7 +20,8 @@
       "setSelection", "selectAll", "copySelection", "cutSelection",
       "pasteSelection", "clearSelection", "deselect", "moveSelection", "transformSelection",
       "listFrames", "addFrame", "duplicateFrame", "selectFrame", "deleteFrame",
-      "moveFrame", "setFrameDuration", "renameFrame"
+      "moveFrame", "setFrameDuration", "renameFrame",
+      "play", "pause", "stopPlayback", "setPlaybackMode", "setOnionSkin"
     ];
     const missing = required.filter(function (name) {
       return !adapter || typeof adapter[name] !== "function";
@@ -184,6 +185,21 @@
       },
       rename_frame: function (args) {
         return adapter.renameFrame(args || {});
+      },
+      play: function () {
+        return adapter.play();
+      },
+      pause: function () {
+        return adapter.pause();
+      },
+      stop_playback: function () {
+        return adapter.stopPlayback();
+      },
+      set_playback_mode: function (args) {
+        return adapter.setPlaybackMode(args || {});
+      },
+      set_onion_skin: function (args) {
+        return adapter.setOnionSkin(args || {});
       }
     });
   }
