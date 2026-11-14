@@ -2261,7 +2261,7 @@ async function agentClearSelection(payload){
 function agentDeselect(payload){
   payload=payload||{};assertAgentSelectionAction(payload);deselect();return getAgentStatus();
 }
-function agentMoveSelection(payload){
+async function agentMoveSelection(payload){
   payload=payload||{};assertAgentSelectionAction(payload);
   if(!Number.isInteger(payload.dx)||!Number.isInteger(payload.dy))throw new Error("dx and dy must be integer pixel offsets.");
   if(!selection)throw new Error("Create a selection before moving it.");
@@ -2526,9 +2526,9 @@ $("selectionPasteBtn").addEventListener("click",pasteSelection);
 $("selectionClearBtn").addEventListener("click",()=>{void clearSelectedPixels()});
 $("selectionAllBtn").addEventListener("click",selectAll);
 $("selectionDeselectBtn").addEventListener("click",deselect);
-$("selectionFlipHBtn").addEventListener("click",()=>{try{transformSelection("flip_h")}catch(error){toast(error.message)}});
-$("selectionFlipVBtn").addEventListener("click",()=>{try{transformSelection("flip_v")}catch(error){toast(error.message)}});
-$("selectionRotateBtn").addEventListener("click",()=>{try{transformSelection("rotate_cw")}catch(error){toast(error.message)}});
+$("selectionFlipHBtn").addEventListener("click",()=>{void transformSelection("flip_h").catch(error=>toast(error.message));});
+$("selectionFlipVBtn").addEventListener("click",()=>{void transformSelection("flip_v").catch(error=>toast(error.message));});
+$("selectionRotateBtn").addEventListener("click",()=>{void transformSelection("rotate_cw").catch(error=>toast(error.message));});
 $("addLayerBtn").addEventListener("click",addLayer);
 $("addFrameBtn").addEventListener("click",()=>{try{addFrame()}catch(error){toast(error.message)}});
 $("duplicateFrameBtn").addEventListener("click",()=>{try{duplicateFrame()}catch(error){toast(error.message)}});
