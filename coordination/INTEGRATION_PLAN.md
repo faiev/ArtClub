@@ -243,3 +243,13 @@ This update supersedes the earlier UI-01 status that referenced head `29e348...`
 - Independent reviews remain pending: Agent 1 must report the 12-flow task matrix; Agent 2 must report canvas geometry/pointer/responsive checks; Agent 5 must review fidelity of the actual production implementation to the now-merged design system. No agent status file has yet recorded these review outcomes.
 - The workflow did not publish screenshot artifacts. Automated browser behavior is green, but explicit 1440×900 and 1280×800 visual screenshot review remains outstanding.
 - Current `main` production `index.html` remains unchanged at blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; PR #84 is not merged. No production redesign or GitHub Pages publication is claimed.
+
+## UI-01 final validation snapshot — 2026-11-14
+
+- UI-00/AC-091 merged separately as PR #77 (`a229a8c0028dc4290c3f5da811fa565fc3a17610`).
+- Current UI-01 application/test tree was validated on branch head `64d68de63abae730623ac81b670562a950d66759`, based on main `2158b11245905dc3de458784b63f7c0e391e9df2`; PR source diff is exactly `index.html` and `tests/ui-workstation-shell.test.js`.
+- Exact-head workflow [#43623873430](https://github.com/faiev/ArtClub/actions/runs/43623873430) completed successfully. Node test job: **241 passed, 0 failed**. Browser job: real Chromium editor E2E, animated GIF ImageDecoder and MCP client E2E all passed.
+- Verified browser log detail: drawing, undo/redo, agent batch, layers, custom canvas, real animation playback, onion skin, PNG, IndexedDB library and reload recovery passed; GIF ImageDecoder checked every pixel of both decoded frames including transparent disposal overlap; MCP E2E passed drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
+- The first candidate's clipped first-pixel drawing regression was fixed before this final run. The current tested tree includes the `#pixelGrid` viewport constraint.
+- Specialist reviews are still outstanding: Agent 1's independent 12-flow task matrix, Agent 2's viewport/pointer/responsive review and Agent 5's production visual-design review. The existing workflow does not emit desktop screenshots, so manual 1440×900 / 1280×800 visual evidence remains open. Do not mark these review gates complete from the standard E2E result.
+- Current production `index.html` on main remains the original blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; PR #84 is not merged and no published workstation redesign is claimed.
