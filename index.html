@@ -946,12 +946,33 @@ function advancePlaybackStep(){
   renderGrid();renderStats();syncPlaybackControls();
   schedulePlaybackStep();
 }
+function startPlayback(){
+  if(isPlaying)return;
+  if(projectDoc.frames.length<2)throw new Error("Add at least two frames to preview animation.");
+  if(!playbackFrameId){playbackFrameId=projectDoc.activeFrameId;playbackDirection=1}
+  isPlaying=true;
+  renderGrid();renderStats();syncPlaybackControls();schedulePlaybackStep();
+}
 function togglePlayback(){
   if(isPlaying){pausePlayback();return}
-  if(projectDoc.frames.length<2){toast("Add at least two frames to preview animation.");return}
-  if(!playbackFrameId)playbackFrameId=projectDoc.activeFrameId;
-  isPlaying=true;playbackDirection=1;
-  renderGrid();renderStats();syncPlaybackControls();schedulePlaybackStep();
+  try{startPlayback()}catch(error){toast(error.message)}
+}
+function agentPlay(){
+  startPlayback();return getAgentStatus();
+}
+function agentPause(){
+  pausePlayback();return getAgentStatus();
+}
+function agentStopPlayback(){
+  resetPlayback();return getAgentStatus();
+}
+function agentSetPlaybackMode(payload){
+  payload=payload||{};setPlaybackMode(payload.mode);return getAgentStatus();
+}
+function agentSetOnionSkin(payload){
+  payload=payload||{};
+  if(typeof payload.enabled!=="boolean")throw new Error("enabled must be true or false.");
+  setOnionSkin(payload.enabled);return getAgentStatus();
 }
 function setPlaybackMode(mode){
   if(!["loop","once","pingpong"].includes(mode))throw new Error("Choose loop, once or ping-pong playback.");
@@ -1764,7 +1785,12 @@ function installAgentAPI(){
     deleteFrame:agentDeleteFrame,
     moveFrame:agentMoveFrame,
     setFrameDuration:agentSetFrameDuration,
-    renameFrame:agentRenameFrame
+    renameFrame:agentRenameFrame,
+    play:agentPlay,
+    pause:agentPause,
+    stopPlayback:agentStopPlayback,
+    setPlaybackMode:agentSetPlaybackMode,
+    setOnionSkin:agentSetOnionSkin
   });
 }
 
