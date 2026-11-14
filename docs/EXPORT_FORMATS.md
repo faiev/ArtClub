@@ -102,7 +102,7 @@ To run exporter tests and independent Chromium decoders:
 
 ```bash
 node --test tests/gif-export.test.js tests/sprite-sheet-export.test.js \
-  tests/export-compatibility.test.js
+  tests/export-compatibility.test.js tests/export-gallery.test.js
 node tests/gif-export.browser.mjs
 node tests/sprite-sheet-export.browser.mjs
 ```
