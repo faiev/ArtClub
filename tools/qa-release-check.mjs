@@ -153,10 +153,22 @@ function inspectCoordination(root, checks) {
       windowsHide: true
     });
     if (ancestor.status === 0) {
-      addCheck(checks, "coordination-freshness", "warn", "Agent 1 status records an older main commit.", {
-        recordedMain: recordedMain[1],
-        localOriginMain
-      });
+      const changedPaths = git(root, ["diff", "--name-only", recordedMain[1] + "..." + localOriginMain]);
+      const changesAfterRecordedMain = changedPaths ? changedPaths.split(/\\r?\\n/).filter(Boolean) : [];
+      const onlyOwnStatusUpdate = changesAfterRecordedMain.length > 0 &&
+        changesAfterRecordedMain.every(file => file === "coordination/status/agent-1.md");
+      if (onlyOwnStatusUpdate) {
+        addCheck(checks, "coordination-freshness", "pass", "Recorded main is the parent of the status update; only Agent 1's status file changed afterward.", {
+          recordedMain: recordedMain[1],
+          localOriginMain
+        });
+      } else {
+        addCheck(checks, "coordination-freshness", "warn", "Agent 1 status records an older main commit with additional repository changes since then.", {
+          recordedMain: recordedMain[1],
+          localOriginMain,
+          changesAfterRecordedMain
+        });
+      }
     } else {
       addCheck(checks, "coordination-freshness", "warn", "Agent 1 status SHA is not an ancestor of local origin/main; refs may be stale or histories may differ.", {
         recordedMain: recordedMain[1],
