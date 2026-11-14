@@ -49,7 +49,8 @@ This inventory was checked against the current `index.html` in the repository. I
 ### Already present
 
 - Single-frame drawing with brush, eraser, flood fill, eyedropper, line, outlined/filled rectangle and outlined/filled ellipse tools. Shape tools show a preview before committing.
-- Multi-layer canvas with independent cels, front-to-back composite rendering, active layer selection, add, duplicate, delete, rename, reorder, visibility and lock controls. Drawing targets only the active visible, unlocked layer.
+- Multi-layer canvas with independent cels, front-to-back composite rendering, active layer selection, add, duplicate, delete, rename, reorder, visibility and lock controls. Layer duplication copies cels across all frames. Drawing targets only the active visible, unlocked layer.
+- Multi-frame timeline with blank/duplicate/delete/select/reorder, editable frame names and per-frame durations. Each frame preserves independent cels for all layers.
 - Square and rectangular canvas presets plus custom dimensions from 1 to 512 pixels per side. New projects can be created at a custom aspect ratio; existing artwork can be resampled to new dimensions.
 - A small built-in palette, custom color entry and several palette presets.
 - Undo and redo.
@@ -65,15 +66,15 @@ This inventory was checked against the current `index.html` in the repository. I
 - Keep one previous saved version per project for recovery.
 - Restore the active project after a refresh; keep a local JSON backup where browser storage allows it.
 - Versioned browser Agent API and local stdio MCP bridge for AI agents.
-- Agent tools can inspect the visible composite, draw, fill, erase, batch edits, manage layers and rectangular selections, transform selected pixels, undo/redo, save, import/export projects and return PNG previews.
+- Agent tools can inspect the visible composite, draw, fill, erase, batch edits, manage layers, rectangular selections and animation frames/timing, transform selected pixels, undo/redo, save, import/export projects and return PNG previews.
 
 ### Important gaps
 
 | Capability | Current state | Product consequence |
 |---|---|---|
 | Layers | Core editing implemented | Opacity controls, merge down and drag-to-reorder are still missing |
-| Frames and timeline | Not implemented | No animation workflow |
-| Playback and onion skin | Not implemented | Cannot create or inspect frame-to-frame motion |
+| Frames and timeline | Core timeline implemented | Frame thumbnails, cels copy/paste, playback, onion skin, frame tags and animation export remain missing |
+| Playback and onion skin | Not implemented | Frames can be edited but cannot yet be previewed as a timed animation |
 | Selection and transforms | Rectangular selection implemented | Move, copy, cut, paste, clear, flip H/V and rotate 90° work; lasso, invert, freeform and scaling remain missing |
 | Polygon and freeform shape tools | Not implemented | Other than line, rectangle and ellipse, freeform geometry is still missing |
 | Custom rectangular canvas | Implemented | 1–512 px per side; nine-point canvas anchoring and crop/expand without resampling remain missing |
@@ -83,7 +84,7 @@ This inventory was checked against the current `index.html` in the repository. I
 | Crash recovery | Basic previous-save recovery implemented | One previous saved version is kept per project; this is not a multi-version history or cloud backup |
 | Advanced pixel-art tools | Not implemented | No symmetry, dithering, outline, shading or tile preview tools |
 
-**Key conclusion:** the app now has a reliable multi-layer static-sprite foundation, rectangular selection/transforms and an AI-agent interface, but it is not yet a complete pixel-art studio. Animation, advanced selection, layer opacity/merge and game-ready sprite-sheet export remain major product gaps.
+**Key conclusion:** the app now has multi-layer editing, rectangular selection/transforms, a basic multi-frame timeline and an AI-agent interface. It is still not a complete pixel-art studio: playback/onion skin, advanced selection, layer opacity/merge and game-ready sprite-sheet/GIF export remain major gaps.
 
 ### Implementation log
 
@@ -169,6 +170,20 @@ This inventory was checked against the current `index.html` in the repository. I
 **Verified:** editor interaction tests cover marquee bounds, clipboard operations, movement, selection-constrained drawing, flip/rotate pixel mappings, undo and edge rejection. Chromium E2E and MCP client E2E cover the agent selection and transform paths.
 
 **Still outstanding in F-104:** lasso/freeform and invert selection, scale/rotate by arbitrary angles, and floating selection previews.
+
+
+#### Step D1 — Multi-frame timeline and cel editing (implemented)
+
+- Added a timeline below the canvas with frame selection, numbering, rename (double-click), reorder, per-frame duration input, add, duplicate and delete controls.
+- Added blank frames with independent cels. Duplicating a frame copies all layer cels and duration; editing the duplicate does not change the source frame.
+- Deleting a frame also deletes its cels; the final frame cannot be removed.
+- Frame selection and structural edits are undoable and autosaved.
+- Fixed layer duplication to copy its cel data across every frame, not only the active frame.
+- Exposed frame listing, add/duplicate/select/delete/reorder/rename and duration operations through the browser Agent API and MCP tools.
+
+**Verified:** editor interaction tests cover frame isolation, duplication, duration, naming, ordering and last-frame protection. MCP E2E creates a frame, draws on it, switches back to the original, verifies the cels are independent, duplicates and edits a frame, then deletes frames down to the one-frame minimum.
+
+**Still outstanding in F-106/F-107:** frame thumbnails, cel copy/paste, playback controls, loop modes, onion skin and animation export.
 
 
 ---
@@ -437,7 +452,7 @@ Requirements:
 
 **Acceptance criteria:** an MCP-connected agent can inspect a canvas, draw a sprite in a batch, request a PNG preview, correct the result, undo/redo and save the editable project. Human mouse drawing and agent edits must share the same pixels and history.
 
-**Current implementation:** browser Agent API v1 and local Playwright-backed MCP bridge are implemented. Agents can inspect and edit the visible composite, manage layers, create/move/transform rectangular selections, and use the same undo/save flow as a human editor. The app currently exposes one animation frame; timeline and frame-aware operations are deferred.
+**Current implementation:** browser Agent API v1 and local Playwright-backed MCP bridge are implemented. Agents can inspect/edit the visible composite, manage layers and rectangular selections, and add/duplicate/select/reorder/delete/rename frames and set frame durations. Agent frame edits use the same cels, undo and autosave as the human UI.
 
 ---
 
