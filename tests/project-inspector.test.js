@@ -165,3 +165,18 @@ test("shows help without requiring a project path", () => {
   assert.match(result.stdout, /Usage:/);
   assert.match(result.stdout, /64 MiB/);
 });
+
+
+test("accepts a UTF-8 BOM before an otherwise valid JSON project", (t) => {
+  const directory = temporaryDirectory(t);
+  const source = fs.readFileSync(path.join(FIXTURES, "valid-v2.json"), "utf8");
+  const file = path.join(directory, "bom-project.json");
+  fs.writeFileSync(file, "\uFEFF" + source, "utf8");
+
+  const result = runCli(file, ["--json"]);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true);
+  assert.equal(report.id, "project-v2-fixture");
+  assert.equal(report.name, "Inspector fixture");
+});
