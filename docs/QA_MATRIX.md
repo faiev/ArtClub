@@ -19,7 +19,8 @@ This is a living index of regression coverage and known release risks. It separa
 | Sprite-sheet PNG | Frame order, exact PNG RGBA, dimensions, frame rectangles, transparency, margins/gutters, metadata | PR #3 / AC-027 remains open; a Chromium full-raster harness is present on that branch | Real-browser decode was reported as unverified; require exact-raster proof after merge |
 | Palette formats | GPL/JASC-PAL/JSON ordering, duplicates, names where supported, strict diagnostics, size limits | PR #16 remains open; source tests exist on its branch | JASC-PAL does not encode palette or color names |
 | Standalone lifecycle browser QA | Real Chromium/IndexedDB create, switch, edit, reload and recovery with exact pixels | AC-032 PR #42 adds an isolated Playwright runner | Runner is not yet wired into the shared workflow and has not been executed here |
-| Release readiness tooling | Required-file/script checks, nested-test discovery, coordination freshness limits, CI evidence state | AC-033 checker and release docs are being added in this workstream | The checker is read-only and does not query CI |
+| Canvas renderer | Strict #RRGGBB/null input, full source validation before mutation, dirty clipping, 512×512 bound, frame/composite invalidation, onion-mask invalidation, overlay isolation and hit testing | Root `tests/canvas-renderer.test.js` covers the merged module; PR #61 adds QA boundary tokens and invalid hit-test bounds | Public `parseColor()` currently exposes a mutable cached RGBA array; defensive-copy regression is a TODO in PR #61 | 
+| Release readiness tooling | Required-file/script checks, nested-test discovery, coordination freshness limits, CI evidence state | AC-033 checker and release docs are in PR #57 | Checker is read-only and does not query CI |
 
 ## Required commands
 
@@ -55,6 +56,7 @@ node --test tests/qa/lifecycle/editor-switch-contract.test.js
 node --test tests/qa/compatibility/project-compatibility.test.js
 node --test tests/qa/compatibility/gif-export-contract.test.js
 node --test tests/qa/release/qa-release-check.test.js
+node --test tests/qa/renderer/canvas-renderer-contract.test.js
 ```
 
 ### Standalone project lifecycle browser harness
@@ -78,6 +80,7 @@ The standard workflow currently uses the non-recursive glob `node --test tests/*
 | QA-005 | Medium | PR #16 palette-format PR and its contract tests are not yet on main. | Pending merge/revalidation |
 | QA-006 | Medium | PR #1 frame-aware assertions overlap the shared bridge E2E owned by Agent 4. | AC-025 keep/drop audit handed to Agent 4; do not edit bridge E2E |
 | QA-007 | Medium | A green baseline browser workflow does not prove QA-owned nested harnesses ran unless the workflow log names the exact runner. | Evidence rule; verify run URL and tested SHA |
+| QA-008 | Medium | `parseColor()` returns the internal cached RGBA array from the renderer's `COLORS` map. A caller can mutate a channel and corrupt later parsing/rendering of that same color. | PR #61 QA TODO; suggested defensive-copy fix handed to Agent 2. Renderer implementation remains unchanged. |
 
 ## Evidence rules
 
