@@ -15,7 +15,7 @@ import {
 } from "../../../tools/run-qa.mjs";
 
 function makeRoot() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), "artclub-qa-runner-"));
+  return fs.mkdtempSync(path.join(os.tmpdir(), "artclub qa runner-"));
 }
 
 function put(root, relativePath, content = "// QA fixture\n") {
@@ -140,6 +140,8 @@ test("named Node suite selection uses argument arrays and reports unselected sui
       assert.equal(call.args.length, 2);
       assert.equal(call.args[0], "--test");
       assert.ok(path.isAbsolute(call.args[1]));
+      assert.ok(call.args[1].includes("artclub qa runner-"),
+        "a checkout path containing spaces must remain one argument");
       assert.equal(call.options.cwd, root);
       assert.equal(call.options.shell, false);
       assert.deepEqual(call.options.stdio, ["ignore", "pipe", "pipe"]);
@@ -149,7 +151,7 @@ test("named Node suite selection uses argument arrays and reports unselected sui
   }
 });
 
-test("missing manifest files are explicitly skipped and never spawned", async () => {
+test("missing manifest files are explicitly marked not-run and never spawned", async () => {
   const root = makeRoot();
   try {
     const lifecycle = SUITE_MANIFEST.find(suite => suite.name === "lifecycle");
@@ -161,10 +163,10 @@ test("missing manifest files are explicitly skipped and never spawned", async ()
     assert.equal(report.exitCode, 0);
     assert.equal(suite.status, "partial");
     assert.equal(suite.files[0].status, "passed");
-    assert.equal(suite.files[1].status, "skipped");
+    assert.equal(suite.files[1].status, "not-run");
     assert.match(suite.files[1].reason, /not present/);
     assert.equal(spawnImpl.calls.length, 1);
-    assert.equal(report.summary.files.skipped, 1);
+    assert.equal(report.summary.files.notRun, 1);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -324,6 +326,12 @@ test("returns a stable JSON-ready summary and human output without mutating file
     assert.equal(report1.schemaVersion, 1);
     assert.ok(Array.isArray(report1.suites));
     assert.ok(Array.isArray(report1.notRunSuites));
+    const jsonRoundTrip = JSON.parse(JSON.stringify(report1));
+    assert.deepEqual(jsonRoundTrip, report1);
+    assert.ok(Number.isInteger(report1.summary.files.executed));
+    assert.ok(Number.isInteger(report1.summary.files.notRun));
+    assert.ok(Number.isInteger(report1.summary.suites.passed));
+    assert.ok(Number.isInteger(report1.summary.suites.failed));
     assert.deepEqual(treeSnapshot(root), before, "runner must not create, change or remove files");
 
     const human = formatHumanReport(report1);
