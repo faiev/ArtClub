@@ -654,11 +654,19 @@
       }
     }
 
-    const totalSourcePixels = project.cels.reduce(function (sum, cel) {
-      return sum + (cel && Array.isArray(cel.pixels) ? cel.pixels.length : 0);
-    }, 0);
-    if (totalSourcePixels > MAX_PROJECT_CEL_PIXELS) {
-      throw new Error("Project exceeds the GIF export source cel-data safety limit.");
+    let totalSourcePixels = 0;
+    for (let celIndex = 0; celIndex < project.cels.length; celIndex += 1) {
+      const cel = project.cels[celIndex];
+      if (cel && Array.isArray(cel.pixels)) {
+        totalSourcePixels += cel.pixels.length;
+        if (totalSourcePixels > MAX_PROJECT_CEL_PIXELS) {
+          throw new Error("Project exceeds the GIF export source cel-data safety limit.");
+        }
+      }
+      if ((celIndex + 1) % control.yieldEvery === 0) {
+        control.check("validation");
+        await control.yieldToHost("validation");
+      }
     }
     const totalWork = Math.max(1, project.cels.length + totalSourcePixels);
     let completed = 0;
@@ -745,7 +753,14 @@
             }
           }
         } else {
-          completed += framePixels;
+          for (let index = 0; index < framePixels; index += 1) {
+            completed += 1;
+            if (completed % control.yieldEvery === 0) {
+              control.report("composition", phaseProgress(5, 30, completed, totalWork),
+                completed, totalWork, "composition");
+              await control.yieldToHost("composition");
+            }
+          }
         }
       }
       frames.push({
@@ -977,10 +992,11 @@
     writer.byte(0);
   }
 
-  async function encodeGIFAsync(project, options) {
+  async function encodeGIFAsync(project, options, sharedControl) {
     options = options || {};
     if (!isObject(options)) throw new TypeError("Export options must be an object.");
-    const control = createAsyncControl(options);
+    const ownControl = !sharedControl;
+    const control = sharedControl || createAsyncControl(options);
     control.check("before-start");
     const dimensions = await validateProjectAsync(project, control);
     control.check("composition");
@@ -1083,13 +1099,20 @@
       frames: frameMetadata,
       diagnostics: diagnostics
     };
-    control.report("completed", 100, 1, 1, "finalization");
+    if (ownControl) control.report("completed", 100, 1, 1, "finalization");
     return { bytes: bytes, metadata: metadata, diagnostics: diagnostics };
   }
 
   async function exportGIFAsync(project, options) {
-    const result = await encodeGIFAsync(project, options);
+    options = options || {};
+    if (!isObject(options)) throw new TypeError("Export options must be an object.");
+    const control = createAsyncControl(options);
+    control.check("before-start");
+    const result = await encodeGIFAsync(project, options, control);
+    control.check("finalization");
     const blob = new Blob([result.bytes], { type: "image/gif" });
+    control.check("finalization");
+    control.report("completed", 100, 1, 1, "finalization");
     return { blob: blob, metadata: result.metadata, diagnostics: result.diagnostics };
   }
 
