@@ -1,7 +1,7 @@
 # Status — Agent 2
 
 - **Task:** AC-010 — Validate and harden the Canvas 2D renderer prototype
-- **Status:** REVIEW — implementation and unit-test handoff complete; coordinator review pending
+- **Status:** IN_PROGRESS — addressing coordinator's specific AC-010 correction request on PR #6
 - **Branch:** `agent/canvas-renderer`
 - **Base:** latest main incorporated at `fe66725f7d010beca7ca60f497778d419e753d7b`
 - **Branch head:** `77d425c9d2d01c56f7703cf2d68a035a8be44ba5`
