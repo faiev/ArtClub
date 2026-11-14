@@ -185,6 +185,19 @@ input[type=color]{width:40px;height:36px}
 .canvas-form-field input,.canvas-form-field select{width:100%;min-width:0;border:1px solid #dce2d8;border-radius:9px;padding:11px 12px;background:#fff;color:#202c30;font-size:14px}
 .canvas-form-hint{font-size:11px;line-height:1.55;color:#7b867f;margin:0}
 .canvas-dialog-actions{display:flex;justify-content:flex-end;gap:8px;padding-top:4px}
+.layer-list{display:grid;gap:6px;max-height:280px;overflow:auto}
+.layer-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px;padding:6px;border:1px solid #e8ebe4;border-radius:9px;background:#fbfcf8}
+.layer-entry.active{border-color:#cbd9ad;background:#f1f5e7;box-shadow:inset 0 0 0 1px rgba(216,240,111,.22)}
+.layer-name-button{min-width:0;border:0;background:transparent;text-align:left;padding:5px 7px;border-radius:6px;color:#33423c;font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer-name-button:hover{background:#e8eedb}
+.layer-entry-actions{display:flex;gap:3px;align-items:center}
+.layer-mini-button{width:27px;height:27px;border:1px solid #e3e8df;background:#fffefa;color:#65716b;border-radius:6px;font-size:12px;display:grid;place-items:center;padding:0}
+.layer-mini-button:hover:not(:disabled){background:#eef2e5;border-color:#cbd5c3;color:#263832}
+.layer-mini-button:disabled{opacity:.32;cursor:not-allowed}
+.layer-mini-button.is-off{opacity:.45}
+.layer-footer{display:flex;gap:6px;margin-top:8px}
+.layer-footer .small-button{flex:1}
+.layer-caption{font:9px ui-monospace,monospace;color:#88928b;letter-spacing:.08em;text-transform:uppercase}
 @media(max-width:600px){.project-dialog-inner{padding:16px}.project-entry{align-items:flex-start;flex-direction:column}.project-entry-actions{justify-content:flex-start}.project-dialog-toolbar{align-items:flex-start;flex-direction:column}.canvas-form-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -293,8 +306,18 @@ input[type=color]{width:40px;height:36px}
       <div style="margin-top:8px;color:#929b95;font-size:9px;line-height:1.45">Select a swatch, or add any color. Right-click a swatch to remove it.</div>
     </section>
     <div class="rule"></div>
+    <section class="layers-area">
+      <div class="panel-head"><h2>03 / Layers</h2><button class="small-button" id="addLayerBtn" type="button" title="Add layer">＋</button></div>
+      <div class="layer-list" id="layerList"></div>
+      <div class="layer-footer">
+        <button class="small-button" id="duplicateLayerBtn" type="button">Duplicate</button>
+        <button class="small-button" id="deleteLayerBtn" type="button">Delete</button>
+      </div>
+      <div class="layer-caption" style="margin-top:7px">Top layer appears in front</div>
+    </section>
+    <div class="rule"></div>
     <section>
-      <div class="panel-head"><h2>03 / Export</h2><span class="section-kicker">Output</span></div>
+      <div class="panel-head"><h2>04 / Export</h2><span class="section-kicker">Output</span></div>
       <div class="export-stack">
         <button class="small-button primary full" id="pngBtn">↓ Download PNG · 1×</button>
         <div class="export-row"><button class="small-button" id="scaledBtn">PNG · 16×</button><button class="small-button" id="svgBtn">SVG · Vector</button></div>
@@ -304,7 +327,7 @@ input[type=color]{width:40px;height:36px}
     </section>
     <div class="rule"></div>
     <section>
-      <div class="panel-head"><h2>04 / Canvas</h2><span class="section-kicker">View</span></div>
+      <div class="panel-head"><h2>05 / Canvas</h2><span class="section-kicker">View</span></div>
       <div style="display:grid;gap:10px">
         <label class="check-row"><input type="checkbox" id="gridToggle" checked> Show pixel boundaries</label>
         <label class="check-row"><input type="checkbox" id="checkerToggle" checked> Transparency checkerboard</label>
@@ -464,6 +487,34 @@ function syncProjectDocument(){
 function snapshot(){
   return ProjectModel.cloneProject(syncProjectDocument());
 }
+function activeLayer(){
+  return projectDoc?ProjectModel.getLayer(projectDoc):null;
+}
+function isActiveLayerEditable(){
+  const layer=activeLayer();
+  return Boolean(layer&&!layer.locked);
+}
+function layerPixels(layer){
+  if(!projectDoc||!layer)return null;
+  if(layer.id===projectDoc.activeLayerId)return pixels;
+  const cel=ProjectModel.getCel(projectDoc,layer.id,projectDoc.activeFrameId);
+  return cel?cel.pixels:null;
+}
+function compositePixelAt(index){
+  if(!projectDoc)return pixels[index]||null;
+  let result=null;
+  projectDoc.layers.forEach(layer=>{
+    if(!layer.visible)return;
+    const source=layerPixels(layer);
+    const color=source?source[index]:null;
+    if(color!==null&&color!==undefined)result=color;
+  });
+  return result;
+}
+function compositePixels(){
+  return Array.from({length:w*h},(_,index)=>compositePixelAt(index));
+}
+
 function loadProjectIntoEditor(source,resetHistory=true){
   const doc=ProjectModel.deserializeProject(source);
   projectDoc=doc;
@@ -502,15 +553,16 @@ function renderGrid(){
   grid.style.gridTemplateColumns="repeat("+w+", minmax(0,1fr))";
   grid.style.gridTemplateRows="repeat("+h+", minmax(0,1fr))";
   grid.classList.toggle("no-grid",!$("gridToggle").checked);
+  const visiblePixels=compositePixels();
   const frag=document.createDocumentFragment();
-  for(let i=0;i<pixels.length;i++){
+  for(let i=0;i<visiblePixels.length;i++){
     const cell=document.createElement("div");
     cell.className="pixel-cell";
     cell.tabIndex=i===focusedIndex?0:-1;
     cell.dataset.index=String(i);
     cell.setAttribute("role","gridcell");
-    cell.setAttribute("aria-label","Pixel "+(i%w+1)+", "+(Math.floor(i/w)+1)+", "+(pixels[i]||"transparent"));
-    cell.style.backgroundColor=colorAt(i);
+    cell.setAttribute("aria-label","Pixel "+(i%w+1)+", "+(Math.floor(i/w)+1)+", "+(visiblePixels[i]||"transparent"));
+    cell.style.backgroundColor=visiblePixels[i]||"transparent";
     frag.appendChild(cell);
   }
   grid.replaceChildren(frag);
@@ -530,6 +582,108 @@ function renderPalette(){
   $("paletteGrid").replaceChildren(frag);
   $("colorCount").textContent=palette.length+" COLORS";
 }
+function renderLayers(){
+  const list=$("layerList"),fragment=document.createDocumentFragment();
+  const layers=projectDoc.layers;
+  layers.forEach((layer,index)=>{
+    const entry=document.createElement("div");
+    entry.className="layer-entry"+(layer.id===projectDoc.activeLayerId?" active":"");
+    const select=document.createElement("button");
+    select.type="button";select.className="layer-name-button";
+    select.textContent=layer.name+(layer.id===projectDoc.activeLayerId?" · ACTIVE":"");
+    select.title="Select layer; double-click to rename";
+    select.addEventListener("click",()=>setActiveLayer(layer.id));
+    select.addEventListener("dblclick",()=>renameLayer(layer.id));
+    const actions=document.createElement("div");actions.className="layer-entry-actions";
+    const makeButton=(label,title,callback,disabled,extraClass)=>{
+      const button=document.createElement("button");
+      button.type="button";button.className="layer-mini-button"+(extraClass?" "+extraClass:"");
+      button.textContent=label;button.title=title;button.disabled=Boolean(disabled);
+      button.addEventListener("click",callback);return button;
+    };
+    actions.appendChild(makeButton(layer.visible?"◉":"○",layer.visible?"Hide layer":"Show layer",()=>toggleLayerVisibility(layer.id),false,layer.visible?"":"is-off"));
+    actions.appendChild(makeButton(layer.locked?"🔒":"◇",layer.locked?"Unlock layer":"Lock layer",()=>toggleLayerLock(layer.id)));
+    actions.appendChild(makeButton("↑","Move layer up",()=>moveLayer(layer.id,1),index===layers.length-1));
+    actions.appendChild(makeButton("↓","Move layer down",()=>moveLayer(layer.id,-1),index===0));
+    entry.append(select,actions);fragment.appendChild(entry);
+  });
+  list.replaceChildren(fragment);
+  $("deleteLayerBtn").disabled=layers.length<=1;
+  $("duplicateLayerBtn").disabled=layers.length>=ProjectModel.LIMITS.maxLayers;
+  $("addLayerBtn").disabled=layers.length>=ProjectModel.LIMITS.maxLayers;
+}
+function setActiveLayer(layerId){
+  if(drawing){toast("Finish the current stroke before switching layers.");return}
+  const layer=ProjectModel.getLayer(projectDoc,layerId);
+  if(!layer||layer.id===projectDoc.activeLayerId)return;
+  remember();
+  projectDoc.activeLayerId=layer.id;
+  const cel=ProjectModel.ensureCel(projectDoc,layer.id,projectDoc.activeFrameId);
+  pixels=cel.pixels.slice();
+  renderAll();scheduleSave();
+}
+function addLayer(){
+  if(projectDoc.layers.length>=ProjectModel.LIMITS.maxLayers){toast("This project has reached the layer limit.");return}
+  if(drawing){toast("Finish the current stroke before adding a layer.");return}
+  remember();
+  const layer=ProjectModel.makeLayer("Layer "+(projectDoc.layers.length+1));
+  projectDoc.layers.push(layer);
+  const cel=ProjectModel.ensureCel(projectDoc,layer.id,projectDoc.activeFrameId);
+  projectDoc.activeLayerId=layer.id;pixels=cel.pixels.slice();
+  renderAll();scheduleSave();toast("Layer added.");
+}
+function duplicateLayer(){
+  if(projectDoc.layers.length>=ProjectModel.LIMITS.maxLayers){toast("This project has reached the layer limit.");return}
+  if(drawing){toast("Finish the current stroke before duplicating a layer.");return}
+  const source=activeLayer();if(!source)return;
+  remember();
+  const copy=ProjectModel.makeLayer((source.name+" copy").slice(0,60));
+  copy.visible=source.visible;copy.opacity=source.opacity;
+  projectDoc.layers.splice(projectDoc.layers.indexOf(source)+1,0,copy);
+  const cel=ProjectModel.ensureCel(projectDoc,copy.id,projectDoc.activeFrameId);
+  cel.pixels=pixels.slice();
+  projectDoc.activeLayerId=copy.id;pixels=cel.pixels.slice();
+  renderAll();scheduleSave();toast("Layer duplicated.");
+}
+function deleteLayer(){
+  if(projectDoc.layers.length<=1){toast("A project must keep at least one layer.");return}
+  if(drawing){toast("Finish the current stroke before deleting a layer.");return}
+  const index=projectDoc.layers.findIndex(layer=>layer.id===projectDoc.activeLayerId);
+  const layer=projectDoc.layers[index];if(!layer)return;
+  if(!confirm("Delete layer “"+layer.name+"”? This can be undone."))return;
+  remember();
+  projectDoc.layers=projectDoc.layers.filter(item=>item.id!==layer.id);
+  projectDoc.cels=projectDoc.cels.filter(cel=>cel.layerId!==layer.id);
+  const next=projectDoc.layers[Math.min(index,projectDoc.layers.length-1)];
+  projectDoc.activeLayerId=next.id;
+  pixels=ProjectModel.ensureCel(projectDoc,next.id,projectDoc.activeFrameId).pixels.slice();
+  renderAll();scheduleSave();toast("Layer deleted.");
+}
+function renameLayer(layerId){
+  const layer=ProjectModel.getLayer(projectDoc,layerId);if(!layer)return;
+  const next=prompt("Layer name",layer.name);if(next===null)return;
+  const name=next.trim().slice(0,60);
+  if(!name){toast("Layer name cannot be empty.");return}
+  remember();layer.name=name;renderLayers();scheduleSave();
+}
+function toggleLayerVisibility(layerId){
+  const layer=ProjectModel.getLayer(projectDoc,layerId);if(!layer)return;
+  remember();layer.visible=!layer.visible;renderGrid();renderLayers();renderStats();scheduleSave();
+}
+function toggleLayerLock(layerId){
+  const layer=ProjectModel.getLayer(projectDoc,layerId);if(!layer)return;
+  remember();layer.locked=!layer.locked;renderLayers();scheduleSave();
+  toast(layer.locked?"Layer locked.":"Layer unlocked.");
+}
+function moveLayer(layerId,direction){
+  const index=projectDoc.layers.findIndex(layer=>layer.id===layerId),target=index+direction;
+  if(index<0||target<0||target>=projectDoc.layers.length)return;
+  remember();
+  const layers=projectDoc.layers,[layer]=layers.splice(index,1);
+  layers.splice(target,0,layer);
+  renderGrid();renderLayers();renderStats();scheduleSave();
+}
+
 function syncColorUI(){
   const c=palette[selected]||"#000000";
   $("colorPicker").value=c;$("hexValue").value=c.toUpperCase();
@@ -537,12 +691,13 @@ function syncColorUI(){
   $("activeColorLabel").textContent=c.toUpperCase();
 }
 function renderStats(){
-  const painted=pixels.filter(Boolean),used=new Set(painted);
+  const visiblePixels=compositePixels();
+  const painted=visiblePixels.filter(Boolean),used=new Set(painted);
   $("pixelStat").textContent=painted.length.toLocaleString();
   $("usedColorStat").textContent=used.size;
   $("fillCaption").textContent=painted.length.toLocaleString();
 }
-function renderAll(){renderGrid();renderPalette();renderStats();updateHistoryButtons();setTool(tool);applyZoom()}
+function renderAll(){renderGrid();renderPalette();renderLayers();renderStats();updateHistoryButtons();setTool(tool);applyZoom()}
 function syncDimensionSelect(){
   const value=w+"x"+h;
   const known=["16x16","24x24","32x32","32x48","48x32","48x48","64x64"];
@@ -623,7 +778,8 @@ function getCell(e){
 function paint(i,c){
   if(i<0||i>=pixels.length||pixels[i]===c)return;
   pixels[i]=c;
-  const el=grid.children[i];if(el){el.style.backgroundColor=c||"transparent";el.setAttribute("aria-label","Pixel "+(i%w+1)+", "+(Math.floor(i/w)+1)+", "+(c||"transparent"));}
+  const visibleColor=compositePixelAt(i);
+  const el=grid.children[i];if(el){el.style.backgroundColor=visibleColor||"transparent";el.setAttribute("aria-label","Pixel "+(i%w+1)+", "+(Math.floor(i/w)+1)+", "+(visibleColor||"transparent"));}
 }
 function floodFill(start,replacement){
   const target=pixels[start];if(target===replacement)return;
@@ -706,7 +862,7 @@ let shapePreviewIndices=[];
 function clearShapePreview(){
   shapePreviewIndices.forEach(index=>{
     const cell=grid.children[index];
-    if(cell)cell.style.backgroundColor=pixels[index]||"transparent";
+    if(cell)cell.style.backgroundColor=compositePixelAt(index)||"transparent";
   });
   shapePreviewIndices=[];
 }
@@ -759,6 +915,7 @@ function validateAgentCommands(commands){
 function executeAgentCommands(commands,options){
   options=options||{};
   if(drawing)throw new Error("A canvas stroke is in progress. Finish it before sending agent drawing commands.");
+  if(!isActiveLayerEditable())throw new Error("The active layer is locked. Unlock it before sending agent drawing commands.");
   if(options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
     throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
   }
@@ -821,6 +978,7 @@ function getAgentStatus(){
     project_name:projectName,
     canvas:{width:w,height:h,origin:"top-left",x_axis:"right",y_axis:"down",coordinate_unit:"one grid cell"},
     active_layer:layer?{id:layer.id,name:layer.name,visible:layer.visible,locked:layer.locked}:null,
+    layers:projectDoc.layers.map(item=>({id:item.id,name:item.name,visible:item.visible,locked:item.locked,active:item.id===projectDoc.activeLayerId})),
     active_frame:frame?{id:frame.id,name:frame.name,duration_ms:frame.durationMs}:null,
     selected_color:palette[selected]||null,
     palette:palette.slice(),
@@ -832,7 +990,7 @@ function getAgentStatus(){
 }
 function getAgentCanvas(options){
   options=options||{};
-  const data=pixels.slice();
+  const data=compositePixels();
   const response={
     width:w,height:h,origin:"top-left",format:"row-major",
     active_layer_id:projectDoc.activeLayerId,active_frame_id:projectDoc.activeFrameId,
@@ -843,7 +1001,7 @@ function getAgentCanvas(options){
 }
 function getAgentPixel(coordinates){
   const x=agentCoordinate(coordinates.x,w,"x"),y=agentCoordinate(coordinates.y,h,"y");
-  return {x,y,color:pixels[y*w+x],revision:documentRevision};
+  return {x,y,color:compositePixelAt(y*w+x),revision:documentRevision};
 }
 async function importAgentProject(payload){
   if(drawing)throw new Error("Finish the current canvas stroke before importing a project.");
@@ -905,8 +1063,9 @@ grid.addEventListener("pointerdown",e=>{
   const p=getCell(e);if(!p)return;
   e.preventDefault();
   if(tool==="eyedropper"){
-    const c=pixels[p.i];if(c){let idx=palette.indexOf(c);if(idx<0){palette.push(c);idx=palette.length-1}selected=idx;renderPalette();syncColorUI()}setTool("brush");return;
+    const c=compositePixelAt(p.i);if(c){let idx=palette.indexOf(c);if(idx<0){palette.push(c);idx=palette.length-1}selected=idx;renderPalette();syncColorUI()}setTool("brush");return;
   }
+  if(!isActiveLayerEditable()){toast("The active layer is locked.");return}
   if(tool==="fill"){remember();floodFill(p.i,palette[selected]);renderStats();scheduleSave();return}
   remember();drawing=true;strokeStart=p;strokeLast=p;
   if(tool==="brush")paint(p.i,palette[selected]);
@@ -949,10 +1108,11 @@ grid.addEventListener("keydown",e=>{
   else if(e.key===" "||e.key==="Enter"){
     e.preventDefault();
     if(tool==="eyedropper"){
-      const c=pixels[index];
+      const c=compositePixelAt(index);
       if(c){let ci=palette.indexOf(c);if(ci<0){palette.push(c);ci=palette.length-1}selected=ci;renderPalette();syncColorUI()}
       setTool("brush");return;
     }
+    if(!isActiveLayerEditable()){toast("The active layer is locked.");return}
     remember();
     if(tool==="fill")floodFill(index,palette[selected]);
     else paint(index,tool==="eraser"?null:palette[selected]);
@@ -963,6 +1123,9 @@ grid.addEventListener("keydown",e=>{
 });
 document.querySelectorAll(".tool").forEach(b=>b.addEventListener("click",()=>setTool(b.dataset.tool)));
 $("undoBtn").addEventListener("click",undo);$("redoBtn").addEventListener("click",redo);
+$("addLayerBtn").addEventListener("click",addLayer);
+$("duplicateLayerBtn").addEventListener("click",duplicateLayer);
+$("deleteLayerBtn").addEventListener("click",deleteLayer);
 $("projectName").addEventListener("input",e=>{
   projectName=e.target.value.slice(0,48)||"Untitled artwork";
   scheduleSave();
