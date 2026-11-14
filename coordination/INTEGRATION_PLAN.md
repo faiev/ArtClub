@@ -181,3 +181,21 @@ Exit gate:
 - UI-05: export modules/planner submitted or in progress; visible UI integration not started.
 
 This plan is a product-delivery commitment, not a claim that any of these milestones are already implemented or published.
+
+
+## Coordinator live integration update — 2026-11-14
+
+### UI-00 decision
+The coordinator has accepted the AC-091 visual direction for production work under decision D-026: compact graphite/olive workstation, canvas-first hierarchy, restrained panels, warm visible focus and reduced promotional chrome. This does not complete or accept Agent 5's full prototype handoff. PR #77 remains draft until its stale status, missing screenshot references and documented accessibility/interaction limitations are reconciled. Agent 5 remains limited to docs/ux/**.
+
+### UI-01 production candidate
+- **Coordinator PR:** [#84 — UI-01: Introduce the production workstation shell](https://github.com/faiev/ArtClub/pull/84).
+- **Exact tested head:** 29e348f4073d63bf2819332b4faa5ea7bf19461c.
+- **Scope:** index.html and tests/ui-workstation-shell.test.js only.
+- **Behavior preservation:** Existing DOM grid #pixelGrid, project model/storage, tool and selection handlers, timeline/frame CRUD, playback, layers, palette, import/export, project library, save/recovery and Agent API remain in place. No renderer swap, schema migration, bridge or workflow change.
+- **Layout:** compact application bar, existing live tool controls in a left dock, central canvas with constrained grid geometry, existing live inspector at right and actual timeline/playback below the canvas. Graphite/olive theme, focus color and responsive/reduced-motion rules are added.
+- **Exact-head CI:** [run #43620892261](https://github.com/faiev/ArtClub/actions/runs/43620892261) completed successfully on the exact tested head. Both test and browser-e2e jobs passed; browser job includes the real editor E2E, GIF decoder and MCP client check.
+- **Regression fixed:** The first run on the earlier head found that a large pixel grid could overflow the fixed-height workspace and clip the first pixel. The CSS now constrains the live grid to the viewport while preserving the per-project aspect ratio; the refreshed exact-head browser job passed.
+- **Status:** draft, not merged. Visual review at 1440×900 and 1280×800, Agent 1 task-based QA review, Agent 2 canvas sizing review and Agent 5 design review remain requested. Do not claim publication until merged and the Pages deployment is inspected.
+
+The PR branch must be synchronized with coordination-only main advances before final merge review; re-run CI on the resulting exact head. UI-02 safety wiring, renderer replacement, the synthetic cel matrix and new export UI are explicitly outside this first shell slice.

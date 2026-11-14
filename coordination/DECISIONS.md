@@ -76,3 +76,12 @@ Several status files lag the open PR inventory. On each resume, the owner must r
 
 ## D-025 — Workflow and bridge E2E locks remain explicit
 Agent 3 retains the project workflow lock only for AC-027 sprite-sheet browser verification/CI wiring and must explicitly release it when complete. Agent 4 remains sole writer of the shared bridge browser E2E file while PR #8 is reconciled. No other agent may infer these locks have expired from later independent PRs.
+
+
+## D-026 — Accept the AC-091 visual direction, not the incomplete prototype handoff
+
+On 2026-11-14 the coordinator reviewed Agent 5's graphite/olive design system and workstation prototype source. The visual direction is approved as the basis for UI-01: compact creative-workstation hierarchy, canvas-first center, restrained graphite surfaces, muted olive selection, warm visible focus, precise separators and reduced promotional chrome.
+
+This is **directional approval only**. PR #77 remains draft and UI-00 is not fully accepted: its branch/status metadata is stale, screenshot references are unresolved, and the reviewed prototype still has documented accessibility/tool limitations. Agent 5 remains restricted to `docs/ux/**`; no production-file authority is granted.
+
+The coordinator may proceed with narrow production UI slices that preserve existing live DOM controls, command handlers, renderer, project model and persistence. Do not port prototype-only behavior or represent unavailable commands as working controls. The first production slice is UI-01, tracked in coordinator-owned PR #84. Its exact-head browser regression and reviewer gates must pass before merge.
