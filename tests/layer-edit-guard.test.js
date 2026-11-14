@@ -109,6 +109,46 @@ test("rejects malformed documents and malformed target pixel buffers", () => {
   assert.equal(Guard.resolveEditableTarget(badCel).reason, Guard.REASONS.CEL_INVALID);
 });
 
+test("rejects sparse cel pixel holes without mutating the project", () => {
+  const project = makeProject();
+  project.cels[0].pixels[0] = "#123456";
+  delete project.cels[0].pixels[1];
+  const pixelsBefore = project.cels[0].pixels.slice();
+  const keysBefore = Object.keys(project.cels[0].pixels);
+
+  const result = Guard.resolveEditableTarget(project);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, Guard.REASONS.CEL_INVALID);
+  assert.deepEqual(project.cels[0].pixels, pixelsBefore);
+  assert.deepEqual(Object.keys(project.cels[0].pixels), keysBefore);
+});
+
+test("rejects explicit undefined cel pixels without mutating the project", () => {
+  const project = makeProject();
+  project.cels[0].pixels[1] = undefined;
+  const pixelsBefore = project.cels[0].pixels.slice();
+  const keysBefore = Object.keys(project.cels[0].pixels);
+
+  const result = Guard.resolveEditableTarget(project);
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, Guard.REASONS.CEL_INVALID);
+  assert.deepEqual(project.cels[0].pixels, pixelsBefore);
+  assert.deepEqual(Object.keys(project.cels[0].pixels), keysBefore);
+});
+
+test("accepts explicit null and valid HEX cel pixel values", () => {
+  const project = makeProject();
+  project.cels[0].pixels = [null, "#123456", null, "#abcdef", null, "#000000"];
+
+  const result = Guard.resolveEditableTarget(project);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.reason, null);
+  assert.deepEqual(project.cels[0].pixels, [null, "#123456", null, "#abcdef", null, "#000000"]);
+});
+
 test("rejects duplicate target cels rather than choosing one", () => {
   const project = makeProject();
   project.cels.push({

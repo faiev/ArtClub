@@ -53,6 +53,21 @@
     return { ambiguous: false, value: matches[0] || null };
   }
 
+  function hasValidPixelBuffer(pixels, expectedPixels) {
+    if (!Array.isArray(pixels) || pixels.length !== expectedPixels) return false;
+
+    // Array iteration helpers such as .some() skip sparse holes. Check every
+    // expected slot explicitly so a hole or explicit undefined fails closed.
+    for (let index = 0; index < expectedPixels; index += 1) {
+      if (!Object.prototype.hasOwnProperty.call(pixels, index)) return false;
+      const pixel = pixels[index];
+      if (pixel !== null && (typeof pixel !== "string" || !HEX_COLOR.test(pixel))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   /**
    * Resolve the active layer/frame cel for a pixel-edit operation.
    * Explicit IDs are accepted only when they identify the current active layer
@@ -132,8 +147,7 @@
 
     const cel = matchingCels[0];
     const expectedPixels = project.canvas.width * project.canvas.height;
-    if (!Array.isArray(cel.pixels) || cel.pixels.length !== expectedPixels ||
-        cel.pixels.some(function (pixel) { return pixel !== null && (typeof pixel !== "string" || !HEX_COLOR.test(pixel)); })) {
+    if (!hasValidPixelBuffer(cel.pixels, expectedPixels)) {
       return denial(REASONS.CEL_INVALID, "The target cel pixel buffer is malformed.", { layerId: layerId, frameId: frameId });
     }
 

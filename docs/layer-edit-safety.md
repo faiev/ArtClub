@@ -52,7 +52,7 @@ Denial:
 
 Stable denial codes are exported in `REASONS`. They distinguish malformed options/documents, missing or ambiguous targets, inactive layer/frame IDs, malformed layer flags, hidden and locked layers, missing cels and malformed cel buffers.
 
-The editor's current mutation model edits only the active layer and active frame. Omitted IDs resolve to those active IDs; explicitly supplied IDs must also refer to the active layer/frame. A target cel must already exist and its pixel buffer must match the canvas dimensions and contain only `null` or six-digit HEX colors. The guard fails closed for malformed targets and does not use `ensureCel()` as an implicit side effect.
+The editor's current mutation model edits only the active layer and active frame. Omitted IDs resolve to those active IDs; explicitly supplied IDs must also refer to the active layer/frame. A target cel must already exist and its pixel buffer must match the canvas dimensions. Every expected pixel index must be an own array entry containing explicit `null` or a six-digit HEX color; sparse holes and explicit `undefined` are rejected. Validation uses indexed iteration because JavaScript array callbacks such as `.some()` skip sparse holes. The guard fails closed for malformed targets and does not use `ensureCel()` as an implicit side effect.
 
 ### `assertEditableTarget(project, options?)`
 
@@ -109,6 +109,6 @@ Run the focused suite with:
 node --test tests/layer-edit-guard.test.js
 ```
 
-The tests cover successful active targets, explicit active IDs, missing layers, hidden layers, locked layers, inactive layer IDs, missing cels, malformed documents/buffers, duplicate cels and structured thrown errors.
+The tests cover successful active targets, explicit active IDs, missing layers, hidden layers, locked layers, inactive layer IDs, missing cels, malformed documents/buffers, sparse pixel holes, explicit `undefined`, valid `null`/HEX pixels, duplicate cels and structured thrown errors.
 
 This is an isolated contract library, not a live editor fix. No browser verification or integration behavior is claimed in this deliverable.
