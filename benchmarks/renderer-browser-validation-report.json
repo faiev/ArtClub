@@ -1,0 +1,163 @@
+{
+  "benchmark": "Art Club DOM-grid versus isolated Canvas 2D renderer",
+  "completedAt": "2026-11-14T15:12:29.435Z",
+  "environment": {
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36",
+    "platform": "Linux x86_64",
+    "devicePixelRatio": 1.5,
+    "hardwareConcurrency": 3,
+    "deviceMemoryGb": null,
+    "browserVersion": "144.0.7559.96",
+    "runner": {
+      "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+      "architecture": "x86_64",
+      "cpuModel": "INTEL(R) XEON(R) PLATINUM 8573C",
+      "logicalCpuCount": 3,
+      "totalMemoryBytes": 6237188096,
+      "runnerType": "ChatGPT local container; system Chromium controlled by Python Playwright",
+      "ci": false
+    }
+  },
+  "methodology": {
+    "warmupRunsPerRenderer": 2,
+    "measuredSamplesPerRenderer": 5,
+    "order": "DOM-first and Canvas-first alternate per sample",
+    "dom": "Create one accessible div per pixel in a DocumentFragment, replace grid children, and force layout by reading grid bounds.",
+    "canvas": "Convert the logical pixel array, draw the raster and overlay, then read one pixel back to force pending Canvas 2D work to complete.",
+    "percentile": "p95 uses the nearest-rank method (ceil(0.95 × sample count)).",
+    "scope": "Synchronous renderer work only; not end-to-end editor interaction, input latency, compositing, or application-model costs.",
+    "executionNote": "Actual Chromium Canvas 2D/DOM microbenchmark controlled by Python Playwright; two warm-up runs and five measured samples per renderer at each of the five sizes."
+  },
+  "results": [
+    {
+      "size": "32×32",
+      "width": 32,
+      "height": 32,
+      "pixels": 1024,
+      "sampleCount": 5,
+      "domMedianMs": 17.1,
+      "domP95Ms": 19.6,
+      "canvasMedianMs": 2.1,
+      "canvasP95Ms": 4.6,
+      "domOverCanvas": 8.143,
+      "domSamplesMs": [
+        19.6,
+        10,
+        15,
+        18.4,
+        17.1
+      ],
+      "canvasSamplesMs": [
+        3.2,
+        4.6,
+        2.1,
+        2.1,
+        1.9
+      ]
+    },
+    {
+      "size": "64×64",
+      "width": 64,
+      "height": 64,
+      "pixels": 4096,
+      "sampleCount": 5,
+      "domMedianMs": 43.8,
+      "domP95Ms": 72.1,
+      "canvasMedianMs": 3.2,
+      "canvasP95Ms": 5.5,
+      "domOverCanvas": 13.687,
+      "domSamplesMs": [
+        72.1,
+        35.5,
+        31.7,
+        43.8,
+        49.4
+      ],
+      "canvasSamplesMs": [
+        3.7,
+        3.2,
+        2.5,
+        3.2,
+        5.5
+      ]
+    },
+    {
+      "size": "128×128",
+      "width": 128,
+      "height": 128,
+      "pixels": 16384,
+      "sampleCount": 5,
+      "domMedianMs": 149,
+      "domP95Ms": 164.2,
+      "canvasMedianMs": 5.1,
+      "canvasP95Ms": 7.3,
+      "domOverCanvas": 29.216,
+      "domSamplesMs": [
+        143.4,
+        148.1,
+        155.4,
+        164.2,
+        149
+      ],
+      "canvasSamplesMs": [
+        5.5,
+        3.2,
+        5.1,
+        3.8,
+        7.3
+      ]
+    },
+    {
+      "size": "256×256",
+      "width": 256,
+      "height": 256,
+      "pixels": 65536,
+      "sampleCount": 5,
+      "domMedianMs": 608.8,
+      "domP95Ms": 738.1,
+      "canvasMedianMs": 8,
+      "canvasP95Ms": 10.4,
+      "domOverCanvas": 76.1,
+      "domSamplesMs": [
+        608.8,
+        738.1,
+        661.5,
+        600.7,
+        601.6
+      ],
+      "canvasSamplesMs": [
+        7.9,
+        6.5,
+        10.4,
+        8.9,
+        8
+      ]
+    },
+    {
+      "size": "512×512",
+      "width": 512,
+      "height": 512,
+      "pixels": 262144,
+      "sampleCount": 5,
+      "domMedianMs": 2667.5,
+      "domP95Ms": 2989.5,
+      "canvasMedianMs": 22.8,
+      "canvasP95Ms": 54.1,
+      "domOverCanvas": 116.996,
+      "domSamplesMs": [
+        2538.5,
+        2989.5,
+        2667.5,
+        2344.2,
+        2902.3
+      ],
+      "canvasSamplesMs": [
+        22.8,
+        21.3,
+        28,
+        21.7,
+        54.1
+      ]
+    }
+  ]
+}
