@@ -46,6 +46,10 @@ test("tool catalog classifies every exposed tool exactly once", () => {
     tool.name === "artclub_draw_pixel" && tool.access === "document_mutation" &&
     tool.requires_expected_revision === true
   ));
+  assert.ok(document.tools.catalog.find(tool =>
+    tool.name === "artclub_get_bridge_diagnostics" && tool.access === "read_only" &&
+    tool.requires_expected_revision === false
+  ));
 });
 
 test("effective runtime limits and deadlines are reflected in capabilities", () => {
@@ -97,11 +101,15 @@ test("revision conflict and cancellation semantics are explicit and machine-read
   );
 });
 
-test("unavailable exports and diagnostics are reported as unavailable", () => {
+test("optional exports and bridge runtime diagnostics are reported precisely", () => {
   const document = createCapabilities();
   assert.deepEqual(document.exports.sprite_sheet, false);
   assert.deepEqual(document.exports.gif, false);
   assert.deepEqual(document.exports.palette_formats, false);
-  assert.equal(document.diagnostics.available, false);
+  assert.equal(document.diagnostics.available, true);
+  assert.equal(document.diagnostics.bridge_runtime, true);
   assert.equal(document.diagnostics.bridge_doctor, false);
+  assert.equal(document.features.reconnect_state_reporting, true);
+  assert.equal(document.features.queue_metrics, true);
+  assert.equal(document.features.redacted_diagnostics, true);
 });
