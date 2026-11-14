@@ -168,7 +168,7 @@ GitHub Actions run-job inspection confirmed both jobs completed successfully for
 
 
 ### Comparison refresh addendum — latest main after parallel status commits
-The initial table above was captured while main was at `495842cef440aec553f2def7b362ee586843c4b7`. Main advanced during the multi-agent inventory. I re-ran every comparison against the newer main immediately before this addendum; the refreshed base is `13f43f70e1119a27984f388f8970d89282dc77a6`. **These refreshed ahead/behind values supersede the earlier table values** (branch heads and changed-file lists are unchanged).
+The initial table above was captured while main was at `495842cef440aec553f2def7b362ee586843c4b7`. Main advanced during the multi-agent inventory. I re-ran every comparison against main at `6cb1c28602cf971dd72a7fd680eb860c5bc8c13f`; the compare responses explicitly returned that SHA as their base commit. Main advanced again during the status-file write sequence, so this is a point-in-time comparison snapshot. **These refreshed ahead/behind values supersede the earlier table values** (branch heads and changed-file lists are unchanged).
 
 | PR / ref | Branch | Ahead / behind vs refreshed main |
 |---|---|---:|
