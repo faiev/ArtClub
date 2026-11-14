@@ -112,6 +112,20 @@ async function run() {
     const parsedProject = JSON.parse(projectJson);
     assert.equal(parsedProject.format, "one-pixel-studio");
 
+    // Exercise the browser Agent API import path as well as JSON serialization.
+    const importCandidate = JSON.parse(projectJson);
+    importCandidate.name = "Imported E2E artwork";
+    const importedStatus = await page.evaluate(project =>
+      window.onePixelStudio.import_project({ project }),
+      importCandidate
+    );
+    assert.equal(importedStatus.project_name, "Imported E2E artwork");
+    assert.equal(importedStatus.project_id, parsedProject.id);
+    const importedPixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 1, y: 1 })
+    );
+    assert.equal(importedPixel.color, "#ff0000", "import should restore exported pixel data");
+
     const firstSaved = await page.evaluate(() => window.onePixelStudio.save());
     assert.equal(firstSaved.ok, true);
     const firstProjectId = firstSaved.project_id;
@@ -136,6 +150,7 @@ async function run() {
     await page.evaluate(id => window.onePixelStudio.open_project({ project_id: id }), firstProjectId);
     const reopenedStatus = await page.evaluate(() => window.onePixelStudio.get_status());
     assert.equal(reopenedStatus.project_id, firstProjectId);
+    const firstFrameId = reopenedStatus.active_frame.id;
     const reopenedPixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }));
     assert.equal(reopenedPixel.color, "#ff0000", "opening a saved project should preserve agent artwork");
 
@@ -219,24 +234,59 @@ async function run() {
     assert.equal(pausedState.playback.playing, false);
     assert.equal(pausedState.active_frame.id, frameTwoId);
     await page.evaluate(() => window.onePixelStudio.stop_playback());
-    await page.evaluate(() => window.onePixelStudio.save());
+
+    // Exercise debounced autosave for frame/cel edits rather than explicitly
+    // calling save(), so reload verifies the normal recovery path.
+    await page.waitForFunction(
+      () => document.querySelector("#saveState")?.textContent === "SAVED IN PROJECT LIBRARY",
+      null,
+      { timeout: 10_000 }
+    );
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.waitForFunction(() => Boolean(window.onePixelStudio), null, { timeout: 30_000 });
     const afterReload = await page.evaluate(() => window.onePixelStudio.get_status());
     assert.equal(afterReload.project_id, firstProjectId, "refresh should restore the active project");
     assert.equal(afterReload.layers.length, 2, "refresh should preserve the layer stack");
-    // The tested red pixel and composite were drawn on the first frame.
-    // The last selected editing frame before reload was frame two.
+    assert.equal(afterReload.frames.length, 3, "refresh should preserve all animation frames");
+    assert.equal(afterReload.active_frame.id, frameTwoId, "refresh should restore the selected editing frame");
+
+    // Pixels belong to a layer/frame cel. The original red pixel and layer
+    // composite were drawn on frame one, so select it before checking them.
     await page.evaluate(id =>
-      window.onePixelStudio.select_frame({ frame_id: id }), initialFrameId
+      window.onePixelStudio.select_frame({ frame_id: id }), firstFrameId
     );
     const afterReloadPixel = await page.evaluate(() => window.onePixelStudio.get_pixel({ x: 1, y: 1 }));
-    assert.equal(afterReloadPixel.color, "#ff0000", "refresh should preserve saved pixels");
+    assert.equal(afterReloadPixel.color, "#ff0000", "refresh should preserve saved pixels on the original frame");
     const persistedLayerPixel = await page.evaluate(() =>
       window.onePixelStudio.get_pixel({ x: 2, y: 2 })
     );
-    assert.equal(persistedLayerPixel.color, "#ff8800", "refresh should preserve the visible layer composite");
+    assert.equal(persistedLayerPixel.color, "#ff8800", "refresh should preserve the visible layer composite on the original frame");
+    const firstAnimationPixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 10, y: 10 })
+    );
+    assert.equal(firstAnimationPixel.color, "#aa1100", "refresh should preserve frame one's cel");
+
+    await page.evaluate(id =>
+      window.onePixelStudio.select_frame({ frame_id: id }), frameTwoId
+    );
+    const secondAnimationPixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 11, y: 11 })
+    );
+    assert.equal(secondAnimationPixel.color, "#00bb00", "refresh should preserve frame two's cel");
+
+    await page.evaluate(id =>
+      window.onePixelStudio.select_frame({ frame_id: id }), frameThreeId
+    );
+    const thirdAnimationPixel = await page.evaluate(() =>
+      window.onePixelStudio.get_pixel({ x: 12, y: 12 })
+    );
+    assert.equal(thirdAnimationPixel.color, "#0000cc", "refresh should preserve frame three's cel");
+
+    // Keep the recovery regression on the first editing frame.
+    await page.evaluate(id =>
+      window.onePixelStudio.select_frame({ frame_id: id }), firstFrameId
+    );
 
     // Regression: A is the last good version, B is autosaved, and merely
     // opening the library must not overwrite A before the user can recover it.
