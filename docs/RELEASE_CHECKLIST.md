@@ -22,6 +22,7 @@ From the repository root:
 - [ ] `node --test tests/qa/compatibility/project-compatibility.test.js`
 - [ ] `node --test tests/qa/compatibility/gif-export-contract.test.js`
 - [ ] `node --test tests/qa/release/qa-release-check.test.js`
+- [ ] `node --test tests/qa/renderer/canvas-renderer-contract.test.js`
 
 The current root test command only expands top-level `tests/*.test.js`. It does not include nested QA suites; running the root suite alone does not satisfy the focused QA commands above.
 
@@ -59,6 +60,7 @@ If sprite-sheet export is included in the release, also require the sprite-sheet
 - [ ] Confirm nested QA tests and standalone browser harness are executed by explicit commands or a workflow step.
 - [ ] Confirm PR #1's unique frame-aware assertions are ported without duplicating or weakening PR #10 recovery checks.
 - [ ] Resolve stale/diverged branch bases and rerun tests after every base update.
+- [ ] Review the Canvas renderer `parseColor()` mutable-cache TODO; verify a defensive-copy fix before treating the public helper as safe.
 - [ ] Review all documented TODOs, unsupported format behavior and bounded-memory constraints.
 
 ## 6. CI evidence and final decision
