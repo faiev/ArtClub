@@ -480,20 +480,18 @@ export function formatHumanReport(report) {
   return lines.join("\n") + "\n";
 }
 
-function printHelp() {
-  process.stdout.write(
-    "Art Club QA suite runner\n\n" +
+export function helpText() {
+  return "Art Club QA suite runner\n\n" +
     "Usage: node tools/run-qa.mjs [--suite NAME|all] [--file tests/qa/PATH] [--include-browser] [--json] [--root PATH]\n\n" +
     "Suites: " + SUITE_MANIFEST.map(suite => suite.name).join(", ") + "\n" +
     "Node suites use the built-in node --test runner. Browser suites are skipped unless --include-browser is explicit.\n" +
-    "The runner only uses its explicit manifest under tests/qa; it never installs dependencies or edits files.\n"
-  );
+    "The runner only uses its explicit manifest under tests/qa; it never installs dependencies or edits files.\n";
 }
 
 export async function main(argv, dependencies = {}) {
   const options = parseArgs(argv);
   if (options.help) {
-    process.stdout.write(dependencies.stdout || "Art Club QA suite runner help requested.\n");
+    (dependencies.write || (value => process.stdout.write(value)))(helpText());
     return 0;
   }
   const report = await runQASuites({
