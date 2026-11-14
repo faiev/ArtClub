@@ -678,7 +678,7 @@ function getAgentStatus(){
     palette:palette.slice(),
     revision:documentRevision,
     history:{can_undo:undoStack.length>0,can_redo:redoStack.length>0},
-    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project"]
+    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png"]
   };
 }
 function getAgentCanvas(options){
@@ -705,6 +705,33 @@ async function importAgentProject(payload){
   if(!saved)throw new Error("The project was imported, but it could not be saved locally. Export it as JSON.");
   return getAgentStatus();
 }
+async function listAgentProjects(){
+  if(!projectStorage)return [];
+  return projectStorage.listProjects();
+}
+async function openAgentProject(payload){
+  if(!projectStorage)throw new Error("The local project library is not available in this browser.");
+  const projectId=payload&&payload.project_id;
+  if(typeof projectId!=="string"||!projectId)throw new Error("Provide a project_id from list_projects.");
+  await persistNow();
+  const project=await projectStorage.getProject(projectId);
+  if(!project)throw new Error("That local project no longer exists.");
+  loadProjectIntoEditor(project);
+  const saved=await persistNow();
+  if(!saved)throw new Error("The project opened, but the local save failed.");
+  return getAgentStatus();
+}
+async function exportAgentPNG(){
+  const canvas=canvasFromPixels(1);
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/png"));
+  if(!blob)throw new Error("PNG preview export failed.");
+  const bytes=new Uint8Array(await blob.arrayBuffer());
+  let binary="";
+  for(let offset=0;offset<bytes.length;offset+=0x8000){
+    binary+=String.fromCharCode(...bytes.subarray(offset,Math.min(offset+0x8000,bytes.length)));
+  }
+  return {mime_type:"image/png",width:w,height:h,data_base64:btoa(binary)};
+}
 function installAgentAPI(){
   if(!window.ArtClubAgentAPI)throw new Error("Agent API module failed to load.");
   window.onePixelStudio=window.ArtClubAgentAPI.create({
@@ -716,7 +743,10 @@ function installAgentAPI(){
     redo:function(){redo();return getAgentStatus()},
     save:async function(){const saved=await persistNow();return {ok:saved,status:$("saveState").textContent,project_id:activeProjectId}},
     exportProject:function(){return ProjectModel.serializeProject(snapshot())},
-    importProject:importAgentProject
+    importProject:importAgentProject,
+    listProjects:listAgentProjects,
+    openProject:openAgentProject,
+    exportPNG:exportAgentPNG
   });
 }
 
