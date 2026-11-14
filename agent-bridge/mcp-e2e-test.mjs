@@ -232,7 +232,7 @@ async function run() {
     assert.equal(capabilities.document_version, 1);
     assert.equal(capabilities.protocol.name, status.protocol);
     assert.equal(capabilities.protocol.version, status.protocol_version);
-    assert.equal(capabilities.bridge.version, "0.6.0");
+    assert.equal(capabilities.bridge.version, "0.7.0");
     assert.equal(capabilities.tools.total, toolList.tools.length);
     assert.equal(capabilities.tools.catalog.length, toolList.tools.length);
     assert.ok(capabilities.tools.catalog.every(tool => names.has(tool.name)));
