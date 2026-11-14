@@ -334,8 +334,9 @@ function printText(report) {
     report.counts.warn + " warn, " +
     report.counts.skipped + " skipped\n"
   );
+  process.stdout.write("Local structural checks: " + (report.ok ? "PASS" : "FAIL") + "\n");
+  process.stdout.write("Release readiness: UNVERIFIED (this tool cannot approve or deploy)\n");
   process.stdout.write("CI: UNVERIFIED (checker does not query GitHub Actions)\n");
-  process.stdout.write("Result: " + (report.ok ? "NO REQUIRED-FILE/SCRIPT FAILURES" : "RELEASE CHECK FAILURES") + "\n");
 }
 
 function parseArgs(argv) {
