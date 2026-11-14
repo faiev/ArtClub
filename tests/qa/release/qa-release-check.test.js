@@ -25,6 +25,7 @@ const REQUIRED_PATHS = [
   "tests/qa/browser/project-lifecycle.html",
   "tests/qa/browser/project-lifecycle.mjs",
   "tests/qa/release/qa-release-check.test.js",
+  "tests/qa/renderer/canvas-renderer-contract.test.js",
   "docs/QA_MATRIX.md",
   "docs/RELEASE_CHECKLIST.md",
   "tools/qa-release-check.mjs",
@@ -47,6 +48,7 @@ const REQUIRED_QA_COMMANDS = [
   "node --test tests/qa/compatibility/project-compatibility.test.js",
   "node --test tests/qa/compatibility/gif-export-contract.test.js",
   "node --test tests/qa/release/qa-release-check.test.js",
+  "node --test tests/qa/renderer/canvas-renderer-contract.test.js",
   "node tests/qa/browser/project-lifecycle.mjs"
 ];
 
