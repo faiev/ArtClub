@@ -585,7 +585,8 @@ function renderPalette(){
 function renderLayers(){
   const list=$("layerList"),fragment=document.createDocumentFragment();
   const layers=projectDoc.layers;
-  layers.forEach((layer,index)=>{
+  layers.slice().reverse().forEach(layer=>{
+    const index=layers.findIndex(item=>item.id===layer.id);
     const entry=document.createElement("div");
     entry.className="layer-entry"+(layer.id===projectDoc.activeLayerId?" active":"");
     const select=document.createElement("button");
@@ -622,11 +623,12 @@ function setActiveLayer(layerId){
   pixels=cel.pixels.slice();
   renderAll();scheduleSave();
 }
-function addLayer(){
+function addLayer(name){
   if(projectDoc.layers.length>=ProjectModel.LIMITS.maxLayers){toast("This project has reached the layer limit.");return}
   if(drawing){toast("Finish the current stroke before adding a layer.");return}
   remember();
-  const layer=ProjectModel.makeLayer("Layer "+(projectDoc.layers.length+1));
+  const safeName=typeof name==="string"&&name.trim()?name.trim().slice(0,60):"Layer "+(projectDoc.layers.length+1);
+  const layer=ProjectModel.makeLayer(safeName);
   projectDoc.layers.push(layer);
   const cel=ProjectModel.ensureCel(projectDoc,layer.id,projectDoc.activeFrameId);
   projectDoc.activeLayerId=layer.id;pixels=cel.pixels.slice();
@@ -645,12 +647,12 @@ function duplicateLayer(){
   projectDoc.activeLayerId=copy.id;pixels=cel.pixels.slice();
   renderAll();scheduleSave();toast("Layer duplicated.");
 }
-function deleteLayer(){
+function deleteLayer(skipConfirmation=false){
   if(projectDoc.layers.length<=1){toast("A project must keep at least one layer.");return}
   if(drawing){toast("Finish the current stroke before deleting a layer.");return}
   const index=projectDoc.layers.findIndex(layer=>layer.id===projectDoc.activeLayerId);
   const layer=projectDoc.layers[index];if(!layer)return;
-  if(!confirm("Delete layer “"+layer.name+"”? This can be undone."))return;
+  if(!skipConfirmation&&!confirm("Delete layer “"+layer.name+"”? This can be undone."))return;
   remember();
   projectDoc.layers=projectDoc.layers.filter(item=>item.id!==layer.id);
   projectDoc.cels=projectDoc.cels.filter(cel=>cel.layerId!==layer.id);
@@ -659,11 +661,12 @@ function deleteLayer(){
   pixels=ProjectModel.ensureCel(projectDoc,next.id,projectDoc.activeFrameId).pixels.slice();
   renderAll();scheduleSave();toast("Layer deleted.");
 }
-function renameLayer(layerId){
+function renameLayer(layerId,providedName){
   const layer=ProjectModel.getLayer(projectDoc,layerId);if(!layer)return;
-  const next=prompt("Layer name",layer.name);if(next===null)return;
-  const name=next.trim().slice(0,60);
-  if(!name){toast("Layer name cannot be empty.");return}
+  const next=providedName===undefined?prompt("Layer name",layer.name):providedName;
+  if(next===null)return;
+  const name=typeof next==="string"?next.trim().slice(0,60):"";
+  if(!name){if(providedName!==undefined)throw new Error("Layer name cannot be empty.");toast("Layer name cannot be empty.");return}
   remember();layer.name=name;renderLayers();scheduleSave();
 }
 function toggleLayerVisibility(layerId){
@@ -1041,6 +1044,88 @@ async function exportAgentPNG(){
   }
   return {mime_type:"image/png",width:w,height:h,data_base64:btoa(binary)};
 }
+function assertAgentLayerAction(options){
+  options=options||{};
+  if(drawing)throw new Error("A canvas stroke is in progress. Finish it before changing layers.");
+  if(options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
+    throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
+  }
+}
+function requireAgentLayer(payload){
+  const id=payload&&payload.layer_id;
+  const layer=typeof id==="string"?projectDoc.layers.find(item=>item.id===id):null;
+  if(!layer)throw new Error("Provide an existing layer_id from get_status.");
+  return layer;
+}
+function agentAddLayer(payload){
+  payload=payload||{};assertAgentLayerAction(payload);
+  if(projectDoc.layers.length>=ProjectModel.LIMITS.maxLayers)throw new Error("The project has reached the layer limit.");
+  if(payload.name!==undefined&&(typeof payload.name!=="string"||!payload.name.trim()||payload.name.length>60))throw new Error("Layer name must contain 1–60 characters.");
+  const name=payload.name||"Layer "+(projectDoc.layers.length+1);
+  remember();
+  const layer=ProjectModel.makeLayer(name);
+  projectDoc.layers.push(layer);
+  const cel=ProjectModel.ensureCel(projectDoc,layer.id,projectDoc.activeFrameId);
+  projectDoc.activeLayerId=layer.id;pixels=cel.pixels.slice();
+  renderAll();scheduleSave();
+  return getAgentStatus();
+}
+function agentSelectLayer(payload){
+  payload=payload||{};assertAgentLayerAction(payload);
+  const layer=requireAgentLayer(payload);
+  setActiveLayer(layer.id);
+  return getAgentStatus();
+}
+function agentSetLayerVisibility(payload){
+  payload=payload||{};assertAgentLayerAction(payload);
+  if(typeof payload.visible!=="boolean")throw new Error("visible must be true or false.");
+  const layer=requireAgentLayer(payload);
+  if(layer.visible!==payload.visible){
+    remember();layer.visible=payload.visible;
+    renderGrid();renderLayers();renderStats();scheduleSave();
+  }
+  return getAgentStatus();
+}
+function agentSetLayerLocked(payload){
+  payload=payload||{};assertAgentLayerAction(payload);
+  if(typeof payload.locked!=="boolean")throw new Error("locked must be true or false.");
+  const layer=requireAgentLayer(payload);
+  if(layer.locked!==payload.locked){
+    remember();layer.locked=payload.locked;
+    renderLayers();scheduleSave();
+  }
+  return getAgentStatus();
+}
+function agentRenameLayer(payload){
+  payload=payload||{};assertAgentLayerAction(payload);
+  const layer=requireAgentLayer(payload);
+  renameLayer(layer.id,payload.name);
+  return getAgentStatus();
+}
+function agentMoveLayer(payload){
+  payload=payload||{};assertAgentLayerAction(payload);
+  const layer=requireAgentLayer(payload);
+  if(payload.direction!=="up"&&payload.direction!=="down")throw new Error('direction must be "up" or "down".');
+  const before=projectDoc.layers.findIndex(item=>item.id===layer.id);
+  const delta=payload.direction==="up"?1:-1;
+  const after=before+delta;
+  if(after>=0&&after<projectDoc.layers.length)moveLayer(layer.id,delta);
+  return getAgentStatus();
+}
+function agentDuplicateLayer(payload){
+  payload=payload||{};assertAgentLayerAction(payload);
+  if(projectDoc.layers.length>=ProjectModel.LIMITS.maxLayers)throw new Error("The project has reached the layer limit.");
+  duplicateLayer();
+  return getAgentStatus();
+}
+function agentDeleteLayer(payload){
+  payload=payload||{};assertAgentLayerAction(payload);
+  requireAgentLayer(payload);
+  if(projectDoc.layers.length<=1)throw new Error("A project must keep at least one layer.");
+  deleteLayer(true);
+  return getAgentStatus();
+}
+
 function installAgentAPI(){
   if(!window.ArtClubAgentAPI)throw new Error("Agent API module failed to load.");
   window.onePixelStudio=window.ArtClubAgentAPI.create({
@@ -1055,7 +1140,16 @@ function installAgentAPI(){
     importProject:importAgentProject,
     listProjects:listAgentProjects,
     openProject:openAgentProject,
-    exportPNG:exportAgentPNG
+    exportPNG:exportAgentPNG,
+    listLayers:getAgentStatus,
+    addLayer:agentAddLayer,
+    selectLayer:agentSelectLayer,
+    setLayerVisibility:agentSetLayerVisibility,
+    setLayerLocked:agentSetLayerLocked,
+    renameLayer:agentRenameLayer,
+    moveLayer:agentMoveLayer,
+    duplicateLayer:agentDuplicateLayer,
+    deleteLayer:agentDeleteLayer
   });
 }
 
