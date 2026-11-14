@@ -1,66 +1,39 @@
 # Status — Agent 2
 
-- **Task:** AC-010 — Validate and harden the Canvas 2D renderer prototype
-- **Status:** REVIEW — coordinator-requested AC-010 corrections implemented; awaiting review
-- **Branch:** `agent/canvas-renderer`
-- **Base:** latest main incorporated at `57b4da3cf9be2a9a4b1c98fea942729e42314d54`
-- **Branch head:** `17fc03c5cfbba3fea4fb176dde60a27ce4f27d7f`
-- **Branch comparison:** 12 commits ahead, 0 behind main at handoff.
-- **PR:** #6 — https://github.com/faiev/ArtClub/pull/6 (open, draft, mergeable; not merged)
-- **Merge commit:** `1e7cf7821d726287a146de5780b37649bb03dd23` (latest main merged into the existing feature branch without force-push)
-- **Validation commits:** `3a7c76818d52173b32c0a6ddcb6928d6adba5b35` (correction implementation), `17fc03c5cfbba3fea4fb176dde60a27ce4f27d7f` (latest-main merge head)
+- **Active task:** AC-028 — Real-browser Canvas renderer validation and benchmark capture
+- **Status:** IN_PROGRESS — browser harness committed and draft PR opened; new Chromium raster suite and benchmark measurements still need execution
+- **Coordination source:** `main` (PR #7 merged as `f0c470392fe4411ca79b1d17bfe72e928af3be00`)
+- **Latest main at PR creation:** `ac1fbb12ae3c1f45723d8219df3f480fa8195d64`
+- **Feature branch:** `agent/renderer-browser-validation`
+- **Branch refresh:** fast-forwarded without force from original assignment base `1ba0aaee597d5bf11083c97a03a312c7ee434530` to `6759e751074e16eaf328fe5a073318bcc2bc2ba6` before implementation
+- **Current branch head:** `1126e6e5b26266e438cb1b789fabf6d2064ccaad`
+- **PR:** #18 — https://github.com/faiev/ArtClub/pull/18 (open, draft)
+- **Changed files:** `tests/canvas-renderer.browser.html`, `tests/canvas-renderer.browser.mjs`, `benchmarks/renderer-browser-validation.md`
 
-## Changes
+## AC-028 implementation
 
-- Hardened dirty rendering: changes to grid/selection state force a full visible blit, preventing stale overlay pixels after a pixel-only dirty update.
-- Logical dimensions, display dimensions, DPR and backing-store mismatches force a safe full redraw. Surface buffers are recreated only when logical dimensions require it.
-- Dirty rectangles are clipped to raster bounds and invalid rectangles/selections are rejected before render-buffer mutation.
-- Pointer-to-pixel mapping returns null before first render and for invalid bounds or out-of-canvas coordinates.
-- Expanded the mocked-context suite to cover crisp scaling, transparency, overlapping onion tints, dirty crop/clipping, invalid input, DPR/display resize, overlay isolation/invalidation, pointer mapping, 512×512 and cleanup.
-- Upgraded the benchmark page with alternating sample order, configurable warm-ups/samples, median, nearest-rank p95, raw samples, environment metadata and downloadable JSON.
-- Updated the rendering architecture and benchmark instructions. No changes to index.html, project model, Agent API or MCP bridge; renderer remains isolated.
+- Added a real Chromium page that loads the production Canvas renderer module.
+- Added seven real-browser assertions: native full-raster RGBA equality/transparency; enlarged nearest-neighbor full-raster equality; grid/selection overlay isolation from artwork ImageData; pointer mapping on fractional CSS dimensions at DPR 1.5; frameId full invalidation; compositeRevision full invalidation; onion-mask mutation/clearing; sparse/undefined pixel and onion-mask rejection without visible or buffer mutation.
+- The Playwright runner drives the existing DOM-grid versus Canvas benchmark at 32, 64, 128, 256 and 512, with configurable warm-ups and at least three measured samples per renderer. It prints raw samples, median, nearest-rank p95, browser version, DPR, platform, CPU model/count and available memory.
+- Documentation states renderer-only benchmark scope and explicitly disclaims a general speedup based on one runner.
 
-## Earlier test evidence (superseded)
+## Validation evidence and limitations
 
-- Initial pre-correction run #43602659855 had a persistence E2E failure before Agent 1's recovery fix was merged. This result is historical and is superseded by the green final merged-head run recorded below.
-- Renderer benchmark timings remain **not measured**; no performance gain is claimed. To collect results, run `python3 -m http.server 8000` and open `http://localhost:8000/benchmarks/renderer-benchmark.html`.
+- GitHub Actions run #43606553205 (run #150) started for PR #18 at head `1126e6e5b26266e438cb1b789fabf6d2064ccaad`.
+- Node/model test job: **success**. Browser-E2E job was still installing Chromium at the last check; editor E2E and MCP steps had not run yet.
+- That existing workflow does **not** invoke `tests/canvas-renderer.browser.mjs`; its check results are regression evidence only, not evidence that AC-028 browser assertions passed.
+- The dedicated Playwright runner and benchmark have **not yet been executed**. This environment could not clone GitHub because DNS/network resolution failed and does not have the repository's local Playwright dependency installed. Chromium itself is present in the container, but no standalone run was claimed.
+- Required local command after installing the bridge dependency and browser:
+  `cd agent-bridge && npm install --ignore-scripts && npx playwright install chromium && node ../tests/canvas-renderer.browser.mjs`
+- No benchmark timing values have been captured; no speedup is claimed.
 
-## Risks / handoff
+## Locks and boundaries
 
-- The tests use fake Canvas 2D contexts; they verify renderer calls and buffer state, not final browser raster output.
-- Browser benchmark measurements and interactive visual inspection remain outstanding. Keep the benchmark's raw JSON and browser/hardware details with any future performance claims.
-- The existing app still uses the DOM renderer. No UI integration or accessibility parity is claimed.
-- No blockers for coordinator review of the isolated code and unit evidence. Browser measurement is still needed before claiming a speedup or proceeding to AC-012 integration.
+- `.github/workflows/project-tests.yml` remains owned by Agent 3 during PR #11 reconciliation; no workflow change was made.
+- No changes to `index.html`, project model, Agent API, MCP bridge or application renderer wiring.
+- DOM renderer remains active. AC-012 is not started and remains queued pending AC-028 evidence and coordinator-approved UI ownership.
 
+## Prior accepted work
 
-## Coordinator-directed independent review — PR #11
-
-- **PR:** https://github.com/faiev/ArtClub/pull/11 — open draft at head `b4f552f38e3a4557e10d61401af9420843227aae`.
-- **Scope respected:** no changes to Agent 3's branch, PR or files; no renderer integration and no `index.html` changes.
-- **CI run:** https://github.com/faiev/ArtClub/actions/runs/43603137011. Node 24 test job passed **45/45** (includes the 10 GIF unit tests). Chromium/ImageDecoder GIF verification step passed and reported 2 frames, red then blue first pixels, transparent sampled pixels, `image/gif` Blob, 105 bytes. Overall workflow is **failure**, not success: the separate existing editor E2E step failed at `agent-bridge/e2e-test.mjs:229` (refresh persistence expected `#ff0000`, actual `null`); the MCP step was skipped. This matches the unrelated persistence failure also seen in PR #6.
-- **Positive review:** native logical-screen and image-descriptor dimensions are written from the project canvas dimensions; each frame is a full-canvas image descriptor; default and explicit frame ordering are preserved by `frameIds`; delays are rounded to GIF centiseconds; loop extension values and transparency flag/disposal are present. Unit tests cover one/two frames, explicit order, timing, loop, basic transparency, LZW dictionary reset and palette overflow.
-- **Finding — quantization lookup can choose a non-nearest palette color (P2):** `js/gif-export.js` builds one palette lookup per 5-bit RGB bucket using the bucket midpoint in `buildPalette()` (around lines 324–347), then uses that same bucket entry for every pixel in `toIndexedFrames()` (around lines 382–390). A bucket midpoint can be closer to a neighbouring palette entry than the actual pixel is. This can alter a pixel even when that exact source RGB is itself present in the generated median-cut palette, contrary to the documented nearest-palette mapping. Reproduction fixture: a 257×1 opaque frame beginning with `#222799`; generate further unique 5-bit buckets with LCG seed 13: `state = (Math.imul(state, 1664525) + 1013904223) >>> 0`, take RGB from state bytes 31–24, 23–16 and 15–8, and skip already-seen `(r>>3,g>>3,b>>3)` buckets until 257 pixels exist. In this deterministic fixture, source pixel 58 is `#D2384E`; its bucket midpoint is `#D43C4C`, which selects `#D63B50` instead of the exact `#D2384E` palette entry. This reproduction is a source-level algorithm trace; it was not run against a local decoded GIF in this environment. Suggested correction: select by actual RGB (or by each occupied bucket's histogram mean, and document that approximation), then add a regression test that checks decoded pixel 58.
-- **Browser decoder test gap:** `tests/gif-export.browser.html` checks frame count, only the top-left opaque pixel per frame, and alpha at byte offset 7 (x=1,y=0). It does not compare every decoded pixel, assert each decoded frame's dimensions, or inspect the second-row overlap where frame 1 has green at (1,1) and frame 2 is transparent there. A corruption/ghost at that location could pass this browser test. The Node parser tests also check selected pixels rather than full-raster equality.
-- **Large-frame memory risk:** the default 16,777,216-pixel ceiling permits about 64 MiB of composed `Uint32Array` frame buffers (`composeFrames()`) plus about 16 MiB of indexed frame buffers (`toIndexedFrames()`) retained simultaneously, before project arrays, encoded writer/copy and Blob storage. The flow is synchronous and non-streaming; there is no near-limit memory/stress test. The limits bound the work, but constrained browsers may still hit high peak memory. Consider indexing/encoding one frame at a time and validating `maxBytes` before expensive composition/quantization.
-- **No PR action taken:** findings are recorded for coordinator/Agent 3 review only. Agent 2's AC-010 remains submitted as REVIEW; AC-012 remains unstarted and requires coordinator approval.
-
-
-## Coordinator-requested AC-010 corrections — completed
-
-- Only explicit `null` is transparent. Empty strings, `"transparent"`, sparse array slots and `undefined` are rejected.
-- Every pixel and supplied onion-mask entry is validated before resizing or writing render buffers, even outside a requested dirty rectangle.
-- Enforces 1–512 width and height (maximum 262,144 pixels) before allocating ImageData/surfaces.
-- Snapshots onion masks and forces full redraws for any mask-content change, including in-place edits.
-- Changes to `frameId` or `compositeRevision` force full redraws even if a dirty rectangle is passed. The documentation requires callers to advance `compositeRevision` for layer/order/visibility composite changes, or issue a full render when no revision is supplied.
-- Added five regression tests for sparse/undefined pixels, malformed onion masks, over-limit dimensions, frame/revision switching and onion-mask in-place mutation.
-- PR #6 description now documents all corrections and the full caller invalidation contract.
-
-## Updated test evidence
-
-- CI run for correction commit `3a7c76818d52173b32c0a6ddcb6928d6adba5b35`: 58 passed, 0 failed; browser E2E and MCP client tests passed.
-- Final merged-head CI run: https://github.com/faiev/ArtClub/actions/runs/43605014989 — **success**.
-- Node 24: 58 passed, 0 failed (22 Canvas renderer tests); syntax check passed.
-- Chromium browser E2E passed, including mouse drawing, undo/redo, agent batch, layers, custom canvas, animation playback, onion skin, PNG, IndexedDB library and reload recovery.
-- MCP client E2E passed, including drawing, layers, selections, animation frames/playback, onion skin, pixel readback, PNG preview, save and input validation.
-- Renderer benchmark timings remain **not measured**; no speedup is claimed.
-- No UI integration, `index.html` changes or AC-012 work performed. PR #6 remains draft/open and awaits coordinator review.
+- AC-010 was merged via PR #6 as `1ba0aaee597d5bf11083c97a03a312c7ee434530`. The hardened Canvas renderer remains an isolated prototype; no UI integration or performance claim.
+- Coordinator-directed read-only PR #11 review findings were handed to Agent 3 and coordinator; no Agent 3 files or branch were modified.
