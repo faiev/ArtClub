@@ -568,25 +568,29 @@ function isActiveLayerEditable(){
   const layer=activeLayer();
   return Boolean(layer&&!layer.locked&&layer.visible);
 }
-function layerPixels(layer){
+function displayFrameId(){
+  return playbackFrameId||projectDoc.activeFrameId;
+}
+function layerPixels(layer,frameId){
   if(!projectDoc||!layer)return null;
-  if(layer.id===projectDoc.activeLayerId)return pixels;
-  const cel=ProjectModel.getCel(projectDoc,layer.id,projectDoc.activeFrameId);
+  const targetFrameId=frameId||displayFrameId();
+  if(targetFrameId===projectDoc.activeFrameId&&layer.id===projectDoc.activeLayerId)return pixels;
+  const cel=ProjectModel.getCel(projectDoc,layer.id,targetFrameId);
   return cel?cel.pixels:null;
 }
-function compositePixelAt(index){
+function compositePixelAt(index,frameId){
   if(!projectDoc)return pixels[index]||null;
   let result=null;
   projectDoc.layers.forEach(layer=>{
     if(!layer.visible)return;
-    const source=layerPixels(layer);
+    const source=layerPixels(layer,frameId);
     const color=source?source[index]:null;
     if(color!==null&&color!==undefined)result=color;
   });
   return result;
 }
-function compositePixels(){
-  return Array.from({length:w*h},(_,index)=>compositePixelAt(index));
+function compositePixels(frameId){
+  return Array.from({length:w*h},(_,index)=>compositePixelAt(index,frameId));
 }
 
 function loadProjectIntoEditor(source,resetHistory=true){
@@ -808,10 +812,20 @@ function renderGrid(){
   grid.style.gridTemplateRows="repeat("+h+", minmax(0,1fr))";
   grid.classList.toggle("no-grid",!$("gridToggle").checked);
   const visiblePixels=compositePixels();
+  let previousPixels=null,nextPixels=null;
+  if(onionSkinEnabled&&!isPlaying){
+    const currentIndex=projectDoc.frames.findIndex(frame=>frame.id===displayFrameId());
+    if(currentIndex>0)previousPixels=compositePixels(projectDoc.frames[currentIndex-1].id);
+    if(currentIndex>=0&&currentIndex<projectDoc.frames.length-1)nextPixels=compositePixels(projectDoc.frames[currentIndex+1].id);
+  }
   const frag=document.createDocumentFragment();
   for(let i=0;i<visiblePixels.length;i++){
     const cell=document.createElement("div");
     cell.className="pixel-cell";
+    if(!visiblePixels[i]){
+      if(previousPixels&&previousPixels[i])cell.classList.add("onion-before");
+      if(nextPixels&&nextPixels[i])cell.classList.add("onion-after");
+    }
     cell.tabIndex=i===focusedIndex?0:-1;
     cell.dataset.index=String(i);
     cell.setAttribute("role","gridcell");
@@ -1390,7 +1404,7 @@ function getAgentStatus(){
 }
 function getAgentCanvas(options){
   options=options||{};
-  const data=compositePixels();
+  const data=compositePixels(projectDoc.activeFrameId);
   const response={
     width:w,height:h,origin:"top-left",format:"row-major",
     active_layer_id:projectDoc.activeLayerId,active_frame_id:projectDoc.activeFrameId,
@@ -1402,7 +1416,7 @@ function getAgentCanvas(options){
 }
 function getAgentPixel(coordinates){
   const x=agentCoordinate(coordinates.x,w,"x"),y=agentCoordinate(coordinates.y,h,"y");
-  return {x,y,color:compositePixelAt(y*w+x),revision:documentRevision};
+  return {x,y,color:compositePixelAt(y*w+x,projectDoc.activeFrameId),revision:documentRevision};
 }
 async function importAgentProject(payload){
   if(drawing)throw new Error("Finish the current canvas stroke before importing a project.");
@@ -1888,7 +1902,7 @@ function download(name,type,content){
 function canvasFromPixels(scale){
   const c=document.createElement("canvas");c.width=w*scale;c.height=h*scale;
   const ctx=c.getContext("2d");ctx.imageSmoothingEnabled=false;
-  const visiblePixels=compositePixels();
+  const visiblePixels=compositePixels(projectDoc.activeFrameId);
   for(let y=0;y<h;y++)for(let x=0;x<w;x++){const col=visiblePixels[y*w+x];if(col){ctx.fillStyle=col;ctx.fillRect(x*scale,y*scale,scale,scale)}}
   return c;
 }
@@ -1901,7 +1915,7 @@ function exportPNG(scale){
 }
 $("pngBtn").addEventListener("click",()=>exportPNG(1));$("scaledBtn").addEventListener("click",()=>exportPNG(16));
 $("svgBtn").addEventListener("click",()=>{
-  const visiblePixels=compositePixels(),shapes=[];for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=visiblePixels[y*w+x];if(c)shapes.push('<rect x="'+x+'" y="'+y+'" width="1" height="1" fill="'+c+'"/>')}
+  const visiblePixels=compositePixels(projectDoc.activeFrameId),shapes=[];for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=visiblePixels[y*w+x];if(c)shapes.push('<rect x="'+x+'" y="'+y+'" width="1" height="1" fill="'+c+'"/>')}
   const svg='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" shape-rendering="crispEdges">\n'+shapes.join("\n")+'\n</svg>';
   download(safeFilename()+"-"+w+"x"+h+".svg","image/svg+xml;charset=utf-8",svg);toast("Crisp vector SVG exported.");
 });
