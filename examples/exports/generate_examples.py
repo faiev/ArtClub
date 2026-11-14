@@ -131,7 +131,7 @@ def main() -> None:
             "height": height,
             "durationMs": frame["durationMs"],
         })
-    atlas.save(PNG_PATH, format="PNG", optimize=False)
+    atlas.save(PNG_PATH, format="PNG", optimize=True)
 
     png_metadata = {
         "format": "one-pixel-studio-sprite-sheet",
