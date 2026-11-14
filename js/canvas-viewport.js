@@ -134,9 +134,9 @@
       viewHeight,
       scale,
       offsetX: options.offsetX === undefined
-        ? centeredOffset(viewWidth, canvasWidth * scale) : finite(options.offsetX, "offsetX"),
+        ? clampOffset(viewWidth, canvasWidth * scale, 0) : finite(options.offsetX, "offsetX"),
       offsetY: options.offsetY === undefined
-        ? centeredOffset(viewHeight, canvasHeight * scale) : finite(options.offsetY, "offsetY"),
+        ? clampOffset(viewHeight, canvasHeight * scale, 0) : finite(options.offsetY, "offsetY"),
       devicePixelRatio,
       minScale: limits.minScale,
       maxScale: limits.maxScale
