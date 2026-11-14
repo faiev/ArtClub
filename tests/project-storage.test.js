@@ -135,3 +135,85 @@ test("no-op saves preserve the previous recovery snapshot while real edits rotat
     storage.close();
   }
 });
+
+test("two independent storage connections reject a stale cross-tab save without rotating recovery", async () => {
+  const indexedDB = createMemoryIndexedDB();
+  const tabA = await Storage.open({ indexedDB, projectModel: Project });
+  const tabB = await Storage.open({ indexedDB, projectModel: Project });
+  try {
+    const p0 = Project.createProject({ width: 2, height: 2, name: "CAS", palette: ["#112233", "#445566"] });
+    pixelsOf(p0)[0] = "#112233";
+    await tabA.saveProject(p0);
+    const p1 = Project.cloneProject(p0);
+    pixelsOf(p1)[0] = "#445566";
+    await tabA.saveProject(p1);
+    const recoveryBefore = await tabA.getRecovery(p0.id);
+    const staleA = await tabA.getProject(p0.id);
+    const staleB = await tabB.getProject(p0.id);
+    const nextA = Project.cloneProject(staleA);
+    pixelsOf(nextA)[1] = "#445566";
+    await tabA.saveProject(nextA);
+    const staleWrite = Project.cloneProject(staleB);
+    pixelsOf(staleWrite)[1] = "#112233";
+    await assert.rejects(tabB.saveProject(staleWrite), error =>
+      error && error.code === "PROJECT_REVISION_CONFLICT" &&
+      error.expectedRevision === 2 && error.actualRevision === 3);
+    const persisted = await tabB.getProject(p0.id);
+    const recoveryAfter = await tabB.getRecovery(p0.id);
+    assert.deepEqual(pixelsOf(persisted), pixelsOf(nextA), "stale tab must not replace the newer primary");
+    assert.deepEqual(recoveryAfter, recoveryBefore, "stale tab must not rotate recovery");
+  } finally {
+    tabA.close();
+    tabB.close();
+  }
+});
+
+test("conditional rollback restores the exact previous primary and recovery snapshots", async () => {
+  const indexedDB = createMemoryIndexedDB();
+  const storage = await Storage.open({ indexedDB, projectModel: Project });
+  try {
+    const p0 = Project.createProject({ width: 2, height: 2, name: "Rollback", palette: ["#112233", "#445566"] });
+    pixelsOf(p0)[0] = "#112233";
+    await storage.saveProject(p0);
+    const p1 = Project.cloneProject(p0);
+    pixelsOf(p1)[0] = "#445566";
+    await storage.saveProject(p1);
+    const primaryBefore = await storage.getProject(p0.id);
+    const recoveryBefore = await storage.getRecovery(p0.id);
+    const rejectedCandidate = Project.cloneProject(p1);
+    pixelsOf(rejectedCandidate)[1] = "#112233";
+    const saved = await storage.saveProject(rejectedCandidate);
+    assert.equal(saved.revision, 3);
+    await storage.restoreIfCurrent(saved.rollbackReceipt);
+    assert.deepEqual(await storage.getProject(p0.id), primaryBefore);
+    assert.deepEqual(await storage.getRecovery(p0.id), recoveryBefore);
+  } finally {
+    storage.close();
+  }
+});
+
+test("rollback receipt cannot overwrite a newer commit from another tab", async () => {
+  const indexedDB = createMemoryIndexedDB();
+  const tabA = await Storage.open({ indexedDB, projectModel: Project });
+  const tabB = await Storage.open({ indexedDB, projectModel: Project });
+  try {
+    const p0 = Project.createProject({ width: 2, height: 2, name: "Rollback race", palette: ["#112233", "#445566"] });
+    await tabA.saveProject(p0);
+    const candidateA = Project.cloneProject(p0);
+    pixelsOf(candidateA)[0] = "#445566";
+    const committedA = await tabA.saveProject(candidateA);
+    const loadedB = await tabB.getProject(p0.id);
+    const candidateB = Project.cloneProject(loadedB);
+    pixelsOf(candidateB)[1] = "#445566";
+    await tabB.saveProject(candidateB);
+    const primaryAfterB = await tabB.getProject(p0.id);
+    const recoveryAfterB = await tabB.getRecovery(p0.id);
+    await assert.rejects(tabA.restoreIfCurrent(committedA.rollbackReceipt), error =>
+      error && error.code === "PROJECT_REVISION_CONFLICT");
+    assert.deepEqual(await tabA.getProject(p0.id), primaryAfterB);
+    assert.deepEqual(await tabA.getRecovery(p0.id), recoveryAfterB);
+  } finally {
+    tabA.close();
+    tabB.close();
+  }
+});
