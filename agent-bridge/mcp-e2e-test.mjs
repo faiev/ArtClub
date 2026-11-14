@@ -143,6 +143,10 @@ async function run() {
 
     const toolList = await client.listTools();
     const names = new Set(toolList.tools.map(tool => tool.name));
+    const productionToolCount = toolList.tools.filter(
+      tool => tool.name !== "artclub_test_inject_browser_fault"
+    ).length;
+    assert.ok(names.has("artclub_test_inject_browser_fault"));
     for (const required of [
       "artclub_get_capabilities",
       "artclub_get_bridge_diagnostics",
@@ -233,9 +237,11 @@ async function run() {
     assert.equal(capabilities.protocol.name, status.protocol);
     assert.equal(capabilities.protocol.version, status.protocol_version);
     assert.equal(capabilities.bridge.version, "0.7.0");
-    assert.equal(capabilities.tools.total, toolList.tools.length);
-    assert.equal(capabilities.tools.catalog.length, toolList.tools.length);
-    assert.ok(capabilities.tools.catalog.every(tool => names.has(tool.name)));
+    assert.equal(capabilities.tools.total, productionToolCount);
+    assert.equal(capabilities.tools.catalog.length, productionToolCount);
+    assert.ok(capabilities.tools.catalog.every(tool =>
+      names.has(tool.name) && tool.name !== "artclub_test_inject_browser_fault"
+    ));
     assert.ok(capabilities.tools.revision_required.includes("artclub_draw_pixel"));
     assert.equal(capabilities.revision_policy.conflict.error_code, "STALE_REVISION");
 
