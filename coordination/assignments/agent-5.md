@@ -73,3 +73,7 @@ The coordinator has accepted the graphite/olive direction as a visual basis (dec
 - Also reconcile your AC-091 handoff issues in PR #77: branch synchronization, correct feature head in your status, screenshot-link/reference consistency, associated labels for display/file controls, and explicit Line/Rectangle Select prototype behavior. Keep #77 draft until those are resolved.
 
 **Boundaries:** Agent 5 remains design reviewer only. Do not modify `index.html`, production JS/CSS, shared tests, bridge, workflows or PR #84 branch. Post review findings on #84 and update your own status file with the exact branch/head you inspected.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile UX PRs #9/#20/#24/#30/#35/#41/#47/#51. Deliver docs-only UI-02 clear/import/paste interaction and error copy, accessible focus return and non-color-only status guidance. Rank UI-01 focus-visible, aria-selected/pressed, icon, theme-color and label-size follow-ups with reproduction and acceptance tests. Remain docs/ux-only.
