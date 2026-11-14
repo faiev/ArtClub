@@ -1,3 +1,23 @@
+## UI-02A exact-head independent QA review — 2026-11-15
+
+- **Assignment:** Agent 1 QA-only review of PR #96. Reviewed exact head `7071f9550f94f413f4dd414416a804079ee179c4` on `coordinator/ui-02a-safe-clear`. Current main at review time: `95e9a83efc0d024b4aa4abde709768db2b9a82b9`; compare reports PR head 26 commits ahead / 0 behind.
+- **Exact-head CI:** dedicated Chromium run [#43637386209](https://github.com/faiev/ArtClub/actions/runs/43637386209) passed; command `node tests/ui02-safe-clear.browser.mjs`; CI Chromium 158.0.8127.18. Project workflow [#43637386219](https://github.com/faiev/ArtClub/actions/runs/43637386219) passed both jobs: `node --test tests/*.test.js`, `node --check agent-bridge/server.mjs`, `npm run test:e2e`, `node tests/gif-export.browser.mjs`, and `npm run test:mcp`.
+- **Local execution:** attempted `git ls-remote https://github.com/faiev/ArtClub.git refs/heads/main`; blocked by `Could not resolve host: github.com`. No local Node/Chromium run is claimed.
+- **Blocking source finding:** project-library Open / Recover / Rename / Delete handlers in `index.html` bypass `safeEditBusy` / `persistInFlight`. Open and Recover can resume after awaited reads and replace live state during safe Clear; Recover and Rename can issue direct storage writes that race the safe-clear write and recovery rotation. Reproductions and bounded correction are recorded in [PR #96 QA comment #6883854455](https://github.com/faiev/ArtClub/pull/96#issuecomment-6883854455).
+- **Import coverage gaps:** browser tests cover delayed image decode during safe Clear, but not delayed project JSON `file.text()`, stale image target after project/layer/frame/dimension changes, import attempted after safe edit starts, or malformed project/image input with full immutability checks.
+- **Denial coverage gaps:** hidden browser case checks disabled controls but does not attempt a direct denial and compare state; zero-opacity is only a pure safe-edit helper unit test, not production UI/browser coverage. Denial assertions do not jointly compare project JSON, pixels, undo/redo history, local backup, persisted project and recovery.
+- **Recommendation:** REQUEST CHANGES; keep PR #96 draft until the async project-library persistence/recovery boundary is closed and deterministic tests cover the listed import/denial paths. Formal GitHub REQUEST_CHANGES review was rejected because the connected account is the PR author; the findings were posted as a PR conversation comment.
+- **Scope:** no production files, `index.html`, Agent 6 files, `tests/ui02-safe-clear*`, or workflows modified. No QA code PR was opened because the immediate blocker requires coordinator-owned production changes and no new QA tests could be executed locally without repository DNS; do not represent the source-only gap review as passing test coverage.
+
+### Next actions
+1. Coordinator closes or explicitly sequences project-library Open / Recover / Rename / Delete against safe-edit commit and recovery persistence.
+2. Add deterministic deferred-read tests for Open and Recover, asserting project JSON, pixels, history, backup, persisted project and recovery are unchanged by rejected overlaps.
+3. Add browser coverage for delayed project JSON import and stale image target after layer/frame/project/dimension changes.
+4. Add hidden and zero-opacity production-path denial tests with full before/after state snapshots.
+5. Re-review the next exact PR head and run focused Node + Chromium checks when a network-enabled checkout is available.
+
+---
+
 ## UI-02A QA follow-up — 2026-11-15
 
 - **Active assignment:** UI-02A QA-only review of the coordinator's PR #96; no production edits and no new branch created.
