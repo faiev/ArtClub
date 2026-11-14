@@ -1,0 +1,26 @@
+{
+  "format": "one-pixel-studio-gif",
+  "version": 1,
+  "image": {"mimeType": "image/gif", "width": 8, "height": 8},
+  "frameCount": 4,
+  "frames": [
+    {"index":0,"frameId":"idle","name":"Idle","width":8,"height":8,"durationMs":100,"encodedDelayCentiseconds":10,"effectiveDurationMs":100},
+    {"index":1,"frameId":"left","name":"Left step","width":8,"height":8,"durationMs":145,"encodedDelayCentiseconds":15,"effectiveDurationMs":150},
+    {"index":2,"frameId":"contact","name":"Contact","width":8,"height":8,"durationMs":155,"encodedDelayCentiseconds":16,"effectiveDurationMs":160},
+    {"index":3,"frameId":"right","name":"Right step","width":8,"height":8,"durationMs":250,"encodedDelayCentiseconds":25,"effectiveDurationMs":250}
+  ],
+  "diagnostics": {
+    "sampleBinary": "Pillow-generated format illustration; not byte-for-byte output from js/gif-export.js",
+    "paletteMode": "exact source colors in this sample",
+    "opaquePaletteColors": 4,
+    "globalColorTableEntries": 8,
+    "usesFrameLocalColorTables": true,
+    "transparentIndex": 0,
+    "transparency": "One reserved fully-transparent palette index; GIF transparency is binary",
+    "disposal": "Background (2)",
+    "loopCount": 0,
+    "loopBehavior": "Infinite loop",
+    "totalFramePixels": 256,
+    "timingNote": "145 ms rounds to 150 ms and 155 ms rounds to 160 ms at GIF 10 ms centisecond precision."
+  }
+}
