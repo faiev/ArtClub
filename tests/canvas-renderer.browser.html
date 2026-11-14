@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Art Club Canvas renderer browser validation</title>
+  <style>
+    html, body { margin: 0; min-height: 100%; }
+    body { font: 14px/1.5 system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Canvas renderer browser validation</h1>
+    <p id="status">Renderer script loaded; the Playwright runner owns the assertions.</p>
+  </main>
+  <script src="../js/canvas-renderer.js"></script>
+  <script>
+    if (!window.ArtClubCanvasRenderer ||
+        typeof window.ArtClubCanvasRenderer.CanvasPixelRenderer !== "function") {
+      throw new Error("Canvas renderer failed to load.");
+    }
+    document.documentElement.dataset.rendererReady = "true";
+  </script>
+</body>
+</html>
