@@ -368,3 +368,21 @@ Main snapshot before this board update: `cc5e553bfa9e63e2945ac70017a01d420cd471f
 - The UI-00 merge advanced main after the last PR #84 run. Coordinator is non-force syncing the feature branch and will require exact-head CI again.
 - Agent 1 (12-flow QA), Agent 2 (canvas sizing/pointer mapping/responsive review) and Agent 5 (visual system review) have written review assignments. Independent responses are still pending. Existing Actions do not generate screenshots; 1440×900 and 1280×800 visual review remains open.
 - Do not merge #84 until refreshed exact-head CI and specialist/visual review pass. After merge, inspect the GitHub Pages deployment and live URL before calling the redesign published.
+
+## Coordinator live check — UI-01 current head passes exact CI (2026-11-14)
+
+Main snapshot before this board update: `e5583f694925abedcd7db19f9eee2077745cc95d`. Open PR inventory: **63**.
+
+### UI-00 complete
+- [PR #77](https://github.com/faiev/ArtClub/pull/77) is merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610`. Agent 5's three design/prototype deliverables are on main. D-026 accepts the visual direction; Agent 5 remains docs/ux-only, with the coordinator retaining production UI control.
+- The four WebP prototype screenshots are reported as handoff attachments but not committed to GitHub or visible in this coordinator session. This is recorded as agent-reported review evidence only.
+
+### UI-01 production candidate
+- [PR #84](https://github.com/faiev/ArtClub/pull/84) remains open, ready for review and unmerged. Current exact tested head `fa5c105ce8f98043f92e18cab33f9cfa0d4d21f8`; main base `2551198bde4cb528ff84b0ff908b478abcb2c1fc`; 10 commits ahead / 0 behind. Only `index.html` and `tests/ui-workstation-shell.test.js` differ.
+- Exact-head [Actions run #43623647840](https://github.com/faiev/ArtClub/actions/runs/43623647840) passed both Node/editor and Chromium jobs. Chromium real-editor E2E, animated GIF decoder and MCP integration all passed. The earlier canvas clipping regression is fixed.
+- Agent 1 / Agent 2 / Agent 5 independent reviews are still pending; requests were refreshed on PR #84 at this exact head. Their assignments are separate: 12-flow QA, canvas geometry/pointer/responsive checks, and production design-system fidelity review.
+- Actions does not generate screenshots. Explicit 1440×900 and 1280×800 visual evidence is still required before merge. Do not substitute the standard browser E2E for Agent 1's 12-flow matrix.
+
+### Production / publication truth
+- Current main `index.html` remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; PR #84 is not merged. The published app is therefore still unchanged. After reviewer gates pass, merge exact tested head and verify GitHub Pages deployment/live editor before claiming release.
+- Full current evidence and boundaries are in [coordination/INTEGRATION_PLAN.md](INTEGRATION_PLAN.md).
