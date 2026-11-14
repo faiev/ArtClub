@@ -1,0 +1,693 @@
+{
+  "format": "one-pixel-studio",
+  "version": 2,
+  "id": "project-v2-fixture",
+  "name": "Inspector fixture",
+  "canvas": {
+    "width": 512,
+    "height": 512,
+    "background": null
+  },
+  "palette": [
+    "#000000",
+    "#ffffff",
+    "#ff0000"
+  ],
+  "selectedColorIndex": 1,
+  "layers": [
+    {
+      "id": "layer-base",
+      "name": "Base",
+      "visible": true,
+      "locked": false,
+      "opacity": 1
+    },
+    {
+      "id": "layer-guide",
+      "name": "Guide",
+      "visible": false,
+      "locked": true,
+      "opacity": 0.5
+    }
+  ],
+  "frames": [
+    {
+      "id": "budget-frame-0",
+      "name": "Budget frame 0",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-1",
+      "name": "Budget frame 1",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-2",
+      "name": "Budget frame 2",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-3",
+      "name": "Budget frame 3",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-4",
+      "name": "Budget frame 4",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-5",
+      "name": "Budget frame 5",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-6",
+      "name": "Budget frame 6",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-7",
+      "name": "Budget frame 7",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-8",
+      "name": "Budget frame 8",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-9",
+      "name": "Budget frame 9",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-10",
+      "name": "Budget frame 10",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-11",
+      "name": "Budget frame 11",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-12",
+      "name": "Budget frame 12",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-13",
+      "name": "Budget frame 13",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-14",
+      "name": "Budget frame 14",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-15",
+      "name": "Budget frame 15",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-16",
+      "name": "Budget frame 16",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-17",
+      "name": "Budget frame 17",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-18",
+      "name": "Budget frame 18",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-19",
+      "name": "Budget frame 19",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-20",
+      "name": "Budget frame 20",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-21",
+      "name": "Budget frame 21",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-22",
+      "name": "Budget frame 22",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-23",
+      "name": "Budget frame 23",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-24",
+      "name": "Budget frame 24",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-25",
+      "name": "Budget frame 25",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-26",
+      "name": "Budget frame 26",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-27",
+      "name": "Budget frame 27",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-28",
+      "name": "Budget frame 28",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-29",
+      "name": "Budget frame 29",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-30",
+      "name": "Budget frame 30",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-31",
+      "name": "Budget frame 31",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-32",
+      "name": "Budget frame 32",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-33",
+      "name": "Budget frame 33",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-34",
+      "name": "Budget frame 34",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-35",
+      "name": "Budget frame 35",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-36",
+      "name": "Budget frame 36",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-37",
+      "name": "Budget frame 37",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-38",
+      "name": "Budget frame 38",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-39",
+      "name": "Budget frame 39",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-40",
+      "name": "Budget frame 40",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-41",
+      "name": "Budget frame 41",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-42",
+      "name": "Budget frame 42",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-43",
+      "name": "Budget frame 43",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-44",
+      "name": "Budget frame 44",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-45",
+      "name": "Budget frame 45",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-46",
+      "name": "Budget frame 46",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-47",
+      "name": "Budget frame 47",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-48",
+      "name": "Budget frame 48",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-49",
+      "name": "Budget frame 49",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-50",
+      "name": "Budget frame 50",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-51",
+      "name": "Budget frame 51",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-52",
+      "name": "Budget frame 52",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-53",
+      "name": "Budget frame 53",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-54",
+      "name": "Budget frame 54",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-55",
+      "name": "Budget frame 55",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-56",
+      "name": "Budget frame 56",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-57",
+      "name": "Budget frame 57",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-58",
+      "name": "Budget frame 58",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-59",
+      "name": "Budget frame 59",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-60",
+      "name": "Budget frame 60",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-61",
+      "name": "Budget frame 61",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-62",
+      "name": "Budget frame 62",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-63",
+      "name": "Budget frame 63",
+      "durationMs": 100
+    },
+    {
+      "id": "budget-frame-64",
+      "name": "Budget frame 64",
+      "durationMs": 100
+    }
+  ],
+  "cels": [
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-0",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-1",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-2",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-3",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-4",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-5",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-6",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-7",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-8",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-9",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-10",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-11",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-12",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-13",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-14",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-15",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-16",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-17",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-18",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-19",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-20",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-21",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-22",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-23",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-24",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-25",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-26",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-27",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-28",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-29",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-30",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-31",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-32",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-33",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-34",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-35",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-36",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-37",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-38",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-39",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-40",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-41",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-42",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-43",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-44",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-45",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-46",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-47",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-48",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-49",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-50",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-51",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-52",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-53",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-54",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-55",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-56",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-57",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-58",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-59",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-60",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-61",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-62",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-63",
+      "pixels": []
+    },
+    {
+      "layerId": "layer-base",
+      "frameId": "budget-frame-64",
+      "pixels": []
+    }
+  ],
+  "activeLayerId": "layer-base",
+  "activeFrameId": "budget-frame-0",
+  "metadata": {
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+}
