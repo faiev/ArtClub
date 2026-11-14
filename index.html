@@ -1055,7 +1055,7 @@ async function commitSafeEditResult(result,previousProject,target,successMessage
   const undoBefore=undoStack.slice(),redoBefore=redoStack.slice();
   const previousFocus=document.activeElement;
   const bodyWasInert=document.body.inert;
-  let persisted=false,published=false;
+  let persisted=false,published=false,rollbackReceipt=null;
   safeEditBusy=true;
   clearTimeout(saveTimer);saveTimer=null;
   document.body.inert=true;
@@ -1072,7 +1072,8 @@ async function commitSafeEditResult(result,previousProject,target,successMessage
       return false;
     }
     if(projectStorage){
-      await projectStorage.saveProject(nextProject);
+      const saved=await projectStorage.saveProject(nextProject);
+      rollbackReceipt=saved.rollbackReceipt;
       persisted=true;
     }else{
       if(!writeLocalBackup(nextProject))throw new Error("Local backup storage is unavailable.");
@@ -1096,7 +1097,10 @@ async function commitSafeEditResult(result,previousProject,target,successMessage
       catch(restoreError){console.error("Safe-edit in-memory rollback failed:",restoreError);}
     }
     if(persisted&&projectStorage){
-      try{await projectStorage.saveProject(previousProject);}
+      try{
+        if(!rollbackReceipt)throw new Error("The storage layer did not return a rollback receipt.");
+        await projectStorage.restoreIfCurrent(rollbackReceipt);
+      }
       catch(rollbackError){
         console.error("Safe-edit database rollback failed:",rollbackError);
         $("saveState").textContent="SAVE / ROLLBACK FAILED · EXPORT JSON";
