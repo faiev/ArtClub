@@ -34,6 +34,53 @@
 
 # Status — Agent 5
 
+# Current reconciliation — 2026-11-15
+
+**Authoritative main checked:** `d9bc48fe9b78d767a6388188fc868cad9a1395bf`  
+**Scope:** Agent 5 UX specifications, accessibility audits and static prototypes only. Production `index.html`, app JavaScript/CSS, shared tests, bridge and workflow remain outside Agent 5 ownership.
+
+## Current PR ledger
+
+| Phase | PR | Current head | Main comparison | State |
+|---|---:|---|---:|---|
+| AC-026 Keyboard shortcut plan | [#20](https://github.com/faiev/ArtClub/pull/20) | `77f58f304f3a1d6c1025e7fc9e046674bd2c8be3` | 11 ahead / 0 behind; one file | Ready for review |
+| AC-049 Canvas workspace spec | [#24](https://github.com/faiev/ArtClub/pull/24) | `4e9af2687c723322cb96a58c0a2debb9e4d37501` | 10 ahead / 0 behind; one file | Ready for review |
+| AC-050 Layer/timeline spec | [#30](https://github.com/faiev/ArtClub/pull/30) | `7fdd0d747ce9685c0d85047a2ce2a7a638e372ea` | 4 ahead / 0 behind; one file | Ready for review |
+| AC-051 Palette/export spec | [#35](https://github.com/faiev/ArtClub/pull/35) | `7e892ac57e4a7a4f2ea96424106403521aa85c8c` | 4 ahead / 0 behind; one file | Ready for review |
+| AC-052 Accessibility audit | [#41](https://github.com/faiev/ArtClub/pull/41) | `a6d0568cd732b87690ed3cf438e400f8457a9572` | 6 ahead / 0 behind; one file | Ready for review |
+| AC-053 Static prototypes | [#47](https://github.com/faiev/ArtClub/pull/47) | `858a33a139959eb68206c7e332a12aa6a6aae4bd` | 16 ahead / 0 behind; four files | Draft — rendered browser visual gate outstanding |
+| AC-054 Integrated UX roadmap | [#51](https://github.com/faiev/ArtClub/pull/51) | `2e6818ef79cd253d9724b6c6c8b828a464c09437` | 6 ahead / 0 behind; one file | Ready for review |
+| AC-091 Workstation design system | [#77](https://github.com/faiev/ArtClub/pull/77) | `17c9d8ab5d9540ae1ec7889afdb2033ac7df57a0` | Merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610` | Merged |
+| AC-091 caption correction | [#87](https://github.com/faiev/ArtClub/pull/87) | `ccb49a9ca2e592b97f4afccbf1b2361dcb0828f0` | Merged as `9296ca08e1e8143bb5b82c0ad48608e9c9a0b344` | Merged |
+| UI-01 visual review | [#84](https://github.com/faiev/ArtClub/pull/84) | Reviewed source blob `4645281c1aad8580529e7feb99cd299a88543913` | Production PR merged as `e22ddb35ebf802b3b719e74a7329effceab28747` | Review posted |
+
+## Work completed in this resume
+
+- Refreshed AC-049 current behavior against the merged UI-01 shell and the merged viewport utility. The specification now distinguishes fit-relative zoom from true Actual Size and explicitly records that production pan/fit/actual-size wiring remains absent.
+- Updated AC-054 with a dated release/dependency snapshot. It records UI-00/UI-01 as merged, the Pages deployment evidence, merged safety/viewport/adapter/GIF/palette-format modules, and the still-open renderer/export/palette/API integration gates.
+- Added post-UI-01 source rechecks to AC-026, AC-050, AC-051 and AC-052. These reflect the current production controls and preserve clear distinctions between isolated module capability and actual UI integration.
+- Re-aligned all four AC-053 prototype pages to the approved AC-091 graphite/olive visual language. They retain local sample artwork/checkerboards and non-production labels. Source integrity checks found no duplicate IDs and no external asset/script URLs.
+- Synced all seven open UX branches to the checked main snapshot using non-force two-parent updates. Feature diffs remain limited to the assigned document/prototype paths.
+- Marked PRs #20, #24, #30, #35, #41 and #51 ready for review. PR #47 remains draft; a source/CSS refresh is not a substitute for the requested rendered Chromium screenshot review. I posted the limitation and evidence on [PR #47 comment #6883013142](https://github.com/faiev/ArtClub/pull/47#issuecomment-6883013142).
+
+## Validation and limitations
+
+- All listed open branches compared **0 commits behind** main at the last reconciliation; only their assigned paths appear in the diffs.
+- Four AC-053 HTML files passed source-level duplicate-ID and external-asset checks. The approved theme override exists in each.
+- No application tests were run because this resume changed documentation/static reference HTML only; no application behavior was changed.
+- No new browser-rendered screenshots are claimed for AC-053. The local runtime could not transfer raw branch files from GitHub into its browser (raw-host download was blocked); the requested visual comparison at 1440×900 / compact size remains an explicit gate.
+- The AC-052 audit remains source-based. No live keyboard-only, screen-reader, touch, rendered contrast or WCAG conformance test is claimed.
+
+## Next actions
+
+1. Coordinator reviews/merges the six ready documentation PRs in dependency/priority order.
+2. Complete a real rendered Chromium review of AC-053 at desktop, compact and narrow sizes; capture genuine screenshots and resolve concrete visual issues before marking PR #47 ready.
+3. Keep production UI findings from PR #84 with the Coordinator/UI integrator; Agent 5 does not modify production code without a new explicit assignment.
+
+---
+
+
+
 ## Active workstream — UX / interaction design / accessibility
 
 ### Submitted phase — AC-054: Integrated UX implementation roadmap
