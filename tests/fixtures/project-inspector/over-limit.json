@@ -1,0 +1,1346 @@
+{
+  "format": "one-pixel-studio",
+  "version": 2,
+  "id": "project-v2-fixture",
+  "name": "Inspector fixture",
+  "canvas": {
+    "width": 4,
+    "height": 3,
+    "background": null
+  },
+  "palette": [
+    "#000000",
+    "#ffffff",
+    "#ff0000"
+  ],
+  "selectedColorIndex": 1,
+  "layers": [
+    {
+      "id": "layer-base",
+      "name": "Base",
+      "visible": true,
+      "locked": false,
+      "opacity": 1
+    },
+    {
+      "id": "layer-guide",
+      "name": "Guide",
+      "visible": false,
+      "locked": true,
+      "opacity": 0.5
+    }
+  ],
+  "frames": [
+    {
+      "id": "frame-0",
+      "name": "Frame 1",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-1",
+      "name": "Frame 2",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-2",
+      "name": "Frame 3",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-3",
+      "name": "Frame 4",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-4",
+      "name": "Frame 5",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-5",
+      "name": "Frame 6",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-6",
+      "name": "Frame 7",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-7",
+      "name": "Frame 8",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-8",
+      "name": "Frame 9",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-9",
+      "name": "Frame 10",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-10",
+      "name": "Frame 11",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-11",
+      "name": "Frame 12",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-12",
+      "name": "Frame 13",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-13",
+      "name": "Frame 14",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-14",
+      "name": "Frame 15",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-15",
+      "name": "Frame 16",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-16",
+      "name": "Frame 17",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-17",
+      "name": "Frame 18",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-18",
+      "name": "Frame 19",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-19",
+      "name": "Frame 20",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-20",
+      "name": "Frame 21",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-21",
+      "name": "Frame 22",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-22",
+      "name": "Frame 23",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-23",
+      "name": "Frame 24",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-24",
+      "name": "Frame 25",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-25",
+      "name": "Frame 26",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-26",
+      "name": "Frame 27",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-27",
+      "name": "Frame 28",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-28",
+      "name": "Frame 29",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-29",
+      "name": "Frame 30",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-30",
+      "name": "Frame 31",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-31",
+      "name": "Frame 32",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-32",
+      "name": "Frame 33",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-33",
+      "name": "Frame 34",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-34",
+      "name": "Frame 35",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-35",
+      "name": "Frame 36",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-36",
+      "name": "Frame 37",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-37",
+      "name": "Frame 38",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-38",
+      "name": "Frame 39",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-39",
+      "name": "Frame 40",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-40",
+      "name": "Frame 41",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-41",
+      "name": "Frame 42",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-42",
+      "name": "Frame 43",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-43",
+      "name": "Frame 44",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-44",
+      "name": "Frame 45",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-45",
+      "name": "Frame 46",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-46",
+      "name": "Frame 47",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-47",
+      "name": "Frame 48",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-48",
+      "name": "Frame 49",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-49",
+      "name": "Frame 50",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-50",
+      "name": "Frame 51",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-51",
+      "name": "Frame 52",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-52",
+      "name": "Frame 53",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-53",
+      "name": "Frame 54",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-54",
+      "name": "Frame 55",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-55",
+      "name": "Frame 56",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-56",
+      "name": "Frame 57",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-57",
+      "name": "Frame 58",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-58",
+      "name": "Frame 59",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-59",
+      "name": "Frame 60",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-60",
+      "name": "Frame 61",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-61",
+      "name": "Frame 62",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-62",
+      "name": "Frame 63",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-63",
+      "name": "Frame 64",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-64",
+      "name": "Frame 65",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-65",
+      "name": "Frame 66",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-66",
+      "name": "Frame 67",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-67",
+      "name": "Frame 68",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-68",
+      "name": "Frame 69",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-69",
+      "name": "Frame 70",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-70",
+      "name": "Frame 71",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-71",
+      "name": "Frame 72",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-72",
+      "name": "Frame 73",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-73",
+      "name": "Frame 74",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-74",
+      "name": "Frame 75",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-75",
+      "name": "Frame 76",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-76",
+      "name": "Frame 77",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-77",
+      "name": "Frame 78",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-78",
+      "name": "Frame 79",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-79",
+      "name": "Frame 80",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-80",
+      "name": "Frame 81",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-81",
+      "name": "Frame 82",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-82",
+      "name": "Frame 83",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-83",
+      "name": "Frame 84",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-84",
+      "name": "Frame 85",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-85",
+      "name": "Frame 86",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-86",
+      "name": "Frame 87",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-87",
+      "name": "Frame 88",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-88",
+      "name": "Frame 89",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-89",
+      "name": "Frame 90",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-90",
+      "name": "Frame 91",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-91",
+      "name": "Frame 92",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-92",
+      "name": "Frame 93",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-93",
+      "name": "Frame 94",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-94",
+      "name": "Frame 95",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-95",
+      "name": "Frame 96",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-96",
+      "name": "Frame 97",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-97",
+      "name": "Frame 98",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-98",
+      "name": "Frame 99",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-99",
+      "name": "Frame 100",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-100",
+      "name": "Frame 101",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-101",
+      "name": "Frame 102",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-102",
+      "name": "Frame 103",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-103",
+      "name": "Frame 104",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-104",
+      "name": "Frame 105",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-105",
+      "name": "Frame 106",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-106",
+      "name": "Frame 107",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-107",
+      "name": "Frame 108",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-108",
+      "name": "Frame 109",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-109",
+      "name": "Frame 110",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-110",
+      "name": "Frame 111",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-111",
+      "name": "Frame 112",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-112",
+      "name": "Frame 113",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-113",
+      "name": "Frame 114",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-114",
+      "name": "Frame 115",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-115",
+      "name": "Frame 116",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-116",
+      "name": "Frame 117",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-117",
+      "name": "Frame 118",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-118",
+      "name": "Frame 119",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-119",
+      "name": "Frame 120",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-120",
+      "name": "Frame 121",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-121",
+      "name": "Frame 122",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-122",
+      "name": "Frame 123",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-123",
+      "name": "Frame 124",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-124",
+      "name": "Frame 125",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-125",
+      "name": "Frame 126",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-126",
+      "name": "Frame 127",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-127",
+      "name": "Frame 128",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-128",
+      "name": "Frame 129",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-129",
+      "name": "Frame 130",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-130",
+      "name": "Frame 131",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-131",
+      "name": "Frame 132",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-132",
+      "name": "Frame 133",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-133",
+      "name": "Frame 134",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-134",
+      "name": "Frame 135",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-135",
+      "name": "Frame 136",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-136",
+      "name": "Frame 137",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-137",
+      "name": "Frame 138",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-138",
+      "name": "Frame 139",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-139",
+      "name": "Frame 140",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-140",
+      "name": "Frame 141",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-141",
+      "name": "Frame 142",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-142",
+      "name": "Frame 143",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-143",
+      "name": "Frame 144",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-144",
+      "name": "Frame 145",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-145",
+      "name": "Frame 146",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-146",
+      "name": "Frame 147",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-147",
+      "name": "Frame 148",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-148",
+      "name": "Frame 149",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-149",
+      "name": "Frame 150",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-150",
+      "name": "Frame 151",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-151",
+      "name": "Frame 152",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-152",
+      "name": "Frame 153",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-153",
+      "name": "Frame 154",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-154",
+      "name": "Frame 155",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-155",
+      "name": "Frame 156",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-156",
+      "name": "Frame 157",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-157",
+      "name": "Frame 158",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-158",
+      "name": "Frame 159",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-159",
+      "name": "Frame 160",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-160",
+      "name": "Frame 161",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-161",
+      "name": "Frame 162",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-162",
+      "name": "Frame 163",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-163",
+      "name": "Frame 164",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-164",
+      "name": "Frame 165",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-165",
+      "name": "Frame 166",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-166",
+      "name": "Frame 167",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-167",
+      "name": "Frame 168",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-168",
+      "name": "Frame 169",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-169",
+      "name": "Frame 170",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-170",
+      "name": "Frame 171",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-171",
+      "name": "Frame 172",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-172",
+      "name": "Frame 173",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-173",
+      "name": "Frame 174",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-174",
+      "name": "Frame 175",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-175",
+      "name": "Frame 176",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-176",
+      "name": "Frame 177",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-177",
+      "name": "Frame 178",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-178",
+      "name": "Frame 179",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-179",
+      "name": "Frame 180",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-180",
+      "name": "Frame 181",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-181",
+      "name": "Frame 182",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-182",
+      "name": "Frame 183",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-183",
+      "name": "Frame 184",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-184",
+      "name": "Frame 185",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-185",
+      "name": "Frame 186",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-186",
+      "name": "Frame 187",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-187",
+      "name": "Frame 188",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-188",
+      "name": "Frame 189",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-189",
+      "name": "Frame 190",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-190",
+      "name": "Frame 191",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-191",
+      "name": "Frame 192",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-192",
+      "name": "Frame 193",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-193",
+      "name": "Frame 194",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-194",
+      "name": "Frame 195",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-195",
+      "name": "Frame 196",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-196",
+      "name": "Frame 197",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-197",
+      "name": "Frame 198",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-198",
+      "name": "Frame 199",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-199",
+      "name": "Frame 200",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-200",
+      "name": "Frame 201",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-201",
+      "name": "Frame 202",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-202",
+      "name": "Frame 203",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-203",
+      "name": "Frame 204",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-204",
+      "name": "Frame 205",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-205",
+      "name": "Frame 206",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-206",
+      "name": "Frame 207",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-207",
+      "name": "Frame 208",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-208",
+      "name": "Frame 209",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-209",
+      "name": "Frame 210",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-210",
+      "name": "Frame 211",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-211",
+      "name": "Frame 212",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-212",
+      "name": "Frame 213",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-213",
+      "name": "Frame 214",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-214",
+      "name": "Frame 215",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-215",
+      "name": "Frame 216",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-216",
+      "name": "Frame 217",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-217",
+      "name": "Frame 218",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-218",
+      "name": "Frame 219",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-219",
+      "name": "Frame 220",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-220",
+      "name": "Frame 221",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-221",
+      "name": "Frame 222",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-222",
+      "name": "Frame 223",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-223",
+      "name": "Frame 224",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-224",
+      "name": "Frame 225",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-225",
+      "name": "Frame 226",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-226",
+      "name": "Frame 227",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-227",
+      "name": "Frame 228",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-228",
+      "name": "Frame 229",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-229",
+      "name": "Frame 230",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-230",
+      "name": "Frame 231",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-231",
+      "name": "Frame 232",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-232",
+      "name": "Frame 233",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-233",
+      "name": "Frame 234",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-234",
+      "name": "Frame 235",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-235",
+      "name": "Frame 236",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-236",
+      "name": "Frame 237",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-237",
+      "name": "Frame 238",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-238",
+      "name": "Frame 239",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-239",
+      "name": "Frame 240",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-240",
+      "name": "Frame 241",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-241",
+      "name": "Frame 242",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-242",
+      "name": "Frame 243",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-243",
+      "name": "Frame 244",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-244",
+      "name": "Frame 245",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-245",
+      "name": "Frame 246",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-246",
+      "name": "Frame 247",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-247",
+      "name": "Frame 248",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-248",
+      "name": "Frame 249",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-249",
+      "name": "Frame 250",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-250",
+      "name": "Frame 251",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-251",
+      "name": "Frame 252",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-252",
+      "name": "Frame 253",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-253",
+      "name": "Frame 254",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-254",
+      "name": "Frame 255",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-255",
+      "name": "Frame 256",
+      "durationMs": 100
+    },
+    {
+      "id": "frame-256",
+      "name": "Frame 257",
+      "durationMs": 100
+    }
+  ],
+  "cels": [
+    {
+      "layerId": "layer-base",
+      "frameId": "frame-0",
+      "pixels": [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ]
+    }
+  ],
+  "activeLayerId": "layer-guide",
+  "activeFrameId": "frame-0",
+  "metadata": {
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "updatedAt": "2026-01-01T00:00:00.000Z"
+  }
+}
