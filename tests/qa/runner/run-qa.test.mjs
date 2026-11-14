@@ -495,3 +495,53 @@ test("CLI rejects unknown suites with a usage failure code", () => {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test("CI verifier distinguishes absent manifest files from existing browser skips", () => {
+  const root = makeRoot();
+  const manifest = [
+    { name: "browser", files: [{ path: "tests/qa/browser/browser.mjs", runner: "node-script" }] },
+    { name: "compatibility", files: [{ path: "tests/qa/compatibility/compatibility.test.js", runner: "node-test" }] },
+    { name: "release", files: [{ path: "tests/qa/release/release.test.js", runner: "node-test" }] },
+    { name: "runner", files: [{ path: "tests/qa/runner/runner.test.mjs", runner: "node-test" }] }
+  ];
+  try {
+    put(root, "tests/qa/release/release.test.js");
+    put(root, "tests/qa/runner/runner.test.mjs");
+    const report = {
+      schemaVersion: 1,
+      selectedSuites: ["browser", "compatibility", "release", "runner"],
+      notRunSuites: [],
+      suites: [
+        { name: "browser", status: "not-run", files: [{ path: "tests/qa/browser/browser.mjs", status: "not-run", exitCode: null }] },
+        { name: "compatibility", status: "not-run", files: [{ path: "tests/qa/compatibility/compatibility.test.js", status: "not-run", exitCode: null }] },
+        { name: "release", status: "passed", files: [{ path: "tests/qa/release/release.test.js", status: "passed", exitCode: 0 }] },
+        { name: "runner", status: "passed", files: [{ path: "tests/qa/runner/runner.test.mjs", status: "passed", exitCode: 0 }] }
+      ],
+      summary: { files: { executed: 2, passed: 2, failed: 0, skipped: 0, notRun: 2 } },
+      exitCode: 2
+    };
+    const absent = validateAllSuitesReport(report, { root, manifest });
+    assert.equal(absent.ok, true, absent.errors.join('; '));
+    assert.deepEqual(absent.counts, { executed: 2, passed: 2, failed: 0, skipped: 0, notRun: 2 });
+    assert.equal(absent.expectedExitCode, 2);
+
+    const incorrectAbsentState = structuredClone(report);
+    incorrectAbsentState.suites[0].files[0].status = "skipped";
+    const rejected = validateAllSuitesReport(incorrectAbsentState, { root, manifest });
+    assert.equal(rejected.ok, false);
+    assert.ok(rejected.errors.some(error => error.includes('absent manifest entry must be not-run')));
+
+    put(root, "tests/qa/browser/browser.mjs");
+    const browserPresent = structuredClone(report);
+    browserPresent.suites[0].status = "skipped";
+    browserPresent.suites[0].files[0].status = "skipped";
+    browserPresent.summary.files.skipped = 1;
+    browserPresent.summary.files.notRun = 1;
+    const skipped = validateAllSuitesReport(browserPresent, { root, manifest });
+    assert.equal(skipped.ok, true, skipped.errors.join('; '));
+    assert.equal(skipped.counts.skipped, 1);
+    assert.equal(skipped.counts.notRun, 1);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
