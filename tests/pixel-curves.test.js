@@ -219,3 +219,11 @@ test("closed-loop and cusp-like synthetic fixtures satisfy exact endpoint and un
     }
   }
 });
+
+
+test("temporary golden capture for AC-096 loop/cusp", () => {
+  for (const fixture of curveFixtures.invariantCases) {
+    const points = Curves.rasterizeCubic(...fixture.controlPoints, fixture.canvas);
+    console.log("AC096_GOLDEN_CAPTURE", fixture.id, JSON.stringify(coords(points)));
+  }
+});
