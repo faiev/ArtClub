@@ -1,79 +1,60 @@
 # Status — Agent 1 QA / release reliability
 
-## Active phase
-- **Phase:** AC-087 — Reproducible QA suite discovery and local runner
-- **State:** IN_PROGRESS
+## Active priority
+- **Current focus:** Production UI integration QA preparation — UI-01 workstation shell smoke coverage.
+- **State:** TEST PLAN PREPARED; waiting for the coordinator's UI-01 implementation candidate before browser execution.
 - **Coordination source:** `main`; PR #7 merged.
-- **Latest main before this status update:** `60bce73c63be92f3f483b30ec694c28d3cd9de24`.
-- **AC-087 branch:** `agent/qa-suite-runner`, stacked on the refreshed AC-033 branch `agent/qa-release-tooling`; parent dependency is PR #57.
+- **Main SHA at this status update:** `2c84284ec0416348e8a0170eda8170a3d2279d85`.
+- **Production UI ownership:** Coordinator is sole writer of `index.html` and production UI wiring. Agent 1 has not modified those files.
 
-## Submitted phases and current PRs
+## Current Agent 1 deliverables
 
-### AC-025 — Read-only PR #1 QA coverage audit
-- **State:** REVIEW / handoff submitted.
-- Compared PR #1, main and PR #8; documented unique/duplicate assertions, frame-selection conflict and safe keep/drop integration sequence.
-- Read-only; no shared bridge E2E edits.
+### AC-087 — QA suite discovery / local runner
+- **PR:** [#66 — Add reproducible QA suite runner and manifest](https://github.com/faiev/ArtClub/pull/66) (open draft; GitHub reported mergeable at last check).
+- **Branch/head:** `agent/qa-suite-runner` / `3720adaa14e7ddda16d4677fe0136a0d56dc8285`.
+- **Parent:** PR #57 / `agent/qa-release-tooling` at `250f0edfebd278dc6c5e68489a897ff6cc0acab9`; child comparison 25 ahead / 0 behind.
+- **Files in the AC-087 child diff:** `tools/run-qa.mjs`, `tests/qa/runner/run-qa.test.mjs`, plus AC-033 checker/test updates that require the runner. The QA matrix and release checklist are inherited from parent PR #57.
+- **Behavior:** explicit sorted manifest; lifecycle/compatibility/import-export/browser/release/renderer/runner suites; named/all/file selection; path/symlink confinement to `tests/qa/**`; child processes spawned with argument arrays and `shell:false`; stdout/stderr and child exit codes recorded; missing manifest files = `not-run` and nonzero exit 2; intentional browser opt-out = `skipped`; stable JSON/human output. No install, repository writes, deployment or CI claims.
+- **Exact evidence:** Parent PR #57 run #464 ([run #43614324854](https://github.com/faiev/ArtClub/actions/runs/43614324854)) succeeded on exact parent head `250f0ed...`; both existing `test` and `browser-e2e` jobs passed. This run did **not** include the child runner implementation.
+- **Current-head evidence:** No workflow run was available for child head `3720adaa...` at last check. Earlier run #429 passed the standard workflow on older child head `98b07b8...`, but that workflow uses `node --test tests/*.test.js` and does not discover the nested `tests/qa/runner/run-qa.test.mjs`.
+- **Local verification:** `node --test tests/qa/runner/run-qa.test.mjs` has not been executed locally because this environment cannot clone/download the repository. No runner-test pass is claimed.
+- **Dependency:** Keep #66 stacked on #57. Do not merge the child ahead of its parent.
 
-### AC-029 — Project lifecycle regression matrix
-- **PR:** [#25](https://github.com/faiev/ArtClub/pull/25), open draft, stale/unmergeable at last check.
-- **Branch/head:** `agent/qa-lifecycle` / `c0a7fea2193d37f868818de4b715857cb1575a53`.
-- **Coverage:** project isolation/reload/switch, rename/duplicate/delete, active layer/frame, visibility/lock/cels, recovery rotation, quota transaction abort, static selection-reset contract.
-- **Verification:** Focused tests unexecuted locally; nested path not discovered by root-only glob. No CI pass claimed.
-
-### AC-030 — Project format and migration compatibility
-- **PR:** [#32](https://github.com/faiev/ArtClub/pull/32), open draft, stale/unmergeable at last check.
-- **Branch/head:** `agent/qa-compatibility` / `a7c4b367e7759fdc33075960025b14c5592367ff`.
-- **Coverage:** v2 boundaries, v1 logical migration/source preservation, malformed JSON/version/format/references/IDs, HEX/duration/index/metadata/cel validation, count/size limits, non-mutation.
-- **Known gap:** Sparse cel array holes are a TODO due to `Array.prototype.some()` skipping holes. Explicit undefined entries are asserted rejected. No model change.
-- **Verification:** Focused tests unexecuted; nested path not discovered by root-only glob.
-
-### AC-031 — Import/export acceptance matrix
-- **PR:** [#36](https://github.com/faiev/ArtClub/pull/36), open draft, stale/unmergeable at last check.
-- **Branch/head:** `agent/qa-import-export` / `ff8cd4d02d080152737fd4ba1082262350658030`.
-- **Coverage:** merged GIF contract tests for order/timing/loop/transparency/layers/Blob/immutability/malformed/oversized behavior. Sprite-sheet PR #3 and palette PR #16 remain open/unmerged; contracts are documented, not yet executable against those modules.
-- **Verification:** Focused tests unexecuted; no CI pass claimed.
-
-### AC-032 — Standalone Chromium / IndexedDB lifecycle harness
-- **PR:** [#42](https://github.com/faiev/ArtClub/pull/42), open draft; branch requires fresh-main revalidation.
-- **Branch/head:** `agent/qa-browser` / `ba14048036d83e6ed34f8f240be4657aad35d6dd`.
-- **Coverage designed:** real Chromium/IndexedDB; Alpha/Beta project creation, layer/frame/cel isolation, Project Library Open switching, reload persistence, Recover after autosave.
-- **Run:** `cd agent-bridge && npm install --ignore-scripts && npx playwright install chromium && cd .. && node tests/qa/browser/project-lifecycle.mjs`.
-- **Verification:** Not executed here; workflow does not invoke the runner. No browser pass claimed.
-
-### AC-033 — Release readiness tooling
-- **PR:** [#57](https://github.com/faiev/ArtClub/pull/57), open draft, GitHub reports mergeable.
-- **Branch/head:** `agent/qa-release-tooling` / `736df393b3221eeb6717d656e073f12698cb6651`.
-- **Base:** `60bce73c63be92f3f483b30ec694c28d3cd9de24`; 25 ahead / 0 behind.
+### AC-033 — Release readiness tooling and production UI QA matrix
+- **PR:** [#57 — Read-only QA release readiness tooling](https://github.com/faiev/ArtClub/pull/57) (open draft; GitHub reported mergeable at last check).
+- **Branch/head:** `agent/qa-release-tooling` / `250f0edfebd278dc6c5e68489a897ff6cc0acab9`.
+- **Base:** `main` at `b2735dec1a7d36fb5e8dafa4c1ccc43131e71f07` when synchronized; main has since advanced. GitHub still reported the PR mergeable at last check.
 - **Files:** `docs/QA_MATRIX.md`, `docs/RELEASE_CHECKLIST.md`, `tools/qa-release-check.mjs`, `tests/qa/release/qa-release-check.test.js`.
-- **Checker:** read-only local required path/script/workflow/checklist checks, nested-test discovery and local coordination freshness where refs allow, text/JSON output. CI/release status always unverified; releaseReady always false.
-- **Renderer ledger:** QA matrix and checker now include the renderer contract test path and `parseColor()` mutable-cache risk; dependent on PR #61 file landing.
-- **Verification:** `node --test tests/qa/release/qa-release-check.test.js` unexecuted locally; nested QA not in root-only test glob.
+- **Checker:** read-only required-file/script/workflow/checklist checks, nested-test discovery and local coordination freshness when refs allow. `ci.status` and `releaseStatus` remain unverified; `releaseReady` is always false.
+- **Exact-head CI:** run #464 / [43614324854](https://github.com/faiev/ArtClub/actions/runs/43614324854) passed both existing jobs on exact parent head `250f0ed...`. The root-only Node glob does not discover nested QA suites.
+- **Local focused checker test:** `node --test tests/qa/release/qa-release-check.test.js` not run locally; do not claim a pass.
 
-### Phase 6 renderer triage
-- **PR:** [#61](https://github.com/faiev/ArtClub/pull/61), open draft, GitHub reports mergeable.
-- **Branch/head:** `agent/qa-renderer-contract` / `dc7ed66c058e39886dc9223661dce52ee67373b4`.
-- **Base:** `60bce73c63be92f3f483b30ec694c28d3cd9de24`; 3 ahead / 0 behind.
-- **File:** `tests/qa/renderer/canvas-renderer-contract.test.js`.
-- **Coverage:** invalid frame/revision type pre-mutation guards, malformed pointer-bound hit testing, TODO expected-failure for mutable `parseColor()` cache exposure. Renderer implementation unchanged.
-- **Verification:** Focused test unexecuted; nested path not discovered by root workflow.
+### UI-01 workstation-shell smoke coverage — prepared
+- Added a 12-flow QA matrix to the AC-033 `docs/QA_MATRIX.md` and a matching release gate to `docs/RELEASE_CHECKLIST.md`.
+- Covers 1440×900 desktop and 1280×800 compact layouts; orientation, draw/erase, selection, layer/frame targeting, playback, save/reload/recovery, import/export, keyboard/focus, and non-mutating denial/error states.
+- The matrix requires exact pixel/state checks, console/page-error capture, screenshots and exact tested SHA.
+- **Execution state:** pending. The board says UI-00 awaits Agent 5's AC-091 prototype and UI-01 is queued for coordinator implementation. No UI-01 candidate was found in the open PR search. These docs are a test plan, not evidence that the UI exists or passes.
 
-## AC-087 — Active deliverable
-Build `tools/run-qa.mjs` and focused tests under `tests/qa/runner/`. Use an explicit sorted manifest for lifecycle, compatibility, import/export and browser QA suites; use safe argument-array child-process spawning; provide named/all-suite selection, human and stable JSON output, per-suite output/exit status, skipped and not-run entries, root-confined path checks, and fixtures/stub child-process tests. Browser runs must be clearly separated and never reported passed if skipped. No dependencies installation, file mutation, deployment, root scripts or workflow edits.
+## Earlier submitted QA phases
 
-- **Allowed paths:** `tools/run-qa.mjs`, `tests/qa/runner/**`, `docs/QA_MATRIX.md`, `docs/RELEASE_CHECKLIST.md`.
-- **Dependency:** PR #57 (AC-033) is open; this phase is stacked on `agent/qa-release-tooling`, not independent of it.
-- **Current branch:** `agent/qa-suite-runner`, to be created from current AC-033 PR head.
+- **AC-025:** Read-only PR #1 audit complete; unique/duplicate frame-aware assertions and safe keep/drop advice handed to Agent 4. No shared bridge E2E edits.
+- **AC-029 PR #25:** Lifecycle/recovery/quota regression suite and test fixtures; open draft, stale and requiring current-main revalidation. Focused tests unexecuted locally.
+- **AC-030 PR #32:** v2 boundary, v1 migration, malformed input and non-mutation matrix; open draft, stale and requiring current-main revalidation. Sparse cel array holes remain a known model-validation gap; no model changes.
+- **AC-031 PR #36:** GIF acceptance contracts plus pending sprite-sheet and palette format contracts; open draft, stale and requiring current-main revalidation. PR #3 and PR #16 modules were not merged at last review.
+- **AC-032 PR #42:** Standalone Chromium/IndexedDB lifecycle harness; open draft, stale and requiring current-main revalidation. Runner has not been executed; current workflow does not invoke it.
+- **Renderer triage PR #61:** Boundary test suite for renderer frame/revision token validation and malformed pointer bounds; documents TODO for mutable `parseColor()` cache exposure. Open draft, requires current-main revalidation; no renderer implementation changed and focused nested test not executed.
 
 ## Next 3–5 actions
-1. Complete AC-087 runner/manifest and tests for deterministic ordering, child argument safety, missing/failing suites, JSON schema/exit behavior and path traversal rejection.
-2. Add exact Node-only and optional real-browser runner commands to the QA matrix/release checklist.
-3. Submit AC-087 as a stacked PR against `agent/qa-release-tooling`; preserve PR #57 as the dependency and do not duplicate its diff.
-4. Continue AC-031 sprite-sheet and palette contracts when PR #3 / PR #16 land on main.
-5. Ask for no workflow edit; prepare the coordinator’s exact future command only if needed.
+1. When the coordinator opens the UI-01 implementation PR/candidate, execute UI01-01…UI01-12 in Chromium at 1440×900 and 1280×800; record exact head, browser/DPR, screenshots, pixel/state assertions and console/page errors.
+2. Keep PR #66 stacked on PR #57; after parent review/merge, retarget the child to current `main` and re-check exact-head CI. Do not merge or self-accept either PR.
+3. Run the focused runner suite when a local repository checkout is available; require an explicit workflow-owner integration for nested QA discovery after Agent 3 releases the workflow lock. Agent 1 must not edit the workflow.
+4. After PR #3 / PR #16 land on `main`, turn the documented sprite-sheet and palette acceptance contracts into executable QA tests.
+5. After the UI integration is merged and Pages deployment succeeds, inspect the published editor directly before reporting any user-visible release.
 
 ## Ownership and blockers
-- Owned paths: `tests/qa/**`, `tests/fixtures/qa/**`, `tools/qa-release-check.mjs`, `tools/run-qa.mjs`, `docs/QA_MATRIX.md`, `docs/RELEASE_CHECKLIST.md`.
-- Do not edit `agent-bridge/e2e-test.mjs`, `.github/workflows/project-tests.yml`, `index.html`, production modules or another worker's tests.
-- Agent 4 owns shared bridge E2E; Agent 3 retains workflow lock for AC-027.
-- **Verification blocker:** GitHub clone/download is unavailable; tests are not run locally. The runner's own tests must use stub child processes and explicitly report execution state. Do not claim any unexecuted QA suite passed.
-- **Last updated:** 2026-11-14 — PR #57 and PR #61 synced; AC-087 started.
+- Owned: `tests/qa/**`, `tests/fixtures/qa/**`, `tools/qa-release-check.mjs`, `tools/run-qa.mjs`, `docs/QA_MATRIX.md`, `docs/RELEASE_CHECKLIST.md`, and this Agent 1 status file.
+- Do not edit `index.html`, production CSS/UI, storage/model, exporter implementation, `agent-bridge/e2e-test.mjs`, `.github/workflows/project-tests.yml`, or other agents' tests.
+- Agent 4 owns shared bridge E2E. Agent 3 retains the workflow lock for AC-027.
+- **Verification blocker:** GitHub clone/download is unavailable in this environment; nested QA test commands and the standalone lifecycle browser runner remain unexecuted locally. Do not describe root workflow success as execution of nested QA suites.
+- **Product priority:** UI-01 smoke plan is ready, but no implementation candidate is available yet. Do not start AC-088 or expand feature backlog ahead of coordinator-led production UI integration.
+- **Last updated:** 2026-11-14 — AC-087 PR #66 synced to parent; UI-01 smoke matrix prepared; awaiting coordinator UI candidate.
