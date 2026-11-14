@@ -249,6 +249,13 @@ async function run() {
       null,
       { timeout: 5_000 }
     );
+    // Keep the pre-edit composite baseline: the lower layer may already have
+    // a color at either test coordinate, so recovery should restore that exact
+    // visible color rather than necessarily making the pixel transparent.
+    const versionABaseline = await page.evaluate(() => ({
+      b: window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color,
+      c: window.onePixelStudio.get_pixel({ x: 22, y: 20 }).color
+    }));
     await page.evaluate(() =>
       window.onePixelStudio.draw_pixel({ x: 21, y: 20, color: "#00aaff" })
     );
@@ -258,112 +265,21 @@ async function run() {
       { timeout: 5_000 }
     );
 
-    const beforeRecoveryDebug = await page.evaluate(async () => {
-      const status = window.onePixelStudio.get_status();
-      const listedProjects = await window.onePixelStudio.list_projects();
-      const db = await new Promise((resolve, reject) => {
-        const request = indexedDB.open("one-pixel-studio", 1);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      const tx = db.transaction(["projects", "recovery"], "readonly");
-      const read = request => new Promise((resolve, reject) => {
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-      const [records, recoveries] = await Promise.all([
-        read(tx.objectStore("projects").getAll()),
-        read(tx.objectStore("recovery").getAll())
-      ]);
-      db.close();
-      const samples = record => {
-        if (!record?.data) return null;
-        const doc = record.data;
-        return {
-          activeFrameId: doc.activeFrameId,
-          activeLayerId: doc.activeLayerId,
-          cels: doc.cels.filter(cel =>
-            cel.frameId === doc.activeFrameId && cel.layerId === doc.activeLayerId
-          ).map(cel => ({
-            a: cel.pixels[500], b: cel.pixels[501], c: cel.pixels[502]
-          }))
-        };
-      };
-      return {
-        statusProjectId: status.project_id,
-        activeFrameId: status.active_frame.id,
-        activePixels: {
-          a: window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color,
-          b: window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color
-        },
-        listedProjects,
-        rows: Array.from(document.querySelectorAll(".project-entry"), row => row.innerText),
-        projects: records.map(record => ({ id: record.id, name: record.name, updatedAt: record.updatedAt, samples: samples(record) })),
-        recovery: recoveries.map(record => ({ projectId: record.projectId, projectName: record.projectName, savedAt: record.savedAt, samples: samples({ data: record.data }) }))
-      };
-    });
-    console.log("AC-006 state immediately before Recover: " + JSON.stringify(beforeRecoveryDebug));
-
     const explicitNoOpSave = await page.evaluate(() => window.onePixelStudio.save());
     assert.equal(explicitNoOpSave.ok, true, "an explicit clean save should succeed");
     await page.locator("#projectLibraryBtn").click();
     await page.getByRole("button", { name: "Recover", exact: true }).first().click();
-    try {
-      await page.waitForFunction(
-        () => window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color === null,
-        null,
-        { timeout: 5_000 }
-      );
-    } catch (error) {
-      console.log("AC-006 state after Recover timeout: " + JSON.stringify(await page.evaluate(async () => {
-        const status = window.onePixelStudio.get_status();
-        const db = await new Promise((resolve, reject) => {
-          const request = indexedDB.open("one-pixel-studio", 1);
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
-        const tx = db.transaction(["projects", "recovery"], "readonly");
-        const read = request => new Promise((resolve, reject) => {
-          request.onsuccess = () => resolve(request.result);
-          request.onerror = () => reject(request.error);
-        });
-        const [records, recoveries] = await Promise.all([
-          read(tx.objectStore("projects").getAll()),
-          read(tx.objectStore("recovery").getAll())
-        ]);
-        db.close();
-        const samples = record => {
-          if (!record?.data) return null;
-          const doc = record.data;
-          return {
-            activeFrameId: doc.activeFrameId,
-            activeLayerId: doc.activeLayerId,
-            cels: doc.cels.filter(cel =>
-              cel.frameId === doc.activeFrameId && cel.layerId === doc.activeLayerId
-            ).map(cel => ({
-              a: cel.pixels[500], b: cel.pixels[501], c: cel.pixels[502]
-            }))
-          };
-        };
-        return {
-          statusProjectId: status.project_id,
-          activeFrameId: status.active_frame.id,
-          activePixels: {
-            a: window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color,
-            b: window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color
-          },
-          projects: records.map(record => ({ id: record.id, name: record.name, updatedAt: record.updatedAt, samples: samples(record) })),
-          recovery: recoveries.map(record => ({ projectId: record.projectId, projectName: record.projectName, savedAt: record.savedAt, samples: samples({ data: record.data }) }))
-        };
-      })));
-      throw error;
-    }
+    await page.waitForFunction(
+      expected => window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color === expected,
+      versionABaseline.b,
+      { timeout: 5_000 }
+    );
     let recoveredPixels = await page.evaluate(() => ({
       a: window.onePixelStudio.get_pixel({ x: 20, y: 20 }).color,
       b: window.onePixelStudio.get_pixel({ x: 21, y: 20 }).color
     }));
     assert.equal(recoveredPixels.a, "#aa00aa", "Recover should restore version A after opening the library");
-    assert.equal(recoveredPixels.b, null, "version B's new pixel should be absent after recovering A");
+    assert.equal(recoveredPixels.b, versionABaseline.b, "Recover should restore the pre-B composite at the edited pixel");
 
     // A genuine edit after recovery must rotate the recovered A version into
     // the recovery slot. Opening the library once more must not rotate it away.
@@ -379,8 +295,8 @@ async function run() {
     await page.locator("#projectLibraryBtn").click();
     await page.getByRole("button", { name: "Recover", exact: true }).first().click();
     await page.waitForFunction(
-      () => window.onePixelStudio.get_pixel({ x: 22, y: 20 }).color === null,
-      null,
+      expected => window.onePixelStudio.get_pixel({ x: 22, y: 20 }).color === expected,
+      versionABaseline.c,
       { timeout: 5_000 }
     );
     recoveredPixels = await page.evaluate(() => ({
@@ -388,7 +304,7 @@ async function run() {
       c: window.onePixelStudio.get_pixel({ x: 22, y: 20 }).color
     }));
     assert.equal(recoveredPixels.a, "#aa00aa", "a genuine later save should keep the immediately previous version recoverable");
-    assert.equal(recoveredPixels.c, null, "recovering A should remove C's newer pixel");
+    assert.equal(recoveredPixels.c, versionABaseline.c, "recovering A should restore the pre-C composite at the edited pixel");
 
     assert.deepEqual(pageErrors, [], "the app should not throw browser runtime errors");
     console.log("Browser E2E passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, real animation playback, onion skin, PNG, IndexedDB library and reload recovery.");
