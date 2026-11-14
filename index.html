@@ -2491,6 +2491,7 @@ async function renderProjectLibrary(){
       if(recovery){
         actions.appendChild(makeButton("Recover",async()=>{
           if(!confirm("Restore the previous saved version of "+record.name+"? The current saved version will become the recovery copy."))return;
+          const current=await projectStorage.getProject(record.id);if(!current)return;
           const previous=await projectStorage.getRecovery(record.id);if(!previous)return;
           await projectStorage.saveProject(previous.project);
           if(record.id===activeProjectId){loadProjectIntoEditor(previous.project);writeLocalBackup(previous.project)}
