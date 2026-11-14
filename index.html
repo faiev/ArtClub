@@ -552,6 +552,7 @@ $("newProjectBtn").addEventListener("click",()=>{
   if(!confirm("Start a new blank project? The current canvas will be replaced."))return;
   remember();w=24;h=24;pixels=blank(24);palette=DEFAULT_PALETTE.slice();selected=8;
   projectName="Untitled artwork";$("projectName").value=projectName;$("gridSize").value="24";setZoom(1);
+  projectDoc=ProjectModel.createProject({width:w,height:h,name:projectName,palette:palette,selectedColorIndex:selected,pixels:pixels});
   renderAll();syncColorUI();scheduleSave();toast("New canvas ready.");
 });
 $("clearBtn").addEventListener("click",()=>{
