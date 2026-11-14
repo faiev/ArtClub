@@ -1,0 +1,24 @@
+{
+  "schema": "artclub.tile-fixture.v1",
+  "id": "alpha-transparency",
+  "kind": "tile",
+  "description": "Null is transparent; string tokens are opaque exact color values.",
+  "tile": {
+    "width": 3,
+    "height": 2,
+    "pixels": [
+      null,
+      "#e85d3f",
+      "#e85d3f",
+      "#477b69",
+      null,
+      "#477b69"
+    ]
+  },
+  "expect": {
+    "leftRightMismatchCount": 1,
+    "topBottomMismatchCount": 3,
+    "transparentOpposingEdgeMismatchCount": 3,
+    "pixelCount": 6
+  }
+}
