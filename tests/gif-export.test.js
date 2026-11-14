@@ -282,6 +282,30 @@ test("quantizes more than 256 source colors into a valid GIF palette", () => {
   assert.equal(parsed.frames[0].indexes.length, width * height);
 });
 
+test("maps actual RGB values to their nearest palette entry, not the 5-bit bucket midpoint", () => {
+  const pixels = ["#222799"];
+  const seenBuckets = new Set([((0x22 >>> 3) << 10) | ((0x27 >>> 3) << 5) | (0x99 >>> 3)]);
+  let state = 13;
+  while (pixels.length < 257) {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    const red = (state >>> 24) & 255;
+    const green = (state >>> 16) & 255;
+    const blue = (state >>> 8) & 255;
+    const bucket = ((red >>> 3) << 10) | ((green >>> 3) << 5) | (blue >>> 3);
+    if (seenBuckets.has(bucket)) continue;
+    seenBuckets.add(bucket);
+    pixels.push("#" + [red, green, blue].map(value => value.toString(16).padStart(2, "0")).join(""));
+  }
+
+  const source = "#d2384e";
+  assert.equal(pixels[58], source, "the seeded reproduction must retain Agent 2's pixel-58 fixture");
+  const parsed = parseGif(GIF.encodeGIF(makeSingleFrame(257, 1, pixels)).bytes);
+  const exactPaletteEntryExists = parsed.globalPalette.some(rgb => rgb.join(",") === "210,56,78");
+  assert.equal(exactPaletteEntryExists, true, "the exact source RGB should be retained in the median-cut palette");
+  assert.equal(colorAt(parsed.frames[0], 58, 0), source,
+    "the pixel must select its exact RGB palette entry rather than the bucket-midpoint neighbour");
+});
+
 test("keeps transparency when palette overflow requires median-cut quantization", () => {
   const width = 20;
   const height = 15;
@@ -344,6 +368,32 @@ test("returns a browser-compatible image/gif Blob", async () => {
   const signature = new Uint8Array(await result.blob.slice(0, 6).arrayBuffer());
   assert.equal(String.fromCharCode(...signature), "GIF89a");
   assert.equal(result.metadata.image.mimeType, "image/gif");
+});
+
+test("encodes the bounded 1,048,576-pixel work budget and rejects larger selections", () => {
+  const width = 512;
+  const height = 512;
+  const framePixels = width * height;
+  const pixels = new Array(framePixels).fill("#123456");
+  const project = makeSingleFrame(width, height, pixels);
+  for (let index = 1; index < 4; index += 1) {
+    const frameId = "frame-" + (index + 1);
+    project.frames.push({ id: frameId, name: "Frame " + (index + 1), durationMs: 100 });
+    project.cels.push({ layerId: "layer-1", frameId: frameId, pixels: pixels });
+  }
+
+  assert.equal(GIF.MAX_TOTAL_PIXELS, 1024 * 1024);
+  const result = GIF.encodeGIF(project);
+  assert.equal(result.diagnostics.totalFramePixels, 1024 * 1024);
+  assert.equal(result.metadata.frameCount, 4);
+  assert.equal(result.metadata.image.width, 512);
+  assert.equal(result.metadata.image.height, 512);
+  assert.ok(result.bytes.length > 30);
+
+  const fifthFrameId = "frame-5";
+  project.frames.push({ id: fifthFrameId, name: "Frame 5", durationMs: 100 });
+  project.cels.push({ layerId: "layer-1", frameId: fifthFrameId, pixels: pixels });
+  assert.throws(() => GIF.encodeGIF(project), /too large|Maximum total export pixels/i);
 });
 
 test("rejects malformed projects, invalid options and excessive output sizes", () => {
