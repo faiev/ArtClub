@@ -16,7 +16,9 @@
       "getStatus", "getCanvas", "getPixel", "execute",
       "undo", "redo", "save", "exportProject", "importProject", "listProjects", "openProject", "exportPNG",
       "listLayers", "addLayer", "selectLayer", "setLayerVisibility", "setLayerLocked",
-      "renameLayer", "moveLayer", "duplicateLayer", "deleteLayer"
+      "renameLayer", "moveLayer", "duplicateLayer", "deleteLayer",
+      "setSelection", "selectAll", "copySelection", "cutSelection",
+      "pasteSelection", "clearSelection", "deselect", "moveSelection"
     ];
     const missing = required.filter(function (name) {
       return !adapter || typeof adapter[name] !== "function";
@@ -129,6 +131,30 @@
       },
       delete_layer: function (args) {
         return adapter.deleteLayer(args || {});
+      },
+      set_selection: function (args) {
+        return adapter.setSelection(args || {});
+      },
+      select_all: function (args) {
+        return adapter.selectAll(args || {});
+      },
+      copy_selection: function (args) {
+        return adapter.copySelection(args || {});
+      },
+      cut_selection: function (args) {
+        return adapter.cutSelection(args || {});
+      },
+      paste_selection: function (args) {
+        return adapter.pasteSelection(args || {});
+      },
+      clear_selection: function (args) {
+        return adapter.clearSelection(args || {});
+      },
+      deselect: function (args) {
+        return adapter.deselect(args || {});
+      },
+      move_selection: function (args) {
+        return adapter.moveSelection(args || {});
       }
     });
   }
