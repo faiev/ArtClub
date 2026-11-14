@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canvas renderer integration readiness — Art Club</title>
+<style>
+:root{color-scheme:light;--paper:#f5f2ea;--panel:#fffdf8;--ink:#25323a;--muted:#68747a;--line:#d9d4c9;--accent:#ad594b;--focus:#075fc6}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.45 Inter,ui-sans-serif,system-ui,sans-serif}
+button,select{font:inherit;min-height:34px;border:1px solid #b9b7ad;border-radius:4px;background:#fffefa;color:var(--ink);padding:6px 10px}
+button:hover{background:#f1eee5}button:focus-visible,select:focus-visible,input:focus-visible,canvas:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.app{max-width:1440px;margin:0 auto;padding:18px 20px 22px}.header{display:flex;justify-content:space-between;gap:18px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+h1{margin:0;font-size:19px;line-height:1.25;letter-spacing:-.02em}.eyebrow{color:var(--accent);font-size:11px;font-weight:750;letter-spacing:.1em;text-transform:uppercase}
+.subtitle{margin:5px 0 0;color:var(--muted);max-width:820px}.status-chip{border:1px solid var(--line);border-radius:99px;background:#fffdf8;padding:5px 10px;color:var(--muted);font-size:12px;align-self:flex-start}
+.workspace{display:grid;grid-template-columns:218px minmax(0,1fr);gap:14px;margin-top:14px;align-items:stretch}
+.inspector{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:14px;align-self:start}.inspector h2{margin:0 0 12px;font-size:13px}
+.field{display:grid;gap:5px;margin:12px 0}.field label{color:var(--muted);font-size:12px;font-weight:650}.check{display:flex;align-items:center;gap:8px;margin:10px 0}.check input{width:16px;height:16px;accent-color:var(--accent)}
+.group{display:grid;grid-template-columns:1fr 1fr;gap:6px}.group button{padding-inline:5px}.small-note{margin:14px 0 0;color:var(--muted);font-size:11px}
+.stage-panel{min-width:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:6px;background:var(--panel);overflow:hidden}
+.toolbar{min-height:45px;display:flex;align-items:center;flex-wrap:wrap;gap:7px;padding:7px 10px;border-bottom:1px solid var(--line);background:#fbf9f3}.toolbar .spacer{flex:1}
+.zoom-readout,.coordinate-readout{color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+.viewport{position:relative;height:min(66vh,690px);min-height:360px;overflow:hidden;background-color:#eae6dd;background-image:linear-gradient(45deg,#e2ded5 25%,transparent 25%),linear-gradient(-45deg,#e2ded5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e2ded5 75%),linear-gradient(-45deg,transparent 75%,#e2ded5 75%);background-size:18px 18px;background-position:0 0,0 9px,9px -9px,-9px 0;touch-action:none}
+#art-canvas{position:absolute;display:block;max-width:none;max-height:none;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none}
+#dom-fallback{position:absolute;display:none;gap:0;max-width:none;max-height:none;transform-origin:top left;touch-action:none}.pixel-cell{min-width:0;min-height:0}
+.bottom-bar{padding:8px 12px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+.contract{margin-top:14px;border:1px solid var(--line);border-radius:6px;background:#fffdf8;padding:12px 14px;color:var(--muted);font-size:12px}.contract strong{color:var(--ink)}
+@media(max-width:800px){.app{padding:12px}.workspace{grid-template-columns:1fr}.inspector{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px}.inspector h2,.small-note{grid-column:1/-1}.field{margin:4px 0}.viewport{height:55vh;min-height:280px}.header{flex-direction:column}}
+@media(max-width:440px){.inspector{grid-template-columns:1fr}.inspector h2,.small-note{grid-column:auto}.toolbar{gap:5px}}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="header"><div><div class="eyebrow">Engineering prototype · AC-038</div><h1>Canvas renderer integration readiness</h1><p class="subtitle">A bounded demonstration of viewport transforms, v2 project compositing and the isolated Canvas renderer. This is not the production editor.</p></div><div class="status-chip" id="runtime-status" role="status" aria-live="polite">Checking modules…</div></header>
+<section class="workspace" aria-label="Renderer integration demonstration">
+<aside class="inspector" aria-label="Demo controls">
+<h2>Document state</h2>
+<div class="field"><label for="frame-select">Active frame</label><select id="frame-select"><option value="0">Frame 1</option><option value="1">Frame 2</option><option value="2">Frame 3</option></select></div>
+<label class="check"><input id="grid-toggle" type="checkbox" checked> Show pixel grid</label>
+<label class="check"><input id="onion-toggle" type="checkbox" checked> Onion before/after</label>
+<label class="check"><input id="selection-toggle" type="checkbox" checked> Selection outline</label>
+<h2>Viewport</h2><div class="group"><button id="fit" type="button">Fit</button><button id="actual" type="button">100%</button><button id="zoom-out" type="button" aria-label="Zoom out">−</button><button id="zoom-in" type="button" aria-label="Zoom in">+</button></div>
+<p class="small-note">Drag with the middle mouse button or hold Space and drag to pan. Use the wheel to zoom around the pointer. Keyboard: arrows pan; + / − zoom; Home fits; 1 resets to actual size.</p>
+</aside>
+<section class="stage-panel" aria-label="Canvas preview">
+<div class="toolbar"><button id="toolbar-fit" type="button">Fit canvas</button><button id="toolbar-actual" type="button">Actual size</button><span class="spacer"></span><span class="zoom-readout" id="zoom-readout">—</span><span class="coordinate-readout" id="coordinate-readout">Pixel: —</span></div>
+<div class="viewport" id="viewport" aria-label="Canvas viewport">
+<canvas id="art-canvas" tabindex="0" role="img" aria-label="Pixel art preview. Use arrow keys to pan, plus and minus to zoom, Home to fit, and 1 to reset to actual size." aria-describedby="canvas-help"></canvas>
+<div id="dom-fallback" role="grid" aria-label="Pixel artwork DOM fallback"></div>
+</div>
+<div class="bottom-bar"><span id="render-summary">Preparing sample v2 project…</span><span id="canvas-help">Keyboard focus stays on the preview; no artwork-editing commands are enabled in this demo.</span></div>
+</section></section>
+<div class="contract"><strong>Integration boundary:</strong> isolated modules only. The demo does not modify the live editor, project model, production UI, Agent API or MCP. DOM fallback is intentionally bounded to 32×24 pixels; it is not a production-scale 512×512 strategy.</div>
+</main>
+<script src="../js/project-model.js"></script>
+<script src="../js/canvas-viewport.js"></script>
+<script src="../js/canvas-renderer.js"></script>
+<script src="../js/canvas-renderer-adapter.js"></script>
+<script>
+(function(){
+"use strict";
+const byId=id=>document.getElementById(id);
+const status=byId("runtime-status"),view=byId("viewport"),canvas=byId("art-canvas"),fallback=byId("dom-fallback");
+const coord=byId("coordinate-readout"),zoomLabel=byId("zoom-readout"),summary=byId("render-summary"),frameSelect=byId("frame-select");
+const grid=byId("grid-toggle"),onion=byId("onion-toggle"),selection=byId("selection-toggle");
+const missing=[];
+if(!window.ArtClubProject)missing.push("ProjectModel");
+if(!window.ArtClubCanvasViewport)missing.push("CanvasViewport");
+if(!window.ArtClubCanvasRenderer)missing.push("CanvasRenderer");
+if(!window.ArtClubCanvasRendererAdapter)missing.push("CanvasRendererAdapter");
+let project=null,renderer=null,viewportState=null,rendererOptions=null,observer=null,fallbackMode=false,spaceDown=false,panId=null,lastPointer=null,destroyed=false;
+
+function buildProject(){
+ const Model=window.ArtClubProject;
+ const p=Model.createProject({width:32,height:24,name:"Viewport integration sample",palette:["#253e50","#e96f55","#b8cc76","#e4b85d","#f5f2ea"]});
+ p.canvas.background="#f5f2ea";
+ const w=p.canvas.width,h=p.canvas.height;
+ function pattern(offset){const px=new Array(w*h).fill(null);for(let y=3;y<h-3;y++)for(let x=3;x<w-3;x++)if((x+y+offset)%9===0||(x-offset)%7===0)px[y*w+x]="#253e50";return px;}
+ Model.getCel(p).pixels=pattern(0);
+ const accent=Model.makeLayer("Accent marks");accent.opacity=.78;p.layers.push(accent);p.activeLayerId=accent.id;
+ const a1=Model.ensureCel(p,accent.id,p.activeFrameId);
+ for(let y=6;y<15;y++)for(let x=8;x<24;x++)if((x+y)%4===0)a1.pixels[y*w+x]="#e96f55";
+ const f2=Model.makeFrame("Frame 2",120),f3=Model.makeFrame("Frame 3",160);p.frames.push(f2,f3);
+ Model.ensureCel(p,p.layers[0].id,f2.id).pixels=pattern(2);
+ const a2=Model.ensureCel(p,accent.id,f2.id);for(let y=5;y<18;y++)for(let x=10;x<26;x++)if((x*2+y)%5===0)a2.pixels[y*w+x]="#b8cc76";
+ Model.ensureCel(p,p.layers[0].id,f3.id).pixels=pattern(4);
+ const a3=Model.ensureCel(p,accent.id,f3.id);for(let y=7;y<20;y++)for(let x=6;x<21;x++)if((x+y*2)%6===0)a3.pixels[y*w+x]="#e4b85d";
+ return p;
+}
+function stateForRenderer(){
+ const rect=selection.checked?{x:7,y:5,width:14,height:12}:null;
+ return window.ArtClubCanvasRendererAdapter.buildRendererState(project,{
+  expectedActiveFrameId:project.activeFrameId,
+  onionSkin:onion.checked?{before:true,after:true}:false,
+  grid:grid.checked,gridColor:"rgba(37,53,49,0.42)",selection:rect,selectionColor:"#ad594b"
+ });
+}
+function renderFallback(){
+ const w=project.canvas.width,h=project.canvas.height;
+ let pixels;
+ try{pixels=window.ArtClubCanvasRendererAdapter?stateForRenderer().pixels:window.ArtClubProject.getCompositePixels(project,project.activeFrameId);}
+ catch(error){status.textContent="Fallback compositor failed";summary.textContent=error.message;return;}
+ fallback.replaceChildren();fallback.style.display="grid";fallback.style.gridTemplateColumns="repeat("+w+",minmax(0,1fr))";fallback.style.gridTemplateRows="repeat("+h+",minmax(0,1fr))";
+ fallback.style.width=(w*viewportState.scale)+"px";fallback.style.height=(h*viewportState.scale)+"px";fallback.style.left=viewportState.offsetX+"px";fallback.style.top=viewportState.offsetY+"px";
+ pixels.forEach((color,i)=>{const cell=document.createElement("div");cell.className="pixel-cell";cell.setAttribute("role","gridcell");cell.setAttribute("aria-label","Pixel "+(i%w+1)+", "+(Math.floor(i/w)+1)+", "+(color||"transparent"));cell.style.backgroundColor=color||"transparent";fallback.appendChild(cell);});
+ fallback.hidden=false;canvas.hidden=true;
+}
+function applyViewport(){
+ if(destroyed||!viewportState)return;
+ const width=project.canvas.width*viewportState.scale,height=project.canvas.height*viewportState.scale;
+ canvas.style.width=width+"px";canvas.style.height=height+"px";canvas.style.left=viewportState.offsetX+"px";canvas.style.top=viewportState.offsetY+"px";
+ if(!fallbackMode&&renderer){
+  rendererOptions.displayWidth=width;rendererOptions.displayHeight=height;rendererOptions.devicePixelRatio=window.devicePixelRatio||1;
+  renderer.render(stateForRenderer());canvas.hidden=false;fallback.hidden=true;
+ }else renderFallback();
+ zoomLabel.textContent=Math.round(viewportState.scale*100)+"% · DPR "+(window.devicePixelRatio||1).toFixed(2);
+ summary.textContent="32 × 24 logical pixels · "+project.layers.length+" layers · "+project.frames.length+" frames · "+(fallbackMode?"DOM fallback":"Canvas 2D renderer");
+}
+function fallbackFrom(error){
+ if(renderer){renderer.destroy();renderer=null;}fallbackMode=true;
+ status.textContent="DOM fallback · "+String(error&&error.message||error).slice(0,80);applyViewport();
+}
+function setState(next){viewportState=next;applyViewport();}
+function fit(){setState(window.ArtClubCanvasViewport.fitToCanvas(viewportState,24));}
+function actual(){setState(window.ArtClubCanvasViewport.zoomAt(viewportState,1,viewportState.viewWidth/2,viewportState.viewHeight/2));}
+function zoom(factor,x,y){setState(window.ArtClubCanvasViewport.zoomBy(viewportState,factor,x,y));}
+function pointerMove(e){
+ if(panId===e.pointerId&&lastPointer){const dx=e.clientX-lastPointer.x,dy=e.clientY-lastPointer.y;lastPointer={x:e.clientX,y:e.clientY};setState(window.ArtClubCanvasViewport.panBy(viewportState,dx,dy));return;}
+ const b=view.getBoundingClientRect(),p=window.ArtClubCanvasViewport.screenToCanvas(viewportState,e.clientX-b.left,e.clientY-b.top);
+ coord.textContent=p.x>=0&&p.y>=0&&p.x<project.canvas.width&&p.y<project.canvas.height?"Pixel: "+(Math.floor(p.x)+1)+", "+(Math.floor(p.y)+1):"Pixel: —";
+}
+function pointerDown(e){if(e.button!==1&&!(spaceDown&&e.button===0))return;e.preventDefault();panId=e.pointerId;lastPointer={x:e.clientX,y:e.clientY};view.setPointerCapture(e.pointerId);}
+function pointerUp(e){if(panId!==e.pointerId)return;panId=null;lastPointer=null;if(view.hasPointerCapture(e.pointerId))view.releasePointerCapture(e.pointerId);}
+function wheel(e){e.preventDefault();const b=view.getBoundingClientRect();zoom(e.deltaY<0?1.15:1/1.15,e.clientX-b.left,e.clientY-b.top);}
+function keydown(e){
+ const amount=e.shiftKey?64:24;
+ if(e.key==="ArrowLeft")setState(window.ArtClubCanvasViewport.panBy(viewportState,amount,0));
+ else if(e.key==="ArrowRight")setState(window.ArtClubCanvasViewport.panBy(viewportState,-amount,0));
+ else if(e.key==="ArrowUp")setState(window.ArtClubCanvasViewport.panBy(viewportState,0,amount));
+ else if(e.key==="ArrowDown")setState(window.ArtClubCanvasViewport.panBy(viewportState,0,-amount));
+ else if(e.key==="+"||e.key==="=")zoom(1.2,viewportState.viewWidth/2,viewportState.viewHeight/2);
+ else if(e.key==="-"||e.key==="_")zoom(1/1.2,viewportState.viewWidth/2,viewportState.viewHeight/2);
+ else if(e.key==="Home")fit();else if(e.key==="1")actual();else return;
+ e.preventDefault();
+}
+function resize(){
+ if(!viewportState)return;
+ viewportState=window.ArtClubCanvasViewport.resizeViewport(viewportState,Math.max(1,view.clientWidth),Math.max(1,view.clientHeight),window.devicePixelRatio||1);
+ applyViewport();
+}
+function cleanup(){if(destroyed)return;destroyed=true;if(observer)observer.disconnect();if(renderer)renderer.destroy();}
+try{
+ if(missing.length)throw new Error("Missing dependencies: "+missing.join(", "));
+ project=buildProject();
+ const valid=window.ArtClubProject.validateProject(project);if(!valid.valid)throw new Error(valid.errors.join(" "));
+ const b=view.getBoundingClientRect();
+ viewportState=window.ArtClubCanvasViewport.createViewport({canvasWidth:project.canvas.width,canvasHeight:project.canvas.height,viewWidth:b.width,viewHeight:b.height,devicePixelRatio:window.devicePixelRatio||1,minScale:.25,maxScale:20});
+ rendererOptions={displayWidth:project.canvas.width*viewportState.scale,displayHeight:project.canvas.height*viewportState.scale,devicePixelRatio:window.devicePixelRatio||1};
+ renderer=new window.ArtClubCanvasRenderer.CanvasPixelRenderer(canvas,rendererOptions);
+ applyViewport();status.textContent="Canvas 2D ready · v2 adapter active";
+}catch(error){
+ if(!project&&window.ArtClubProject)try{project=buildProject();}catch(_){}
+ if(project&&window.ArtClubCanvasViewport){const b=view.getBoundingClientRect();viewportState=window.ArtClubCanvasViewport.createViewport({canvasWidth:project.canvas.width,canvasHeight:project.canvas.height,viewWidth:b.width,viewHeight:b.height});fallbackFrom(error);}
+ else{status.textContent="Integration modules unavailable";summary.textContent=error.message;}
+}
+frameSelect.addEventListener("change",()=>{if(!project)return;const i=Math.max(0,Math.min(project.frames.length-1,Number(frameSelect.value)));project.activeFrameId=project.frames[i].id;applyViewport();});
+[grid,onion,selection].forEach(control=>control.addEventListener("change",applyViewport));
+["fit","toolbar-fit"].forEach(id=>byId(id).addEventListener("click",fit));["actual","toolbar-actual"].forEach(id=>byId(id).addEventListener("click",actual));
+byId("zoom-in").addEventListener("click",()=>zoom(1.2,viewportState.viewWidth/2,viewportState.viewHeight/2));byId("zoom-out").addEventListener("click",()=>zoom(1/1.2,viewportState.viewWidth/2,viewportState.viewHeight/2));
+view.addEventListener("pointerdown",pointerDown);view.addEventListener("pointermove",pointerMove);view.addEventListener("pointerup",pointerUp);view.addEventListener("pointercancel",pointerUp);view.addEventListener("wheel",wheel,{passive:false});canvas.addEventListener("keydown",keydown);
+document.addEventListener("keydown",e=>{if(e.code==="Space"&&document.activeElement===canvas){spaceDown=true;e.preventDefault();}});document.addEventListener("keyup",e=>{if(e.code==="Space")spaceDown=false;});window.addEventListener("blur",()=>spaceDown=false);
+if("ResizeObserver"in window){observer=new ResizeObserver(resize);observer.observe(view);}else window.addEventListener("resize",resize);
+window.addEventListener("pagehide",cleanup,{once:true});
+window.__ARTCLUB_INTEGRATION_DEMO__={getProject:()=>project,getRenderer:()=>renderer,getViewport:()=>viewportState,cleanup};
+})();
+</script>
+</body></html>
