@@ -61,6 +61,7 @@ async function run() {
     ARTCLUB_HEADLESS: "1",
     ARTCLUB_PROFILE_DIR: profileDir,
     NODE_ENV: "test",
+    ARTCLUB_TEST_RECOVERY_FAULTS: "1",
     ARTCLUB_TEST_HOLD_POINTS: "23,22;22,21",
     ARTCLUB_TEST_HOLD_MS: "1000",
     ARTCLUB_TEST_TIMEOUT_POINT: "22,21",
@@ -144,6 +145,7 @@ async function run() {
     const names = new Set(toolList.tools.map(tool => tool.name));
     for (const required of [
       "artclub_get_capabilities",
+      "artclub_get_bridge_diagnostics",
       "artclub_get_status",
       "artclub_get_canvas",
       "artclub_get_palette",
@@ -215,6 +217,11 @@ async function run() {
     const status = statusResult.structuredContent;
     assert.equal(status.protocol, "one-pixel-studio-agent");
     assert.equal(status.protocol_version, 1);
+
+    const initialDiagnostics = await callTool({ name: "artclub_get_bridge_diagnostics", arguments: {} });
+    assert.equal(initialDiagnostics.structuredContent.connection.state, "connected");
+    assert.equal(initialDiagnostics.structuredContent.queue.active, 1);
+    assert.match(initialDiagnostics.structuredContent.queue.active_request_id, /^[0-9a-f-]{36}$/i);
 
     const capabilitiesResult = await callTool({
       name: "artclub_get_capabilities",
@@ -786,7 +793,32 @@ async function run() {
     const timedPixel = await callTool({ name: "artclub_get_pixel", arguments: { x: 22, y: 21 } });
     assert.equal(timedPixel.structuredContent.color, "#deadbe", "the timed mutation may already have committed before the deadline");
 
-    console.log("MCP E2E passed: structured reads/errors, revision checks, FIFO concurrency, cancellation, deadline fencing, layers, selections, animation, export/import and PNG.");
+    // Exercise the actual reconnect path for a closed tab, navigated tab and
+    // disconnected Chromium context; the following read must reconnect.
+    const faultKinds = ["page_close", "page_navigation", "browser_disconnect"];
+    for (let index = 0; index < faultKinds.length; index += 1) {
+      const kind = faultKinds[index];
+      const injected = await callTool({
+        name: "artclub_test_inject_browser_fault",
+        arguments: { kind }
+      });
+      assert.equal(injected.structuredContent.injected, kind);
+
+      const recovered = await callTool({ name: "artclub_get_status", arguments: {} });
+      assert.notEqual(recovered.isError, true, kind + " must recover on the next bridge read");
+      assert.ok(Number.isSafeInteger(recovered.structuredContent.revision));
+
+      const diagnostics = await callTool({ name: "artclub_get_bridge_diagnostics", arguments: {} });
+      const snapshot = diagnostics.structuredContent;
+      assert.equal(snapshot.connection.state, "connected", kind + " should restore connection state");
+      assert.ok(snapshot.connection.reconnect_attempts >= index + 1);
+      assert.ok(snapshot.connection.reconnect_successes >= index + 1);
+      if (kind === "page_close") assert.ok(snapshot.browser.page_closes >= 1);
+      if (kind === "page_navigation") assert.ok(snapshot.browser.page_navigations >= 1);
+      if (kind === "browser_disconnect") assert.ok(snapshot.browser.context_closes >= 1);
+    }
+
+    console.log("MCP E2E passed: structured reads/errors, revision checks, queue metrics, cancellation, deadlines, browser close/navigation/disconnect recovery, layers, selections and exports.");
   } finally {
     await client.close().catch(() => {});
     await new Promise(resolve => staticServer.close(resolve));
