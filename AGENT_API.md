@@ -66,6 +66,35 @@ await studio.set_color({ color: "#ffcc66" });
 
 All drawing commands use the same pixel buffer as the on-screen editor. They therefore appear immediately in the canvas and participate in its undo/redo and autosave workflow.
 
+## Layer operations
+
+Agents can also organize their work into editable layers. The status response returns the layer IDs, names, visibility, lock state and active layer.
+
+```js
+let status = studio.get_status();
+const baseLayerId = status.active_layer.id;
+
+status = await studio.add_layer({ name: "Highlights", expected_revision: status.revision });
+const highlightLayerId = status.active_layer.id;
+
+await studio.draw_pixel({ x: 8, y: 8, color: "#f5c66d" });
+
+status = await studio.select_layer({ layer_id: baseLayerId, expected_revision: status.revision });
+await studio.draw_line({ x1: 5, y1: 5, x2: 12, y2: 5, color: "#172b3a" });
+
+// Read the visible result after all visible layers are composited.
+const visiblePixel = studio.get_pixel({ x: 8, y: 8 });
+
+await studio.set_layer_visibility({ layer_id: highlightLayerId, visible: false });
+await studio.set_layer_locked({ layer_id: baseLayerId, locked: true });
+await studio.rename_layer({ layer_id: highlightLayerId, name: "Warm highlights" });
+await studio.move_layer({ layer_id: highlightLayerId, direction: "down" });
+```
+
+Available layer methods: `list_layers`, `add_layer`, `select_layer`, `set_layer_visibility`, `set_layer_locked`, `rename_layer`, `move_layer`, `duplicate_layer` and `delete_layer`.
+
+The layer panel and agent API share one project stack. Drawing commands target the active visible, unlocked layer. Pixel and canvas read operations return the composite of visible layers. Layer actions participate in undo/redo, autosave and revision protection; deleting the final remaining layer is rejected.
+
 ## Batches and transactions
 
 For sprite construction, batch related operations so the artist can undo the whole pass:
@@ -116,4 +145,4 @@ The project library uses browser-local IndexedDB. JSON export is the portable ba
 
 ## Current limits
 
-The current editor UI still exposes one editable layer and one frame. The project schema can store multiple layers and frames, but layer and timeline editing are not yet implemented. Agent commands currently target the visible active canvas cel. The drawing API will be extended as those editing features become real UI capabilities.
+The editor currently exposes editable layers but still only one animation frame. Layer-aware agent commands share the visible stack and active cel. Frame/timeline editing is not yet available.
