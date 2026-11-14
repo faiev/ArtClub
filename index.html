@@ -758,7 +758,7 @@ const PALETTE_SETS = {
   mono: ["#161b1e","#343b3e","#515a5d","#6d7779","#929b9b","#b5bcba","#d8dc d5".replaceAll(" ",""),"#f3f3ec"]
 };
 let w=24,h=24,pixels=[],palette=DEFAULT_PALETTE.slice(),selected=8,tool="brush",projectName="Untitled artwork",zoom=1;
-let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,saveTimer=null,focusedIndex=0;
+let undoStack=[],redoStack=[],drawing=false,strokeStart=null,strokeLast=null,saveTimer=null,persistInFlight=null,focusedIndex=0;
 let selection=null,selectionPreview=null,selectionDragMode=null,selectionClipboard=null;
 let isPlaying=false,playbackFrameId=null,playbackTimer=null,playbackDirection=1,playbackMode="loop",onionSkinEnabled=false;
 let projectDoc=null;
@@ -1057,10 +1057,20 @@ async function commitSafeEditResult(result,previousProject,target,successMessage
   const bodyWasInert=document.body.inert;
   let persisted=false,published=false;
   safeEditBusy=true;
+  clearTimeout(saveTimer);saveTimer=null;
   document.body.inert=true;
   document.body.setAttribute("aria-busy","true");
   $("saveState").textContent="SAVING SAFE EDIT…";
   try{
+    if(persistInFlight)await persistInFlight;
+    const targetStillCurrent=documentRevision===target.revision&&projectDoc&&
+      projectDoc.id===target.projectId&&
+      projectDoc.activeLayerId===target.layerId&&
+      projectDoc.activeFrameId===target.frameId;
+    if(!targetStillCurrent){
+      toast("The project changed before this clear could be saved. No edit was applied; retry on the current target.");
+      return false;
+    }
     if(projectStorage){
       await projectStorage.saveProject(nextProject);
       persisted=true;
@@ -1073,15 +1083,7 @@ async function commitSafeEditResult(result,previousProject,target,successMessage
       projectDoc.activeLayerId===target.layerId&&
       projectDoc.activeFrameId===target.frameId;
     if(!targetStillCurrent){
-      const latest=createSafeEditProject();
-      if(projectStorage){
-        await projectStorage.saveProject(latest);
-        writeLocalBackup(latest);
-      }else if(!writeLocalBackup(latest)){
-        throw new Error("The current project changed during the save and its local backup could not be refreshed.");
-      }
-      toast("The project changed while this clear was being saved. No stale clear was applied; retry on the current target.");
-      return false;
+      throw new Error("The edit target changed during its serialized save. The safe edit was not published.");
     }
     remember();
     published=true;
@@ -1639,23 +1641,29 @@ async function saveCurrentProject(){
 }
 async function persistNow(){
   clearTimeout(saveTimer);saveTimer=null;
+  if(safeEditBusy)return false;
+  const pending=saveCurrentProject();
+  persistInFlight=pending;
   try{
-    const saved=await saveCurrentProject();
+    const saved=await pending;
     $("saveState").textContent=saved?(projectStorage?"SAVED IN PROJECT LIBRARY":"LOCAL BACKUP ONLY"):"SAVE FAILED · EXPORT JSON";
     return saved;
   }catch(error){
     $("saveState").textContent="SAVE FAILED · EXPORT JSON";
     console.error("Project save failed:",error);
     return false;
+  }finally{
+    if(persistInFlight===pending)persistInFlight=null;
   }
 }
 function scheduleSave(){
+  if(safeEditBusy)return;
   documentRevision+=1;
   $("saveState").textContent="SAVING LOCALLY…";
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     const saved=await persistNow();
-    if(!saved)toast("Could not save this project. Export a JSON backup.");
+    if(!saved&&!safeEditBusy)toast("Could not save this project. Export a JSON backup.");
   },280);
 }
 function toast(message){
