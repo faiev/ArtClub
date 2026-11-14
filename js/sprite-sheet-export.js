@@ -207,10 +207,9 @@
       }
     }
 
-    const sourceTotal = project.cels.reduce(function (sum, cel) {
-      return sum + (cel && Array.isArray(cel.pixels) ? cel.pixels.length : 0);
-    }, 0);
-    const total = Math.max(1, project.cels.length + sourceTotal);
+    // Every valid cel has exactly width × height source pixels, so calculate
+    // progress without a separate synchronous reduce over the complete cel list.
+    const total = Math.max(1, project.cels.length * (1 + width * height));
     let completed = 0;
     const celKeys = new Set();
     for (let celIndex = 0; celIndex < project.cels.length; celIndex += 1) {
@@ -225,6 +224,11 @@
         throw new Error("Each cel must contain exactly width × height pixels.");
       }
       completed += 1;
+      if (completed % control.yieldEvery === 0) {
+        control.report("validation", asyncPhaseProgress(0, 5, completed, total),
+          completed, total, "composition");
+        await control.yieldToHost("composition");
+      }
       for (let pixelIndex = 0; pixelIndex < cel.pixels.length; pixelIndex += 1) {
         const color = cel.pixels[pixelIndex];
         if (color !== null && (typeof color !== "string" || !HEX.test(color))) {
@@ -797,7 +801,6 @@
     const control = createAsyncControl(options);
     control.check("before-start");
     const sheet = await buildSpriteSheetAsync(project, options, control);
-    control.check("finalization");
     control.check("encoding");
     const blob = await renderSpriteSheetPNGAsync(sheet, options, control);
     control.check("finalization");
