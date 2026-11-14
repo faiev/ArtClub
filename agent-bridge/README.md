@@ -33,7 +33,7 @@ Environment options:
 - `ARTCLUB_HEADLESS=1`: run Chromium without a visible window.
 - `ARTCLUB_PROFILE_DIR`: choose a different persistent browser profile directory
 
-`ARTCLUB_URL` must use HTTPS, except that plain HTTP is accepted for loopback development URLs (`localhost`, `127.0.0.1` or `::1`). URLs containing embedded credentials are rejected. Only point it at an Art Club deployment you trust: the bridge calls the `window.onePixelStudio` API exposed by that page, so a custom HTTPS origin is part of your local trust boundary..
+`ARTCLUB_URL` must use HTTPS, except that plain HTTP is accepted for loopback development URLs (`localhost`, `127.0.0.1` or `::1`). URLs containing embedded credentials are rejected. Only point it at an Art Club deployment you trust: the bridge calls the `window.onePixelStudio` API exposed by that page, so a custom HTTPS origin is part of your local trust boundary.
 
 ## Connect an MCP client
 
