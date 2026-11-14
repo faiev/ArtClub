@@ -131,3 +131,19 @@ If a caller supplies only one revision object, omits a token, or supplies a non-
 `selection` is optional. Omitted or explicit `null` means no selection; otherwise it must be a non-empty integer rectangle wholly inside the canvas. Invalid coordinates, dimensions and bounds return `SELECTION_INVALID`.
 
 Canvas dimensions are bounded at 512 × 512. Layer opacity must be finite and within [0, 1]; an opacity of zero returns `LAYER_ZERO_OPACITY`. Target frame names and durations are checked before a cel is granted.
+
+
+## AC-056: immutable safe-edit operations
+
+`js/safe-edit-operations.js` builds a complete new project state only after the shared layer guard and all operation payloads pass validation. The caller's project, target cel and supplied buffers are never mutated.
+
+Available helpers:
+
+- `clearActiveCel(project, options?)`: clears the whole active cel when no selection is supplied, or only the validated selection rectangle.
+- `applyPixelPatches(project, patches, options?)`: applies a batch of unique `{x, y, color}` patches. Patches must be integer canvas coordinates and use `null` or a valid HEX color. If a selection is supplied, every patch must fall inside it.
+- `replaceActiveCel(project, pixels, options?)`: replaces the active cel only after validating exact canvas length, own array slots, and every null/HEX value.
+- `applyResultBuffer(project, pixels, options?)`: the same validated replacement boundary for symmetry, outline, fill or other algorithm result buffers.
+
+Every helper delegates target, opacity, selection, canvas and optional revision checks to `ArtClubLayerEditGuard`. A success returns `{ ok: true, project, layerId, frameId, changedPixels }`, where `project` is a deep detached copy with the complete new cel. A denial returns `{ ok: false, reason, message }` and never returns a partially changed project.
+
+The module preserves sparse array shape during deep cloning and rejects cyclic/non-data project values with `PROJECT_CLONE_FAILED`. It has no storage, UI, browser API or network side effects.
