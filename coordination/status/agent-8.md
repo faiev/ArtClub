@@ -126,11 +126,11 @@ Main subsequently advanced with coordination/status and integration-plan changes
 ### Scope and source of truth
 - Assignment: branch/PR dependency inventory for #16/#27/#33/#39/#45/#53/#56/#60/#78/#94 and palette-related refs; determine whether any palette work blocks current UI-02 image import.
 - Assignment section: `coordination/BOARD.md`, introduced by commit `84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa`.
-- Latest `main` verified immediately before this report: `416264c512f60966715bd5273425838e3f15fcad`.
+- Main moved during the inventory. The initial pre-write fetch returned `416264c512f60966715bd5273425838e3f15fcad`; the comparison refresh addendum below records the exact SHA returned by the refreshed compare calls.
 - Branch/PR work was read-only. No code, branch ref, PR state, or other agent file was modified.
 
 ### PR / branch dependency inventory
-All listed open PRs target `main`. Ahead/behind figures below are comparisons against the current main SHA above; merge base for #27/#33/#39/#45/#53/#56/#60 is `dafd5471cd9e497ccbe79ae9f158a334910c5c6a`, and for #94 is `1e45961d57cf3422b63c549461000b205e285685`.
+All listed open PRs target `main`. The initial ahead/behind table is historical; the comparison refresh addendum below supersedes those figures and names the exact compare-base SHA. Merge base for #27/#33/#39/#45/#53/#56/#60 is `dafd5471cd9e497ccbe79ae9f158a334910c5c6a`, and for #94 is `1e45961d57cf3422b63c549461000b205e285685`.
 
 | PR | State | Branch @ current head | Ahead / behind | Unique branch files | Exact-head CI |
 |---|---|---|---:|---|---|
