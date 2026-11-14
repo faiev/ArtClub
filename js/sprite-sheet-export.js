@@ -122,6 +122,313 @@
     ];
   }
 
+  class ExportAbortError extends Error {
+    constructor(stage) {
+      super("Export was aborted during " + stage + ".");
+      this.name = "ExportAbortError";
+      this.code = "EXPORT_ABORTED";
+      this.stage = stage;
+    }
+  }
+
+  function createAsyncControl(options) {
+    const signal = options.signal;
+    if (signal !== undefined && (!signal || typeof signal.aborted !== "boolean")) {
+      throw new TypeError("signal must be an AbortSignal-like object with an aborted boolean.");
+    }
+    const onProgress = options.onProgress;
+    if (onProgress !== undefined && typeof onProgress !== "function") {
+      throw new TypeError("onProgress must be a function when provided.");
+    }
+    const yieldEvery = options.yieldEvery === undefined ? 8192 : options.yieldEvery;
+    assertInteger(yieldEvery, "Async yieldEvery", 1, 65536);
+    let lastProgress = 0;
+    return {
+      signal: signal,
+      yieldEvery: yieldEvery,
+      check(stage) {
+        if (signal && signal.aborted) throw new ExportAbortError(stage);
+      },
+      report(phase, progress, completed, total, stage) {
+        const next = Math.max(lastProgress, Math.min(100, progress));
+        lastProgress = next;
+        if (onProgress) onProgress({
+          phase: phase,
+          progress: next,
+          completed: completed,
+          total: total
+        });
+        this.check(stage);
+      },
+      async yieldToHost(stage) {
+        await new Promise(function (resolve) { setTimeout(resolve, 0); });
+        this.check(stage);
+      }
+    };
+  }
+
+  function asyncPhaseProgress(start, end, completed, total) {
+    return total > 0 ? start + (end - start) * (completed / total) : end;
+  }
+
+  async function assertProjectAsync(project, control) {
+    control.check("before-start");
+    control.report("validation", 0, 0, 1, "before-start");
+    if (!isPlainObject(project)) throw new Error("Project must be an object.");
+    if (project.format !== "one-pixel-studio" || project.version !== 2) {
+      throw new Error("Sprite-sheet export requires a version 2 One Pixel Studio project.");
+    }
+    if (!isPlainObject(project.canvas)) throw new Error("Project canvas settings are missing.");
+    const width = project.canvas.width;
+    const height = project.canvas.height;
+    assertInteger(width, "Canvas width", 1, MAX_DIMENSION);
+    assertInteger(height, "Canvas height", 1, MAX_DIMENSION);
+    if (!Array.isArray(project.frames) || project.frames.length < 1 || project.frames.length > MAX_FRAMES) {
+      throw new Error("Project must contain 1–" + MAX_FRAMES + " frames.");
+    }
+    if (!Array.isArray(project.layers) || project.layers.length < 1) {
+      throw new Error("Project must contain at least one layer.");
+    }
+    if (!Array.isArray(project.cels)) throw new Error("Project cels must be an array.");
+
+    const frameIds = assertUniqueIds(project.frames, "Frame");
+    const layerIds = assertUniqueIds(project.layers, "Layer");
+    for (let index = 0; index < project.frames.length; index += 1) {
+      const frame = project.frames[index];
+      if (!frame || typeof frame.name !== "string" || !frame.name.trim()) {
+        throw new Error("Every frame needs a name.");
+      }
+      assertInteger(frame.durationMs, "Frame duration", 10, 60000);
+    }
+    for (let index = 0; index < project.layers.length; index += 1) {
+      const layer = project.layers[index];
+      if (!layer || typeof layer.visible !== "boolean") {
+        throw new Error("Layer visibility must be boolean.");
+      }
+    }
+
+    // Every valid cel has exactly width × height source pixels, so calculate
+    // progress without a separate synchronous reduce over the complete cel list.
+    const total = Math.max(1, project.cels.length * (1 + width * height));
+    let completed = 0;
+    const celKeys = new Set();
+    for (let celIndex = 0; celIndex < project.cels.length; celIndex += 1) {
+      const cel = project.cels[celIndex];
+      if (!cel || !layerIds.has(cel.layerId) || !frameIds.has(cel.frameId)) {
+        throw new Error("Every cel must reference an existing layer and frame.");
+      }
+      const key = cel.layerId + "::" + cel.frameId;
+      if (celKeys.has(key)) throw new Error("A layer/frame pair cannot contain duplicate cels.");
+      celKeys.add(key);
+      if (!Array.isArray(cel.pixels) || cel.pixels.length !== width * height) {
+        throw new Error("Each cel must contain exactly width × height pixels.");
+      }
+      completed += 1;
+      if (completed % control.yieldEvery === 0) {
+        control.report("validation", asyncPhaseProgress(0, 5, completed, total),
+          completed, total, "composition");
+        await control.yieldToHost("composition");
+      }
+      for (let pixelIndex = 0; pixelIndex < cel.pixels.length; pixelIndex += 1) {
+        const color = cel.pixels[pixelIndex];
+        if (color !== null && (typeof color !== "string" || !HEX.test(color))) {
+          throw new Error("Cel pixels must be transparent or valid HEX colors.");
+        }
+        completed += 1;
+        if (completed % control.yieldEvery === 0) {
+          control.report("validation", asyncPhaseProgress(0, 5, completed, total),
+            completed, total, "composition");
+          await control.yieldToHost("composition");
+        }
+      }
+    }
+    control.report("validation", 5, total, total, "composition");
+    return { width: width, height: height, frameIds: frameIds, layerIds: layerIds };
+  }
+
+  async function buildSpriteSheetAsync(project, options, control) {
+    options = options || {};
+    const ownControl = !control;
+    control = control || createAsyncControl(options);
+    control.check("before-start");
+    const dimensions = await assertProjectAsync(project, control);
+    control.check("composition");
+    const width = dimensions.width;
+    const height = dimensions.height;
+    const framesById = new Map(project.frames.map(function (frame) { return [frame.id, frame]; }));
+    const frameIds = resolveSelection(
+      options.frameIds, dimensions.frameIds,
+      project.frames.map(function (frame) { return frame.id; }), "Frame IDs"
+    );
+    const defaultLayerIds = project.layers.filter(function (layer) { return layer.visible; })
+      .map(function (layer) { return layer.id; });
+    const selectedLayerIds = resolveSelection(options.layerIds, dimensions.layerIds, defaultLayerIds, "Layer IDs");
+    const orderedLayerIds = project.layers.filter(function (layer) {
+      return selectedLayerIds.includes(layer.id);
+    }).map(function (layer) { return layer.id; });
+
+    const layout = options.layout === undefined ? "horizontal" : options.layout;
+    if (!["horizontal", "vertical", "grid"].includes(layout)) {
+      throw new Error("Layout must be horizontal, vertical or grid.");
+    }
+    const margin = options.margin === undefined ? 0 : options.margin;
+    const spacing = options.spacing === undefined ? 0 : options.spacing;
+    assertInteger(margin, "Margin", 0, 4096);
+    assertInteger(spacing, "Spacing", 0, 4096);
+
+    let columns;
+    let rows;
+    if (layout === "horizontal") {
+      if (options.rows !== undefined) throw new Error("Grid rows can only be specified when layout is grid.");
+      columns = frameIds.length;
+      rows = 1;
+    } else if (layout === "vertical") {
+      if (options.rows !== undefined) throw new Error("Grid rows can only be specified when layout is grid.");
+      columns = 1;
+      rows = frameIds.length;
+    } else {
+      const requestedColumns = options.columns;
+      const requestedRows = options.rows;
+      if (requestedColumns !== undefined) assertInteger(requestedColumns, "Grid columns", 1, frameIds.length);
+      if (requestedRows !== undefined) assertInteger(requestedRows, "Grid rows", 1, frameIds.length);
+      if (requestedColumns !== undefined && requestedRows !== undefined) {
+        if (requestedColumns * requestedRows < frameIds.length) {
+          throw new Error("Grid rows × columns must provide at least one cell for every selected frame.");
+        }
+        columns = requestedColumns;
+        rows = requestedRows;
+      } else if (requestedColumns !== undefined) {
+        columns = requestedColumns;
+        rows = Math.ceil(frameIds.length / columns);
+      } else if (requestedRows !== undefined) {
+        rows = requestedRows;
+        columns = Math.ceil(frameIds.length / rows);
+      } else {
+        columns = Math.ceil(Math.sqrt(frameIds.length));
+        rows = Math.ceil(frameIds.length / columns);
+      }
+    }
+
+    const sheetWidth = margin * 2 + columns * width + Math.max(0, columns - 1) * spacing;
+    const sheetHeight = margin * 2 + rows * height + Math.max(0, rows - 1) * spacing;
+    const pixelCount = sheetWidth * sheetHeight;
+    if (sheetWidth > MAX_CANVAS_SIDE || sheetHeight > MAX_CANVAS_SIDE) {
+      throw new Error("Sprite sheet dimensions exceed the safe canvas side limit of " + MAX_CANVAS_SIDE + " pixels.");
+    }
+    const maxPixels = options.maxPixels === undefined ? MAX_EXPORT_PIXELS : options.maxPixels;
+    assertInteger(maxPixels, "Maximum export pixels", 1, MAX_EXPORT_PIXELS);
+    if (!Number.isSafeInteger(pixelCount) || pixelCount > maxPixels) {
+      throw new Error("Sprite sheet is too large (" + sheetWidth + " × " + sheetHeight + "). Reduce the frame count, margin or spacing.");
+    }
+    const backgroundColor = options.backgroundColor === undefined ? null : options.backgroundColor;
+    if (backgroundColor !== null && (typeof backgroundColor !== "string" || !HEX.test(backgroundColor))) {
+      throw new Error("Background color must be null or a valid #RRGGBB color.");
+    }
+
+    const rgba = new Uint8ClampedArray(pixelCount * 4);
+    const totalWork = pixelCount + frameIds.length * orderedLayerIds.length * width * height;
+    let completed = 0;
+    if (backgroundColor !== null) {
+      const rgb = parseHex(backgroundColor);
+      for (let pixel = 0; pixel < pixelCount; pixel += 1) {
+        const offset = pixel * 4;
+        rgba[offset] = rgb[0];
+        rgba[offset + 1] = rgb[1];
+        rgba[offset + 2] = rgb[2];
+        rgba[offset + 3] = 255;
+        completed += 1;
+        if (completed % control.yieldEvery === 0) {
+          control.report("composition", asyncPhaseProgress(5, 12, completed, totalWork),
+            completed, totalWork, "composition");
+          await control.yieldToHost("composition");
+        }
+      }
+    } else {
+      completed += pixelCount;
+    }
+
+    const celsByKey = new Map(project.cels.map(function (cel) {
+      return [cel.layerId + "::" + cel.frameId, cel];
+    }));
+    const colorCache = new Map();
+    function rgbFor(color) {
+      if (!colorCache.has(color)) colorCache.set(color, parseHex(color));
+      return colorCache.get(color);
+    }
+    const frameRects = [];
+    let sourcePixelsCompleted = 0;
+    const sourcePixelsTotal = frameIds.length * orderedLayerIds.length * width * height;
+    for (let frameIndex = 0; frameIndex < frameIds.length; frameIndex += 1) {
+      const frameId = frameIds[frameIndex];
+      const frame = framesById.get(frameId);
+      const column = frameIndex % columns;
+      const row = Math.floor(frameIndex / columns);
+      const x = margin + column * (width + spacing);
+      const y = margin + row * (height + spacing);
+      frameRects.push({
+        index: frameIndex,
+        frameId: frame.id,
+        name: frame.name,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+        durationMs: frame.durationMs
+      });
+
+      for (let layerIndex = 0; layerIndex < orderedLayerIds.length; layerIndex += 1) {
+        const layerId = orderedLayerIds[layerIndex];
+        const cel = celsByKey.get(layerId + "::" + frameId);
+        const source = cel ? cel.pixels : null;
+        for (let sourceIndex = 0; sourceIndex < width * height; sourceIndex += 1) {
+          if (source) {
+            const color = source[sourceIndex];
+            if (color !== null) {
+              const rgb = rgbFor(color);
+              const pixelX = sourceIndex % width;
+              const pixelY = Math.floor(sourceIndex / width);
+              const targetOffset = ((y + pixelY) * sheetWidth + x + pixelX) * 4;
+              rgba[targetOffset] = rgb[0];
+              rgba[targetOffset + 1] = rgb[1];
+              rgba[targetOffset + 2] = rgb[2];
+              rgba[targetOffset + 3] = 255;
+            }
+          }
+          sourcePixelsCompleted += 1;
+          completed += 1;
+          if (sourcePixelsCompleted % control.yieldEvery === 0) {
+            control.report("composition",
+              asyncPhaseProgress(12, 65, sourcePixelsCompleted, sourcePixelsTotal),
+              sourcePixelsCompleted, sourcePixelsTotal, "composition");
+            await control.yieldToHost("composition");
+          }
+        }
+      }
+    }
+
+    const sheet = {
+      format: FORMAT,
+      version: VERSION,
+      width: sheetWidth,
+      height: sheetHeight,
+      frameWidth: width,
+      frameHeight: height,
+      layout: layout,
+      columns: columns,
+      rows: rows,
+      margin: margin,
+      spacing: spacing,
+      backgroundColor: backgroundColor,
+      frameCount: frameRects.length,
+      frames: frameRects,
+      rgba: rgba
+    };
+    validateBuiltSheet(sheet);
+    control.report("composition", 65, sourcePixelsTotal, sourcePixelsTotal, "composition");
+    if (ownControl) control.report("completed", 100, 1, 1, "finalization");
+    return sheet;
+  }
+
   function buildSpriteSheet(project, options) {
     options = options || {};
     const dimensions = assertProject(project);
@@ -421,6 +728,46 @@
     throw new Error("This canvas cannot encode PNG images.");
   }
 
+  async function renderSpriteSheetPNGAsync(sheet, options, control) {
+    options = options || {};
+    const ownControl = !control;
+    control = control || createAsyncControl(options);
+    control.check("before-start");
+    validateBuiltSheet(sheet);
+    control.check("encoding");
+    control.report("render", 66, 0, 1, "encoding");
+    const canvasFactory = options.canvasFactory || defaultCanvasFactory;
+    const canvas = canvasFactory(sheet.width, sheet.height);
+    if (!canvas || typeof canvas.getContext !== "function") {
+      throw new Error("Canvas factory must return a canvas-like object.");
+    }
+    const context = canvas.getContext("2d", { alpha: true });
+    if (!context || typeof context.createImageData !== "function" || typeof context.putImageData !== "function") {
+      throw new Error("A 2D canvas context with ImageData support is required.");
+    }
+    const imageData = context.createImageData(sheet.width, sheet.height);
+    const total = sheet.rgba.length;
+    const chunk = Math.max(4, Math.floor(control.yieldEvery / 4) * 4);
+    for (let offset = 0; offset < total; offset += chunk) {
+      control.check("encoding");
+      const end = Math.min(total, offset + chunk);
+      imageData.data.set(sheet.rgba.subarray(offset, end), offset);
+      control.report("render", asyncPhaseProgress(66, 88, end, total), end, total, "encoding");
+      if (end < total) await control.yieldToHost("encoding");
+    }
+    control.check("encoding");
+    context.putImageData(imageData, 0, 0);
+    control.report("encoding", 90, 0, 1, "encoding");
+    // Browser PNG codecs are a single platform call and cannot be interrupted internally.
+    const blob = await canvasToBlob(canvas);
+    control.check("finalization");
+    if (!blob || (blob.type && blob.type !== "image/png")) {
+      throw new Error("PNG encoder returned an unexpected image type.");
+    }
+    if (ownControl) control.report("completed", 100, 1, 1, "finalization");
+    return blob;
+  }
+
   async function renderSpriteSheetPNG(sheet, options) {
     options = options || {};
     validateBuiltSheet(sheet);
@@ -448,6 +795,21 @@
     return { blob: blob, metadata: metadata, sheet: sheet };
   }
 
+  async function exportSpriteSheetAsync(project, options) {
+    options = options || {};
+    if (!isPlainObject(options)) throw new TypeError("Export options must be an object.");
+    const control = createAsyncControl(options);
+    control.check("before-start");
+    const sheet = await buildSpriteSheetAsync(project, options, control);
+    control.check("encoding");
+    const blob = await renderSpriteSheetPNGAsync(sheet, options, control);
+    control.check("finalization");
+    const metadata = buildMetadata(sheet, options.imageFilename);
+    control.check("finalization");
+    control.report("completed", 100, 1, 1, "finalization");
+    return { blob: blob, metadata: metadata, sheet: sheet };
+  }
+
   return Object.freeze({
     FORMAT: FORMAT,
     VERSION: VERSION,
@@ -456,6 +818,10 @@
     buildSpriteSheet: buildSpriteSheet,
     buildMetadata: buildMetadata,
     renderSpriteSheetPNG: renderSpriteSheetPNG,
-    exportSpriteSheet: exportSpriteSheet
+    exportSpriteSheet: exportSpriteSheet,
+    buildSpriteSheetAsync: buildSpriteSheetAsync,
+    renderSpriteSheetPNGAsync: renderSpriteSheetPNGAsync,
+    exportSpriteSheetAsync: exportSpriteSheetAsync,
+    ExportAbortError: ExportAbortError
   });
 });

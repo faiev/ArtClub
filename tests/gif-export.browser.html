@@ -40,6 +40,86 @@
           throw new Error("The exported blob does not begin with GIF89a.");
         }
 
+        // Async output must be byte-identical to the synchronous encoder.
+        const asyncProgress = [];
+        const asyncExported = await window.ArtClubGIFExporter.exportGIFAsync(project, {
+          loopCount: 0,
+          yieldEvery: 1,
+          onProgress(event) { asyncProgress.push(event); }
+        });
+        const asyncBytes = new Uint8Array(await asyncExported.blob.arrayBuffer());
+        if (asyncExported.blob.type !== "image/gif" ||
+            asyncBytes.length !== bytes.length ||
+            asyncBytes.some((value, index) => value !== bytes[index])) {
+          throw new Error("Async GIF bytes did not exactly match synchronous encoder output.");
+        }
+        for (let index = 1; index < asyncProgress.length; index += 1) {
+          if (asyncProgress[index].progress < asyncProgress[index - 1].progress) {
+            throw new Error("Async GIF progress moved backwards.");
+          }
+        }
+        if (!asyncProgress.length || asyncProgress[asyncProgress.length - 1].progress !== 100) {
+          throw new Error("Async GIF progress did not finish at 100%.");
+        }
+
+        async function expectAsyncAbort(promise, stage, label) {
+          try {
+            await promise;
+          } catch (error) {
+            if (error.code !== "EXPORT_ABORTED" || error.stage !== stage) {
+              throw new Error(label + " returned the wrong cancellation error: " +
+                error.name + "/" + error.code + "/" + error.stage);
+            }
+            return;
+          }
+          throw new Error(label + " unexpectedly returned a successful export.");
+        }
+        const earlyAbort = new AbortController();
+        earlyAbort.abort();
+        await expectAsyncAbort(
+          window.ArtClubGIFExporter.encodeGIFAsync(project, { signal: earlyAbort.signal }),
+          "before-start",
+          "Early async GIF cancellation"
+        );
+
+        const composeAbort = new AbortController();
+        await expectAsyncAbort(
+          window.ArtClubGIFExporter.encodeGIFAsync(project, {
+            signal: composeAbort.signal,
+            yieldEvery: 1,
+            onProgress(event) {
+              if (event.phase === "composition" && event.progress > 5) composeAbort.abort();
+            }
+          }),
+          "composition",
+          "Mid-composition async GIF cancellation"
+        );
+
+        const encodeAbort = new AbortController();
+        await expectAsyncAbort(
+          window.ArtClubGIFExporter.encodeGIFAsync(project, {
+            signal: encodeAbort.signal,
+            yieldEvery: 1,
+            onProgress(event) {
+              if (event.phase === "encoding") encodeAbort.abort();
+            }
+          }),
+          "encoding",
+          "Mid-LZW async GIF cancellation"
+        );
+
+        const finalizeAbort = new AbortController();
+        await expectAsyncAbort(
+          window.ArtClubGIFExporter.encodeGIFAsync(project, {
+            signal: finalizeAbort.signal,
+            onProgress(event) {
+              if (event.phase === "finalizing") finalizeAbort.abort();
+            }
+          }),
+          "finalization",
+          "Late async GIF cancellation"
+        );
+
         if (typeof ImageDecoder === "function") {
           const decoder = new ImageDecoder({ data: bytes, type: "image/gif" });
           await decoder.tracks.ready;
@@ -206,6 +286,12 @@
               paletteOverflowPixel58: pixel58,
               longAnimationFrameCount: longTrack.frameCount,
               sampledLongAnimationPixels: sampledFrames
+            },
+            asyncExport: {
+              byteIdenticalToSync: true,
+              progressEvents: asyncProgress.length,
+              finalProgress: asyncProgress[asyncProgress.length - 1].progress,
+              cancellationStages: ["before-start", "composition", "encoding", "finalization"]
             }
           });
           document.body.dataset.result = "PASS";
