@@ -15,10 +15,9 @@ The active editor still uses the DOM renderer. No AC-012 integration is authoriz
 ### Branch
 `agent/renderer-browser-validation`
 
-Base:
-`1ba0aaee597d5bf11083c97a03a312c7ee434530`
+Branch was created from main at `1ba0aaee597d5bf11083c97a03a312c7ee434530`. Main has since advanced with the merged coordination system; merge the latest main into this branch before implementation, without force-pushing.
 
-This dedicated branch has already been created from current main.
+This dedicated branch already exists.
 
 ### Goal
 Add a repeatable real-browser validation suite for the isolated Canvas renderer and collect benchmark measurements with explicit environment metadata.
