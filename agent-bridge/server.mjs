@@ -402,7 +402,7 @@ async function main() {
     "artclub_list_frames",
     "List animation frames in timeline order, including frame names, durations and active state.",
     z.object({}),
-    async () => textResult(await invoke("list_frames"))
+    async () => textResult({ frames: await invoke("list_frames") })
   );
 
   registerTool(
