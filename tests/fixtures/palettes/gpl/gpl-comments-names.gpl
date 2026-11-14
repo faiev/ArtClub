@@ -1,0 +1,8 @@
+GIMP Palette
+Name: Warm study
+Columns: 3
+
+# Comments are ignored without changing entry order.
+255 32 16 Ember
+220 96 40 Clay
+180 120 60 Sand

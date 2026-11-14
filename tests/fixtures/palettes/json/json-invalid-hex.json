@@ -1,0 +1,6 @@
+{
+  "format": "one-pixel-studio-palette",
+  "version": 1,
+  "name": "Invalid HEX",
+  "colors": [{ "hex": "#GG0000" }]
+}
