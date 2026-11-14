@@ -59,6 +59,9 @@
       draw_rectangle: function (args) {
         return executeOne(Object.assign({ type: "draw_rectangle" }, args || {}), args || {});
       },
+      draw_ellipse: function (args) {
+        return executeOne(Object.assign({ type: "draw_ellipse" }, args || {}), args || {});
+      },
       fill: function (args) {
         return executeOne(Object.assign({ type: "fill" }, args || {}), args || {});
       },
