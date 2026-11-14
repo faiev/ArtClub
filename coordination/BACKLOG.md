@@ -18,15 +18,13 @@ The coordinator owns task assignment and prioritization. The active tasks are in
 
 ### AC-012 — Integrate the Canvas 2D renderer
 - Candidate: Agent 2
-- State: QUEUED
-- Depends on acceptance of PR #6 and a coordinator-approved UI file lock.
+- State: QUEUED — blocked on AC-010 correctness corrections, browser parity and measured benchmark evidence.
 - Integrate incrementally, preserve a fallback renderer, verify pointer mapping, selection, grid, onion skin and accessibility, and test on large canvases.
 
 ### AC-013 — Add keyboard shortcuts and command discoverability
 - Candidate: Agent 5
-- State: QUEUED
-- Depends on accepted UX implementation plan and coordinator review.
-- Define shortcuts, conflict handling, help/discoverability, and acceptance tests before implementation.
+- State: IN_PROGRESS as specification task AC-026; implementation remains queued.
+- Define shortcuts, conflict handling, help/discoverability, and acceptance tests before implementation. Do not edit app source in the specification phase.
 
 ### AC-014 — Add frame thumbnails and cel workflow improvements
 - Candidate: Agent 3
@@ -36,14 +34,14 @@ The coordinator owns task assignment and prioritization. The active tasks are in
 
 ## Future candidates
 
-New backlog items must include a concrete user problem, scope, acceptance criteria, dependencies, file ownership, and a test plan. Do not add features merely because another editor has them.
+New backlog items must include a concrete user problem, scope, acceptance criteria, dependencies, file ownership, and a test plan.
 
 
 ## Additional workstreams — Agents 6–10
 
 ### AC-020 — Integrate the shared layer-edit safety guard
 - Candidate: Agent 6
-- State: QUEUED after AC-015 is reviewed.
+- State: QUEUED after AC-015 is reviewed and accepted.
 - Wire the tested guard into Clear, image import and browser Agent API edit paths. The coordinator must assign a single integration owner and lock the affected shared files before implementation.
 - Verify with real Chromium tests that hidden/locked layers cannot be changed through any edit path.
 
@@ -66,3 +64,24 @@ New backlog items must include a concrete user problem, scope, acceptance criter
 - Candidate: Agent 9
 - State: QUEUED after AC-018 is reviewed.
 - Consider optional batch inspection, structured diff between two project versions and CI artifact diagnostics. Do not modify project files or introduce auto-repair without a separate explicit task.
+
+## Newly assigned coordination follow-ups
+
+### AC-025 — Audit remaining frame-aware QA coverage in PR #1
+- Owner: Agent 1
+- State: ASSIGNED
+- Goal: After PR #10 merged, compare the open PR #1 diff against current main and identify which frame-aware persistence/import/export assertions are unique, already covered, redundant or unsafe to merge.
+- Scope: Read-only review of PR #1 and current main. Do not edit `agent-bridge/e2e-test.mjs`, another agent's branch or any application source. Agent 4 owns the shared E2E file during PR #8 reconciliation.
+- Acceptance criteria: concise report with exact unique assertions, overlaps with PR #10/#8, recommended keep/drop list, branch divergence and a safe integration sequence.
+- Handoff: update only `coordination/status/agent-1.md`; no new PR is required for this read-only review.
+
+### AC-026 — Keyboard shortcut and command-discoverability specification
+- Owner: Agent 5
+- State: ASSIGNED
+- Goal: Turn AC-013 into an implementation-ready, platform-aware shortcut and discoverability specification.
+- Branch: `agent/keyboard-shortcuts-plan`, created from main commit `57b4da3cf9be2a9a4b1c98fea942729e42314d54`.
+- Allowed files: `KEYBOARD_SHORTCUTS_PLAN.md` only, plus the agent's own coordination status file.
+- Requirements: inspect existing keyboard handlers; identify browser/OS reserved combinations; define Windows/Linux/macOS modifier policy; specify shortcuts for common tools, undo/redo, selection, layer/frame navigation and playback; define conflict/focus rules for text fields and dialogs; specify discoverable help/command reference behavior; include acceptance tests for keyboard-only use and accessibility.
+- Constraints: documentation/specification only. Do not modify `index.html`, application JS, CSS or tests. Call out shared-file ownership needed for a later implementation.
+- Acceptance criteria: every proposed shortcut has context, platform mapping and conflict handling; no browser-reserved shortcut is silently intercepted; test matrix and phased implementation order are included.
+- Handoff: open a draft PR and update only `coordination/status/agent-5.md`.
