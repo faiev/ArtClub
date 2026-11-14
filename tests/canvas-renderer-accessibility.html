@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Canvas renderer visual and accessibility inspection</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 24px; color: #1f2933; font: 14px/1.5 system-ui, sans-serif; }
+  h1 { margin: 0 0 8px; font-size: 23px; }
+  p { max-width: 760px; }
+  .controls { display: flex; gap: 12px; align-items: center; margin: 20px 0; }
+  button { min-height: 36px; padding: 7px 12px; border: 1px solid #49545e; border-radius: 4px; color: #101820; background: #fff; }
+  button:focus-visible { outline: 3px solid #005fcc; outline-offset: 2px; }
+  #viewport { position: relative; display: inline-block; line-height: 0; }
+  #art-canvas { display: block; outline: none; image-rendering: pixelated; }
+  #art-canvas:focus-visible { outline: 3px solid #005fcc; outline-offset: 3px; }
+  /* Example DOM selection/cursor affordance: must never steal the canvas pointer. */
+  #overlay-probe { position: absolute; inset: 0; border: 2px dashed rgba(255, 0, 255, .2); pointer-events: none; }
+  #results { margin-top: 24px; max-width: 900px; padding: 12px; border: 1px solid #b8c2cc; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+  <h1>Canvas renderer visual and accessibility inspection</h1>
+  <p>This isolated fixture checks DPR/backing-store behavior, resize recovery, grid and selection contrast, transparent overlay hit testing, keyboard focus order and repeated teardown. It does not integrate the Canvas renderer into the editor.</p>
+  <div class="controls">
+    <button id="before" type="button">Previous control</button>
+    <div id="viewport">
+      <canvas id="art-canvas" tabindex="0" role="img" aria-label="Pixel artwork canvas, 2 columns by 2 rows. Keyboard focus moves to the canvas; editing commands are not enabled in this inspection fixture."></canvas>
+      <div id="overlay-probe" aria-hidden="true"></div>
+    </div>
+    <button id="after" type="button">Next control</button>
+  </div>
+  <pre id="results" aria-live="polite">Waiting for browser test runner…</pre>
+  <script src="../js/canvas-renderer.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const result = { devicePixelRatio: window.devicePixelRatio, checks: [], failures: [] };
+    function check(name, condition, detail) {
+      (condition ? result.checks : result.failures).push({ name, detail: condition ? undefined : detail });
+    }
+    const canvas = document.getElementById("art-canvas");
+    const overlayProbe = document.getElementById("overlay-probe");
+    canvas.style.width = "99.5px";
+    canvas.style.height = "61.25px";
+    let canvasClicks = 0;
+    let overlayClicks = 0;
+    canvas.addEventListener("click", () => { canvasClicks += 1; });
+    overlayProbe.addEventListener("click", () => { overlayClicks += 1; });
+
+    // clientWidth/clientHeight are integer CSSOM values. Supply the fractional
+    // DOMRect dimensions explicitly so the backing store follows fractional layout.
+    const initialBounds = canvas.getBoundingClientRect();
+    const rendererOptions = { displayWidth: initialBounds.width, displayHeight: initialBounds.height };
+    const renderer = new ArtClubCanvasRenderer.CanvasPixelRenderer(canvas, rendererOptions);
+    const state = {
+      width: 2,
+      height: 2,
+      pixels: ["#202020", "#202020", "#202020", "#202020"],
+      grid: true,
+      gridColor: "rgba(255,255,255,0.95)",
+      selection: { x: 0, y: 0, width: 1, height: 1 },
+      selectionColor: "#ff00ff"
+    };
+    renderer.render(state);
+
+    function inspectBacking(label) {
+      const bounds = canvas.getBoundingClientRect();
+      const expectedWidth = Math.max(1, Math.round(bounds.width * window.devicePixelRatio));
+      const expectedHeight = Math.max(1, Math.round(bounds.height * window.devicePixelRatio));
+      check(label + " backing width follows CSS size × DPR", canvas.width === expectedWidth,
+        "actual=" + canvas.width + " expected=" + expectedWidth + " CSS=" + bounds.width);
+      check(label + " backing height follows CSS size × DPR", canvas.height === expectedHeight,
+        "actual=" + canvas.height + " expected=" + expectedHeight + " CSS=" + bounds.height);
+      check(label + " overlay backing width matches visible canvas", renderer.overlay.width === canvas.width,
+        "overlay=" + renderer.overlay.width + " canvas=" + canvas.width);
+      check(label + " overlay backing height matches visible canvas", renderer.overlay.height === canvas.height,
+        "overlay=" + renderer.overlay.height + " canvas=" + canvas.height);
+      check(label + " renderer reports browser DPR", renderer.getStats().devicePixelRatio === window.devicePixelRatio,
+        "reported=" + renderer.getStats().devicePixelRatio + " actual=" + window.devicePixelRatio);
+    }
+    inspectBacking("initial");
+
+    const expectedArtwork = [
+      32,32,32,255, 32,32,32,255,
+      32,32,32,255, 32,32,32,255
+    ];
+    check("grid and selection do not modify artwork ImageData",
+      JSON.stringify(Array.from(renderer.imageData.data)) === JSON.stringify(expectedArtwork),
+      "renderer ImageData contains overlay pixels");
+
+    const visible = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+    let whiteGridPixels = 0;
+    let magentaSelectionPixels = 0;
+    for (let i = 0; i < visible.length; i += 4) {
+      if (visible[i] > 210 && visible[i + 1] > 210 && visible[i + 2] > 210) whiteGridPixels += 1;
+      if (visible[i] > 200 && visible[i + 1] < 100 && visible[i + 2] > 200) magentaSelectionPixels += 1;
+    }
+    check("high-contrast grid is visibly composited", whiteGridPixels > 0, "white-like pixels=" + whiteGridPixels);
+    check("high-contrast selection is visibly composited", magentaSelectionPixels > 0,
+      "magenta-like pixels=" + magentaSelectionPixels);
+
+    const bounds = canvas.getBoundingClientRect();
+    const mapped = renderer.mapClientToPixel(bounds.left + bounds.width * .75, bounds.top + bounds.height * .75);
+    check("pointer mapping remains in CSS/logical coordinates at any DPR",
+      mapped && mapped.x === 1 && mapped.y === 1 && mapped.i === 3,
+      "mapped=" + JSON.stringify(mapped));
+    check("DOM overlay probe is explicitly pointer-transparent", getComputedStyle(overlayProbe).pointerEvents === "none",
+      "pointer-events=" + getComputedStyle(overlayProbe).pointerEvents);
+
+    window.__canvasInspection = {
+      result,
+      renderer,
+      canvas,
+      getClicks: () => ({ canvasClicks, overlayClicks }),
+      resizeAndInspect() {
+        canvas.style.width = "121.25px";
+        canvas.style.height = "74.5px";
+        const resizedBounds = canvas.getBoundingClientRect();
+        rendererOptions.displayWidth = resizedBounds.width;
+        rendererOptions.displayHeight = resizedBounds.height;
+        const before = { width: canvas.width, height: canvas.height };
+        renderer.render(state);
+        inspectBacking("after resize");
+        check("CSS resize recreates visible backing dimensions",
+          canvas.width !== before.width || canvas.height !== before.height,
+          "before=" + JSON.stringify(before) + " after=" + canvas.width + "×" + canvas.height);
+        check("logical artwork buffer survives display resize",
+          renderer.imageData.width === 2 && renderer.imageData.height === 2,
+          "imageData=" + renderer.imageData.width + "×" + renderer.imageData.height);
+      }
+    };
+    document.documentElement.dataset.inspectionReady = "true";
+    document.getElementById("results").textContent = JSON.stringify(result, null, 2);
+  })();
+  </script>
+</body>
+</html>
