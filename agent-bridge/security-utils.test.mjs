@@ -66,6 +66,15 @@ test("tool error messages strip terminal controls and redact paths and URLs", ()
   assert.equal(output.includes("[URL]"), true);
 });
 
+test("tool error messages redact UNC network paths and mounted-volume paths", () => {
+  const output = sanitizeToolErrorMessage(
+    "failed at \\\\build-host\\users\\private\\profile and /Volumes/PrivateDisk/Users/alice/project"
+  );
+  assert.equal(output.includes("build-host"), false);
+  assert.equal(output.includes("PrivateDisk"), false);
+  assert.equal(output.includes("[local path]"), true);
+});
+
 test("tool error messages are whitespace-normalized, non-empty and bounded", () => {
   assert.equal(sanitizeToolErrorMessage("\u0000  \n  "), "The operation failed.");
   assert.equal(sanitizeToolErrorMessage("  line\n  break  "), "line break");
