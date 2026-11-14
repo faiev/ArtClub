@@ -334,3 +334,235 @@ test("batch mode reports unreadable files without aborting other inputs", (t) =>
   assert.equal(report.successCount, 1);
   assert.ok(report.results.some((entry) => !entry.ok && entry.error.code === "FILE_READ_ERROR"));
 });
+
+
+function runCompare(leftPath, rightPath, options = ["--json"]) {
+  return spawnSync(process.execPath, [CLI, "--compare", ...options, leftPath, rightPath], {
+    encoding: "utf8",
+    maxBuffer: 4 * 1024 * 1024
+  });
+}
+
+function writeProject(directory, filename, project) {
+  const file = path.join(directory, filename);
+  fs.writeFileSync(file, JSON.stringify(project));
+  return file;
+}
+
+test("compare mode reports identical v2 documents with stable source-ID matching", (t) => {
+  const directory = temporaryDirectory(t);
+  const left = copyFixture(directory, "valid-v2.json");
+  const right = path.join(directory, "right.json");
+  fs.copyFileSync(left, right);
+
+  const result = runCompare(left, right);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true);
+  assert.equal(report.mode, "compare");
+  assert.equal(report.identical, true);
+  assert.equal(report.totalChanges, 0);
+  assert.equal(report.changes.layers.matchBy, "source-id");
+  assert.equal(report.changes.frames.matchBy, "source-id");
+  assert.equal(report.changes.cels.matchBy, "layerId+frameId");
+});
+
+test("compare mode reports canvas, palette, project, metadata, layer, frame and pixel changes", (t) => {
+  const directory = temporaryDirectory(t);
+  const left = copyFixture(directory, "valid-v2.json");
+  const changed = JSON.parse(fs.readFileSync(left, "utf8"));
+  changed.name = "Changed artwork";
+  changed.canvas.width = 6;
+  changed.canvas.height = 2;
+  changed.palette[2] = "#00ff00";
+  changed.layers[1].visible = true;
+  changed.frames[1].durationMs = 500;
+  changed.cels[0].pixels[0] = "#ff0000";
+  changed.metadata.updatedAt = "2026-11-14T00:00:00.000Z";
+  const right = writeProject(directory, "changed.json", changed);
+
+  const result = runCompare(left, right);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.ok, true);
+  assert.equal(report.identical, false);
+  assert.ok(report.changes.canvas.fields.some((field) => field.field === "width"));
+  assert.ok(report.changes.palette.entries.some((entry) => entry.index === 2 && entry.kind === "changed"));
+  assert.ok(report.changes.project.some((field) => field.field === "name"));
+  assert.ok(report.changes.metadata.some((field) => field.field === "updatedAt"));
+  assert.equal(report.changes.layers.modified.length, 1);
+  assert.equal(report.changes.frames.modified.length, 1);
+  assert.equal(report.changes.cels.pixelIndexChanges, 1);
+  assert.equal(report.changes.cels.modified[0].pixelChanges.samples[0].index, 0);
+});
+
+test("compare mode never matches different v2 IDs merely because names are equal", (t) => {
+  const directory = temporaryDirectory(t);
+  const left = copyFixture(directory, "valid-v2.json");
+  const changed = JSON.parse(fs.readFileSync(left, "utf8"));
+  changed.layers[1].id = "layer-guide-new-id";
+  changed.cels[1].layerId = "layer-guide-new-id";
+  changed.activeLayerId = "layer-guide-new-id";
+  const right = writeProject(directory, "renumbered-layer.json", changed);
+
+  const result = runCompare(left, right);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.changes.layers.matchBy, "source-id");
+  assert.ok(report.changes.layers.removed.some((layer) => layer.id === "layer-guide"));
+  assert.ok(report.changes.layers.added.some((layer) => layer.id === "layer-guide-new-id"));
+  assert.ok(report.changes.cels.removed.some((cel) => cel.reason === "layer-removed"));
+  assert.ok(report.changes.cels.added.some((cel) => cel.reason === "layer-added"));
+});
+
+test("compare mode distinguishes a missing cel from a present transparent pixel", (t) => {
+  const directory = temporaryDirectory(t);
+  const left = copyFixture(directory, "valid-v2.json");
+  const original = JSON.parse(fs.readFileSync(left, "utf8"));
+  const transparent = JSON.parse(JSON.stringify(original));
+  transparent.cels[1].pixels[10] = null;
+  const transparentFile = writeProject(directory, "transparent.json", transparent);
+
+  const transparentResult = runCompare(left, transparentFile);
+  assert.equal(transparentResult.status, 0, transparentResult.stderr);
+  const transparentReport = JSON.parse(transparentResult.stdout);
+  assert.equal(transparentReport.changes.cels.removed.length, 0);
+  assert.equal(transparentReport.changes.cels.modified[0].pixelChanges.changedCount, 1);
+  assert.deepEqual(transparentReport.changes.cels.modified[0].pixelChanges.samples[0].before, {
+    state: "pixel",
+    value: "#ff0000"
+  });
+  assert.deepEqual(transparentReport.changes.cels.modified[0].pixelChanges.samples[0].after, {
+    state: "pixel",
+    value: null
+  });
+
+  const missingCel = JSON.parse(JSON.stringify(original));
+  missingCel.cels.splice(1, 1);
+  const missingFile = writeProject(directory, "missing-cel.json", missingCel);
+  const missingResult = runCompare(left, missingFile);
+  assert.equal(missingResult.status, 0, missingResult.stderr);
+  const missingReport = JSON.parse(missingResult.stdout);
+  assert.equal(missingReport.changes.cels.removed[0].reason, "cel-missing");
+  assert.equal(missingReport.changes.cels.removed[0].pixelCount, 12);
+  assert.equal(missingReport.changes.cels.modified.length, 0);
+});
+
+test("compare mode reports removed frames and layers separately from their cels", (t) => {
+  const directory = temporaryDirectory(t);
+  const left = copyFixture(directory, "valid-v2.json");
+  const original = JSON.parse(fs.readFileSync(left, "utf8"));
+
+  const withoutFrame = JSON.parse(JSON.stringify(original));
+  withoutFrame.frames = withoutFrame.frames.filter((frame) => frame.id !== "frame-b");
+  withoutFrame.cels = withoutFrame.cels.filter((cel) => cel.frameId !== "frame-b");
+  withoutFrame.activeFrameId = "frame-a";
+  const frameFile = writeProject(directory, "without-frame.json", withoutFrame);
+  const frameReport = JSON.parse(runCompare(left, frameFile).stdout);
+  assert.ok(frameReport.changes.frames.removed.some((frame) => frame.id === "frame-b"));
+  assert.ok(frameReport.changes.cels.removed.some((cel) => cel.reason === "frame-removed"));
+
+  const withoutLayer = JSON.parse(JSON.stringify(original));
+  withoutLayer.layers = withoutLayer.layers.filter((layer) => layer.id !== "layer-guide");
+  withoutLayer.cels = withoutLayer.cels.filter((cel) => cel.layerId !== "layer-guide");
+  withoutLayer.activeLayerId = "layer-base";
+  const layerFile = writeProject(directory, "without-layer.json", withoutLayer);
+  const layerReport = JSON.parse(runCompare(left, layerFile).stdout);
+  assert.ok(layerReport.changes.layers.removed.some((layer) => layer.id === "layer-guide"));
+  assert.ok(layerReport.changes.cels.removed.some((cel) => cel.reason === "layer-removed"));
+});
+
+test("legacy-to-legacy comparison uses position and ignores synthetic IDs without writing inputs", (t) => {
+  const directory = temporaryDirectory(t);
+  const left = copyFixture(directory, "valid-legacy.json");
+  const originalBytes = fs.readFileSync(left);
+  const changed = JSON.parse(fs.readFileSync(left, "utf8"));
+  changed.pixels[0] = null;
+  const right = writeProject(directory, "legacy-changed.json", changed);
+
+  const result = runCompare(left, right);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.left.migratedInMemory, true);
+  assert.equal(report.left.projectId, null);
+  assert.equal(report.changes.layers.matchBy, "position");
+  assert.equal(report.changes.frames.matchBy, "position");
+  assert.equal(report.changes.cels.matchBy, "position");
+  assert.equal(report.changes.cels.pixelIndexChanges, 1);
+  assert.deepEqual(fs.readFileSync(left), originalBytes);
+});
+
+test("mixed legacy and v2 comparison does not infer cross-format entity identity", (t) => {
+  const directory = temporaryDirectory(t);
+  const left = copyFixture(directory, "valid-legacy.json");
+  const right = copyFixture(directory, "valid-v2.json");
+  const result = runCompare(left, right);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.changes.layers.matchBy, "none-across-source-formats");
+  assert.equal(report.changes.frames.matchBy, "none-across-source-formats");
+  assert.equal(report.changes.cels.matchBy, "none-across-source-formats");
+  assert.equal(report.changes.layers.removed[0].id, null);
+  assert.ok(report.changes.layers.added.length > 0);
+});
+
+test("compare mode caps pixel-index samples without returning full pixel arrays", (t) => {
+  const directory = temporaryDirectory(t);
+  const base = JSON.parse(fs.readFileSync(path.join(FIXTURES, "valid-v2.json"), "utf8"));
+  base.canvas.width = 512;
+  base.canvas.height = 512;
+  base.cels.forEach((cel) => { cel.pixels = Array(512 * 512).fill(null); });
+  const changed = JSON.parse(JSON.stringify(base));
+  for (let index = 0; index < 150; index += 1) changed.cels[0].pixels[index] = "#ff0000";
+  const left = writeProject(directory, "large-before.json", base);
+  const right = writeProject(directory, "large-after.json", changed);
+
+  const result = runCompare(left, right);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.changes.cels.pixelIndexChanges, 150);
+  assert.equal(report.changes.cels.modified[0].pixelChanges.samples.length, 100);
+  assert.equal(report.changes.cels.modified[0].pixelChanges.truncated, true);
+  assert.equal(report.results, undefined);
+  assert.ok(result.stdout.length < 100000);
+});
+
+test("compare mode emits concise human output and rejects the wrong number of paths", (t) => {
+  const directory = temporaryDirectory(t);
+  const left = copyFixture(directory, "valid-v2.json");
+  const right = path.join(directory, "same.json");
+  fs.copyFileSync(left, right);
+
+  const human = runCompare(left, right, []);
+  assert.equal(human.status, 0, human.stderr);
+  assert.match(human.stdout, /Project Inspector — Compare/);
+  assert.match(human.stdout, /Status: IDENTICAL/);
+
+  const invalid = spawnSync(process.execPath, [CLI, "--compare", left, "--json"], { encoding: "utf8" });
+  assert.equal(invalid.status, 2);
+  const report = JSON.parse(invalid.stdout);
+  assert.equal(report.error.code, "INVALID_ARGUMENT");
+});
+
+
+test("mixed legacy/v2 cel differences are labelled unmatchable, not falsely removed by ID", (t) => {
+  const directory = temporaryDirectory(t);
+  const legacy = copyFixture(directory, "valid-legacy.json");
+  const v2 = copyFixture(directory, "valid-v2.json");
+
+  const legacyFirst = runCompare(legacy, v2);
+  const legacyFirstReport = JSON.parse(legacyFirst.stdout);
+  assert.equal(legacyFirstReport.ok, true);
+  assert.ok(legacyFirstReport.changes.cels.added.every((cel) =>
+    cel.reason === "source-identifiers-not-comparable"));
+  assert.ok(legacyFirstReport.changes.cels.removed.every((cel) =>
+    cel.reason === "source-identifiers-not-comparable"));
+
+  const v2First = runCompare(v2, legacy);
+  const v2FirstReport = JSON.parse(v2First.stdout);
+  assert.equal(v2FirstReport.ok, true);
+  assert.ok(v2FirstReport.changes.cels.added.every((cel) =>
+    cel.reason === "source-identifiers-not-comparable"));
+  assert.ok(v2FirstReport.changes.cels.removed.every((cel) =>
+    cel.reason === "source-identifiers-not-comparable"));
+});
