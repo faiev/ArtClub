@@ -1143,6 +1143,21 @@ async function commitSafeEditResult(result,previousProject,target,successMessage
     toast(successMessage);
     return true;
   }catch(error){
+    if(error&&error.code==="PROJECT_REVISION_CONFLICT"&&projectStorage){
+      try{
+        const latest=await projectStorage.getProject(previousProject.id);
+        if(latest){
+          loadProjectIntoEditor(latest);
+          documentRevision+=1;
+          writeLocalBackup(latest);
+          $("saveState").textContent="CHANGED IN ANOTHER TAB · RELOADED";
+          toast("This project changed in another tab. The latest saved version has been loaded; retry your edit.");
+          return false;
+        }
+      }catch(reloadError){
+        console.error("Could not reload the newer project after a revision conflict:",reloadError);
+      }
+    }
     if(published){
       undoStack.splice(0,undoStack.length,...undoBefore);
       redoStack.splice(0,redoStack.length,...redoBefore);
