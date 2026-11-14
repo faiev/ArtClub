@@ -299,8 +299,8 @@ async function run() {
     const initialFrames = await client.callTool({
       name: "artclub_list_frames", arguments: {}
     });
-    assert.equal(initialFrames.structuredContent[0].active, true);
-    const firstFrameId = initialFrames.structuredContent[0].id;
+    assert.equal(initialFrames.structuredContent.frames[0].active, true);
+    const firstFrameId = initialFrames.structuredContent.frames[0].id;
     const frameAdded = await client.callTool({
       name: "artclub_add_frame",
       arguments: { name: "MCP Walk 2", duration_ms: 140 }
@@ -350,7 +350,7 @@ async function run() {
     const orderedFrames = await client.callTool({
       name: "artclub_list_frames", arguments: {}
     });
-    const activeFrameRecord = orderedFrames.structuredContent.find(frame => frame.id === duplicateFrameId);
+    const activeFrameRecord = orderedFrames.structuredContent.frames.find(frame => frame.id === duplicateFrameId);
     assert.equal(activeFrameRecord.order, 1);
     assert.equal(activeFrameRecord.duration_ms, 210);
     assert.equal(activeFrameRecord.name, "MCP Final Pose");
@@ -361,7 +361,7 @@ async function run() {
     const frameCountAfterDelete = await client.callTool({
       name: "artclub_list_frames", arguments: {}
     });
-    assert.equal(frameCountAfterDelete.structuredContent.length, 2);
+    assert.equal(frameCountAfterDelete.structuredContent.frames.length, 2);
     await client.callTool({
       name: "artclub_delete_frame",
       arguments: { frame_id: secondFrameId }
