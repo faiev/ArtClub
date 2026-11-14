@@ -95,7 +95,8 @@ async function run() {
       "artclub_paste_selection",
       "artclub_clear_selection",
       "artclub_deselect",
-      "artclub_move_selection"
+      "artclub_move_selection",
+      "artclub_transform_selection"
     ]) {
       assert.ok(names.has(required), "MCP server should register " + required);
     }
@@ -252,6 +253,41 @@ async function run() {
     assert.equal(movedPixel.structuredContent.color, "#aabbcc");
     await client.callTool({ name: "artclub_deselect", arguments: {} });
 
+    const beforeRotateSelection = await client.callTool({
+      name: "artclub_get_status", arguments: {}
+    });
+    const rotateBounds = await client.callTool({
+      name: "artclub_set_selection",
+      arguments: { x: 12, y: 12, width: 2, height: 1, expected_revision: beforeRotateSelection.structuredContent.revision }
+    });
+    assert.notEqual(rotateBounds.isError, true);
+    await client.callTool({
+      name: "artclub_draw_pixel",
+      arguments: { x: 12, y: 12, color: "#aa0000" }
+    });
+    await client.callTool({
+      name: "artclub_draw_pixel",
+      arguments: { x: 13, y: 12, color: "#00aa00" }
+    });
+    const beforeRotate = await client.callTool({
+      name: "artclub_get_status", arguments: {}
+    });
+    const rotateResult = await client.callTool({
+      name: "artclub_transform_selection",
+      arguments: { operation: "rotate_cw", expected_revision: beforeRotate.structuredContent.revision }
+    });
+    assert.notEqual(rotateResult.isError, true);
+    assert.equal(rotateResult.structuredContent.selection.width, 1);
+    assert.equal(rotateResult.structuredContent.selection.height, 2);
+    const rotatedA = await client.callTool({
+      name: "artclub_get_pixel", arguments: { x: 12, y: 12 }
+    });
+    const rotatedB = await client.callTool({
+      name: "artclub_get_pixel", arguments: { x: 12, y: 13 }
+    });
+    assert.equal(rotatedA.structuredContent.color, "#aa0000");
+    assert.equal(rotatedB.structuredContent.color, "#00aa00");
+
     const pngResult = await client.callTool({
       name: "artclub_export_png",
       arguments: {}
@@ -279,7 +315,7 @@ async function run() {
     });
     assert.equal(invalidResult.isError, true, "invalid coordinates should be rejected");
 
-    console.log("MCP E2E passed: handshake, drawing, selection and copy/paste, layer management, pixel readback, PNG preview, save and input validation.");
+    console.log("MCP E2E passed: handshake, drawing, selection transforms and copy/paste, layer management, pixel readback, PNG preview, save and input validation.");
   } finally {
     await client.close().catch(() => {});
     await new Promise(resolve => staticServer.close(resolve));
