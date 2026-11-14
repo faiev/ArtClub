@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Art Club renderer benchmark</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 24px; color: #202c30; font: 14px/1.5 system-ui, sans-serif; }
+  h1 { margin: 0 0 8px; font-size: 24px; }
+  p { max-width: 840px; color: #596660; }
+  #status { margin: 18px 0; font-weight: 650; }
+  table { width: 100%; max-width: 920px; border-collapse: collapse; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #dce0d8; font-variant-numeric: tabular-nums; }
+  th:first-child, td:first-child { text-align: left; }
+  #stage { position: absolute; left: -10000px; top: 0; width: 560px; height: 560px; overflow: hidden; }
+  #dom-grid { display: grid; width: 560px; height: 560px; gap: 1px; background: #e2e7df; }
+  #canvas-grid { display: block; width: 560px; height: 560px; image-rendering: pixelated; }
+  pre { max-width: 920px; white-space: pre-wrap; background: #f4f5ef; padding: 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>Art Club renderer benchmark</h1>
+<p>
+  This compares the editor's current full-grid DOM strategy (one accessible div per pixel,
+  populated through a document fragment) with the isolated Canvas 2D prototype. It is a
+  local browser microbenchmark, not a claim about end-to-end editor latency.
+</p>
+<div id="status">Preparing benchmark…</div>
+<table id="results">
+  <thead><tr><th>Canvas</th><th>Pixels</th><th>DOM median (ms)</th><th>Canvas median (ms)</th><th>DOM / Canvas</th></tr></thead>
+  <tbody></tbody>
+</table>
+<pre id="raw"></pre>
+<div id="stage"><div id="dom-grid"></div><canvas id="canvas-grid"></canvas></div>
+<script src="../js/canvas-renderer.js"></script>
+<script>
+(function () {
+  "use strict";
+  const maxSize = Number(new URLSearchParams(location.search).get("max")) || 512;
+  const sizes = [32, 64, 128, 256, 512].filter(size => size <= maxSize);
+  const domGrid = document.getElementById("dom-grid");
+  const canvas = document.getElementById("canvas-grid");
+  const status = document.getElementById("status");
+  const tbody = document.querySelector("#results tbody");
+  const raw = document.getElementById("raw");
+
+  function makePixels(size) {
+    const colors = ["#e96f55", "#253e50", "#b8cc76", "#e4b85d"];
+    const pixels = new Array(size * size);
+    for (let i = 0; i < pixels.length; i++) {
+      pixels[i] = (i * 17 + Math.floor(i / size) * 13) % 7 < 3
+        ? colors[(i + Math.floor(i / size)) % colors.length]
+        : null;
+    }
+    return pixels;
+  }
+
+  function renderDom(size, pixels) {
+    domGrid.style.gridTemplateColumns = "repeat(" + size + ", minmax(0,1fr))";
+    domGrid.style.gridTemplateRows = "repeat(" + size + ", minmax(0,1fr))";
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < pixels.length; i++) {
+      const cell = document.createElement("div");
+      cell.className = "pixel-cell";
+      cell.tabIndex = -1;
+      cell.dataset.index = String(i);
+      cell.setAttribute("role", "gridcell");
+      cell.setAttribute("aria-label", "Pixel " + (i % size + 1) + ", " +
+        (Math.floor(i / size) + 1) + ", " + (pixels[i] || "transparent"));
+      cell.style.backgroundColor = pixels[i] || "transparent";
+      fragment.appendChild(cell);
+    }
+    domGrid.replaceChildren(fragment);
+    return domGrid.getBoundingClientRect().height;
+  }
+
+  function median(values) {
+    const sorted = values.slice().sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  }
+
+  function measure(fn, repetitions, warmUp) {
+    const samples = [];
+    if (warmUp !== false) fn();
+    for (let i = 0; i < repetitions; i++) {
+      const start = performance.now();
+      fn();
+      samples.push(performance.now() - start);
+    }
+    return { median: median(samples), samples };
+  }
+
+  async function run() {
+    const results = [];
+    for (const size of sizes) {
+      status.textContent = "Benchmarking " + size + " × " + size + "…";
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const pixels = makePixels(size);
+      const repetitions = size >= 256 ? 1 : 4;
+      const dom = measure(() => renderDom(size, pixels), repetitions, size < 256);
+      domGrid.replaceChildren();
+
+      const renderer = new ArtClubCanvasRenderer.CanvasPixelRenderer(canvas, {
+        displayWidth: 560,
+        displayHeight: 560,
+        devicePixelRatio: window.devicePixelRatio || 1
+      });
+      const state = { width: size, height: size, pixels, grid: true };
+      const canvasRun = measure(() => {
+        renderer.render(state);
+        renderer.context.getImageData(0, 0, 1, 1);
+      }, size >= 256 ? 2 : repetitions, true);
+      renderer.destroy();
+
+      const ratio = canvasRun.median > 0 ? dom.median / canvasRun.median : null;
+      const result = {
+        size: size + "×" + size,
+        pixels: size * size,
+        domMedianMs: Number(dom.median.toFixed(2)),
+        canvasMedianMs: Number(canvasRun.median.toFixed(2)),
+        domOverCanvas: ratio === null ? null : Number(ratio.toFixed(2)),
+        domSamplesMs: dom.samples.map(value => Number(value.toFixed(2))),
+        canvasSamplesMs: canvasRun.samples.map(value => Number(value.toFixed(2)))
+      };
+      results.push(result);
+      const row = document.createElement("tr");
+      row.innerHTML = "<td>" + result.size + "</td><td>" + result.pixels.toLocaleString() +
+        "</td><td>" + result.domMedianMs + "</td><td>" + result.canvasMedianMs +
+        "</td><td>" + (result.domOverCanvas === null ? "n/a" : result.domOverCanvas + "×") + "</td>";
+      tbody.appendChild(row);
+    }
+
+    const report = {
+      userAgent: navigator.userAgent,
+      devicePixelRatio: window.devicePixelRatio || 1,
+      note: "Synchronous render duration plus forced layout/readback; warm-up excluded. DOM runs once at 256/512 to limit node churn. Results are machine/browser specific.",
+      results
+    };
+    raw.textContent = JSON.stringify(report, null, 2);
+    status.textContent = "Benchmark complete. Save the raw report with the browser and machine details.";
+    document.documentElement.dataset.benchmarkComplete = "true";
+  }
+
+  run().catch(error => {
+    status.textContent = "Benchmark failed: " + error.message;
+    raw.textContent = error.stack || String(error);
+    document.documentElement.dataset.benchmarkComplete = "false";
+  });
+})();
+</script>
+</body>
+</html>
