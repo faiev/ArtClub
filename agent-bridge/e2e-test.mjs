@@ -168,6 +168,56 @@ async function run() {
       frontLayerId
     );
     await page.evaluate(id => window.onePixelStudio.select_layer({ layer_id: id }), frontLayerId);
+
+    // Build three frames, then verify real playback advances a preview frame
+    // without changing the selected editing frame.
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 10, y: 10, color: "#aa1100" })
+    );
+    const frameTwo = await page.evaluate(() =>
+      window.onePixelStudio.add_frame({ name: "Preview Middle", duration_ms: 100 })
+    );
+    const frameTwoId = frameTwo.active_frame.id;
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 11, y: 11, color: "#00bb00" })
+    );
+    const frameThree = await page.evaluate(() =>
+      window.onePixelStudio.add_frame({ name: "Preview End", duration_ms: 100 })
+    );
+    const frameThreeId = frameThree.active_frame.id;
+    await page.evaluate(() =>
+      window.onePixelStudio.draw_pixel({ x: 12, y: 12, color: "#0000cc" })
+    );
+    await page.evaluate(id => window.onePixelStudio.select_frame({ frame_id: id }), frameTwoId);
+    await page.evaluate(() => window.onePixelStudio.set_onion_skin({ enabled: true }));
+
+    const previousOnion = await page.locator("#pixelGrid .pixel-cell").nth(10 * 24 + 10).getAttribute("class");
+    const nextOnion = await page.locator("#pixelGrid .pixel-cell").nth(12 * 24 + 12).getAttribute("class");
+    assert.match(previousOnion, /onion-before/, "previous frame pixels should appear as onion skin");
+    assert.match(nextOnion, /onion-after/, "next frame pixels should appear as onion skin");
+    const untouchedOnionPixels = await page.evaluate(async () => ({
+      previous: (await window.onePixelStudio.get_pixel({ x: 10, y: 10 })).color,
+      next: (await window.onePixelStudio.get_pixel({ x: 12, y: 12 })).color
+    }));
+    assert.equal(untouchedOnionPixels.previous, null, "onion overlay must not write pixels");
+    assert.equal(untouchedOnionPixels.next, null, "onion overlay must not write pixels");
+
+    await page.evaluate(() => window.onePixelStudio.set_playback_mode({ mode: "pingpong" }));
+    const playState = await page.evaluate(() => window.onePixelStudio.play());
+    assert.equal(playState.playback.playing, true);
+    assert.equal(playState.active_frame.id, frameTwoId);
+    await page.waitForTimeout(140);
+    const advancedState = await page.evaluate(() => window.onePixelStudio.get_status());
+    assert.equal(advancedState.active_frame.id, frameTwoId, "playback must not change the editing frame");
+    assert.notEqual(advancedState.playback.preview_frame_id, frameTwoId, "preview must advance in real time");
+    assert.ok(
+      [frameTwoId, frameThreeId].includes(advancedState.playback.preview_frame_id),
+      "preview should reference a real timeline frame"
+    );
+    const pausedState = await page.evaluate(() => window.onePixelStudio.pause());
+    assert.equal(pausedState.playback.playing, false);
+    assert.equal(pausedState.active_frame.id, frameTwoId);
+    await page.evaluate(() => window.onePixelStudio.stop_playback());
     await page.evaluate(() => window.onePixelStudio.save());
 
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -183,7 +233,7 @@ async function run() {
     assert.equal(persistedLayerPixel.color, "#ff8800", "refresh should preserve the visible layer composite");
 
     assert.deepEqual(pageErrors, [], "the app should not throw browser runtime errors");
-    console.log("Browser E2E passed: mouse drawing, undo/redo, agent batch, layer compositing, custom canvas, PNG, IndexedDB library and reload recovery.");
+    console.log("Browser E2E passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, real animation playback, onion skin, PNG, IndexedDB library and reload recovery.");
   } finally {
     await browser?.close();
     await new Promise(resolve => server.close(resolve));
