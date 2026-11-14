@@ -141,7 +141,7 @@ function resolveQaPath(root, relativePath) {
   return absolutePath;
 }
 
-function manifestEntries() {
+function manifestEntries(root = null) {
   const previousNames = [];
   const seenPaths = new Set();
 
@@ -168,6 +168,7 @@ function manifestEntries() {
       if (entry.runner === "node-script" && !entry.path.endsWith(".mjs")) {
         throw new Error("Browser script entries must use an .mjs path.");
       }
+      if (root) resolveQaPath(root, entry.path);
     }
   }
 
@@ -281,7 +282,9 @@ function summarizeSuite(name, kind, results) {
   const notRun = results.filter(file => file.status === "not-run");
 
   let status;
-  if (executed.length === 0) status = "skipped";
+  if (executed.length === 0 && notRun.length > 0) status = "not-run";
+  else if (executed.length === 0 && skipped.length > 0) status = "skipped";
+  else if (executed.length === 0) status = "not-run";
   else if (failures.length > 0) status = "failed";
   else if (skipped.length > 0 || notRun.length > 0) status = "partial";
   else status = "passed";
@@ -313,7 +316,7 @@ export async function runQASuites(options = {}) {
   const includeBrowser = Boolean(options.includeBrowser);
   const spawnImpl = options.spawnImpl || spawn;
 
-  manifestEntries();
+  manifestEntries(root);
 
   if (suiteName !== "all" && !SUITES_BY_NAME.has(suiteName)) {
     throw new Error("Unknown QA suite: " + suiteName);
@@ -370,7 +373,7 @@ export async function runQASuites(options = {}) {
         fileResults.push({
           path: entry.path,
           runner: entry.runner,
-          status: "skipped",
+          status: "not-run",
           exitCode: null,
           signal: null,
           reason: "manifest file is not present in this checkout",
@@ -427,7 +430,7 @@ export async function runQASuites(options = {}) {
     failed: suiteResults.filter(suite => suite.status === "failed").length,
     partial: suiteResults.filter(suite => suite.status === "partial").length,
     skipped: suiteResults.filter(suite => suite.status === "skipped").length,
-    notRun: notRunSuites.length
+    notRun: notRunSuites.length + suiteResults.filter(suite => suite.status === "not-run").length
   };
   const fileCounts = { executed: 0, passed: 0, failed: 0, skipped: 0, notRun: 0 };
   for (const suite of suiteResults) {
