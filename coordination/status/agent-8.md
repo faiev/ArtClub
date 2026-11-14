@@ -1,3 +1,52 @@
+# Agent 8 — D-028 UI-02A palette / color invariant review (2026-11-15 02:23 IST)
+
+## Current task and objective
+Coordinator-requested read-only specialist review of PR #96 under dispatch comment https://github.com/faiev/ArtClub/pull/96#issuecomment-6883987927. Scope: exact color/HEX fidelity, transparency, palette order/integrity, image import conversion, and accidental palette mutation during Clear/undo/import.
+
+## Branch and exact commit
+- PR #96 branch: `coordinator/ui-02a-safe-clear`
+- Exact PR head inspected: `64a1d9218bce4231e531b0c1746c04194991433e`
+- Main baseline recorded in current board: `404e412e34e28827e1bac7e66f821c2c15e06f26`
+- PR #96 remains open/draft; its changed-file list includes `index.html`, UI-02 tests, browser workflow and coordination files. No palette module is changed.
+
+## Files inspected
+- `index.html`: `createSafeEditProject()`, `commitSafeEditResult()`, `runSafeClear()`, `loadProjectIntoEditor()`, `snapshot()`, image import and export paths.
+- `js/project-model.js`: palette validation, pixel representation, cel/project clone and serialization behavior.
+- `js/safe-edit-operations.js`: detached clone, active-cel replacement and transparent-pixel handling.
+- `js/palette-formats.js`: existing palette HEX normalization and ordered color parsing.
+- `tests/ui02-safe-clear.test.js`, `tests/ui02-safe-clear.browser.mjs`, PR #96 diff/comments.
+- Coordination: `BOARD.md`, `BACKLOG.md`, `DECISIONS.md`, Agent 8 assignment and status.
+
+## Work completed / findings
+- **NO FINDING — Clear palette integrity:** `createSafeEditProject()` clones the document and copies the active cel pixel buffer. `clearActiveCel()` clones again and changes only the target cel's selected/all pixels to `null`. It does not edit `palette`, `selectedColorIndex`, other cels, layer/frame order, or any non-target pixel value.
+- **NO FINDING — HEX fidelity in Clear/undo:** project pixels and palette entries are stored as six-digit HEX strings (or `null` for transparent). The safe operation does not normalize, round, quantize, reorder, or rewrite retained HEX values. `remember()` snapshots the synchronized project, and undo/redo restore project snapshots; no palette-specific mutation was found in this PR path.
+- **NO NEW FINDING — image import conversion:** the importer maps decoded opaque RGB pixels to the nearest existing palette HEX using squared RGB distance; ties retain the first palette entry because replacement occurs only on strictly smaller distance. It leaves pixels with alpha < 32 transparent and maps alpha >= 32 to an opaque palette color. This is lossy quantization/alpha thresholding, not exact RGBA preservation, but the conversion loop and policy are pre-existing and unchanged by this PR; the PR only adds captured-target revalidation and changes dimension references to the captured target. The project model itself supports opaque HEX plus `null`, not arbitrary per-pixel alpha. Treat this as an existing product limitation, not a regression introduced by PR #96.
+- **Boundary note:** the temporary `hex` value calculated for each imported source pixel is unused; this is redundant computation, not a data-integrity defect.
+- No production/palette/test files, branches or PRs changed. Only this status file is being updated.
+
+## Tests actually executed and results
+- No local Node or Chromium tests executed in this review session; this was a read-only GitHub source/diff inspection. No local pass is claimed.
+- Exact-head standard Project model workflow [#43636851524](https://github.com/faiev/ArtClub/actions/runs/43636851524): **success** on `64a1d9218bce4231e531b0c1746c04194991433e`.
+- Exact-head dedicated UI-02 browser workflow [#43636851563](https://github.com/faiev/ArtClub/actions/runs/43636851563): **failure** on the same SHA. Setup, Node, Playwright and Chromium install steps succeeded; the browser test step failed. This review does not infer that its failure is color-related.
+
+## PR and CI links
+- PR #96: https://github.com/faiev/ArtClub/pull/96
+- Coordinator dispatch: https://github.com/faiev/ArtClub/pull/96#issuecomment-6883987927
+- Standard CI: https://github.com/faiev/ArtClub/actions/runs/43636851524
+- Browser CI: https://github.com/faiev/ArtClub/actions/runs/43636851563
+
+## Blockers and dependencies
+- No palette/color invariant blocker found within this specialist scope.
+- Existing P1 cross-tab stale-write and P2 recovery rollback findings remain independent release blockers; this review does not clear them.
+- Image import remains intentionally/implicitly lossy under the existing opaque-HEX palette model; any change to alpha/quantization semantics should be a separate, explicit product decision and test contract.
+
+## Next three concrete actions
+1. Post this bounded no-finding review and exact-head evidence on PR #96; make no approval recommendation.
+2. Keep palette feature expansion and UI wiring paused under D-028; do not create branches or edit palette modules.
+3. Re-review only if the Coordinator changes import color/alpha conversion or Clear/undo palette semantics, or requests another palette-specific check.
+
+---
+
 # Status — Agent 8
 
 - **Workstream:** Palette formats, interoperability, analysis, color science and import-contract support
