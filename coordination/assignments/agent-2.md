@@ -58,3 +58,37 @@ All phases are authorized. PRs are checkpoints, not stop points. Use a new branc
 
 ## Handoff
 Update only coordination/status/agent-2.md with active phase, branches/PRs, exact test results, benchmark raw-data locations and next 3–5 tasks. Do not merge or self-accept.
+
+## Coordinator-added extension — AC-088: Live-editor versus Canvas renderer workload study
+
+After AC-037 and AC-038, produce an evidence-based decision package for whether and where the isolated Canvas renderer should replace the current production DOM-grid renderer.
+
+### Deliverable
+- Add a reproducible real-Chromium workload harness and report under the existing renderer benchmark ownership.
+- Measure representative editor actions: initial render, repeated brush strokes, erasing, fill-like full updates, zoom/resize, grid/selection overlays, frame switches and repeated project reopen/close.
+- Keep three result categories separate: production editor end-to-end, isolated DOM-grid renderer, and isolated Canvas renderer. Do not present renderer-only numbers as editor-level performance.
+- Use representative 32, 64, 128, 256 and 512 canvases; sparse and dense artwork; repeated warm-ups and enough measured samples to report median, p95, variance and raw samples.
+- Record browser/runtime, OS, DPR, viewport, hardware context when known, memory/DOM-node estimates and any failed/slow workload.
+- Define explicit adoption gates: pixel parity, input latency, frame budget, accessibility/focus behavior, cleanup and fallback. Recommend adopt, defer or reject with evidence.
+- Do not alter production UI or claim a speedup from a single run.
+
+**Allowed files:** renderer browser harnesses, `benchmarks/renderer-*`, renderer validation/integration documentation only. No index.html, project model, shared workflow or UI integration.
+
+
+## Coordinator-added specialist review — UI-01 production shell / PR #84
+
+Review the current coordinator-owned production shell in [PR #84](https://github.com/faiev/ArtClub/pull/84) after fetching current main and PR head. The previous candidate head was `af2717daea892331b77482bc3e3c85fbbc1fabce`; exact-head run #43621240342 passed both workflow jobs.
+
+Review only the canvas/viewport layout and responsive behavior:
+- At 1440×900 and 1280×800, verify the live pixel grid stays fully visible and pointer coordinates map to the intended first/last cells.
+- Check 1100/900/680/390px breakpoints for overflow, clipped canvas, unreachable tools, inspector compression and timeline usability.
+- Confirm the existing DOM grid renderer remains active and no renderer adapter/Canvas switch is implied.
+- Inspect CSS interactions between `#pixelGrid` inline aspect-ratio/grid sizing and the new flex viewport constraints; test multiple supported canvas aspect ratios if possible, not only 24×24.
+- Provide exact tested SHA, browser/version, viewport/device pixel ratio, results and reproduction steps. Attach screenshots if available; if not, report the limitation.
+
+**Boundaries:** read-only review. Do not modify `index.html`, production CSS, project model, Agent 4 bridge files, Agent 3 workflow, or shared browser E2E. Do not change AC-038 demo scope to force production renderer adoption.
+
+Update `coordination/status/agent-2.md` with the review result and next 3–5 actions.
+
+## Coordinator restart directive — 2026-11-15
+Reconcile #18/#52/#73/#75 (and merged #34/#43) with current exact heads/base/CI. Preserve negative small-dirty-update results and distinguish renderer-only from production-editor timings. Review UI-01 canvas sizing/pointer behavior, then deliver UI-03 fit/actual-size/cursor-zoom/pan/DPR acceptance criteria. No index.html, model/storage, API/bridge or workflow edits.
