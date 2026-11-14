@@ -250,6 +250,93 @@
           "Grid PNG with transparent margin and spacing"
         );
 
+        // Async sprite-sheet output preserves the exact sheet and metadata,
+        // and Chromium independently decodes the resulting PNG Blob.
+        const asyncProgress = [];
+        const asyncExported = await Exporter.exportSpriteSheetAsync(project, {
+          frameIds: ["f3", "f1", "f2"],
+          layout: "grid",
+          columns: 2,
+          margin: 1,
+          spacing: 1,
+          imageFilename: "deterministic-grid.png",
+          yieldEvery: 4,
+          onProgress(event) { asyncProgress.push(event); }
+        });
+        assert(asyncExported.blob && asyncExported.blob.type === "image/png",
+          "Async exporter must return an image/png Blob.");
+        assert(JSON.stringify(asyncExported.metadata) === JSON.stringify(exported.metadata),
+          "Async PNG metadata differs from the synchronous output.");
+        assert(JSON.stringify(Array.from(asyncExported.sheet.rgba)) ===
+          JSON.stringify(Array.from(exported.sheet.rgba)),
+          "Async PNG RGBA buffer differs from the synchronous output.");
+        for (let index = 1; index < asyncProgress.length; index += 1) {
+          assert(asyncProgress[index].progress >= asyncProgress[index - 1].progress,
+            "Async PNG progress moved backwards.");
+        }
+        assert(asyncProgress.length && asyncProgress[asyncProgress.length - 1].progress === 100,
+          "Async PNG progress did not finish at 100%.");
+        await decodeAndCompare(
+          asyncExported.blob,
+          expectedWidth,
+          expectedHeight,
+          makeExpectedRaster(expectedWidth, expectedHeight, gridPlacements, null),
+          "Async grid PNG decoded in Chromium"
+        );
+
+        async function expectAsyncAbort(promise, stage, label) {
+          try {
+            await promise;
+          } catch (error) {
+            assert(error.code === "EXPORT_ABORTED" && error.stage === stage,
+              label + " returned wrong cancellation details: " + error.code + "/" + error.stage);
+            return;
+          }
+          throw new Error(label + " unexpectedly returned a successful export.");
+        }
+        const earlyAbort = new AbortController();
+        earlyAbort.abort();
+        await expectAsyncAbort(Exporter.exportSpriteSheetAsync(project, {
+          signal: earlyAbort.signal
+        }), "before-start", "Early async PNG cancellation");
+
+        const composeAbort = new AbortController();
+        await expectAsyncAbort(Exporter.exportSpriteSheetAsync(project, {
+          signal: composeAbort.signal,
+          yieldEvery: 1,
+          onProgress(event) {
+            if (event.phase === "composition" && event.progress > 12) composeAbort.abort();
+          }
+        }), "composition", "Mid-composition async PNG cancellation");
+
+        const renderAbort = new AbortController();
+        await expectAsyncAbort(Exporter.exportSpriteSheetAsync(project, {
+          signal: renderAbort.signal,
+          yieldEvery: 1,
+          onProgress(event) {
+            if (event.phase === "render") renderAbort.abort();
+          }
+        }), "finalization", "ImageData preparation cancellation");
+
+        // Canvas PNG codecs are not interruptible internally. Aborting inside
+        // the codec call is observed immediately after it resolves; no Blob is
+        // returned to the caller.
+        const codecAbort = new AbortController();
+        const abortingCanvasFactory = function (width, height) {
+          const canvas = new OffscreenCanvas(width, height);
+          return {
+            getContext: canvas.getContext.bind(canvas),
+            async convertToBlob(options) {
+              codecAbort.abort();
+              return canvas.convertToBlob(options);
+            }
+          };
+        };
+        await expectAsyncAbort(Exporter.exportSpriteSheetAsync(project, {
+          signal: codecAbort.signal,
+          canvasFactory: abortingCanvasFactory
+        }), "finalization", "Cancellation during non-interruptible PNG codec");
+
         // Check every supported strip layout in a real browser as well.
         const horizontal = await Exporter.exportSpriteSheet(project, {
           frameIds: ["f3", "f1", "f2"],
@@ -438,7 +525,14 @@
           maximumCanvasDecoded: { dimensions: [512, 512], pixelsCompared: 512 * 512 },
           blobType: exported.blob.type,
           blobSize: exported.blob.size,
-          sourceProjectUnchanged: true
+          sourceProjectUnchanged: true,
+          asyncExport: {
+            metadataAndRgbaMatchSync: true,
+            decodedByChromium: true,
+            progressEvents: asyncProgress.length,
+            finalProgress: asyncProgress[asyncProgress.length - 1].progress,
+            cancellationStages: ["before-start", "composition", "finalization", "finalization-after-codec"]
+          }
         });
         document.body.dataset.result = "PASS";
       } catch (error) {
