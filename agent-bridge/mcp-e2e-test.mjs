@@ -132,9 +132,13 @@ async function run() {
     assert.equal(ellipseCenter.structuredContent.color, "#33aa77");
 
     const baseLayerId = statusResult.structuredContent.active_layer.id;
+    const beforeAddLayer = await client.callTool({
+      name: "artclub_get_status",
+      arguments: {}
+    });
     const addLayerResult = await client.callTool({
       name: "artclub_add_layer",
-      arguments: { name: "MCP Details", expected_revision: drawResult.structuredContent.revision }
+      arguments: { name: "MCP Details", expected_revision: beforeAddLayer.structuredContent.revision }
     });
     assert.notEqual(addLayerResult.isError, true);
     const topLayerId = addLayerResult.structuredContent.active_layer.id;
