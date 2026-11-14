@@ -222,3 +222,17 @@ test("closed-loop and cusp-like synthetic fixtures satisfy exact endpoint and un
 });
 
 
+
+
+test("mirrored quadratic curves preserve exact vertical reflection across the canvas midpoint", () => {
+  const upper = Curves.rasterizeQuadratic(
+    { x: 0, y: 2 }, { x: 2, y: 7 }, { x: 4, y: 2 }, options
+  );
+  const lower = Curves.rasterizeQuadratic(
+    { x: 0, y: 6 }, { x: 2, y: 1 }, { x: 4, y: 6 }, options
+  );
+  assert.deepEqual(
+    coords(lower),
+    coords(upper).map(([x, y]) => [x, options.height - 1 - y])
+  );
+});
