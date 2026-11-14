@@ -210,9 +210,6 @@
     const sourceTotal = project.cels.reduce(function (sum, cel) {
       return sum + (cel && Array.isArray(cel.pixels) ? cel.pixels.length : 0);
     }, 0);
-    if (sourceTotal > MAX_EXPORT_PIXELS) {
-      throw new Error("Project source cel data exceeds the export validation safety budget.");
-    }
     const total = Math.max(1, project.cels.length + sourceTotal);
     let completed = 0;
     const celKeys = new Set();
@@ -733,7 +730,8 @@
     control = control || createAsyncControl(options);
     control.check("before-start");
     validateBuiltSheet(sheet);
-    control.report("render", 66, 0, 1, "finalization");
+    control.check("encoding");
+    control.report("render", 66, 0, 1, "encoding");
     const canvasFactory = options.canvasFactory || defaultCanvasFactory;
     const canvas = canvasFactory(sheet.width, sheet.height);
     if (!canvas || typeof canvas.getContext !== "function") {
@@ -747,13 +745,13 @@
     const total = sheet.rgba.length;
     const chunk = Math.max(4, Math.floor(control.yieldEvery / 4) * 4);
     for (let offset = 0; offset < total; offset += chunk) {
-      control.check("finalization");
+      control.check("encoding");
       const end = Math.min(total, offset + chunk);
       imageData.data.set(sheet.rgba.subarray(offset, end), offset);
-      control.report("render", asyncPhaseProgress(66, 88, end, total), end, total, "finalization");
+      control.report("render", asyncPhaseProgress(66, 88, end, total), end, total, "encoding");
       if (end < total) await control.yieldToHost("finalization");
     }
-    control.check("finalization");
+    control.check("encoding");
     context.putImageData(imageData, 0, 0);
     control.report("encoding", 90, 0, 1, "encoding");
     // Browser PNG codecs are a single platform call and cannot be interrupted internally.
@@ -800,6 +798,7 @@
     control.check("before-start");
     const sheet = await buildSpriteSheetAsync(project, options, control);
     control.check("finalization");
+    control.check("encoding");
     const blob = await renderSpriteSheetPNGAsync(sheet, options, control);
     control.check("finalization");
     const metadata = buildMetadata(sheet, options.imageFilename);
