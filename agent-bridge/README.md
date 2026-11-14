@@ -63,6 +63,7 @@ Restart or reload the MCP client after adding the server. The server should expo
 | `artclub_draw_pixel` | Paint one exact grid cell |
 | `artclub_draw_line` | Draw a hard-edged line |
 | `artclub_draw_rectangle` | Draw outlined or filled rectangles |
+| `artclub_draw_ellipse` | Draw outlined or filled ellipses |
 | `artclub_fill` | Flood-fill a contiguous area |
 | `artclub_erase_pixel` / `artclub_erase_rectangle` | Erase to transparency |
 | `artclub_set_color` | Select or add a palette color |
@@ -88,7 +89,8 @@ Example batch:
     { "type": "draw_line", "x1": 11, "y1": 8, "x2": 11, "y2": 15, "color": "#53717a" },
     { "type": "draw_line", "x1": 7, "y1": 10, "x2": 11, "y2": 7, "color": "#87a7a0" },
     { "type": "draw_line", "x1": 11, "y1": 7, "x2": 15, "y2": 10, "color": "#87a7a0" },
-    { "type": "draw_rectangle", "x1": 9, "y1": 3, "x2": 13, "y2": 6, "filled": true, "color": "#e96f55" }
+    { "type": "draw_rectangle", "x1": 9, "y1": 3, "x2": 13, "y2": 6, "filled": true, "color": "#e96f55" },
+    { "type": "draw_ellipse", "x1": 4, "y1": 4, "x2": 16, "y2": 13, "filled": false, "color": "#87a7a0" }
   ]
 }
 ```
