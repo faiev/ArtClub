@@ -612,7 +612,7 @@ function setSelectionRect(rect){
   if(![x,y,width,height].every(Number.isInteger)||width<1||height<1||x<0||y<0||x+width>w||y+height>h){
     throw new Error("Selection must be a non-empty integer rectangle inside the canvas.");
   }
-  selection={x,y,width,height};selectionPreview=null;
+  selection={x,y,width,height};selectionPreview=null;documentRevision+=1;
   renderGrid();renderSelectionTools();
 }
 function moveSelectionPixels(dx,dy){
@@ -682,11 +682,12 @@ function pasteSelection(){
   return true;
 }
 function selectAll(){
-  selection={x:0,y:0,width:w,height:h};selectionPreview=null;
+  selection={x:0,y:0,width:w,height:h};selectionPreview=null;documentRevision+=1;
   renderGrid();renderSelectionTools();
 }
 function deselect(){
-  selection=null;selectionPreview=null;
+  if(!selection&&!selectionPreview)return;
+  selection=null;selectionPreview=null;documentRevision+=1;
   renderGrid();renderSelectionTools();
 }
 function beginSelectionInteraction(point,event){
@@ -1148,7 +1149,7 @@ function getAgentStatus(){
     human_stroke_in_progress:drawing,
     selection:selection?{x:selection.x,y:selection.y,width:selection.width,height:selection.height}:null,
     history:{can_undo:undoStack.length>0,can_redo:redoStack.length>0},
-    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","draw_ellipse","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png","layers"]
+    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","draw_ellipse","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png","layers","set_selection","select_all","copy_selection","cut_selection","paste_selection","clear_selection","deselect","move_selection"]
   };
 }
 function getAgentCanvas(options){
@@ -1297,6 +1298,52 @@ function agentDeleteLayer(payload){
   return getAgentStatus();
 }
 
+function assertAgentSelectionAction(options){
+  options=options||{};
+  if(drawing)throw new Error("A canvas stroke is in progress. Finish it before changing the selection.");
+  if(options.expected_revision!==undefined&&options.expected_revision!==documentRevision){
+    throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
+  }
+}
+function agentSetSelection(payload){
+  payload=payload||{};assertAgentSelectionAction(payload);
+  setSelectionRect({x:payload.x,y:payload.y,width:payload.width,height:payload.height});
+  return getAgentStatus();
+}
+function agentSelectAll(payload){
+  payload=payload||{};assertAgentSelectionAction(payload);selectAll();return getAgentStatus();
+}
+function agentCopySelection(payload){
+  payload=payload||{};assertAgentSelectionAction(payload);
+  if(!copySelection())throw new Error("There is no active selection to copy.");
+  return {ok:true,selection:{...selection},clipboard:{width:selectionClipboard.width,height:selectionClipboard.height}};
+}
+function agentCutSelection(payload){
+  payload=payload||{};assertAgentSelectionAction(payload);
+  if(!cutSelection())throw new Error("There is no editable active selection to cut.");
+  return getAgentStatus();
+}
+function agentPasteSelection(payload){
+  payload=payload||{};assertAgentSelectionAction(payload);
+  if(!pasteSelection())throw new Error("There is no editable clipboard selection to paste.");
+  return getAgentStatus();
+}
+function agentClearSelection(payload){
+  payload=payload||{};assertAgentSelectionAction(payload);
+  if(!clearSelectedPixels())throw new Error("There is no editable active selection to clear.");
+  return getAgentStatus();
+}
+function agentDeselect(payload){
+  payload=payload||{};assertAgentSelectionAction(payload);deselect();return getAgentStatus();
+}
+function agentMoveSelection(payload){
+  payload=payload||{};assertAgentSelectionAction(payload);
+  if(!Number.isInteger(payload.dx)||!Number.isInteger(payload.dy))throw new Error("dx and dy must be integer pixel offsets.");
+  if(!selection)throw new Error("Create a selection before moving it.");
+  moveSelectionPixels(payload.dx,payload.dy);
+  return getAgentStatus();
+}
+
 function installAgentAPI(){
   if(!window.ArtClubAgentAPI)throw new Error("Agent API module failed to load.");
   window.onePixelStudio=window.ArtClubAgentAPI.create({
@@ -1320,7 +1367,15 @@ function installAgentAPI(){
     renameLayer:agentRenameLayer,
     moveLayer:agentMoveLayer,
     duplicateLayer:agentDuplicateLayer,
-    deleteLayer:agentDeleteLayer
+    deleteLayer:agentDeleteLayer,
+    setSelection:agentSetSelection,
+    selectAll:agentSelectAll,
+    copySelection:agentCopySelection,
+    cutSelection:agentCutSelection,
+    pasteSelection:agentPasteSelection,
+    clearSelection:agentClearSelection,
+    deselect:agentDeselect,
+    moveSelection:agentMoveSelection
   });
 }
 
@@ -1369,7 +1424,7 @@ grid.addEventListener("pointerup",e=>{
       if(dx||dy)moveSelectionPixels(dx,dy);
     }else if(selectionDragMode==="marquee"){
       selection=selectionPreview||normalizeSelection(strokeStart,p);
-      selectionPreview=null;
+      selectionPreview=null;documentRevision+=1;
       renderGrid();renderSelectionTools();
     }
     drawing=false;strokeStart=null;strokeLast=null;selectionDragMode=null;
