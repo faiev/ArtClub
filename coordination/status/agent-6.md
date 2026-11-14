@@ -36,7 +36,7 @@
   - `tests/layer-safety.browser.mjs`
   - `tests/layer-safety.browser.test.js`
 - The old run #43614505964 was executed while stacked on PR #26: 138 Node tests passed; standard Chromium editor E2E, GIF ImageDecoder full-raster and MCP passed. It predates retargeting and is historical regression evidence, not a fresh validation against the current base.
-- The dedicated `node tests/layer-safety.browser.mjs` runner has **not** passed in a real browser. The shared workflow does not invoke it. Local `/usr/bin/chromium` previously timed out (exit 124) even on a minimal data URL; single-process/no-zygote retries also hung. Standard editor E2E is not a substitute.
+- The dedicated `node tests/layer-safety.browser.mjs` runner has **not** passed in a real browser. The shared workflow does not invoke it. Local `/usr/bin/chromium --headless --no-sandbox --dump-dom` timed out (exit 124) on a minimal data URL, including single-process/no-zygote retry. A separate Python Playwright probe launched Chromium but navigation to minimal `data:`, local `file:` and `http://127.0.0.1` pages all returned `net::ERR_BLOCKED_BY_ADMINISTRATOR`. This runtime therefore cannot load a local harness page. Standard editor E2E is not a substitute.
 - PR remains draft. No custom-browser pass is claimed. GitHub's mergeability result has been transient around the retarget/body refresh; exact-base CI and the standalone harness remain open gates.
 
 ## AC-092 conformance evidence
