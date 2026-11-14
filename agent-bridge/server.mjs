@@ -149,11 +149,14 @@ async function connectToEditor() {
 
   connectionPromise = (async () => {
     if (!browserContext) {
-      const context = await chromium.launchPersistentContext(PROFILE_DIR, {
+      const context = await chromium.launchPersistentContext(
+        profileLock?.profileDirectory || PROFILE_DIR,
+        {
         headless: HEADLESS,
         viewport: { width: 1440, height: 1000 },
         acceptDownloads: true
-      });
+        }
+      );
       browserContext = context;
       context.once("close", () => {
         if (browserContext === context) {
@@ -454,7 +457,7 @@ async function main() {
     await connectToEditor();
 
   const server = new McpServer(
-    { name: "art-club-pixel-studio", version: "0.3.0" },
+    { name: "art-club-pixel-studio", version: "0.4.0" },
     { maxToolInputElements: 12_000 }
   );
 

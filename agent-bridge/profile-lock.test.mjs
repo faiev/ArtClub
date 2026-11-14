@@ -72,6 +72,21 @@ function childCode(mode) {
   `;
 }
 
+test("symlinked profile aliases resolve to the same locked canonical directory", async t => {
+  const profile = await makeProfile();
+  const alias = path.join(os.tmpdir(), "artclub-profile-alias-" + process.pid + "-" + Date.now());
+  t.after(() => fs.rm(profile, { recursive: true, force: true }));
+  t.after(() => fs.rm(alias, { recursive: true, force: true }));
+
+  await fs.symlink(profile, alias, "dir");
+  const lock = await acquireProfileLock(profile);
+  assert.equal(lock.profileDirectory, await fs.realpath(profile));
+  await assert.rejects(acquireProfileLock(alias), error =>
+    error.code === "PROFILE_IN_USE" && error.owner.token === lock.owner.token
+  );
+  await lock.release();
+});
+
 test("only one competing child process can own a profile at a time", async t => {
   const profile = await makeProfile();
   t.after(() => fs.rm(profile, { recursive: true, force: true }));
