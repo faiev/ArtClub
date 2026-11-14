@@ -19,27 +19,11 @@ import {
   acquireProfileLock,
   recoverStaleProfileLock
 } from "./profile-lock.mjs";
-
-function validateAppUrl(value) {
-  let url;
-  try { url = new URL(value); }
-  catch { throw new Error("ARTCLUB_URL must be a valid absolute URL."); }
-
-  if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw new Error("ARTCLUB_URL must use HTTPS (or HTTP on localhost for development).");
-  }
-  if (url.username || url.password) {
-    throw new Error("ARTCLUB_URL must not contain embedded credentials.");
-  }
-
-  const host = url.hostname.toLowerCase();
-  const isLoopback = host === "localhost" || host === "127.0.0.1" ||
-    host === "::1" || host === "[::1]";
-  if (url.protocol === "http:" && !isLoopback) {
-    throw new Error("Insecure HTTP is allowed only for localhost development URLs.");
-  }
-  return url.href;
-}
+import {
+  parseProjectJson,
+  sanitizeToolErrorMessage,
+  validateAppUrl
+} from "./security-utils.mjs";
 
 const APP_URL = validateAppUrl(
   process.env.ARTCLUB_URL || "https://faiev.github.io/ArtClub/"
@@ -308,16 +292,34 @@ async function invokeNow(method, args, scope = {}) {
         throw new Error("Art Club does not support agent method: " + methodName);
       }
 
+      let currentStatus = null;
       if (requiresRevision) {
         const expected = payload && payload.expected_revision;
         if (!Number.isSafeInteger(expected) || expected < 0) {
           throw new Error("expected_revision is required. Call artclub_get_status and pass its revision before editing.");
         }
-        const current = api.get_status();
-        if (current.revision !== expected) {
+        currentStatus = api.get_status();
+        if (currentStatus.revision !== expected) {
           throw new Error("The project changed since your last read. Call artclub_get_status again, review the updated state, and retry with its revision.");
         }
       }
+
+      // The browser API historically treated an unknown select_frame ID as a
+      // no-op. Enforce identifier existence at the MCP boundary for every
+      // operation that names a specific layer or frame.
+      if (payload && typeof payload === "object" && !Array.isArray(payload) &&
+          (payload.layer_id !== undefined || payload.frame_id !== undefined)) {
+        const status = currentStatus || api.get_status();
+        if (payload.layer_id !== undefined &&
+            !status.layers.some(layer => layer.id === payload.layer_id)) {
+          throw new Error("Unknown layer_id. Call artclub_get_status and use an ID from its layers list.");
+        }
+        if (payload.frame_id !== undefined &&
+            !status.frames.some(frame => frame.id === payload.frame_id)) {
+          throw new Error("Unknown frame_id. Call artclub_get_status and use an ID from its frames list.");
+        }
+      }
+
       const result = await fn(payload);
       // Test-only post-commit hold: it exercises cancellation after a mutation
       // may already have occurred rather than only cancelling before dispatch.
@@ -386,7 +388,12 @@ function attachRequestId(result, requestId) {
 }
 
 function structuredToolError(name, error, requestId) {
-  const message = error && error.message ? error.message : String(error);
+  const rawMessage = error && error.message ? error.message : String(error);
+  const message = sanitizeToolErrorMessage(rawMessage);
+  const code = error && typeof error.code === "string" &&
+    /^[A-Z0-9_]{1,64}$/.test(error.code)
+    ? error.code
+    : "TOOL_FAILED";
   return {
     content: [{
       type: "text",
@@ -396,8 +403,10 @@ function structuredToolError(name, error, requestId) {
       ok: false,
       error: {
         tool: name,
-        name: error && error.name ? error.name : "Error",
-        code: error && typeof error.code === "string" ? error.code : "TOOL_FAILED",
+        name: error && typeof error.name === "string"
+          ? sanitizeToolErrorMessage(error.name, 80)
+          : "Error",
+        code,
         request_id: requestId,
         outcome_uncertain: Boolean(error && error.outcomeUncertain),
         message
@@ -457,19 +466,33 @@ async function main() {
     await connectToEditor();
 
   const server = new McpServer(
-    { name: "art-club-pixel-studio", version: "0.4.0" },
+    { name: "art-club-pixel-studio", version: "0.5.0" },
     { maxToolInputElements: 12_000 }
   );
 
   const coordinate = z.number().int().min(0).max(511);
   const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
   const revision = z.number().int().nonnegative();
+  const identifier = z.string().trim().min(1).max(128);
+  const layerName = z.string().trim().min(1).max(60);
+  const frameName = z.string().trim().min(1).max(60);
+  const agentCommand = z.discriminatedUnion("type", [
+    z.strictObject({ type: z.literal("draw_pixel"), x: coordinate, y: coordinate, color: color.optional() }),
+    z.strictObject({ type: z.literal("erase_pixel"), x: coordinate, y: coordinate, color: color.optional() }),
+    z.strictObject({ type: z.literal("fill"), x: coordinate, y: coordinate, color: color.optional() }),
+    z.strictObject({ type: z.literal("draw_line"), x1: coordinate, y1: coordinate, x2: coordinate, y2: coordinate, color: color.optional() }),
+    z.strictObject({ type: z.literal("draw_rectangle"), x1: coordinate, y1: coordinate, x2: coordinate, y2: coordinate, color: color.optional(), filled: z.boolean().optional() }),
+    z.strictObject({ type: z.literal("draw_ellipse"), x1: coordinate, y1: coordinate, x2: coordinate, y2: coordinate, color: color.optional(), filled: z.boolean().optional() }),
+    z.strictObject({ type: z.literal("erase_rectangle"), x1: coordinate, y1: coordinate, x2: coordinate, y2: coordinate, color: color.optional() }),
+    z.strictObject({ type: z.literal("clear_canvas") }),
+    z.strictObject({ type: z.literal("set_color"), color })
+  ]);
 
   registerTool(
     server,
     "artclub_get_status",
     "Read the active Art Club project, canvas dimensions, palette, selected color, undo/redo availability and revision. Always call this before drawing.",
-    z.object({}),
+    z.strictObject({}),
     async () => textResult(await invoke("get_status"))
   );
 
@@ -477,7 +500,7 @@ async function main() {
     server,
     "artclub_get_canvas",
     "Read the active canvas as a row-major array. Coordinates start at top-left; x increases right and y increases down. Transparent pixels are null.",
-    z.object({ include_pixels: z.boolean().optional() }),
+    z.strictObject({ include_pixels: z.boolean().optional() }),
     async args => textResult(await invoke("get_canvas", args))
   );
 
@@ -485,7 +508,7 @@ async function main() {
     server,
     "artclub_get_pixel",
     "Read one pixel at integer grid coordinates.",
-    z.object({ x: coordinate, y: coordinate }),
+    z.strictObject({ x: coordinate, y: coordinate }),
     async args => textResult(await invoke("get_pixel", args))
   );
 
@@ -493,7 +516,7 @@ async function main() {
     server,
     "artclub_get_palette",
     "Read the active project's palette.",
-    z.object({}),
+    z.strictObject({}),
     async () => textResult({ palette: await invoke("get_palette") })
   );
 
@@ -501,7 +524,7 @@ async function main() {
     server,
     "artclub_draw_pixel",
     "Draw exactly one pixel. Coordinates are grid cells, not screen positions. Color is optional and must be #RRGGBB.",
-    z.object({
+    z.strictObject({
       x: coordinate,
       y: coordinate,
       color: color.optional(),
@@ -514,7 +537,7 @@ async function main() {
     server,
     "artclub_draw_line",
     "Draw a hard-edged straight line between two canvas pixels.",
-    z.object({
+    z.strictObject({
       x1: coordinate, y1: coordinate,
       x2: coordinate, y2: coordinate,
       color: color.optional(),
@@ -527,7 +550,7 @@ async function main() {
     server,
     "artclub_draw_rectangle",
     "Draw an outlined or filled pixel rectangle. Both corners are inclusive.",
-    z.object({
+    z.strictObject({
       x1: coordinate, y1: coordinate,
       x2: coordinate, y2: coordinate,
       color: color.optional(),
@@ -541,7 +564,7 @@ async function main() {
     server,
     "artclub_draw_ellipse",
     "Draw a pixel ellipse within the inclusive bounding box. Choose outlined or filled mode.",
-    z.object({
+    z.strictObject({
       x1: coordinate, y1: coordinate,
       x2: coordinate, y2: coordinate,
       color: color.optional(),
@@ -555,7 +578,7 @@ async function main() {
     server,
     "artclub_fill",
     "Flood-fill the contiguous region containing the selected coordinate.",
-    z.object({
+    z.strictObject({
       x: coordinate, y: coordinate,
       color: color.optional(),
       expected_revision: revision
@@ -567,7 +590,7 @@ async function main() {
     server,
     "artclub_erase_pixel",
     "Erase one pixel to transparency.",
-    z.object({
+    z.strictObject({
       x: coordinate, y: coordinate,
       expected_revision: revision
     }),
@@ -578,7 +601,7 @@ async function main() {
     server,
     "artclub_erase_rectangle",
     "Erase an inclusive rectangular region to transparency.",
-    z.object({
+    z.strictObject({
       x1: coordinate, y1: coordinate,
       x2: coordinate, y2: coordinate,
       expected_revision: revision
@@ -590,7 +613,7 @@ async function main() {
     server,
     "artclub_set_color",
     "Set the active palette color, adding it to the palette if necessary.",
-    z.object({ color, expected_revision: revision }),
+    z.strictObject({ color, expected_revision: revision }),
     async args => textResult(await invoke("set_color", compactArgs(args)))
   );
 
@@ -598,9 +621,9 @@ async function main() {
     server,
     "artclub_execute",
     "Execute up to 1,000 validated drawing commands as one undoable transaction. Supported types: draw_pixel, erase_pixel, draw_line, draw_rectangle, draw_ellipse, erase_rectangle, fill, clear_canvas and set_color. Use expected_revision to avoid overwriting newer edits.",
-    z.object({
-      commands: z.array(z.record(z.string(), z.unknown())).min(1).max(1000),
-      label: z.string().max(80).optional(),
+    z.strictObject({
+      commands: z.array(agentCommand).min(1).max(1000),
+      label: z.string().trim().min(1).max(80).optional(),
       expected_revision: revision
     }),
     async args => textResult(await invoke("execute", compactArgs(args)))
@@ -610,7 +633,7 @@ async function main() {
     server,
     "artclub_list_layers",
     "List layers in bottom-to-top order. Each layer reports its id, name, visibility, lock and active state.",
-    z.object({}),
+    z.strictObject({}),
     async () => textResult({ layers: await invoke("list_layers") })
   );
 
@@ -618,7 +641,7 @@ async function main() {
     server,
     "artclub_add_layer",
     "Add a new transparent layer above the current stack and make it active.",
-    z.object({ name: z.string().min(1).max(60).optional(), expected_revision: revision }),
+    z.strictObject({ name: layerName.optional(), expected_revision: revision }),
     async args => textResult(await invoke("add_layer", compactArgs(args)))
   );
 
@@ -626,7 +649,7 @@ async function main() {
     server,
     "artclub_select_layer",
     "Select a layer by its id. Subsequent drawing commands target this layer.",
-    z.object({ layer_id: z.string().min(1), expected_revision: revision }),
+    z.strictObject({ layer_id: identifier, expected_revision: revision }),
     async args => textResult(await invoke("select_layer", compactArgs(args)))
   );
 
@@ -634,7 +657,7 @@ async function main() {
     server,
     "artclub_set_layer_visibility",
     "Show or hide a layer in the canvas composite.",
-    z.object({ layer_id: z.string().min(1), visible: z.boolean(), expected_revision: revision }),
+    z.strictObject({ layer_id: identifier, visible: z.boolean(), expected_revision: revision }),
     async args => textResult(await invoke("set_layer_visibility", compactArgs(args)))
   );
 
@@ -642,7 +665,7 @@ async function main() {
     server,
     "artclub_set_layer_locked",
     "Lock or unlock a layer to prevent accidental editing.",
-    z.object({ layer_id: z.string().min(1), locked: z.boolean(), expected_revision: revision }),
+    z.strictObject({ layer_id: identifier, locked: z.boolean(), expected_revision: revision }),
     async args => textResult(await invoke("set_layer_locked", compactArgs(args)))
   );
 
@@ -650,7 +673,7 @@ async function main() {
     server,
     "artclub_rename_layer",
     "Rename a layer without changing its pixels.",
-    z.object({ layer_id: z.string().min(1), name: z.string().min(1).max(60), expected_revision: revision }),
+    z.strictObject({ layer_id: identifier, name: layerName, expected_revision: revision }),
     async args => textResult(await invoke("rename_layer", compactArgs(args)))
   );
 
@@ -658,7 +681,7 @@ async function main() {
     server,
     "artclub_move_layer",
     'Move a layer one position "up" (toward the front) or "down" (toward the back).',
-    z.object({ layer_id: z.string().min(1), direction: z.enum(["up", "down"]), expected_revision: revision }),
+    z.strictObject({ layer_id: identifier, direction: z.enum(["up", "down"]), expected_revision: revision }),
     async args => textResult(await invoke("move_layer", compactArgs(args)))
   );
 
@@ -666,7 +689,7 @@ async function main() {
     server,
     "artclub_duplicate_layer",
     "Duplicate the active layer and its pixels as a new layer.",
-    z.object({ expected_revision: revision }),
+    z.strictObject({ expected_revision: revision }),
     async args => textResult(await invoke("duplicate_layer", compactArgs(args)))
   );
 
@@ -674,7 +697,7 @@ async function main() {
     server,
     "artclub_delete_layer",
     "Delete a layer by id. A project must retain at least one layer.",
-    z.object({ layer_id: z.string().min(1), expected_revision: revision }),
+    z.strictObject({ layer_id: identifier, expected_revision: revision }),
     async args => textResult(await invoke("delete_layer", compactArgs(args)))
   );
 
@@ -682,11 +705,11 @@ async function main() {
     server,
     "artclub_set_selection",
     "Set a rectangular pixel selection. Coordinates are zero-based and the rectangle must fit inside the canvas.",
-    z.object({
-      x: z.number().int().nonnegative(),
-      y: z.number().int().nonnegative(),
-      width: z.number().int().positive(),
-      height: z.number().int().positive(),
+    z.strictObject({
+      x: coordinate,
+      y: coordinate,
+      width: z.number().int().positive().max(512),
+      height: z.number().int().positive().max(512),
       expected_revision: revision
     }),
     async args => textResult(await invoke("set_selection", compactArgs(args)))
@@ -696,7 +719,7 @@ async function main() {
     server,
     "artclub_select_all",
     "Select the entire active canvas.",
-    z.object({ expected_revision: revision }),
+    z.strictObject({ expected_revision: revision }),
     async args => textResult(await invoke("select_all", compactArgs(args)))
   );
 
@@ -704,7 +727,7 @@ async function main() {
     server,
     "artclub_copy_selection",
     "Copy the selected rectangle from the active layer into the local clipboard.",
-    z.object({ expected_revision: revision }),
+    z.strictObject({ expected_revision: revision }),
     async args => textResult(await invoke("copy_selection", compactArgs(args)))
   );
 
@@ -712,7 +735,7 @@ async function main() {
     server,
     "artclub_cut_selection",
     "Copy and clear the selected rectangle on the active layer.",
-    z.object({ expected_revision: revision }),
+    z.strictObject({ expected_revision: revision }),
     async args => textResult(await invoke("cut_selection", compactArgs(args)))
   );
 
@@ -720,7 +743,7 @@ async function main() {
     server,
     "artclub_paste_selection",
     "Paste the local clipboard at the current selection origin, or at the canvas origin when nothing is selected.",
-    z.object({ expected_revision: revision }),
+    z.strictObject({ expected_revision: revision }),
     async args => textResult(await invoke("paste_selection", compactArgs(args)))
   );
 
@@ -728,7 +751,7 @@ async function main() {
     server,
     "artclub_clear_selection",
     "Clear pixels inside the selected rectangle on the active layer.",
-    z.object({ expected_revision: revision }),
+    z.strictObject({ expected_revision: revision }),
     async args => textResult(await invoke("clear_selection", compactArgs(args)))
   );
 
@@ -736,7 +759,7 @@ async function main() {
     server,
     "artclub_deselect",
     "Remove the active marquee selection without changing artwork.",
-    z.object({ expected_revision: revision }),
+    z.strictObject({ expected_revision: revision }),
     async args => textResult(await invoke("deselect", compactArgs(args)))
   );
 
@@ -744,7 +767,11 @@ async function main() {
     server,
     "artclub_move_selection",
     "Move the selected pixels by integer dx/dy offsets. The move is constrained to the canvas and is one undoable edit.",
-    z.object({ dx: z.number().int(), dy: z.number().int(), expected_revision: revision }),
+    z.strictObject({
+      dx: z.number().int().min(-512).max(512),
+      dy: z.number().int().min(-512).max(512),
+      expected_revision: revision
+    }),
     async args => textResult(await invoke("move_selection", compactArgs(args)))
   );
 
@@ -752,7 +779,7 @@ async function main() {
     server,
     "artclub_transform_selection",
     'Transform the selected active-layer pixels. operation is "flip_h", "flip_v", "rotate_cw" or "rotate_ccw". A 90-degree rotation swaps selection width and height; the result must fit inside the canvas.',
-    z.object({
+    z.strictObject({
       operation: z.enum(["flip_h", "flip_v", "rotate_cw", "rotate_ccw"]),
       expected_revision: revision
     }),
@@ -763,7 +790,7 @@ async function main() {
     server,
     "artclub_list_frames",
     "List animation frames in timeline order, including frame names, durations and active state.",
-    z.object({}),
+    z.strictObject({}),
     async () => textResult({ frames: await invoke("list_frames") })
   );
 
@@ -771,8 +798,8 @@ async function main() {
     server,
     "artclub_add_frame",
     "Add a blank animation frame after the active frame and make it active.",
-    z.object({
-      name: z.string().min(1).max(60).optional(),
+    z.strictObject({
+      name: frameName.optional(),
       duration_ms: z.number().int().min(10).max(60000).optional(),
       expected_revision: revision
     }),
@@ -783,9 +810,9 @@ async function main() {
     server,
     "artclub_duplicate_frame",
     "Duplicate a frame and all its layer cels, then make the duplicate active.",
-    z.object({
-      frame_id: z.string().min(1).optional(),
-      name: z.string().min(1).max(60).optional(),
+    z.strictObject({
+      frame_id: identifier.optional(),
+      name: frameName.optional(),
       expected_revision: revision
     }),
     async args => textResult(await invoke("duplicate_frame", compactArgs(args)))
@@ -795,7 +822,7 @@ async function main() {
     server,
     "artclub_select_frame",
     "Switch the active animation frame. Drawing commands then target that frame's active-layer cel.",
-    z.object({ frame_id: z.string().min(1), expected_revision: revision }),
+    z.strictObject({ frame_id: identifier, expected_revision: revision }),
     async args => textResult(await invoke("select_frame", compactArgs(args)))
   );
 
@@ -803,7 +830,7 @@ async function main() {
     server,
     "artclub_delete_frame",
     "Delete a frame and its cels. The final remaining frame cannot be deleted.",
-    z.object({ frame_id: z.string().min(1).optional(), expected_revision: revision }),
+    z.strictObject({ frame_id: identifier.optional(), expected_revision: revision }),
     async args => textResult(await invoke("delete_frame", compactArgs(args)))
   );
 
@@ -811,8 +838,8 @@ async function main() {
     server,
     "artclub_move_frame",
     'Move a frame one position "up" (earlier) or "down" (later) in the timeline.',
-    z.object({
-      frame_id: z.string().min(1).optional(),
+    z.strictObject({
+      frame_id: identifier.optional(),
       direction: z.enum(["up", "down"]),
       expected_revision: revision
     }),
@@ -823,8 +850,8 @@ async function main() {
     server,
     "artclub_set_frame_duration",
     "Set a frame's playback duration in milliseconds (10–60000).",
-    z.object({
-      frame_id: z.string().min(1).optional(),
+    z.strictObject({
+      frame_id: identifier.optional(),
       duration_ms: z.number().int().min(10).max(60000),
       expected_revision: revision
     }),
@@ -835,9 +862,9 @@ async function main() {
     server,
     "artclub_rename_frame",
     "Rename a frame in the timeline.",
-    z.object({
-      frame_id: z.string().min(1).optional(),
-      name: z.string().min(1).max(60),
+    z.strictObject({
+      frame_id: identifier.optional(),
+      name: frameName,
       expected_revision: revision
     }),
     async args => textResult(await invoke("rename_frame", compactArgs(args)))
@@ -847,7 +874,7 @@ async function main() {
     server,
     "artclub_play_animation",
     "Start the active sprite animation preview using the selected playback mode.",
-    z.object({}),
+    z.strictObject({}),
     async () => textResult(await invoke("play"))
   );
 
@@ -855,7 +882,7 @@ async function main() {
     server,
     "artclub_pause_animation",
     "Pause the animation preview without changing the selected editing frame.",
-    z.object({}),
+    z.strictObject({}),
     async () => textResult(await invoke("pause"))
   );
 
@@ -863,7 +890,7 @@ async function main() {
     server,
     "artclub_stop_animation_preview",
     "Stop the preview and return the canvas to the selected editing frame.",
-    z.object({}),
+    z.strictObject({}),
     async () => textResult(await invoke("stop_playback"))
   );
 
@@ -871,7 +898,7 @@ async function main() {
     server,
     "artclub_set_playback_mode",
     'Choose "loop", "once" or "pingpong" animation preview mode.',
-    z.object({ mode: z.enum(["loop", "once", "pingpong"]) }),
+    z.strictObject({ mode: z.enum(["loop", "once", "pingpong"]) }),
     async args => textResult(await invoke("set_playback_mode", compactArgs(args)))
   );
 
@@ -879,7 +906,7 @@ async function main() {
     server,
     "artclub_set_onion_skin",
     "Toggle tinted previous/next frame overlays while editing. Onion skin never changes artwork pixels or exports.",
-    z.object({ enabled: z.boolean() }),
+    z.strictObject({ enabled: z.boolean() }),
     async args => textResult(await invoke("set_onion_skin", compactArgs(args)))
   );
 
@@ -887,7 +914,7 @@ async function main() {
     server,
     "artclub_undo",
     "Undo one editing transaction.",
-    z.object({ expected_revision: revision }),
+    z.strictObject({ expected_revision: revision }),
     async args => textResult(await invoke("undo", compactArgs(args)))
   );
 
@@ -895,7 +922,7 @@ async function main() {
     server,
     "artclub_redo",
     "Redo the last undone transaction.",
-    z.object({ expected_revision: revision }),
+    z.strictObject({ expected_revision: revision }),
     async args => textResult(await invoke("redo", compactArgs(args)))
   );
 
@@ -903,7 +930,7 @@ async function main() {
     server,
     "artclub_save",
     "Immediately save the active project to the local project library and backup.",
-    z.object({}),
+    z.strictObject({}),
     async () => textResult(await invoke("save"))
   );
 
@@ -911,7 +938,7 @@ async function main() {
     server,
     "artclub_list_projects",
     "List projects saved in this browser's local Art Club library.",
-    z.object({}),
+    z.strictObject({}),
     async () => textResult({ projects: await invoke("list_projects") })
   );
 
@@ -919,7 +946,7 @@ async function main() {
     server,
     "artclub_open_project",
     "Open a project by project_id from artclub_list_projects.",
-    z.object({ project_id: z.string().min(1), expected_revision: revision }),
+    z.strictObject({ project_id: identifier, expected_revision: revision }),
     async args => textResult(await invoke("open_project", args))
   );
 
@@ -927,7 +954,7 @@ async function main() {
     server,
     "artclub_export_project",
     "Export the active editable project as versioned project JSON.",
-    z.object({}),
+    z.strictObject({}),
     async () => textResult({ project_json: await invoke("export_project") })
   );
 
@@ -935,11 +962,9 @@ async function main() {
     server,
     "artclub_import_project",
     "Import a versioned Art Club project from a JSON string. This replaces the active editor document after preserving the current project.",
-    z.object({ project_json: z.string().min(2).max(MAX_TOOL_INPUT_BYTES), expected_revision: revision }),
+    z.strictObject({ project_json: z.string().min(2).max(MAX_TOOL_INPUT_BYTES), expected_revision: revision }),
     async args => {
-      let project;
-      try { project = JSON.parse(args.project_json); }
-      catch { throw new Error("project_json is not valid JSON."); }
+      const project = parseProjectJson(args.project_json);
       return textResult(await invoke("import_project", {
         project,
         expected_revision: args.expected_revision
@@ -951,7 +976,7 @@ async function main() {
     server,
     "artclub_export_png",
     "Render the current artwork to a native-size transparent PNG preview. Returns an image to the agent.",
-    z.object({}),
+    z.strictObject({}),
     async () => {
       const png = await invoke("export_png");
       return {
