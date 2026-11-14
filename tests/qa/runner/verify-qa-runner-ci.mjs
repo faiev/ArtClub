@@ -74,8 +74,8 @@ export function validateAllSuitesReport(report, options = {}) {
         counts.passed += 1;
       } else {
         counts.failed += 1;
-        if (Number.isInteger(file.exitCode) && file.exitCode !== 0 && firstFailureExitCode === null) {
-          firstFailureExitCode = file.exitCode;
+        if (firstFailureExitCode === null) {
+          firstFailureExitCode = Number.isInteger(file.exitCode) && file.exitCode !== 0 ? file.exitCode : 1;
         }
         errors.push("present Node suite did not pass: " + entry.path + " (" + file.status + ")");
       }
