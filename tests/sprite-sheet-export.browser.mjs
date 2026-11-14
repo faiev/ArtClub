@@ -16,6 +16,7 @@ try {
   await page.goto(pageUrl);
   await page.waitForFunction(
     () => ["PASS", "FAIL"].includes(document.body.dataset.result),
+    undefined,
     { timeout: 20_000 }
   );
   const report = await page.locator("#result").textContent();
