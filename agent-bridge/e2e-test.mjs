@@ -119,7 +119,10 @@ async function run() {
 
     page.once("dialog", dialog => dialog.accept());
     await page.locator("#newProjectBtn").click();
-    await page.waitForFunction(() => window.onePixelStudio.get_status().project_id !== null);
+    await page.waitForFunction(
+      previousId => window.onePixelStudio.get_status().project_id !== previousId,
+      firstProjectId
+    );
     await page.evaluate(() => window.onePixelStudio.save());
     const projects = await page.evaluate(() => window.onePixelStudio.list_projects());
     assert.ok(projects.length >= 2, "creating a new project should keep the previous one in IndexedDB");
