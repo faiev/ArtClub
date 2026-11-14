@@ -214,3 +214,20 @@ This addendum supersedes the earlier 88d2/99-behind comparison snapshot above.
 - **Agent 9 status update:** This entry is appended to `coordination/status/agent-9.md`; the reporting commit changes only this status file.
 - **Actions:** searched current open PRs; inspected PR metadata/diff/reviews/threads; compared exact base/head file scope; queried exact-head CI; merged with expected-head guard; verified merge commit and PR state; updated and re-fetched this status file. No shell/local commands.
 - **CI caveat:** No workflow runs were associated with the exact PR head. Merge was based on the narrow documentation-only scope, review-state checks and GitHub mergeability, not on a CI pass.
+
+
+## 2026-11-15 — live refresh after coordinator delivery reset
+
+- Re-read the current `coordination/BOARD.md` reset and this Agent 9 assignment. The active assignment is **read-only dependency inventory** for diagnostics PRs #12/#46/#59/#64/#71/#83/#85/#89. AC-095 is paused; no implementation, PR closure/merge, branch deletion, retargeting or ref updates are authorized. The earlier continuous-workstream instructions are superseded by the 2026-11-15 reset.
+- Board's latest stated main snapshot: `90488f58392582420ba980860d57a8403c25ee04`. Rechecked all eight PRs live: each remains open and draft, with the same head SHAs and linear base chain #12 → #46 → #59 → #64 → #71 → #83 → #85 → #89. #12 currently reports `mergeable=false`; descendants report `mergeable=true`, but remain stacked on their parent branches and are not independently merge-ready.
+- Exact current heads and comparison to that main snapshot (all share merge base `573bf6fd8963781613bb43179e9c7d10f49c418e`):
+  - #12 `dc897d82d438e8a5cb6527d8f3541e65a8f7aadc`: 48 ahead / 88 behind.
+  - #46 `c273fa255207792ee2d9ef22b2a8802de8c5017d`: 80 ahead / 88 behind.
+  - #59 `3a3a858cbec32b8a842de05d30d755167f4a122d`: 110 ahead / 88 behind.
+  - #64 `63e469679148a68c60b5aa09ad53eb55bcd115dd`: 136 ahead / 88 behind.
+  - #71 `7e2481ffb670ab15e1906b579488bcf07ffcc09a`: 159 ahead / 88 behind.
+  - #83 `d66f74735582f24021406b87650a31ff9b340e15`: 163 ahead / 88 behind.
+  - #85 `41e8539c0a4f30c7be5099c4c7d36d1682b70f8d`: 174 ahead / 88 behind.
+  - #89 `16bdc5e7a7853f8e9dd5d544f8b79d28e8459a3e`: 182 ahead / 88 behind.
+- These are diverged historical stacks, not current-main-ready PRs. Prior exact-head CI evidence remains as recorded above; it is historical and does not establish validation against current main. Preserve the stack parked; coordinator must decide disposition after reviewing its unique incremental commits/files and dependencies. Do not merge or close any member independently.
+- No code, branches, refs or PR states changed. This status-file addendum records the refreshed read-only evidence only.
