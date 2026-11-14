@@ -23,8 +23,8 @@ test("Floyd-Steinberg selects the closest palette entry for a one-pixel source",
 });
 
 test("nearest-palette ties resolve to the earliest supplied palette color", () => {
-  const result = Advanced.floydSteinberg(["#800000"], 1, 1, [K, R]);
-  assert.deepEqual(result.pixels, [K]);
+  const result = Advanced.floydSteinberg(["#800000"], 1, 1, ["#7F0000", "#810000"]);
+  assert.deepEqual(result.pixels, ["#7F0000"]);
 });
 
 test("left-to-right, right-to-left and serpentine scan modes are explicit and repeatable", () => {
