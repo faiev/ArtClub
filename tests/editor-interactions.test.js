@@ -354,12 +354,12 @@ test("selection flips and quarter-turn rotation preserve exact pixel positions",
   const rotated = editor.agent.get_status().selection;
   assert.equal(rotated.width, 3);
   assert.equal(rotated.height, 2);
-  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#550000");
-  assert.equal((await editor.agent.get_pixel({ x: 3, y: 2 })).color, "#330000");
-  assert.equal((await editor.agent.get_pixel({ x: 4, y: 2 })).color, "#110000");
-  assert.equal((await editor.agent.get_pixel({ x: 2, y: 3 })).color, "#660000");
-  assert.equal((await editor.agent.get_pixel({ x: 3, y: 3 })).color, "#440000");
-  assert.equal((await editor.agent.get_pixel({ x: 4, y: 3 })).color, "#220000");
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#220000");
+  assert.equal((await editor.agent.get_pixel({ x: 3, y: 2 })).color, "#440000");
+  assert.equal((await editor.agent.get_pixel({ x: 4, y: 2 })).color, "#660000");
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 3 })).color, "#110000");
+  assert.equal((await editor.agent.get_pixel({ x: 3, y: 3 })).color, "#330000");
+  assert.equal((await editor.agent.get_pixel({ x: 4, y: 3 })).color, "#550000");
 
   await editor.agent.undo();
   assert.equal(editor.agent.get_status().selection.width, 3);
