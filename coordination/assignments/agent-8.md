@@ -54,3 +54,23 @@ All phases are pre-authorized. The PR #16 base refresh is not the end of your wo
 
 ## Handoff
 Update only coordination/status/agent-8.md with phase state, branches/PRs, tests, supported formats, limitations and next 3–5 tasks. Do not merge or self-accept.
+
+## Coordinator-added extension — AC-094: Perceptual palette distance and color matching
+
+After AC-073, extend palette color matching with a documented perceptual metric while keeping existing RGB behavior stable and explicit.
+
+### Deliverable
+- Add `js/palette-distance.js` and `tests/palette-distance.test.js`.
+- Implement deterministic sRGB-to-Lab conversion and CIEDE2000 (ΔE00) distance with documented reference-white, gamma, rounding and finite-value policy.
+- Provide nearest-color selection with selectable metrics (existing squared RGB, CIE76 and CIEDE2000), stable tie-breaking by original palette order, and structured diagnostics.
+- Keep transparency/null handling explicit; never treat null as an ordinary RGB color.
+- Validate palette size and HEX input bounds before computation. Add fast-path behavior only when proven equivalent and tested.
+- Use published reference pairs for the CIEDE2000 conformance tests, plus grayscale, hue-wrap, near-neutral, duplicate and tie cases.
+- Document perceptual matching's limitations and keep all operations pure and non-mutating.
+- Do not silently change Agent 8's existing nearest-color defaults or Agent 10's quantization behavior. Any adoption of the new metric must be opt-in and separately documented.
+
+**Allowed files:** `js/palette-distance.js`, `tests/palette-distance.test.js` and palette distance documentation only. Do not change palette-format parsing, project model, Agent 10 pixel algorithms, index.html, Agent API, bridge or other agents' files.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile #16/#27/#33/#39/#45/#53/#56/#60/#78. #78 is merged; verify actual #16 final state and whether #56 is stacked or now targets main. Refresh exact heads and CI. Provide a docs/tests-only UI-04 palette parser acceptance contract (preview, duplicates, merge/replace/cancel, errors, immutability). No UI wiring.

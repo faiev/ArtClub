@@ -1,41 +1,97 @@
+### Completed phase — AC-091: Professional workstation design system and interactive prototype
+
+- **Status:** ACCEPTED and MERGED by coordinator (UI-00).
+- **PR:** [#77 — AC-091: Design the One Pixel Studio workstation experience](https://github.com/faiev/ArtClub/pull/77), merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610`.
+- **Merged deliverables:** `docs/ux/DESIGN_SYSTEM.md`, `docs/ux/WORKSTATION_REVIEW.md`, `docs/ux/prototypes/workstation.html`.
+- **Acceptance:** Coordinator explicitly accepted the graphite/olive direction, prototype and review handoff. The prototype remains non-production; no production UI ownership was granted.
+- **Pre-merge corrections:** Removed nonexistent relative screenshot references; labelled read-only values and palette file input; disclosed Line and Rectangle Select as demonstration-only and prevented pixel mutation from those tool selections.
+- **Evidence:** Chromium 144.0.7559.96 / Playwright review reported no body-level horizontal overflow or page errors at 1440×900, 1280×800, 860×740 and 390×844; accessible-name checks returned one control for each of the five review labels; pointer and keyboard tests confirmed Line/Rectangle Select leave sample pixels unchanged. Four WebP screenshots remain handoff attachments, not repository assets; coordinator recorded them as agent-reported evidence rather than independently inspected captures.
+- **Post-merge documentation correction:** Main's 390×844 caption said the inspector drawer was dismissed after Escape, while the actual handoff capture shows it open. Follow-up [PR #87](https://github.com/faiev/ArtClub/pull/87) changes only that sentence; it is open and awaits coordinator review.
+
+### Completed review — UI-01 production workstation shell (PR #84)
+
+- **Status:** REVIEW POSTED; coordinator merged UI-01.
+- **Reviewed PR head:** `64d68de63abae730623ac81b670562a950d66759`; reviewed `index.html` blob `4645281c1aad8580529e7feb99cd299a88543913`.
+- **Merged head:** `dee2e96ff2c3cf9b1927570d4248d95114f113c6`; merge commit `e22ddb35ebf802b3b719e74a7329effceab28747`. The merged `index.html` blob is identical to the source reviewed at `64d68de...`.
+- **Final exact-head CI:** Actions run [#43624220195](https://github.com/faiev/ArtClub/actions/runs/43624220195) passed both `test` and `browser-e2e` jobs, including editor Chromium E2E, GIF decode and MCP client steps.
+- **Review comment:** Posted on PR #84 as [comment #6881921768](https://github.com/faiev/ArtClub/pull/84#issuecomment-6881921768); it applies to the identical merged `index.html` blob.
+- **Ranked findings:** P1 — legacy `.project-name:focus` specificity overrides the new `input:focus-visible` rule, leaving an approximately 1.13:1 focus outline on the dark surface; P1 — active tool, palette swatch and frame states are class-only and not exposed with `aria-pressed` / `aria-current`; P2 — lock emoji and mixed Unicode tool glyphs break the restrained icon system; P2 — `theme-color` metadata still uses the old light background; P2 — several essential technical labels remain 8 px versus the design system's 9–10 px range.
+- **Positive review:** Graphite/olive tokens match AC-091; canvas remains the flexible dominant center; 190 px tool dock / 286 px inspector are balanced at 1280/1440 widths; 176 px timeline stays below canvas; responsive rules move inspector below the desktop workspace and stack panels at narrow widths. No prototype-only fake tabs or cel matrix were requested.
+- **Visual limitation:** Exact-head workflow artifacts were empty. No independent rendered screenshot inspection at 1440×900 or 1280×800 is claimed; the review used committed CSS/DOM and token comparison. The comment records this limitation.
+- **Scope:** No edits to PR #84, `index.html`, production CSS/JS, application tests, bridge or workflow. Agent 5 remains a design reviewer and owns documentation/prototype paths only.
+
+### Completed follow-up — AC-091 screenshot-caption precision
+
+- **Status:** MERGED by coordinator.
+- **Branch:** `agent/ac091-screenshot-caption-fix`.
+- **PR:** [#87 — docs(ux): correct phone capture state description](https://github.com/faiev/ArtClub/pull/87), merged.
+- **Merged feature head:** `ccb49a9ca2e592b97f4afccbf1b2361dcb0828f0`.
+- **Merge commit on main:** `9296ca08e1e8143bb5b82c0ad48608e9c9a0b344`.
+- **Diff:** One file only, `docs/ux/DESIGN_SYSTEM.md`; one insertion / one deletion changes the 390×844 screenshot caption to say the inspector drawer is open.
+- **Verification:** GitHub confirms PR #87 merged. Re-fetched `docs/ux/DESIGN_SYSTEM.md` from `main` after merge and verified the corrected caption is present. The coordinator's PR review comment explicitly accepted the one-line documentation correction. Docs-only change; no application tests were run or claimed.
+- **Next queue:** AC-091 and the assigned UI-01 visual review are complete. No further implementation phase is currently authorized. Preserve the docs/prototype-only boundary; do not modify production UI without a separate explicit assignment.
+- **Last updated:** 2026-11-15.
+
 # Status — Agent 5
 
-## Active workstream — UX / accessibility / interaction design
+## Active workstream — UX / interaction design / accessibility
 
-### Phase 3 — AC-051: Palette and export user-journey specification
+### Submitted phase — AC-054: Integrated UX implementation roadmap
 
-- **Status:** IN_PROGRESS
-- **Branch:** `agent/palette-export-spec` (create from latest main after this status commit)
-- **Allowed deliverable:** `docs/ux/PALETTE_EXPORT_SPEC.md`
-- **Scope:** Documentation/specification only. No `index.html`, app JS, CSS, existing tests, bridge, exporter modules or workflow edits. No UI lock is granted.
-- **AC-050 completed:** `docs/ux/LAYER_TIMELINE_SPEC.md` (548 additions) submitted in [PR #30](https://github.com/faiev/ArtClub/pull/30), open/draft/unmerged; current PR file list contains only that document. Branch `agent/layer-timeline-spec`; head `756467e3ea1975f08447ffe95304720f883dc958`; synced against main `811906b09779b7f22733afe12d177f9e78cdd58d` at submission.
-- **AC-050 validation:** fetched the committed document, verified 14 sections and workflow/test-matrix coverage. No app tests run for documentation-only work. Source-backed findings include the separate layer list/frame strip, no cel matrix/thumbnails, model opacity unused by current compositing, and distinct layer/frame/cel IDs.
-- **AC-051 inputs:** Agent 8 owns palette formats (GPL/JASC-PAL/JSON), palette analysis and transformations; PR #16 current status reports 17 local tests and run #166 with 75 Node tests + Chromium/MCP. Agent 3 owns sprite-sheet/GIF exporters and export-planning; PRs #21/#22 are open, with stable frame IDs/order/duration metadata, explicit frame selections, budgets and manifests. PR #11 GIF exporter has merged, but UI/file-picker/export integration remains unassigned.
-- **Next queue:** (1) complete AC-051 journeys/acceptance matrix; (2) AC-052 accessibility audit; (3) AC-053 static interaction prototypes; (4) AC-054 integrated UX implementation sequence.
-- **Tests:** No application tests run; AC-051 is documentation-only. Validate source facts, format limitations and acceptance-matrix completeness.
-- **Blockers:** None for documentation. Palette/export production UI and Agent API wiring remain coordinator-controlled.
+- **Status:** REVIEW
+- **Branch:** `agent/ux-implementation-sequence`
+- **Feature head:** `205ededc586ab84cf5546c19bfa7baf83f514b11`
+- **PR:** [#51 — AC-054: Publish integrated UX implementation sequence](https://github.com/faiev/ArtClub/pull/51) (open, draft; GitHub currently reports not mergeable after subsequent coordination-only main commits; PR changed-file list remains the single assigned roadmap document)
+- **Base:** Branch was created from main `4192df678b48167eb1f76558a75523138970d7ee`; main later advanced with coordination-only status update `4b5055b0195271ad74761b6c1551d53fe682c6a0`. PR file list remains only the assigned roadmap file.
+- **Deliverable:** `docs/ux/IMPLEMENTATION_SEQUENCE.md` (374 lines, 10 sections; PR diff 373 additions).
+- **Roadmap:** P0 keyboard/focus and safe edit workflows; P1 canvas navigation, layer/frame/cel matrix, palette and animation export; P2 tile/pixel tools and developer diagnostics; final accessibility, responsive and release gates.
+- **Dependencies:** Documents current PR/head/CI state and gates for Agent 2 renderer/viewport/adapter, Agent 3 sprite-sheet/GIF/export planner, Agent 4 bridge/API, Agent 6 edit guard/transactions, Agent 7 tile subsystem, Agent 8 palette subsystem, Agent 9 diagnostics and Agent 10 pixel algorithms.
+- **Ownership:** Explicitly preserves coordinator control of `index.html`, Agent 4's bridge E2E ownership, Agent 3's workflow lock and all specialist module paths. Recommends one coordinator-appointed UI integrator and serialized UI slices; no file lock is granted.
+- **Validation:** Fetched committed roadmap; verified all 10 sections, the six UX deliverables, module contract references, ownership boundaries, release gates and coordinator next steps. Main-to-branch comparison before the status update was 2 commits ahead / 0 behind and the feature diff contained only `docs/ux/IMPLEMENTATION_SEQUENCE.md`. No app tests run for docs-only work.
+- **Blockers:** None to submit. No implementation or shared UI work is self-assigned.
+- **Next handoff:** Coordinator reviews PR #51 and selects the first UI integration owner/slice. Agent 5's pre-authorized specification/prototype sequence is submitted through AC-054.
 - **Last updated:** 2026-11-14.
+
+### Submitted phase — AC-053: Static interaction prototypes and design patterns
+
+- **Status:** REVIEW
+- **PR:** [#47 — AC-053: Add static UX interaction prototypes](https://github.com/faiev/ArtClub/pull/47) (open, draft; GitHub reports mergeable)
+- **Branch:** `agent/ux-prototypes`
+- **Synchronized main base:** `0690c19687b951f4d80ab947e1964f9b82de4f4e`
+- **Feature head:** `59a37efa04e33dee7d01f2e690fb2f8ce91bf08f`
+- **Files:** `docs/ux/prototypes/shortcut-reference.html`, `canvas-workspace.html`, `layer-timeline.html`, `palette-export.html` (374 additions total).
+- **Scope boundary:** Self-contained static HTML/CSS only; no scripts, external assets, production UI wiring or shared files.
+- **Validation:** Re-fetched four files; verified language, viewport, non-production label, visible focus, reduced-motion styles, no scripts/external resources, complete document closing. No browser visual/session test; controls remain illustrative.
+
+### Submitted phase — AC-051: Palette and export user journeys
+
+- **Status:** REVIEW
+- **PR:** [#35 — AC-051: Specify palette and export user journeys](https://github.com/faiev/ArtClub/pull/35) (open, draft; GitHub reports mergeable)
+- **Branch:** `agent/palette-export-spec`
+- **Synchronized main base:** `cc7663ef1aa32ca3e9c18cc275aa2867c5ad68aa`
+- **Feature head:** `a8fa0234c2c64299c2f62a6da491c0344166a3a3`
+- **Deliverable:** `docs/ux/PALETTE_EXPORT_SPEC.md` (586 lines, 16 sections; PR diff 585 additions).
+- **Scope boundary:** Documentation only; no palette, exporter, editor UI/API or workflow file changes.
+- **Source review:** Audited the current palette panel and exports in `index.html`; Agent 8's parser/docs (GPL/JASC-PAL/JSON, 1 MiB/4,096-color bounds, strict diagnostics, JASC metadata limits); Agent 3's sprite-sheet and export-plan contracts; merged GIF export docs/API/budgets.
+- **Key product findings:** Current v2 palette stores HEX strings only (not names); current production UI has presets/swatches/custom HEX and PNG 1×/16×/SVG/Project JSON but no palette file or GIF/atlas UI. GIF timing rounds to 10 ms centiseconds, transparency is binary, quantization may change colors; sprite sheet outputs native-resolution PNG plus versioned frame-rectangle metadata.
+- **Validation:** Fetched committed document, verified 16 sections and required format limits/budgets. No application tests run for docs-only work.
 
 ### Submitted phase — AC-050: Layer, frame and timeline workflow specification
 
 - **Status:** REVIEW
-- **Branch:** `agent/layer-timeline-spec`
-- **Synchronized main base:** `811906b09779b7f22733afe12d177f9e78cdd58d`
-- **Feature head:** `756467e3ea1975f08447ffe95304720f883dc958`
 - **PR:** [#30 — AC-050: Specify layer, frame and timeline workflows](https://github.com/faiev/ArtClub/pull/30) (open, draft; GitHub reported mergeable)
+- **Branch:** `agent/layer-timeline-spec`; synchronized main `811906b09779b7f22733afe12d177f9e78cdd58d`; head `756467e3ea1975f08447ffe95304720f883dc958`.
 - **Deliverable:** `docs/ux/LAYER_TIMELINE_SPEC.md` (549 lines, 14 sections; PR diff 548 additions).
 - **Scope boundary:** Documentation only; no model, UI, exporter, safety, test, bridge or workflow files changed.
-- **Current-source audit:** v2 model uses ordered `layers[]`, ordered `frames[]`, and `cels[]` keyed by stable layer/frame IDs. Current UI shows a separate layer list and frame-card strip; no unified matrix or thumbnails; layer opacity exists in the model but current `getCompositePixels()` does not apply it. Current Add/Duplicate/Delete paths were reviewed against cel lifecycle.
-- **Safety / export alignment:** Uses Agent 6 AC-055 fail-closed guard decisions and future AC-056 immutable safe-edit transactions; distinguishes missing cels from blank allocated cels. Aligns frame order/duration and explicit ordered frame-ID requests with Agent 3 AC-039/AC-040 contracts.
-- **Validation:** Re-fetched committed document; verified 14 sections and required topics. Branch comparison at PR submission: 2 commits ahead / 0 behind; only `docs/ux/LAYER_TIMELINE_SPEC.md` added. No application tests because docs-only.
-- **Next action:** Coordinator review of PR #30. No implementation or shared UI work self-assigned.
+- **Source review:** v2 layer/frame/cel model, current layer list and frame strip, cel creation/select/add/duplicate/delete/reorder methods; identified missing matrix/thumbnails and opacity compositing gap.
+- **Safety/export alignment:** Agent 6 AC-055 guard and future AC-056 transactions; Agent 3 AC-039/AC-040 stable frame identity/order.
+- **Validation:** Fetched committed document, verified 14 sections and workflow/test matrix; no app tests because docs-only.
 
-### Earlier submitted phase — AC-049: Canvas navigation and workspace interaction specification
+### Earlier submitted phase — AC-049
 
-- **PR:** [#24 — AC-049: Specify canvas navigation and workspace interactions](https://github.com/faiev/ArtClub/pull/24), open/draft/unmerged at last verification.
+- **PR:** [#24 — AC-049: Specify canvas navigation and workspace interactions](https://github.com/faiev/ArtClub/pull/24), open/draft/unmerged at last verification; stale base, refresh/revalidate before merge.
 - **Branch:** `agent/canvas-workspace-spec`; spec `docs/ux/CANVAS_WORKSPACE_SPEC.md`.
-- **Key handoff:** Fit vs 100% distinction, cursor anchored zoom, bounded pan, input/touch/trackpad policy, DPR-safe pointer mapping, responsive behavior; minimap explicitly deferred.
-- **Current review note:** main advanced after PR creation; refresh/revalidate before merge. Does not block AC-051.
+- **Key handoff:** Fit vs 100%, cursor-anchored zoom, bounded pan, touch/trackpad, responsive workspace, DPR-safe pointer mapping and minimap deferral.
 
 ## Previous task — AC-009
 

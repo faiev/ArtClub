@@ -41,3 +41,22 @@ Every phase is pre-authorized. Opening one PR does not end the workstream. Keep 
 
 ## Handoff
 Update only coordination/status/agent-3.md. Track phases, branch/PR links, tested SHAs, CI runs, workflow lock state and next 3–5 tasks. Do not merge or self-accept.
+
+## Coordinator-added extension — AC-089: Abortable, progress-reporting export operations
+
+After AC-042 documentation, add an asynchronous export contract suitable for long animations and future download/API consumers, without wiring it into the UI or bridge.
+
+### Deliverable
+- Preserve existing synchronous exporter APIs and outputs.
+- Add asynchronous GIF and sprite-sheet entry points that accept an optional `AbortSignal`, yield at bounded work intervals so cancellation can be observed, and report structured monotonic progress phases.
+- Define stable cancellation errors and distinguish cancellation before work, during composition/encoding, and immediately before finalization.
+- Never expose a partial GIF, PNG, metadata object or success result after cancellation/failure.
+- For identical inputs/options, prove async output bytes/pixels/metadata are identical to the synchronous output.
+- Add deterministic tests for early/mid/late cancellation, progress ordering, listener cleanup, malformed input, budget limits and source immutability; add real-browser verification for browser-only encoding paths.
+- Document responsiveness and memory limits honestly. Do not promise cancellation of a single non-yielding platform codec call.
+
+**Allowed files:** GIF/sprite-sheet exporter modules, exporter-specific Node/browser tests and export documentation owned by Agent 3. Do not edit index.html, Agent API/bridge, shared workflow or another agent's files. The existing workflow lock remains with Agent 3 only for AC-027 wiring and must be explicitly released when that work is complete.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile #3/#21/#22/#55/#68/#74 and their parent chain. Complete AC-027 real Chromium sprite-sheet PNG verification (frame order, pixel RGBA, rectangles, transparency, metadata, malformed/oversized cases) and exact-head CI. Release the project-tests workflow lock explicitly only after proof. No UI/export-dialog work, no self-merge.

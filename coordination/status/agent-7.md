@@ -1,25 +1,40 @@
 # Status — Agent 7
 
-- **Task:** AC-016 — Sync current main and rerun full CI for tiled preview
-- **Status:** REVIEW
+- **Active workstream:** Tile PR reconciliation under the 2026-11-15 coordinator restart directive
+- **Status:** REVIEW — all seven tile PRs have clean, isolated diffs and successful exact-head CI
 - **Role:** Tile workflows
-- **Feature branch:** `agent/tile-preview`
-- **Latest main incorporated:** `220c2b5033ccd8752dd8e3e357be3fcd8bfc7b7a`
-- **Original implementation commit:** `142b4e1cc1f605ff69bc7911676266b3c0ff607e`
-- **First main sync commit:** `d54b3e5899e57607bd61e4c13c9717dd7540318b`
-- **Final head after later coordination-only main updates:** `0aafc29aff13505ceabd288b3b5d1ab793ce35d7`
-- **Pull request:** https://github.com/faiev/ArtClub/pull/13 (open, draft)
-- **Files changed in PR:** `js/tile-preview.js`, `tests/tile-preview.test.js`, `docs/tile-preview.md` only.
-- **Main comparison:** `main...agent/tile-preview` is ahead by 3 and behind by 0 at final sync; PR diff is exactly the three assigned files.
-- **Local isolated evidence from original implementation:** `node --check js/tile-preview.js`, `node --check tests/tile-preview.test.js`, `node --test tests/tile-preview.test.js` — 11 passed, 0 failed.
-- **Current-head GitHub Actions:** run #137, https://github.com/faiev/ArtClub/actions/runs/43606323497 — fully passed on `0aafc29aff13505ceabd288b3b5d1ab793ce35d7`.
-  - `node --test tests/*.test.js` — 69 passed, 0 failed, 0 skipped.
-  - `node --check agent-bridge/server.mjs` — passed.
-  - `npm run test:e2e` — passed: mouse drawing, undo/redo, agent batch, layers, custom canvas, animation playback, onion skin, PNG, IndexedDB library and reload recovery.
-  - `npm run test:mcp` — passed: drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.
-- **Earlier stale-base issue:** run #110 failed at the refresh/persistence assertion before PR #10 was on the branch base. Current-main runs #122 and #137 pass the persistence/reload E2E.
-- **Integration boundary:** No Canvas, DOM, UI, renderer, Agent API, persistence, bridge or export wiring. Preview output is transient and must not be saved to project cels or included in exports.
-- **Known limitations:** Diagnostics compare corresponding opposing edge values and report mismatches; they do not repair seams. Output size is bounded by exported `LIMITS`.
-- **Blockers:** None for AC-016.
-- **Coordinator decision required:** Review PR #13. No merge or AC-021 UI integration performed.
-- **Last updated:** 2026-11-14 — final current-main CI passed; submitted for coordinator review.
+- **Coordination source:** `main`
+- **Main baseline merged into worker branches:** `5679e45095c13b792093da1fff3c62c641f25c8b`
+- **Latest observed main:** `3703bd894e95317f61062b3625fc263db8d27a12` (the only delta after the worker-branch baseline was `coordination/status/agent-10.md`; no tile/application files changed)
+
+## PR and validation ledger
+
+| Phase | PR | Branch / exact head | Exact-head CI | Diff / dependency state |
+|---|---|---|---|---|
+| AC-016 tile preview | [#13](https://github.com/faiev/ArtClub/pull/13) | `agent/tile-preview` / `06942a6b8f4bc3e7419a332743614feb8e95a8c3` | Run #947 / `43631494537` — success | 3 files: preview module, tests, docs; independent |
+| AC-061 tile transforms | [#28](https://github.com/faiev/ArtClub/pull/28) | `agent/tile-transform` / `7dfecf3c4cbd4864d40bbc3fbcac754e4dfffca1` | Run #948 / `43631502215` — success | 3 files: transform module, tests, docs; independent |
+| AC-062 tile map | [#58](https://github.com/faiev/ArtClub/pull/58) | `agent/tile-map` / `f06a145a6ce2f527592f9d9cc2abe4a457b76fd6` | Run #949 / `43631509922` — success | 3 files: map module, tests, docs; independent |
+| AC-063 seam diagnostics | [#65](https://github.com/faiev/ArtClub/pull/65) | `agent/tile-seam-diagnostics` / `07912cd53676d8e48bea438c17e787719d33da18` | Run #952 / `43631552998` — success | 3 files: diagnostics module, tests, docs; independent |
+| AC-064 atlas planner | [#67](https://github.com/faiev/ArtClub/pull/67) | `agent/tile-atlas-planner` / `de0b6305185a8a0727e28d39aaac771f0b176176` | Run #954 / `43631564684` — success | 3 files: planner module, tests, docs; independent |
+| AC-065 fixtures | [#79](https://github.com/faiev/ArtClub/pull/79) | `agent/tile-workflow-fixtures` / `198ee8ee73e6b35d56a6642831bce5a51755a11a` | Run #956 / `43631572828` — success | 10 files: fixture corpus, runner, tests, docs; independent |
+| AC-093 autotile resolver | [#81](https://github.com/faiev/ArtClub/pull/81) | `agent/autotile-rule-resolver` / `6bd29f29de0fa92ed1c3ab6affcf7cc8f4d00541` | Run #958 / `43631601024` — success | 7 files: resolver, tests, four fixtures, docs; independent |
+
+Each run's `test` and `browser-e2e` jobs passed. Browser verification included Chromium editor E2E, animated GIF browser verification and MCP client integration. Exact-head checks were queried after the final sync commits above.
+
+## Integration, review and scope
+
+- All seven worker branches were refreshed with a non-force merge commit whose first parent is main baseline `5679e45095c13b792093da1fff3c62c641f25c8b`; branch comparisons at that point were ahead of main with **0 behind**.
+- Each PR base was refreshed to `main`. GitHub reports all seven as `mergeable=true` / `mergeable_state=clean`; the changed-file endpoints list only the scoped paths shown above. No coordination files, other agents' status files, production UI or unrelated modules remain in these PR diffs.
+- Dependency inspection found no cross-agent module imports among the seven deliverables. The modules expose their own CommonJS/global APIs; the fixture example runner uses only Node built-ins. PRs #13/#28/#58/#65/#67/#79/#81 are independent review units, not a stacked dependency chain.
+- All seven remain **open and draft**. There are no submitted reviews and no inline review threads on any of them. Coordinator issue comments on #13, #65, #67 and #79 requested branch sync/diff cleanup; those requests have been fulfilled and exact-head CI now passes. PR #58 also carries the coordinator's release-direction note; no production integration is authorized.
+- AC-066 / PR #80 was merged by the coordinator on 2026-11-14; it is documentation/interaction-contract work only.
+- No application code was changed by this reconciliation; only feature-branch merge commits were created to preserve the authored tile changes while incorporating main. No PR was merged and no PR was marked ready.
+
+## Next authorized actions
+
+1. Keep all seven PRs draft until coordinator review; respond to any specific review feedback with a narrow correction and fresh exact-head CI.
+2. Pause new tile feature phases while UI-02 is the release gate, per the 2026-11-15 assignment update.
+3. Do not modify production UI, renderer, exporter, project model/storage, Agent API/bridge or workflows; do not merge or self-accept.
+
+- **Blockers:** None within this reconciliation workstream; further tile feature work is paused by the coordinator's UI-02 release gate.
+- **Last updated:** 2026-11-15 — re-synced PRs #13/#28/#58/#65/#67/#79/#81, refreshed their PR bases, confirmed scoped diffs, clean mergeability and successful exact-head Node/Chromium/MCP CI.
