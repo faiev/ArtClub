@@ -32,6 +32,7 @@ function usage() {
     "  node tools/project-inspector.mjs --compare [--json] <left-project> <right-project>",
     "  node tools/project-inspector.mjs --diagnostics [--json] <project-file>",
     "  node tools/project-inspector.mjs --migration-preview [--json] <legacy-project>",
+    "  node tools/project-inspector.mjs --ci-report <project-file>",
     "",
     "Inspect One Pixel Studio projects without modifying them.",
     "",
@@ -60,6 +61,7 @@ function parseArguments(argv) {
     comparePaths: [],
     diagnostics: false,
     migrationPreview: false,
+    ciReport: false,
     filePath: null,
     inputPaths: [],
     error: null
@@ -69,8 +71,16 @@ function parseArguments(argv) {
     if (!positionalOnly && argument === "--") { positionalOnly = true; continue; }
     if (!positionalOnly && argument === "--json") { result.json = true; continue; }
     if (!positionalOnly && argument === "--help") { result.help = true; continue; }
+    if (!positionalOnly && argument === "--ci-report") {
+      if (result.batch || result.compare || result.diagnostics || result.migrationPreview || result.filePath !== null) {
+        result.error = inspectorError("INVALID_ARGUMENT", "--ci-report cannot be combined with batch, compare, diagnostics, migration preview or prior file input.", 2);
+        return result;
+      }
+      result.ciReport = true;
+      continue;
+    }
     if (!positionalOnly && argument === "--migration-preview") {
-      if (result.batch || result.compare || result.diagnostics || result.filePath !== null) {
+      if (result.batch || result.compare || result.diagnostics || result.ciReport || result.filePath !== null) {
         result.error = inspectorError("INVALID_ARGUMENT", "--migration-preview cannot be combined with batch, compare, diagnostics or prior file input.", 2);
         return result;
       }
@@ -78,7 +88,7 @@ function parseArguments(argv) {
       continue;
     }
     if (!positionalOnly && argument === "--diagnostics") {
-      if (result.batch || result.compare || result.migrationPreview || result.filePath !== null) {
+      if (result.batch || result.compare || result.migrationPreview || result.ciReport || result.filePath !== null) {
         result.error = inspectorError("INVALID_ARGUMENT", "--diagnostics cannot be combined with batch, compare, or prior file input.", 2);
         return result;
       }
@@ -86,7 +96,7 @@ function parseArguments(argv) {
       continue;
     }
     if (!positionalOnly && argument === "--batch") {
-      if (result.filePath !== null || result.compare || result.diagnostics || result.migrationPreview) {
+      if (result.filePath !== null || result.compare || result.diagnostics || result.migrationPreview || result.ciReport) {
         result.error = inspectorError("INVALID_ARGUMENT", "--batch cannot be combined with a single-file or compare input.", 2);
         return result;
       }
@@ -94,7 +104,7 @@ function parseArguments(argv) {
       continue;
     }
     if (!positionalOnly && argument === "--compare") {
-      if (result.batch || result.diagnostics || result.migrationPreview || result.filePath !== null) {
+      if (result.batch || result.diagnostics || result.migrationPreview || result.ciReport || result.filePath !== null) {
         result.error = inspectorError("INVALID_ARGUMENT", "--compare cannot be combined with single-file or batch input.", 2);
         return result;
       }
@@ -128,6 +138,10 @@ function parseArguments(argv) {
   }
   if (result.compare && result.recursive) {
     result.error = inspectorError("INVALID_ARGUMENT", "--recursive cannot be used with --compare.", 2);
+    return result;
+  }
+  if (result.ciReport && result.filePath === null) {
+    result.error = inspectorError("INVALID_ARGUMENT", "--ci-report requires exactly one project file path.", 2);
     return result;
   }
   if (result.batch && result.inputPaths.length === 0) {
@@ -1436,7 +1450,7 @@ function deepDiagnosticsFailure(filePath, code, message, fileSizeBytes) {
     }
   };
 }
-function inspectDeepDiagnostics(filePath) {
+function inspectDeepDiagnostics(filePath, options = {}) {
   let input;
   try {
     input = readProjectFile(filePath);
@@ -1470,7 +1484,7 @@ function inspectDeepDiagnostics(filePath) {
   const diagnostics = collectDeepDiagnostics(data, input.bytes);
   const assessment = summarizeDiagnostics(diagnostics);
   const legacy = isLegacyProject(data);
-  return {
+  const report = {
     ok: true,
     mode: "diagnostics",
     file: filePath,
@@ -1486,6 +1500,68 @@ function inspectDeepDiagnostics(filePath) {
       inputModified: false,
       supplementaryDiagnosticsDoNotRewriteSchemaValidation: true,
       exitCodeNonZeroWhen: "input cannot be read or parsed, or schema.valid is false"
+    }
+  };
+  if (options.includeProjectSummary === true) {
+    report.projectSummary = schema.valid ? inspectProject(data, filePath, input.bytes) : null;
+  }
+  return report;
+}
+function inspectCiArtifactReport(filePath) {
+  const diagnosticsReport = inspectDeepDiagnostics(filePath, { includeProjectSummary: true });
+  const schema = diagnosticsReport.schema || { checked: false, valid: null, errors: [] };
+  const summary = diagnosticsReport.summary || {
+    total: Array.isArray(diagnosticsReport.diagnostics) ? diagnosticsReport.diagnostics.length : 0,
+    critical: 0, high: 0, medium: 0, low: 0, info: 0
+  };
+  const diagnostics = Array.isArray(diagnosticsReport.diagnostics) ? diagnosticsReport.diagnostics : [];
+  const status = !diagnosticsReport.ok
+    ? "incomplete"
+    : schema.valid === true
+      ? "valid"
+      : "invalid";
+  const exitCode = status === "valid" ? 0 : 1;
+  return {
+    artifactType: "application/vnd.one-pixel-studio.project-inspection+json",
+    artifactSchemaVersion: 1,
+    tool: {
+      name: "one-pixel-studio-project-inspector",
+      mode: "ci-report"
+    },
+    status,
+    input: {
+      path: filePath,
+      byteCount: diagnosticsReport.fileSizeBytes === undefined ? null : diagnosticsReport.fileSizeBytes,
+      sourceFormat: diagnosticsReport.sourceFormat === undefined ? null : diagnosticsReport.sourceFormat,
+      sourceVersion: diagnosticsReport.sourceVersion === undefined ? null : diagnosticsReport.sourceVersion
+    },
+    projectSummary: diagnosticsReport.projectSummary || null,
+    validation: {
+      checked: schema.checked === true,
+      valid: schema.valid === true ? true : schema.valid === false ? false : null,
+      errors: Array.isArray(schema.errors) ? schema.errors : []
+    },
+    diagnostics,
+    counts: {
+      diagnostics: diagnostics.length,
+      critical: summary.critical || 0,
+      high: summary.high || 0,
+      medium: summary.medium || 0,
+      low: summary.low || 0,
+      info: summary.info || 0,
+      modelValidationErrors: Array.isArray(schema.errors) ? schema.errors.length : 0,
+      totalFindings: diagnostics.length + (Array.isArray(schema.errors) ? schema.errors.length : 0)
+    },
+    risk: diagnosticsReport.risk || { score: 0, level: "low" },
+    exitCode,
+    exitCodePolicy: {
+      zero: "Input was read and parsed and authoritative project-model validation passed. Supplemental diagnostics are reported but do not override model validation.",
+      one: "Input could not be read or parsed, or authoritative project-model validation failed.",
+      two: "CLI arguments are invalid; no project report is produced."
+    },
+    readOnly: {
+      inputModified: false,
+      outputWritten: false
     }
   };
 }
@@ -1835,6 +1911,12 @@ function main(argv) {
   const args = parseArguments(argv);
   if (args.help) { process.stdout.write(usage() + "\n"); return; }
   if (args.error) { emitFailure(args.filePath, args.json, args.error); return; }
+  if (args.ciReport) {
+    const report = inspectCiArtifactReport(args.filePath);
+    process.stdout.write(JSON.stringify(report, null, 2) + "\n");
+    if (report.exitCode !== 0) process.exitCode = report.exitCode;
+    return;
+  }
   if (args.migrationPreview) {
     const report = inspectMigrationPreview(args.filePath);
     if (args.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
