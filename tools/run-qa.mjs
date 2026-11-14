@@ -82,6 +82,10 @@ export const SUITE_MANIFEST = Object.freeze([
     kind: "node-test",
     files: Object.freeze([
       Object.freeze({
+        path: "tests/qa/runner/report-validation.test.mjs",
+        runner: "node-test"
+      }),
+      Object.freeze({
         path: "tests/qa/runner/run-qa.test.mjs",
         runner: "node-test"
       })
