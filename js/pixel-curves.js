@@ -171,11 +171,33 @@
     ];
   }
 
-  // Convert fixed-point coordinates to integer pixels; exact half ties round away from zero.
-  function toPixel(value) {
-    return value < 0
-      ? Math.ceil((value - FIXED_SCALE / 2) / FIXED_SCALE)
-      : Math.floor((value + FIXED_SCALE / 2) / FIXED_SCALE);
+  // Convert fixed-point coordinates to integer pixels. Exact half ties follow
+  // the curve's local parameter direction; a zero-direction fallback is half-away-from-zero.
+  function toPixel(value, direction) {
+    const lower = Math.floor(value / FIXED_SCALE);
+    const remainder = value - lower * FIXED_SCALE;
+    const doubled = remainder * 2;
+    if (doubled > FIXED_SCALE) return lower + 1;
+    if (doubled < FIXED_SCALE) return lower;
+    if (direction > 0) return lower + 1;
+    if (direction < 0) return lower;
+    return value < 0 ? lower : lower + 1;
+  }
+
+  function endpointDirection(points, axis, atStart) {
+    const endpoint = atStart ? points[0] : points[points.length - 1];
+    if (atStart) {
+      for (let i = 1; i < points.length; i += 1) {
+        const delta = points[i][axis] - endpoint[axis];
+        if (delta !== 0) return delta > 0 ? 1 : -1;
+      }
+    } else {
+      for (let i = points.length - 2; i >= 0; i -= 1) {
+        const delta = endpoint[axis] - points[i][axis];
+        if (delta !== 0) return delta > 0 ? 1 : -1;
+      }
+    }
+    return 0;
   }
 
   function roundRatioTowardDirection(numerator, denominator, direction) {
@@ -263,10 +285,10 @@
 
         const start = current.points[0];
         const end = current.points[current.points.length - 1];
-        const x0 = toPixel(start.x);
-        const y0 = toPixel(start.y);
-        const x1 = toPixel(end.x);
-        const y1 = toPixel(end.y);
+        const x0 = toPixel(start.x, endpointDirection(current.points, "x", true));
+        const y0 = toPixel(start.y, endpointDirection(current.points, "y", true));
+        const x1 = toPixel(end.x, endpointDirection(current.points, "x", false));
+        const y1 = toPixel(end.y, endpointDirection(current.points, "y", false));
         const estimate = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) + 1;
         if (rasterSteps + estimate > normalized.maxRasterSteps) {
           throw new RangeError("curve exceeded maxRasterSteps; no partial result was returned.");
