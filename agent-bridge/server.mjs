@@ -246,6 +246,78 @@ async function main() {
 
   registerTool(
     server,
+    "artclub_list_layers",
+    "List layers in bottom-to-top order. Each layer reports its id, name, visibility, lock and active state.",
+    z.object({}),
+    async () => textResult(await invoke("list_layers"))
+  );
+
+  registerTool(
+    server,
+    "artclub_add_layer",
+    "Add a new transparent layer above the current stack and make it active.",
+    z.object({ name: z.string().min(1).max(60).optional(), expected_revision: revision }),
+    async args => textResult(await invoke("add_layer", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_select_layer",
+    "Select a layer by its id. Subsequent drawing commands target this layer.",
+    z.object({ layer_id: z.string().min(1), expected_revision: revision }),
+    async args => textResult(await invoke("select_layer", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_set_layer_visibility",
+    "Show or hide a layer in the canvas composite.",
+    z.object({ layer_id: z.string().min(1), visible: z.boolean(), expected_revision: revision }),
+    async args => textResult(await invoke("set_layer_visibility", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_set_layer_locked",
+    "Lock or unlock a layer to prevent accidental editing.",
+    z.object({ layer_id: z.string().min(1), locked: z.boolean(), expected_revision: revision }),
+    async args => textResult(await invoke("set_layer_locked", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_rename_layer",
+    "Rename a layer without changing its pixels.",
+    z.object({ layer_id: z.string().min(1), name: z.string().min(1).max(60), expected_revision: revision }),
+    async args => textResult(await invoke("rename_layer", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_move_layer",
+    'Move a layer one position "up" (toward the front) or "down" (toward the back).',
+    z.object({ layer_id: z.string().min(1), direction: z.enum(["up", "down"]), expected_revision: revision }),
+    async args => textResult(await invoke("move_layer", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_duplicate_layer",
+    "Duplicate the active layer and its pixels as a new layer.",
+    z.object({ expected_revision: revision }),
+    async args => textResult(await invoke("duplicate_layer", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
+    "artclub_delete_layer",
+    "Delete a layer by id. A project must retain at least one layer.",
+    z.object({ layer_id: z.string().min(1), expected_revision: revision }),
+    async args => textResult(await invoke("delete_layer", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
     "artclub_undo",
     "Undo one editing transaction.",
     z.object({}),
