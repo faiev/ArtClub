@@ -57,6 +57,9 @@ jobs:
       - name: Run animated GIF export browser verification
         if: always()
         run: node tests/gif-export.browser.mjs
+      - name: Run sprite-sheet PNG browser verification
+        if: always()
+        run: node tests/sprite-sheet-export.browser.mjs
       - name: Run MCP client integration test
         run: npm run test:mcp
         working-directory: agent-bridge
