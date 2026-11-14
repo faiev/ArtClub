@@ -1120,9 +1120,19 @@ function agentDuplicateLayer(payload){
 }
 function agentDeleteLayer(payload){
   payload=payload||{};assertAgentLayerAction(payload);
-  requireAgentLayer(payload);
+  const layer=requireAgentLayer(payload);
   if(projectDoc.layers.length<=1)throw new Error("A project must keep at least one layer.");
-  deleteLayer(true);
+  remember();
+  const index=projectDoc.layers.findIndex(item=>item.id===layer.id);
+  const wasActive=projectDoc.activeLayerId===layer.id;
+  projectDoc.layers=projectDoc.layers.filter(item=>item.id!==layer.id);
+  projectDoc.cels=projectDoc.cels.filter(cel=>cel.layerId!==layer.id);
+  if(wasActive){
+    const next=projectDoc.layers[Math.min(index,projectDoc.layers.length-1)];
+    projectDoc.activeLayerId=next.id;
+    pixels=ProjectModel.ensureCel(projectDoc,next.id,projectDoc.activeFrameId).pixels.slice();
+  }
+  renderAll();scheduleSave();
   return getAgentStatus();
 }
 
