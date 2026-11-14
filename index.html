@@ -1757,6 +1757,41 @@ function paint(i,c){
   const visibleColor=compositePixelAt(i);
   const el=grid.children[i];if(el){el.style.backgroundColor=visibleColor||"transparent";el.setAttribute("aria-label","Pixel "+(i%w+1)+", "+(Math.floor(i/w)+1)+", "+(visibleColor||"transparent"));}
 }
+async function fillActiveArea(start,replacement){
+  if(safeEditBusy){toast("Another safe edit is already being saved.");return false;}
+  if(drawing){toast("Finish the current stroke before filling an area.");return false;}
+  let source;
+  try{source=createSafeEditProject();}
+  catch(error){toast(error.message||"The active edit target is unavailable.");return false;}
+  const target={
+    revision:documentRevision,
+    projectId:source.id,
+    layerId:source.activeLayerId,
+    frameId:source.activeFrameId
+  };
+  const cel=ProjectModel.getCel(source,target.layerId,target.frameId);
+  if(!cel){toast("The active layer/frame cel is missing.");return false;}
+  const next=cel.pixels.slice();
+  const original=next[start];
+  if(original===replacement)return true;
+  const stack=[start],seen=new Uint8Array(next.length);
+  while(stack.length){
+    const index=stack.pop();
+    if(index<0||index>=next.length||seen[index]||!selectionContainsIndex(index)||next[index]!==original)continue;
+    seen[index]=1;next[index]=replacement;
+    const x=index%w,y=Math.floor(index/w);
+    if(x>0)stack.push(index-1);
+    if(x<w-1)stack.push(index+1);
+    if(y>0)stack.push(index-w);
+    if(y<h-1)stack.push(index+w);
+  }
+  const result=window.ArtClubSafeEditOperations.replaceActiveCel(source,next,{
+    layerId:target.layerId,frameId:target.frameId
+  });
+  if(!result.ok){toast(safeEditDenialMessage(result));return false;}
+  if(result.changedPixels===0)return true;
+  return commitSafeEditResult(result,source,target,"Area filled.");
+}
 function floodFill(start,replacement){
   const target=pixels[start];if(target===replacement)return;
   const stack=[start],seen=new Uint8Array(pixels.length);
@@ -2288,7 +2323,7 @@ grid.addEventListener("pointerdown",e=>{
     const c=compositePixelAt(p.i);if(c){let idx=palette.indexOf(c);if(idx<0){palette.push(c);idx=palette.length-1}selected=idx;renderPalette();syncColorUI()}setTool("brush");return;
   }
   if(!isActiveLayerEditable()){toast("The active layer is locked.");return}
-  if(tool==="fill"){remember();floodFill(p.i,palette[selected]);renderStats();scheduleSave();return}
+  if(tool==="fill"){void fillActiveArea(p.i,palette[selected]);return}
   remember();drawing=true;strokeStart=p;strokeLast=p;
   if(tool==="brush")paint(p.i,palette[selected]);
   else if(tool==="eraser")paint(p.i,null);
