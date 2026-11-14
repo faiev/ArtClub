@@ -16,7 +16,7 @@ The most urgent issue is keyboard shortcut routing: global Undo/Redo and Save ha
 
 The stylesheet has visible focus treatments, but static contrast calculations indicate they are too faint for the intended focus-indicator role. Several small labels also fall below the 4.5:1 text contrast target. A polite toast live region exists, which is a useful baseline, but the persistent save-state text has no live announcement semantics.
 
-<badge>Audit status: source review only</badge>
+**Audit status:** Source review only.
 
 **This document does not claim WCAG conformance or non-conformance.** No live browser, platform, keyboard-only, screen-reader, touch-device or colorimeter audit was performed in this task. Static contrast calculations are preliminary checks against the literal CSS foreground/background colors and must be rechecked against rendered states.
 
