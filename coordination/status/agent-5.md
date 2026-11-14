@@ -20,14 +20,16 @@
 - **Visual limitation:** Exact-head workflow artifacts were empty. No independent rendered screenshot inspection at 1440×900 or 1280×800 is claimed; the review used committed CSS/DOM and token comparison. The comment records this limitation.
 - **Scope:** No edits to PR #84, `index.html`, production CSS/JS, application tests, bridge or workflow. Agent 5 remains a design reviewer and owns documentation/prototype paths only.
 
-### Active follow-up — AC-091 screenshot-caption precision
+### Completed follow-up — AC-091 screenshot-caption precision
 
-- **Branch:** `agent/ac091-screenshot-caption-fix`
-- **Latest branch head (rechecked 2026-11-15):** `ccb49a9ca2e592b97f4afccbf1b2361dcb0828f0` (PR #87 current head; base/current `main` `0c525c763731d044bd700f3920e95943e35c543e`; comparison 5 ahead / 0 behind; exactly one changed file, `docs/ux/DESIGN_SYSTEM.md`, one insertion / one deletion).
-- **PR:** [#87 — docs(ux): correct phone capture state description](https://github.com/faiev/ArtClub/pull/87), open; one file, one insertion / one deletion.
-- **Diff:** Only `docs/ux/DESIGN_SYSTEM.md`; changes 390×844 screenshot description to say the inspector drawer is open.
-- **Validation (rechecked 2026-11-15):** Current `main` still contains the old phone-caption wording; PR #87 changes it to say the inspector drawer is open, matching the handoff screenshot description. Current PR head `ccb49a9ca2e592b97f4afccbf1b2361dcb0828f0` compares 5 ahead / 0 behind `main` and has exactly one changed path (`docs/ux/DESIGN_SYSTEM.md`, +1/-1). GitHub reports PR #87 open and mergeable. Docs-only change; no application tests run or claimed.
-- **Next actions:** (1) Coordinator reviews/merges PR #87; (2) re-check the single caption line after merge; (3) address specific UI-01 follow-up requests only within the documentation/review boundary; (4) do not edit production UI without a separate explicit assignment.
+- **Status:** MERGED by coordinator.
+- **Branch:** `agent/ac091-screenshot-caption-fix`.
+- **PR:** [#87 — docs(ux): correct phone capture state description](https://github.com/faiev/ArtClub/pull/87), merged.
+- **Merged feature head:** `ccb49a9ca2e592b97f4afccbf1b2361dcb0828f0`.
+- **Merge commit on main:** `9296ca08e1e8143bb5b82c0ad48608e9c9a0b344`.
+- **Diff:** One file only, `docs/ux/DESIGN_SYSTEM.md`; one insertion / one deletion changes the 390×844 screenshot caption to say the inspector drawer is open.
+- **Verification:** GitHub confirms PR #87 merged. Re-fetched `docs/ux/DESIGN_SYSTEM.md` from `main` after merge and verified the corrected caption is present. The coordinator's PR review comment explicitly accepted the one-line documentation correction. Docs-only change; no application tests were run or claimed.
+- **Next queue:** AC-091 and the assigned UI-01 visual review are complete. No further implementation phase is currently authorized. Preserve the docs/prototype-only boundary; do not modify production UI without a separate explicit assignment.
 - **Last updated:** 2026-11-15.
 
 # Status — Agent 5

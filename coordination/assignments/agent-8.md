@@ -70,3 +70,7 @@ After AC-073, extend palette color matching with a documented perceptual metric 
 - Do not silently change Agent 8's existing nearest-color defaults or Agent 10's quantization behavior. Any adoption of the new metric must be opt-in and separately documented.
 
 **Allowed files:** `js/palette-distance.js`, `tests/palette-distance.test.js` and palette distance documentation only. Do not change palette-format parsing, project model, Agent 10 pixel algorithms, index.html, Agent API, bridge or other agents' files.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile #16/#27/#33/#39/#45/#53/#56/#60/#78. #78 is merged; verify actual #16 final state and whether #56 is stacked or now targets main. Refresh exact heads and CI. Provide a docs/tests-only UI-04 palette parser acceptance contract (preview, duplicates, merge/replace/cancel, errors, immutability). No UI wiring.
