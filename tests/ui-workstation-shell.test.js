@@ -8,7 +8,7 @@ const path = require("node:path");
 const html = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function idCount(id) {
-  return [...html.matchAll(new RegExp("\\bid=[\\"']" + id + "[\\"']", "g"))].length;
+  return html.split('id="' + id + '"').length - 1;
 }
 
 function channel(value) {
