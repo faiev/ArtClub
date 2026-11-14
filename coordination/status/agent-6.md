@@ -3,7 +3,7 @@
 - **Overall status:** REVIEW — AC-015/055/056/059/060/092 are merged; AC-057 (#29) is open and stale; AC-058 (#40) is draft pending dedicated browser execution.
 - **Current work:** specialist review of coordinator-owned UI-02 safety integration when a PR exists, plus closure of the two remaining evidence/review items. No new feature phase is assigned.
 - **Active branch/head:** `agent/layer-safety-browser` / `2cbb53635fee277e8ae60cfa648475ac4e8c9edb`.
-- **Coordination source:** `main`. PR #40 was retargeted to `main`; its base snapshot at retarget was `79013ee60239dfb4665c34f258dd6d69fdb2dac0`.
+- **Coordination source:** `main`; latest board snapshot reviewed: `187fbd0247c80ed5d5ba72ab019bc8d7bec2a86c`. PR #40 targets `main`; its last confirmed base snapshot was `79013ee60239dfb4665c34f258dd6d69fdb2dac0`.
 - **Production integration boundary:** coordinator remains sole writer of `index.html`, production UI and workflow files. Agent 6 has reviewer responsibility for UI-02 only; no UI-02 PR is currently open.
 
 ## Delivered phases and merge ledger
@@ -25,7 +25,7 @@
 
 - The audit documents the current Toolbar Clear and asynchronous image-import bypasses, zero-opacity and optional-revision gaps, and proposed integration points.
 - The PR changes only `docs/SAFE_EDIT_PATH_AUDIT.md`; no application behavior is claimed.
-- Against the current `main` snapshot `79013ee60239dfb4665c34f258dd6d69fdb2dac0`, the comparison is 4 commits ahead / 73 behind, with the one-file docs-only diff unchanged. GitHub currently reports the PR as not mergeable.
+- The PR still targets `main` with original merge base `b2735dec1a7d36fb5e8dafa4c1ccc43131e71f07`; the last successful compare against main snapshot `51d2557cd8f2d1562af6f8a89b8168b6dd0d4246` showed 4 commits ahead / 78 behind and only this one added audit file. GitHub's PR metadata has fluctuated between mergeable and not mergeable; latest metadata query reported `mergeable: false`. No source conflict is visible in the changed-file list, but the coordinator must reconcile/accept it.
 - No reviews, inline threads or discussion comments were returned. Coordinator review/base reconciliation remains outstanding; Agent 6 has not merged it.
 
 ### AC-058 — PR #40
@@ -57,8 +57,8 @@ Run #43614650497 on exact head `d3a674ba45e704cef7eb8a6e1d951804f4933518`: 160 N
 
 1. Keep PR #40 draft. Execute `node tests/layer-safety.browser.mjs` in a functioning headless Chromium environment and obtain fresh validation against `main`; do not edit the shared workflow while Agent 3 owns it.
 2. Ask the coordinator to review/reconcile PR #29's stale base. Preserve the docs-only scope; do not self-merge.
-3. When the coordinator opens UI-02, review Toolbar Clear, async import target capture/revalidation at commit, selection paste/replace, revision checks, immutable transaction atomicity, denial feedback and rollback/source immutability.
+3. UI-00 / PR #77 is still draft with coordinator review comments assigned to Agent 5 (screenshot references, labelled readouts/file input, tool-state disclosure and status/branch sync). Those comments do not request an Agent 6 safety review. When UI-02 is opened, review Toolbar Clear, async import target capture/revalidation at commit, selection paste/replace, revision checks, immutable transaction atomicity, denial feedback and rollback/source immutability.
 4. Re-run exact-head checks only after a relevant source/base update; distinguish historical CI from post-retarget validation.
 5. Do not edit `index.html`, production CSS, project model/storage, Agent API/bridge, exporter/renderer, another agent's tests or the shared workflow. Do not start AC-093; the current team priority is production UI integration and no Agent 6 extension beyond AC-092 is assigned.
 
-- **Last updated:** 2026-11-14.
+- **Last updated:** 2026-11-14 (reviewed latest coordination snapshot `187fbd0247c80ed5d5ba72ab019bc8d7bec2a86c`).
