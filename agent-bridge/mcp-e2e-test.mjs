@@ -69,12 +69,64 @@ async function run() {
 
   try {
     await client.connect(transport);
+    const rawCallTool = client.callTool.bind(client);
+    const revisionRequiredTools = new Set([
+      "artclub_draw_pixel", "artclub_draw_line", "artclub_draw_rectangle",
+      "artclub_draw_ellipse", "artclub_fill", "artclub_erase_pixel",
+      "artclub_erase_rectangle", "artclub_set_color", "artclub_execute",
+      "artclub_undo", "artclub_redo",
+      "artclub_add_layer", "artclub_select_layer",
+      "artclub_set_layer_visibility", "artclub_set_layer_locked",
+      "artclub_rename_layer", "artclub_move_layer",
+      "artclub_duplicate_layer", "artclub_delete_layer",
+      "artclub_set_selection", "artclub_select_all",
+      "artclub_copy_selection", "artclub_cut_selection",
+      "artclub_paste_selection", "artclub_clear_selection",
+      "artclub_deselect", "artclub_move_selection",
+      "artclub_transform_selection",
+      "artclub_add_frame", "artclub_duplicate_frame",
+      "artclub_select_frame", "artclub_delete_frame",
+      "artclub_move_frame", "artclub_set_frame_duration",
+      "artclub_rename_frame",
+      "artclub_open_project", "artclub_import_project"
+    ]);
+    async function callTool(request) {
+      if (revisionRequiredTools.has(request.name) &&
+          (!request.arguments || request.arguments.expected_revision === undefined)) {
+        const statusResult = await rawCallTool({
+          name: "artclub_get_status",
+          arguments: {}
+        });
+        if (statusResult.isError) {
+          throw new Error("Could not read the current project revision before " + request.name);
+        }
+        request = {
+          ...request,
+          arguments: {
+            ...(request.arguments || {}),
+            expected_revision: statusResult.structuredContent.revision
+          }
+        };
+      }
+      return rawCallTool(request);
+    }
+
     const toolList = await client.listTools();
     const names = new Set(toolList.tools.map(tool => tool.name));
     for (const required of [
       "artclub_get_status",
+      "artclub_get_canvas",
+      "artclub_get_palette",
       "artclub_draw_pixel",
       "artclub_draw_ellipse",
+      "artclub_erase_pixel",
+      "artclub_erase_rectangle",
+      "artclub_set_color",
+      "artclub_execute",
+      "artclub_undo",
+      "artclub_redo",
+      "artclub_export_project",
+      "artclub_import_project",
       "artclub_get_pixel",
       "artclub_export_png",
       "artclub_save",
@@ -114,7 +166,7 @@ async function run() {
       assert.ok(names.has(required), "MCP server should register " + required);
     }
 
-    const statusResult = await client.callTool({
+    const statusResult = await callTool({
       name: "artclub_get_status",
       arguments: {}
     });
@@ -122,7 +174,25 @@ async function run() {
     const status = statusResult.structuredContent;
     assert.equal(status.protocol, "one-pixel-studio-agent");
 
-    const drawResult = await client.callTool({
+    const missingRevision = await rawCallTool({
+      name: "artclub_draw_pixel",
+      arguments: { x: 18, y: 18, color: "#adadad" }
+    });
+    assert.equal(missingRevision.isError, true, "MCP mutations must require expected_revision");
+    assert.match(missingRevision.content[0].text, /expected_revision/i);
+
+    const paletteResult = await callTool({
+      name: "artclub_get_palette",
+      arguments: {}
+    });
+    assert.ok(Array.isArray(paletteResult.structuredContent.palette));
+    const canvasMeta = await callTool({
+      name: "artclub_get_canvas",
+      arguments: { include_pixels: false }
+    });
+    assert.equal(canvasMeta.structuredContent.width, 24);
+
+    const drawResult = await callTool({
       name: "artclub_draw_pixel",
       arguments: {
         x: 6,
@@ -133,13 +203,13 @@ async function run() {
     });
     assert.notEqual(drawResult.isError, true);
 
-    const pixelResult = await client.callTool({
+    const pixelResult = await callTool({
       name: "artclub_get_pixel",
       arguments: { x: 6, y: 7 }
     });
     assert.equal(pixelResult.structuredContent.color, "#12abef");
 
-    const ellipseResult = await client.callTool({
+    const ellipseResult = await callTool({
       name: "artclub_draw_ellipse",
       arguments: {
         x1: 3, y1: 3, x2: 9, y2: 9,
@@ -147,269 +217,269 @@ async function run() {
       }
     });
     assert.notEqual(ellipseResult.isError, true);
-    const ellipseCenter = await client.callTool({
+    const ellipseCenter = await callTool({
       name: "artclub_get_pixel",
       arguments: { x: 6, y: 6 }
     });
     assert.equal(ellipseCenter.structuredContent.color, "#33aa77");
 
     const baseLayerId = statusResult.structuredContent.active_layer.id;
-    const beforeAddLayer = await client.callTool({
+    const beforeAddLayer = await callTool({
       name: "artclub_get_status",
       arguments: {}
     });
-    const addLayerResult = await client.callTool({
+    const addLayerResult = await callTool({
       name: "artclub_add_layer",
       arguments: { name: "MCP Details", expected_revision: beforeAddLayer.structuredContent.revision }
     });
     assert.notEqual(addLayerResult.isError, true);
     const topLayerId = addLayerResult.structuredContent.active_layer.id;
     assert.notEqual(topLayerId, baseLayerId);
-    const topDraw = await client.callTool({
+    const topDraw = await callTool({
       name: "artclub_draw_pixel",
       arguments: { x: 6, y: 7, color: "#12abef" }
     });
     assert.notEqual(topDraw.isError, true);
 
-    const lowerSelect = await client.callTool({
+    const lowerSelect = await callTool({
       name: "artclub_select_layer",
       arguments: { layer_id: baseLayerId }
     });
     assert.notEqual(lowerSelect.isError, true);
-    const lowerDraw = await client.callTool({
+    const lowerDraw = await callTool({
       name: "artclub_draw_pixel",
       arguments: { x: 6, y: 7, color: "#224466" }
     });
     assert.notEqual(lowerDraw.isError, true);
-    const stillCovered = await client.callTool({
+    const stillCovered = await callTool({
       name: "artclub_get_pixel",
       arguments: { x: 6, y: 7 }
     });
     assert.equal(stillCovered.structuredContent.color, "#12abef", "top layer should cover lower-layer pixel");
 
-    const hideTop = await client.callTool({
+    const hideTop = await callTool({
       name: "artclub_set_layer_visibility",
       arguments: { layer_id: topLayerId, visible: false }
     });
     assert.notEqual(hideTop.isError, true);
-    const revealed = await client.callTool({
+    const revealed = await callTool({
       name: "artclub_get_pixel",
       arguments: { x: 6, y: 7 }
     });
     assert.equal(revealed.structuredContent.color, "#224466", "hiding top layer should reveal lower pixel");
 
-    await client.callTool({
+    await callTool({
       name: "artclub_set_layer_visibility",
       arguments: { layer_id: topLayerId, visible: true }
     });
-    await client.callTool({
+    await callTool({
       name: "artclub_select_layer",
       arguments: { layer_id: topLayerId }
     });
-    await client.callTool({
+    await callTool({
       name: "artclub_set_layer_locked",
       arguments: { layer_id: topLayerId, locked: true }
     });
-    const lockedDraw = await client.callTool({
+    const lockedDraw = await callTool({
       name: "artclub_draw_pixel",
       arguments: { x: 8, y: 8, color: "#ff00ff" }
     });
     assert.equal(lockedDraw.isError, true, "locked layers must reject drawing");
-    await client.callTool({
+    await callTool({
       name: "artclub_set_layer_locked",
       arguments: { layer_id: topLayerId, locked: false }
     });
-    await client.callTool({
+    await callTool({
       name: "artclub_rename_layer",
       arguments: { layer_id: topLayerId, name: "MCP Highlights" }
     });
-    const layerList = await client.callTool({ name: "artclub_list_layers", arguments: {} });
+    const layerList = await callTool({ name: "artclub_list_layers", arguments: {} });
     assert.ok(layerList.content[0].text.includes("MCP Highlights"));
 
-    const beforeSelection = await client.callTool({
+    const beforeSelection = await callTool({
       name: "artclub_get_status", arguments: {}
     });
-    const selectionResult = await client.callTool({
+    const selectionResult = await callTool({
       name: "artclub_set_selection",
       arguments: { x: 10, y: 10, width: 1, height: 1, expected_revision: beforeSelection.structuredContent.revision }
     });
     assert.notEqual(selectionResult.isError, true);
-    const selectedDraw = await client.callTool({
+    const selectedDraw = await callTool({
       name: "artclub_draw_pixel",
       arguments: { x: 10, y: 10, color: "#aabbcc" }
     });
     assert.notEqual(selectedDraw.isError, true);
-    const outsideDraw = await client.callTool({
+    const outsideDraw = await callTool({
       name: "artclub_draw_pixel",
       arguments: { x: 11, y: 10, color: "#ff0000" }
     });
     assert.notEqual(outsideDraw.isError, true);
-    const outsideRead = await client.callTool({
+    const outsideRead = await callTool({
       name: "artclub_get_pixel", arguments: { x: 11, y: 10 }
     });
     assert.notEqual(outsideRead.structuredContent.color, "#ff0000", "drawing must be constrained to the selected rectangle");
-    const copiedSelection = await client.callTool({
+    const copiedSelection = await callTool({
       name: "artclub_copy_selection", arguments: {}
     });
     assert.notEqual(copiedSelection.isError, true);
-    const beforeMove = await client.callTool({
+    const beforeMove = await callTool({
       name: "artclub_get_status", arguments: {}
     });
-    const movedSelection = await client.callTool({
+    const movedSelection = await callTool({
       name: "artclub_move_selection",
       arguments: { dx: 1, dy: 1, expected_revision: beforeMove.structuredContent.revision }
     });
     assert.notEqual(movedSelection.isError, true);
-    const movedPixel = await client.callTool({
+    const movedPixel = await callTool({
       name: "artclub_get_pixel", arguments: { x: 11, y: 11 }
     });
     assert.equal(movedPixel.structuredContent.color, "#aabbcc");
-    await client.callTool({ name: "artclub_deselect", arguments: {} });
+    await callTool({ name: "artclub_deselect", arguments: {} });
 
-    const beforeRotateSelection = await client.callTool({
+    const beforeRotateSelection = await callTool({
       name: "artclub_get_status", arguments: {}
     });
-    const rotateBounds = await client.callTool({
+    const rotateBounds = await callTool({
       name: "artclub_set_selection",
       arguments: { x: 12, y: 12, width: 2, height: 1, expected_revision: beforeRotateSelection.structuredContent.revision }
     });
     assert.notEqual(rotateBounds.isError, true);
-    await client.callTool({
+    await callTool({
       name: "artclub_draw_pixel",
       arguments: { x: 12, y: 12, color: "#aa0000" }
     });
-    await client.callTool({
+    await callTool({
       name: "artclub_draw_pixel",
       arguments: { x: 13, y: 12, color: "#00aa00" }
     });
-    const beforeRotate = await client.callTool({
+    const beforeRotate = await callTool({
       name: "artclub_get_status", arguments: {}
     });
-    const rotateResult = await client.callTool({
+    const rotateResult = await callTool({
       name: "artclub_transform_selection",
       arguments: { operation: "rotate_cw", expected_revision: beforeRotate.structuredContent.revision }
     });
     assert.notEqual(rotateResult.isError, true);
     assert.equal(rotateResult.structuredContent.selection.width, 1);
     assert.equal(rotateResult.structuredContent.selection.height, 2);
-    const rotatedA = await client.callTool({
+    const rotatedA = await callTool({
       name: "artclub_get_pixel", arguments: { x: 12, y: 12 }
     });
-    const rotatedB = await client.callTool({
+    const rotatedB = await callTool({
       name: "artclub_get_pixel", arguments: { x: 12, y: 13 }
     });
     assert.equal(rotatedA.structuredContent.color, "#aa0000");
     assert.equal(rotatedB.structuredContent.color, "#00aa00");
 
-    const initialFrames = await client.callTool({
+    const initialFrames = await callTool({
       name: "artclub_list_frames", arguments: {}
     });
     assert.equal(initialFrames.structuredContent.frames[0].active, true);
     const firstFrameId = initialFrames.structuredContent.frames[0].id;
-    const frameAdded = await client.callTool({
+    const frameAdded = await callTool({
       name: "artclub_add_frame",
       arguments: { name: "MCP Walk 2", duration_ms: 140 }
     });
     assert.notEqual(frameAdded.isError, true);
     const secondFrameId = frameAdded.structuredContent.active_frame.id;
-    await client.callTool({
+    await callTool({
       name: "artclub_draw_pixel",
       arguments: { x: 14, y: 14, color: "#12fe34" }
     });
-    const backToFirst = await client.callTool({
+    const backToFirst = await callTool({
       name: "artclub_select_frame",
       arguments: { frame_id: firstFrameId }
     });
     assert.notEqual(backToFirst.isError, true);
-    const firstFramePixel = await client.callTool({
+    const firstFramePixel = await callTool({
       name: "artclub_get_pixel", arguments: { x: 14, y: 14 }
     });
     assert.notEqual(firstFramePixel.structuredContent.color, "#12fe34");
-    await client.callTool({
+    await callTool({
       name: "artclub_select_frame",
       arguments: { frame_id: secondFrameId }
     });
-    const secondFramePixel = await client.callTool({
+    const secondFramePixel = await callTool({
       name: "artclub_get_pixel", arguments: { x: 14, y: 14 }
     });
     assert.equal(secondFramePixel.structuredContent.color, "#12fe34");
 
-    const duplicateFrame = await client.callTool({
+    const duplicateFrame = await callTool({
       name: "artclub_duplicate_frame",
       arguments: { frame_id: secondFrameId, name: "MCP Walk 2 Copy" }
     });
     assert.notEqual(duplicateFrame.isError, true);
     const duplicateFrameId = duplicateFrame.structuredContent.active_frame.id;
-    await client.callTool({
+    await callTool({
       name: "artclub_set_frame_duration",
       arguments: { frame_id: duplicateFrameId, duration_ms: 210 }
     });
-    await client.callTool({
+    await callTool({
       name: "artclub_move_frame",
       arguments: { frame_id: duplicateFrameId, direction: "up" }
     });
-    await client.callTool({
+    await callTool({
       name: "artclub_rename_frame",
       arguments: { frame_id: duplicateFrameId, name: "MCP Final Pose" }
     });
-    const orderedFrames = await client.callTool({
+    const orderedFrames = await callTool({
       name: "artclub_list_frames", arguments: {}
     });
     const activeFrameRecord = orderedFrames.structuredContent.frames.find(frame => frame.id === duplicateFrameId);
     assert.equal(activeFrameRecord.order, 1);
     assert.equal(activeFrameRecord.duration_ms, 210);
     assert.equal(activeFrameRecord.name, "MCP Final Pose");
-    await client.callTool({
+    await callTool({
       name: "artclub_delete_frame",
       arguments: { frame_id: duplicateFrameId }
     });
-    const frameCountAfterDelete = await client.callTool({
+    const frameCountAfterDelete = await callTool({
       name: "artclub_list_frames", arguments: {}
     });
     assert.equal(frameCountAfterDelete.structuredContent.frames.length, 2);
-    await client.callTool({
+    await callTool({
       name: "artclub_set_playback_mode",
       arguments: { mode: "pingpong" }
     });
-    const onionEnabled = await client.callTool({
+    const onionEnabled = await callTool({
       name: "artclub_set_onion_skin",
       arguments: { enabled: true }
     });
     assert.equal(onionEnabled.structuredContent.playback.onion_skin, true);
-    const playing = await client.callTool({
+    const playing = await callTool({
       name: "artclub_play_animation",
       arguments: {}
     });
     assert.equal(playing.structuredContent.playback.playing, true);
-    const rejectedDuringPlayback = await client.callTool({
+    const rejectedDuringPlayback = await callTool({
       name: "artclub_draw_pixel",
       arguments: { x: 17, y: 17, color: "#ff00ff" }
     });
     assert.equal(rejectedDuringPlayback.isError, true, "agents must not draw while playback is running");
-    const paused = await client.callTool({
+    const paused = await callTool({
       name: "artclub_pause_animation",
       arguments: {}
     });
     assert.equal(paused.structuredContent.playback.playing, false);
     assert.equal(paused.structuredContent.playback.previewing, true);
-    const stopped = await client.callTool({
+    const stopped = await callTool({
       name: "artclub_stop_animation_preview",
       arguments: {}
     });
     assert.equal(stopped.structuredContent.playback.previewing, false);
     assert.equal(stopped.structuredContent.playback.onion_skin, true);
 
-    await client.callTool({
+    await callTool({
       name: "artclub_delete_frame",
       arguments: { frame_id: secondFrameId }
     });
-    const cannotDeleteLastFrame = await client.callTool({
+    const cannotDeleteLastFrame = await callTool({
       name: "artclub_delete_frame",
       arguments: { frame_id: firstFrameId }
     });
     assert.equal(cannotDeleteLastFrame.isError, true, "the final animation frame must be retained");
 
-    const pngResult = await client.callTool({
+    const pngResult = await callTool({
       name: "artclub_export_png",
       arguments: {}
     });
@@ -418,25 +488,67 @@ async function run() {
     assert.ok(imageBlock, "MCP PNG export should return an image block");
     assert.ok(imageBlock.data.startsWith("iVBORw0KGgo"));
 
-    const saveResult = await client.callTool({
+    const exportResult = await callTool({
+      name: "artclub_export_project",
+      arguments: {}
+    });
+    assert.equal(typeof exportResult.structuredContent.project_json, "string");
+    assert.equal(JSON.parse(exportResult.structuredContent.project_json).format, "one-pixel-studio");
+    const importResult = await callTool({
+      name: "artclub_import_project",
+      arguments: { project_json: exportResult.structuredContent.project_json }
+    });
+    assert.notEqual(importResult.isError, true);
+
+    const saveResult = await callTool({
       name: "artclub_save",
       arguments: {}
     });
     assert.equal(saveResult.structuredContent.ok, true);
 
-    const projectsResult = await client.callTool({
+    const projectsResult = await callTool({
       name: "artclub_list_projects",
       arguments: {}
     });
     assert.ok(projectsResult.content[0].text.includes(status.project_id));
+    assert.ok(Array.isArray(projectsResult.structuredContent.projects));
 
-    const invalidResult = await client.callTool({
+    const openResult = await callTool({
+      name: "artclub_open_project",
+      arguments: { project_id: status.project_id }
+    });
+    assert.notEqual(openResult.isError, true);
+
+    const invalidResult = await callTool({
       name: "artclub_draw_pixel",
       arguments: { x: 999, y: 7, color: "#12abef" }
     });
     assert.equal(invalidResult.isError, true, "invalid coordinates should be rejected");
 
-    console.log("MCP E2E passed: drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.");
+    const sharedRevision = await callTool({
+      name: "artclub_get_status",
+      arguments: {}
+    });
+    const sameRevision = sharedRevision.structuredContent.revision;
+    const concurrentWrites = await Promise.all([
+      rawCallTool({
+        name: "artclub_draw_pixel",
+        arguments: { x: 20, y: 20, color: "#aa2211", expected_revision: sameRevision }
+      }),
+      rawCallTool({
+        name: "artclub_draw_pixel",
+        arguments: { x: 21, y: 20, color: "#11aa22", expected_revision: sameRevision }
+      })
+    ]);
+    assert.equal(
+      concurrentWrites.filter(result => result.isError !== true).length,
+      1,
+      "only one concurrent write may succeed against the same revision"
+    );
+    const staleWrite = concurrentWrites.find(result => result.isError === true);
+    assert.match(staleWrite.content[0].text, /changed since your last read|revision/i);
+
+    console.log("MCP E2E passed: structured reads, revision-guarded writes, concurrency rejection, layers, selections, animation, export/import, PNG preview, save and input validation.");
   } finally {
     await client.close().catch(() => {});
     await new Promise(resolve => staticServer.close(resolve));
