@@ -393,6 +393,67 @@ test("active selection constrains human and agent drawing and can be cleared", a
   assert.equal(editor.agent.get_status().selection, null);
 });
 
+test("timeline frames keep independent cels, timing and frame order", async () => {
+  const editor = await bootEditor();
+  const firstFrame = editor.agent.get_status().active_frame.id;
+  await editor.agent.draw_pixel({ x: 2, y: 2, color: "#aa0000" });
+
+  const added = await editor.agent.add_frame({ name: "Walk 2", duration_ms: 140 });
+  const secondFrame = added.active_frame.id;
+  assert.equal(added.frames.length, 2);
+  await editor.agent.draw_pixel({ x: 2, y: 2, color: "#00aa00" });
+
+  await editor.agent.select_frame({ frame_id: firstFrame });
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#aa0000");
+  await editor.agent.select_frame({ frame_id: secondFrame });
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#00aa00");
+
+  const duplicate = await editor.agent.duplicate_frame({ frame_id: secondFrame, name: "Walk 2 Copy" });
+  const duplicateId = duplicate.active_frame.id;
+  assert.equal(duplicate.frames.length, 3);
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#00aa00");
+
+  await editor.agent.set_frame_duration({ frame_id: duplicateId, duration_ms: 220 });
+  await editor.agent.rename_frame({ frame_id: duplicateId, name: "Walk Duplicate" });
+  await editor.agent.move_frame({ frame_id: duplicateId, direction: "up" });
+  const ordered = editor.agent.list_frames();
+  assert.equal(ordered[1].id, duplicateId);
+  assert.equal(ordered[1].name, "Walk Duplicate");
+  assert.equal(ordered[1].duration_ms, 220);
+
+  await editor.agent.draw_pixel({ x: 3, y: 2, color: "#0000aa" });
+  await editor.agent.select_frame({ frame_id: secondFrame });
+  assert.equal((await editor.agent.get_pixel({ x: 3, y: 2 })).color, null);
+  await editor.agent.select_frame({ frame_id: duplicateId });
+  assert.equal((await editor.agent.get_pixel({ x: 3, y: 2 })).color, "#0000aa");
+
+  await editor.agent.delete_frame({ frame_id: duplicateId });
+  assert.equal(editor.agent.get_status().frames.length, 2);
+  await editor.agent.delete_frame({ frame_id: secondFrame });
+  assert.equal(editor.agent.get_status().frames.length, 1);
+  assert.throws(() => editor.agent.delete_frame({ frame_id: firstFrame }), /at least one frame/);
+});
+
+test("timeline UI can switch frames and change frame duration", async () => {
+  const editor = await bootEditor();
+  const firstFrame = editor.agent.get_status().active_frame.id;
+  editor.document.getElementById("addFrameBtn").emit("click");
+
+  let cards = editor.document.getElementById("frameList").children;
+  assert.equal(cards.length, 2);
+  cards[0].children[0].emit("click");
+  assert.equal(editor.agent.get_status().active_frame.id, firstFrame);
+
+  cards = editor.document.getElementById("frameList").children;
+  const durationInput = cards[1].children[1].children[0].children[0];
+  durationInput.value = "260";
+  durationInput.emit("change");
+  assert.equal(editor.agent.get_status().frames[1].duration_ms, 260);
+
+  cards[1].children[0].emit("dblclick");
+  assert.equal(editor.document.getElementById("frameList").children.length, 2);
+});
+
 test("brush paints on pointer down and commits the stroke", async () => {
   const editor = await bootEditor();
   editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
