@@ -10,9 +10,10 @@
   "use strict";
 
   const DATABASE_NAME = "one-pixel-studio";
-  const DATABASE_VERSION = 1;
+  const DATABASE_VERSION = 2;
   const PROJECTS = "projects";
   const RECOVERY = "recovery";
+  const VERSIONS = "versions";
 
   function requestResult(request) {
     return new Promise(function (resolve, reject) {
@@ -47,6 +48,9 @@
         if (!db.objectStoreNames.contains(RECOVERY)) {
           db.createObjectStore(RECOVERY, { keyPath: "projectId" });
         }
+        if (!db.objectStoreNames.contains(VERSIONS)) {
+          db.createObjectStore(VERSIONS, { keyPath: "projectId" });
+        }
       };
       request.onsuccess = function () {
         const db = request.result;
@@ -69,6 +73,31 @@
   function ProjectStorage(db, projectModel) {
     this.db = db;
     this.model = projectModel;
+    // A token is learned only by reading the current record in this tab.
+    // It is deliberately not shared between tabs: stale tabs must conflict.
+    this.revisions = new Map();
+    this.rollbackReceipts = new WeakMap();
+  }
+
+  function revisionOf(record) {
+    return record && Number.isSafeInteger(record.revision) ? record.revision : 0;
+  }
+
+  function revisionTokenOf(record) {
+    return {
+      revision: revisionOf(record),
+      commitToken: record && typeof record.commitToken === "string" ? record.commitToken : null
+    };
+  }
+
+  function conflictError(projectId, expected, actual) {
+    const error = new Error("This project was saved in another tab. Reload it before saving again.");
+    error.name = "ProjectRevisionConflictError";
+    error.code = "PROJECT_REVISION_CONFLICT";
+    error.projectId = projectId;
+    error.expectedRevision = expected;
+    error.actualRevision = actual;
+    return error;
   }
 
   ProjectStorage.open = async function (options) {
@@ -79,7 +108,15 @@
     return new ProjectStorage(db, model);
   };
 
-  ProjectStorage.prototype.saveProject = async function (project) {
+  let commitSequence = 0;
+  function newCommitToken() {
+    const cryptoObject = root && root.crypto;
+    if (cryptoObject && typeof cryptoObject.randomUUID === "function") return cryptoObject.randomUUID();
+    commitSequence += 1;
+    return String(Date.now()) + ":" + String(commitSequence) + ":" + String(Math.random()).slice(2);
+  }
+
+  ProjectStorage.prototype.saveProject = async function (project, expectedRevision) {
     const copy = this.model.cloneProject(project);
     const now = new Date().toISOString();
     copy.metadata = copy.metadata || {};
@@ -94,44 +131,228 @@
       data: copy
     };
 
-    const tx = this.db.transaction([PROJECTS, RECOVERY], "readwrite");
+    const cachedToken = this.revisions.get(copy.id) || { revision: 0, commitToken: null };
+    const expected = Number.isSafeInteger(expectedRevision) ? expectedRevision : cachedToken.revision;
+    const expectedCommitToken = expected === cachedToken.revision ? cachedToken.commitToken : null;
+    if (!Number.isSafeInteger(expected) || expected < 0) {
+      throw new TypeError("expectedRevision must be a non-negative safe integer.");
+    }
+
+    const tx = this.db.transaction([PROJECTS, RECOVERY, VERSIONS], "readwrite");
     const projects = tx.objectStore(PROJECTS);
     const recovery = tx.objectStore(RECOVERY);
+    const versions = tx.objectStore(VERSIONS);
     const done = transactionResult(tx);
     const projectModel = this.model;
-    let savedRecord = record;
-    const getPrevious = projects.get(copy.id);
-    getPrevious.onsuccess = function () {
-      const previous = getPrevious.result;
-      if (previous && previous.data) {
-        // A save that only refreshes metadata is not a new project version.
-        // In particular, opening Project Library calls persistNow() even when
-        // the current document is already saved; rotating here would discard
-        // the useful one-step recovery copy.
-        if (sameProjectContent(projectModel, copy, previous.data)) {
+    let savedRecord = null;
+    let savedToken = null;
+    let receipt = null;
+    let failure = null;
+    let previous = null;
+    let versionRecord = null;
+    let primaryReady = false;
+    let versionReady = false;
+    let recoveryRequestStarted = false;
+
+    function abortWith(error) {
+      failure = error;
+      try { tx.abort(); } catch (_) {}
+    }
+
+    const previousRequest = projects.get(copy.id);
+    previousRequest.onsuccess = function () {
+      previous = previousRequest.result || null;
+      primaryReady = true;
+      beginSaveWhenReady();
+    };
+    previousRequest.onerror = function () {
+      abortWith(previousRequest.error || new Error("Could not read the saved project."));
+    };
+
+    const versionRequest = versions.get(copy.id);
+    versionRequest.onsuccess = function () {
+      versionRecord = versionRequest.result || null;
+      versionReady = true;
+      beginSaveWhenReady();
+    };
+    versionRequest.onerror = function () {
+      abortWith(versionRequest.error || new Error("Could not read the project revision."));
+    };
+
+    const self = this;
+    function beginSaveWhenReady() {
+      if (!primaryReady || !versionReady || recoveryRequestStarted || failure) return;
+      recoveryRequestStarted = true;
+      const actualToken = versionRecord || revisionTokenOf(previous);
+      const actualRevision = actualToken.revision;
+      const actualCommitToken = actualToken.commitToken;
+      if (actualRevision !== expected || actualCommitToken !== expectedCommitToken) {
+        abortWith(conflictError(copy.id, expected, actualRevision));
+        return;
+      }
+
+      const recoveryRequest = recovery.get(copy.id);
+      recoveryRequest.onsuccess = function () {
+        const previousRecovery = recoveryRequest.result || null;
+        if (previous && previous.data && sameProjectContent(projectModel, copy, previous.data)) {
           savedRecord = previous;
+          savedToken = { revision: actualRevision, commitToken: actualCommitToken };
+          receipt = Object.freeze({
+            projectId: copy.id,
+            committedRevision: actualRevision,
+            commitToken: actualCommitToken,
+            noOp: true
+          });
           return;
         }
-        recovery.put({
+
+        const nextRevision = actualRevision + 1;
+        const commitToken = newCommitToken();
+        record.revision = nextRevision;
+        record.commitToken = commitToken;
+        savedToken = { revision: nextRevision, commitToken: commitToken };
+        receipt = Object.freeze({
           projectId: copy.id,
-          projectName: previous.name,
-          savedAt: previous.updatedAt,
-          data: previous.data
+          committedRevision: nextRevision,
+          commitToken: commitToken
         });
-      }
-      projects.put(record);
-    };
-    getPrevious.onerror = function () {
-      try { tx.abort(); } catch (_) {}
-    };
-    await done;
+        let committedRecovery = previousRecovery;
+        if (previous && previous.data) {
+          committedRecovery = {
+            projectId: copy.id,
+            projectName: previous.name,
+            savedAt: previous.updatedAt,
+            data: previous.data
+          };
+          recovery.put(committedRecovery);
+        }
+        self.rollbackReceipts.set(receipt, {
+          previous: previous,
+          previousRecovery: previousRecovery,
+          committedRecovery: committedRecovery
+        });
+        projects.put(record);
+        versions.put({
+          projectId: copy.id,
+          revision: nextRevision,
+          commitToken: commitToken
+        });
+        savedRecord = record;
+      };
+      recoveryRequest.onerror = function () {
+        abortWith(recoveryRequest.error || new Error("Could not read the project recovery snapshot."));
+      };
+    }
+
+    try { await done; }
+    catch (error) { throw failure || error; }
+    if (failure) throw failure;
+    if (!savedRecord) throw new Error("The project save transaction completed without a saved record.");
+    if (!savedToken) throw new Error("The project save transaction completed without a revision token.");
+    this.revisions.set(copy.id, savedToken);
     return {
       id: savedRecord.id,
       name: savedRecord.name,
       width: savedRecord.width,
       height: savedRecord.height,
-      updatedAt: savedRecord.updatedAt
+      updatedAt: savedRecord.updatedAt,
+      revision: savedToken.revision,
+      revisionToken: savedToken,
+      rollbackReceipt: receipt
     };
+  };
+
+  ProjectStorage.prototype.restoreIfCurrent = async function (receipt) {
+    if (receipt && receipt.noOp) return true;
+    const snapshot = receipt && this.rollbackReceipts.get(receipt);
+    if (!snapshot) {
+      throw new Error("The rollback receipt is invalid, expired, or belongs to another storage session.");
+    }
+
+    const projectId = receipt.projectId;
+    const tx = this.db.transaction([PROJECTS, RECOVERY, VERSIONS], "readwrite");
+    const projects = tx.objectStore(PROJECTS);
+    const recovery = tx.objectStore(RECOVERY);
+    const versions = tx.objectStore(VERSIONS);
+    const done = transactionResult(tx);
+    let failure = null;
+    let current = null;
+    let version = null;
+    let currentRecovery = null;
+    let primaryReady = false;
+    let versionReady = false;
+    let recoveryReady = false;
+    let restoreStarted = false;
+    let rollbackVersionToken = null;
+
+    function abortWith(error) {
+      failure = error;
+      try { tx.abort(); } catch (_) {}
+    }
+
+    const currentRequest = projects.get(projectId);
+    currentRequest.onsuccess = function () {
+      current = currentRequest.result || null;
+      primaryReady = true;
+      restoreWhenReady();
+    };
+    currentRequest.onerror = function () {
+      abortWith(currentRequest.error || new Error("Could not verify the committed project before rollback."));
+    };
+
+    const versionRequest = versions.get(projectId);
+    versionRequest.onsuccess = function () {
+      version = versionRequest.result || null;
+      versionReady = true;
+      restoreWhenReady();
+    };
+    versionRequest.onerror = function () {
+      abortWith(versionRequest.error || new Error("Could not verify the committed project revision before rollback."));
+    };
+
+    const recoveryRequest = recovery.get(projectId);
+    recoveryRequest.onsuccess = function () {
+      currentRecovery = recoveryRequest.result || null;
+      recoveryReady = true;
+      restoreWhenReady();
+    };
+    recoveryRequest.onerror = function () {
+      abortWith(recoveryRequest.error || new Error("Could not verify the recovery snapshot before rollback."));
+    };
+
+    function restoreWhenReady() {
+      if (!primaryReady || !versionReady || !recoveryReady || restoreStarted || failure) return;
+      restoreStarted = true;
+      const currentToken = version || revisionTokenOf(current);
+      if (!current || currentToken.revision !== receipt.committedRevision ||
+          currentToken.commitToken !== receipt.commitToken ||
+          JSON.stringify(currentRecovery) !== JSON.stringify(snapshot.committedRecovery)) {
+        abortWith(conflictError(projectId, receipt.committedRevision, currentToken.revision));
+        return;
+      }
+
+      // Rollback is itself a new revision. The restored project and recovery
+      // records are exact snapshots; the separate version row never moves back.
+      const rollbackRevision = currentToken.revision + 1;
+      const rollbackToken = newCommitToken();
+      rollbackVersionToken = { revision: rollbackRevision, commitToken: rollbackToken };
+      if (snapshot.previous) projects.put(snapshot.previous);
+      else projects.delete(projectId);
+      if (snapshot.previousRecovery) recovery.put(snapshot.previousRecovery);
+      else recovery.delete(projectId);
+      versions.put({
+        projectId: projectId,
+        revision: rollbackRevision,
+        commitToken: rollbackToken
+      });
+    }
+
+    try { await done; }
+    catch (error) { throw failure || error; }
+    if (failure) throw failure;
+    this.rollbackReceipts.delete(receipt);
+    this.revisions.set(projectId, rollbackVersionToken);
+    return true;
   };
 
   ProjectStorage.prototype.listProjects = async function () {
@@ -155,12 +376,19 @@
   };
 
   ProjectStorage.prototype.getProject = async function (id) {
-    const tx = this.db.transaction(PROJECTS, "readonly");
+    const tx = this.db.transaction([PROJECTS, VERSIONS], "readonly");
     const done = transactionResult(tx);
-    const request = tx.objectStore(PROJECTS).get(id);
-    const record = await requestResult(request);
+    const projectRequest = tx.objectStore(PROJECTS).get(id);
+    const versionRequest = tx.objectStore(VERSIONS).get(id);
+    const record = await requestResult(projectRequest);
+    const version = await requestResult(versionRequest);
     await done;
-    if (!record || !record.data) return null;
+    if (!record || !record.data) {
+      if (version) this.revisions.set(id, { revision: version.revision, commitToken: version.commitToken });
+      else this.revisions.delete(id);
+      return null;
+    }
+    this.revisions.set(id, version || revisionTokenOf(record));
     return this.model.deserializeProject(record.data);
   };
 
@@ -186,11 +414,34 @@
   };
 
   ProjectStorage.prototype.deleteProject = async function (id) {
-    const tx = this.db.transaction([PROJECTS, RECOVERY], "readwrite");
+    const tx = this.db.transaction([PROJECTS, RECOVERY, VERSIONS], "readwrite");
+    const projects = tx.objectStore(PROJECTS);
+    const recovery = tx.objectStore(RECOVERY);
+    const versions = tx.objectStore(VERSIONS);
     const done = transactionResult(tx);
-    tx.objectStore(PROJECTS).delete(id);
-    tx.objectStore(RECOVERY).delete(id);
+    let version = null;
+    let previous = null;
+    let deletedToken = null;
+    let ready = 0;
+    const finish = function () {
+      ready += 1;
+      if (ready !== 2) return;
+      const current = version || revisionTokenOf(previous);
+      const revision = current.revision + 1;
+      const commitToken = newCommitToken();
+      projects.delete(id);
+      recovery.delete(id);
+      versions.put({ projectId: id, revision: revision, commitToken: commitToken });
+      deletedToken = { revision: revision, commitToken: commitToken };
+    }.bind(this);
+    const versionRequest = versions.get(id);
+    versionRequest.onsuccess = function () { version = versionRequest.result || null; finish(); };
+    versionRequest.onerror = function () { try { tx.abort(); } catch (_) {} };
+    const projectRequest = projects.get(id);
+    projectRequest.onsuccess = function () { previous = projectRequest.result || null; finish(); };
+    projectRequest.onerror = function () { try { tx.abort(); } catch (_) {} };
     await done;
+    this.revisions.set(id, deletedToken);
   };
 
   ProjectStorage.prototype.close = function () {
