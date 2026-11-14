@@ -275,6 +275,7 @@
     let primaryReady = false;
     let versionReady = false;
     let restoreStarted = false;
+    let rollbackVersionToken = null;
 
     function abortWith(error) {
       failure = error;
@@ -301,7 +302,6 @@
       abortWith(versionRequest.error || new Error("Could not verify the committed project revision before rollback."));
     };
 
-    const self = this;
     function restoreWhenReady() {
       if (!primaryReady || !versionReady || restoreStarted || failure) return;
       restoreStarted = true;
@@ -316,6 +316,7 @@
       // records are exact snapshots; the separate version row never moves back.
       const rollbackRevision = currentToken.revision + 1;
       const rollbackToken = newCommitToken();
+      rollbackVersionToken = { revision: rollbackRevision, commitToken: rollbackToken };
       if (snapshot.previous) projects.put(snapshot.previous);
       else projects.delete(projectId);
       if (snapshot.previousRecovery) recovery.put(snapshot.previousRecovery);
@@ -331,20 +332,8 @@
     catch (error) { throw failure || error; }
     if (failure) throw failure;
     this.rollbackReceipts.delete(receipt);
-    this.revisions.set(projectId, {
-      revision: receipt.committedRevision + 1,
-      commitToken: (await this._readVersionToken(projectId)).commitToken
-    });
+    this.revisions.set(projectId, rollbackVersionToken);
     return true;
-  };
-
-  ProjectStorage.prototype._readVersionToken = async function (id) {
-    const tx = this.db.transaction(VERSIONS, "readonly");
-    const done = transactionResult(tx);
-    const request = tx.objectStore(VERSIONS).get(id);
-    const record = await requestResult(request);
-    await done;
-    return record ? { revision: record.revision, commitToken: record.commitToken } : { revision: 0, commitToken: null };
   };
 
   ProjectStorage.prototype.listProjects = async function () {
