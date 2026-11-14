@@ -96,11 +96,11 @@
     }
 
     _resize(width, height) {
-      const rect = this.canvas.getBoundingClientRect ? this.canvas.getBoundingClientRect() : null;
+      const bounds = this.canvas.getBoundingClientRect ? this.canvas.getBoundingClientRect() : null;
       const displayWidth = Number(this.options.displayWidth) || this.canvas.clientWidth ||
-        (rect && rect.width) || width;
+        (bounds && bounds.width) || width;
       const displayHeight = Number(this.options.displayHeight) || this.canvas.clientHeight ||
-        (rect && rect.height) || height;
+        (bounds && bounds.height) || height;
       const configuredDpr = typeof this.options.devicePixelRatio === "function"
         ? this.options.devicePixelRatio()
         : this.options.devicePixelRatio;
@@ -108,20 +108,20 @@
       const backingWidth = Math.max(1, Math.round(displayWidth * dpr));
       const backingHeight = Math.max(1, Math.round(displayHeight * dpr));
       const changed = width !== this.width || height !== this.height ||
-        displayWidth !== this.displayWidth || displayHeight !== this.displayHeight ||
-        dpr !== this.dpr || this.canvas.width !== backingWidth || this.canvas.height !== backingHeight;
+        displayWidth !== this.displayWidth || displayHeight !== this.displayHeight || dpr !== this.dpr ||
+        this.canvas.width !== backingWidth || this.canvas.height !== backingHeight;
 
       if (width !== this.width || height !== this.height) {
         this.surface.width = width;
         this.surface.height = height;
-        this.overlay.width = width;
-        this.overlay.height = height;
         this.imageData = this.surfaceContext.createImageData(width, height);
         this.width = width;
         this.height = height;
       }
       if (this.canvas.width !== backingWidth) this.canvas.width = backingWidth;
       if (this.canvas.height !== backingHeight) this.canvas.height = backingHeight;
+      if (this.overlay.width !== backingWidth) this.overlay.width = backingWidth;
+      if (this.overlay.height !== backingHeight) this.overlay.height = backingHeight;
       this.displayWidth = displayWidth;
       this.displayHeight = displayHeight;
       this.dpr = dpr;
@@ -156,20 +156,23 @@
       const ctx = this.overlayContext;
       const sx = this.displayWidth / this.width;
       const sy = this.displayHeight / this.height;
+      const dpr = this.dpr;
       ctx.save();
-      ctx.setTransform(sx, 0, 0, sy, 0, 0);
-      ctx.clearRect(0, 0, this.width, this.height);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, this.displayWidth, this.displayHeight);
       if (state.grid !== false) {
         ctx.beginPath();
         ctx.strokeStyle = state.gridColor || "rgba(37, 53, 49, 0.18)";
-        ctx.lineWidth = Number(state.gridLineWidth) > 0 ? Number(state.gridLineWidth) : 1;
+        ctx.lineWidth = 1 / dpr;
         for (let x = 1; x < this.width; x++) {
-          ctx.moveTo(x + 0.5, 0);
-          ctx.lineTo(x + 0.5, this.height);
+          const px = Math.round(x * sx * dpr) / dpr + 0.5 / dpr;
+          ctx.moveTo(px, 0);
+          ctx.lineTo(px, this.displayHeight);
         }
         for (let y = 1; y < this.height; y++) {
-          ctx.moveTo(0, y + 0.5);
-          ctx.lineTo(this.width, y + 0.5);
+          const py = Math.round(y * sy * dpr) / dpr + 0.5 / dpr;
+          ctx.moveTo(0, py);
+          ctx.lineTo(this.displayWidth, py);
         }
         ctx.stroke();
       }
@@ -183,10 +186,14 @@
           throw new RangeError("Selection must be a non-empty integer rectangle inside the canvas.");
         }
         ctx.strokeStyle = state.selectionColor || "#e97960";
-        ctx.lineWidth = Number(state.selectionLineWidth) > 0 ? Number(state.selectionLineWidth) : 1;
-        if (ctx.setLineDash) ctx.setLineDash([3, 2]);
-        ctx.strokeRect(selection.x + 0.5, selection.y + 0.5,
-          Math.max(0, selection.width - 1), Math.max(0, selection.height - 1));
+        ctx.lineWidth = 1 / dpr;
+        if (ctx.setLineDash) ctx.setLineDash([3 / dpr, 2 / dpr]);
+        const x = selection.x * sx;
+        const y = selection.y * sy;
+        const w = selection.width * sx;
+        const h = selection.height * sy;
+        ctx.strokeRect(x + 0.5 / dpr, y + 0.5 / dpr,
+          Math.max(0, w - 1 / dpr), Math.max(0, h - 1 / dpr));
       }
       ctx.restore();
     }
@@ -202,7 +209,11 @@
       ctx.clearRect(dx, dy, dw, dh);
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(this.surface, rect.x, rect.y, rect.width, rect.height, dx, dy, dw, dh);
-      ctx.drawImage(this.overlay, rect.x, rect.y, rect.width, rect.height, dx, dy, dw, dh);
+      const sx = Math.round(dx * this.dpr);
+      const sy = Math.round(dy * this.dpr);
+      const sw = Math.max(1, Math.round(dw * this.dpr));
+      const sh = Math.max(1, Math.round(dh * this.dpr));
+      ctx.drawImage(this.overlay, sx, sy, sw, sh, dx, dy, dw, dh);
       ctx.restore();
     }
 
