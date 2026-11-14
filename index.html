@@ -1501,13 +1501,13 @@ function writeLocalBackup(doc){
 }
 async function saveCurrentProject(){
   const doc=snapshot();
-  const backupSaved=writeLocalBackup(doc);
   if(projectStorage){
+    // Do not overwrite the shared local backup until IndexedDB accepts this revision.
     await projectStorage.saveProject(doc);
     activeProjectId=doc.id;
-    return true;
+    return writeLocalBackup(doc);
   }
-  return backupSaved;
+  return writeLocalBackup(doc);
 }
 async function persistNow(){
   clearTimeout(saveTimer);saveTimer=null;
@@ -1516,7 +1516,12 @@ async function persistNow(){
     $("saveState").textContent=saved?(projectStorage?"SAVED IN PROJECT LIBRARY":"LOCAL BACKUP ONLY"):"SAVE FAILED · EXPORT JSON";
     return saved;
   }catch(error){
-    $("saveState").textContent="SAVE FAILED · EXPORT JSON";
+    if(error&&error.code==="PROJECT_REVISION_CONFLICT"){
+      $("saveState").textContent="CHANGED IN ANOTHER TAB · RELOAD";
+      toast("This project was saved in another tab. Reload it before making more changes.");
+    }else{
+      $("saveState").textContent="SAVE FAILED · EXPORT JSON";
+    }
     console.error("Project save failed:",error);
     return false;
   }
@@ -1527,7 +1532,9 @@ function scheduleSave(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
     const saved=await persistNow();
-    if(!saved)toast("Could not save this project. Export a JSON backup.");
+    if(!saved&&$("saveState").textContent!=="CHANGED IN ANOTHER TAB · RELOAD"){
+      toast("Could not save this project. Export a JSON backup.");
+    }
   },280);
 }
 function toast(message){
