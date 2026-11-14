@@ -105,6 +105,40 @@ test("manifest is explicit, sorted, unique and confined to tests/qa", () => {
   }
 });
 
+test("all-suite execution follows the sorted manifest and records the opt-in browser skip", async () => {
+  const root = makeRoot();
+  try {
+    for (const suite of SUITE_MANIFEST) {
+      for (const entry of suite.files) put(root, entry.path);
+    }
+    const nodeFileCount = SUITE_MANIFEST
+      .filter(suite => suite.kind === "node-test")
+      .reduce((count, suite) => count + suite.files.length, 0);
+    const spawnImpl = stubSpawn(Array.from({ length: nodeFileCount }, () => ({ exitCode: 0 })));
+    const report = await runQASuites({ root, suite: "all", spawnImpl });
+
+    assert.deepEqual(report.selectedSuites, SUITE_MANIFEST.map(suite => suite.name));
+    assert.deepEqual(report.notRunSuites, []);
+    assert.equal(report.exitCode, 0);
+    assert.deepEqual(
+      report.suites.map(suite => suite.name),
+      SUITE_MANIFEST.map(suite => suite.name)
+    );
+    assert.equal(findSuite(report, "browser").status, "skipped");
+    assert.equal(findSuite(report, "browser").files[0].status, "skipped");
+    assert.equal(report.summary.suites.skipped, 1);
+    assert.equal(spawnImpl.calls.length, nodeFileCount);
+    const invokedPaths = spawnImpl.calls.map(call => call.args[1]);
+    const expectedPaths = SUITE_MANIFEST
+      .filter(suite => suite.kind === "node-test")
+      .flatMap(suite => suite.files.map(entry => path.resolve(root, entry.path)));
+    assert.deepEqual(invokedPaths, expectedPaths,
+      "execution order should be deterministic and follow the sorted manifest");
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test("named Node suite selection uses argument arrays and reports unselected suites", async () => {
   const root = makeRoot();
   try {
@@ -192,6 +226,22 @@ test("test failures preserve their child exit code and capture both output strea
     assert.equal(suite.files[1].status, "passed",
       "the remaining files in the selected suite should still run");
     assert.equal(spawnImpl.calls.length, 2);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("a selected suite with no present manifest files is explicitly not-run with code 2", async () => {
+  const root = makeRoot();
+  try {
+    const spawnImpl = stubSpawn([]);
+    const report = await runQASuites({ root, suite: "compatibility", spawnImpl });
+    const suite = findSuite(report, "compatibility");
+    assert.equal(suite.status, "not-run");
+    assert.equal(suite.files[0].status, "not-run");
+    assert.equal(report.summary.suites.notRun, 1);
+    assert.equal(report.exitCode, 2);
+    assert.equal(spawnImpl.calls.length, 0);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
@@ -362,6 +412,33 @@ test("CLI executes a real built-in test run and emits stable machine-readable JS
     assert.equal(suite.files[0].status, "skipped");
     assert.equal(suite.files[1].status, "passed");
     assert.equal(report.exitCode, 0);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("CLI preserves a failing built-in Node test exit code and JSON failure detail", () => {
+  const root = makeRoot();
+  try {
+    const lifecycle = SUITE_MANIFEST.find(suite => suite.name === "lifecycle");
+    const target = lifecycle.files[0].path;
+    put(root, target, [
+      'import test from "node:test";',
+      'test("intentional failing QA fixture", () => { throw new Error("expected fixture failure"); });'
+    ].join("\\n"));
+
+    const script = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../../tools/run-qa.mjs");
+    const result = spawnSync(process.execPath, [
+      script, "--suite", "lifecycle", "--file", target, "--root", root, "--json"
+    ], { encoding: "utf8" });
+
+    assert.notEqual(result.status, 0);
+    const report = JSON.parse(result.stdout);
+    const suite = findSuite(report, "lifecycle");
+    assert.equal(report.exitCode, 1);
+    assert.equal(suite.files[0].status, "failed");
+    assert.equal(suite.files[0].exitCode, 1);
+    assert.match(suite.files[0].stderr + suite.files[0].stdout, /expected fixture failure/);
   } finally {
     fs.rmSync(root, { recursive: true, force: true });
   }
