@@ -84,11 +84,11 @@
       set_color: function (args) {
         return executeOne(Object.assign({ type: "set_color" }, args || {}), args || {});
       },
-      undo: function () {
-        return adapter.undo();
+      undo: function (options) {
+        return adapter.undo(options || {});
       },
-      redo: function () {
-        return adapter.redo();
+      redo: function (options) {
+        return adapter.redo(options || {});
       },
       save: function () {
         return adapter.save();
