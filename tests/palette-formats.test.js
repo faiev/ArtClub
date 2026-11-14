@@ -141,6 +141,38 @@ test("unified parser detects all formats and reports unknown input", () => {
   assert.equal(PaletteFormats.detectFormat(PaletteFormats.exportJASCPAL(samplePalette)), "jasc-pal");
 });
 
+test("palette normalization rejects sparse holes in object and array-shorthand inputs", () => {
+  const sparseColors = ["#000000", , "#FFFFFF"];
+  assert.throws(
+    () => PaletteFormats.normalizePalette({ name: "Sparse object", colors: sparseColors }),
+    /sparse palette arrays are not allowed/
+  );
+  assert.throws(
+    () => PaletteFormats.exportGPL(sparseColors),
+    /sparse palette arrays are not allowed/
+  );
+  assert.throws(
+    () => PaletteFormats.exportJSON(sparseColors),
+    /sparse palette arrays are not allowed/
+  );
+});
+
+test("palette normalization rejects explicit undefined entries in object and array-shorthand inputs", () => {
+  const undefinedColors = ["#000000", undefined, "#FFFFFF"];
+  assert.throws(
+    () => PaletteFormats.normalizePalette({ name: "Undefined object", colors: undefinedColors }),
+    /must not be undefined/
+  );
+  assert.throws(
+    () => PaletteFormats.exportGPL(undefinedColors),
+    /must not be undefined/
+  );
+  assert.throws(
+    () => PaletteFormats.exportJASCPAL(undefinedColors),
+    /must not be undefined/
+  );
+});
+
 test("export validation rejects malformed colors and multiline names", () => {
   assert.throws(() => PaletteFormats.exportGPL({ name: "Bad\nName", colors: ["#000000"] }), /Palette name/);
   assert.throws(() => PaletteFormats.exportJSON({ name: "Bad", colors: ["not-hex"] }), /valid 3- or 6-digit HEX/);
