@@ -89,3 +89,45 @@ The standard workflow currently uses the non-recursive glob `node --test tests/*
 - A benchmark harness without captured samples is not performance evidence.
 - A source test or open PR is not proof that CI executed it.
 - This matrix does not query GitHub Actions. CI state is **unverified** until a reviewer supplies a workflow run URL and confirms it tested the relevant commit.
+
+
+## Production UI integration — UI-01 workstation shell smoke coverage
+
+This section is a **prepared test plan**, not evidence that UI-01 is implemented or has passed. The coordinator owns production `index.html` and UI wiring. Agent 1 will execute these cases against the approved UI-01 PR/head after it exists; until then, all UI-01 rows remain pending.
+
+### Viewports and evidence
+
+| Viewport | Required checks | Evidence to capture |
+|---|---|---|
+| Desktop 1440×900 | Full workstation shell; canvas remains dominant; tool rail, inspector and timeline remain visible and usable | Full-page screenshot plus canvas close-up; browser/viewport metadata |
+| Compact 1280×800 | No clipped or unreachable primary controls; docked regions remain operable; any collapsed panel has a clear reveal path | Full-page screenshot plus focused walkthrough of collapsed/revealed panels |
+
+### User-flow smoke matrix
+
+| ID | User flow | Steps / expected result | Regression guard |
+|---|---|---|---|
+| UI01-01 | Open and orient | Load the editor; identify document/menu bar, tool rail, canvas viewport, inspector and bottom timeline. No decorative control may imply an unavailable feature. | Console/page errors remain empty; no dead or placeholder controls |
+| UI01-02 | Draw and erase | Choose brush, set a color, draw known pixels, then erase a pixel. Canvas pixels match the requested coordinates/colors. | Pixel-exact assertions; canvas overlay/grid never changes document pixels |
+| UI01-03 | Selection | Create a rectangular selection, move/copy/paste or clear it using supported current commands. Visible selection feedback matches the selected bounds. | Selection changes do not leak into unrelated cels; undo/redo restores exact source pixels |
+| UI01-04 | Layer workflow | Add/select/rename/reorder a layer; toggle visibility and lock; draw to the selected layer. | Active layer indicator and rendered composite agree; locked/hidden target behavior remains non-mutating |
+| UI01-05 | Timeline/frame workflow | Add/select/duplicate/delete frames using supported existing controls; draw a distinct pixel on two frames. | Correct active frame/cel is edited; switching frames does not display or save another frame's pixels |
+| UI01-06 | Playback | Play and stop a multi-frame sequence. Frame order/timing follows the existing timeline state. | Playback does not alter saved cels or active project data |
+| UI01-07 | Save/reload/recovery | Rename project; wait for saved state; reload; verify name and exact pixels. Make a subsequent edit and exercise Project Library recovery where supported. | Autosave does not report success before persistence; recovery rotates only on meaningful content changes |
+| UI01-08 | Import | Import a valid image/project using the existing production flow and its existing preview/confirmation steps. | Cancel/failure leaves source project unchanged; accepted import targets the intended project/frame/layer |
+| UI01-09 | Export | Export currently supported PNG/SVG/project formats, and GIF if its download UI is wired in the integration PR. | Independently inspect output type, dimensions and pixels; export must not mutate project state |
+| UI01-10 | Keyboard/focus | Navigate toolbar and panels with keyboard; activate supported shortcuts; observe a visible focus indicator. | No keyboard regression or focus trap; canvas/document labels remain accessible |
+| UI01-11 | Compact layout | Repeat drawing, layer selection, frame selection and save on 1280×800. Reveal/collapse any docked panel and reach all essential controls. | No off-screen critical action; pointer coordinates still map to intended logical pixels |
+| UI01-12 | Failure/denial states | Trigger only supported validation/denial cases (e.g. invalid import, locked edit target). | Clear error/denial feedback; source pixels, project JSON and recovery state remain byte-for-byte unchanged |
+
+### Execution record template
+
+Record for each UI-01 candidate head:
+- PR URL and exact tested commit SHA
+- browser/version, OS and viewport/DPR
+- passed/failed/blocked IDs from UI01-01…UI01-12
+- page errors and console errors
+- screenshot/evidence artifact locations
+- Node/editor E2E, relevant specialist tests and exact run URLs
+- regression details, reproduction steps and whether source project bytes/pixels remained unchanged
+
+Do not mark UI-01 accepted from screenshots alone. The smoke matrix passes only when task flows work against the real editor, with pixel/state assertions and no critical console/page errors. A successful merge is not proof of publication; inspect GitHub Pages after the coordinator confirms deployment.
