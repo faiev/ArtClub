@@ -73,6 +73,11 @@ Restart or reload the MCP client after adding the server. The server should expo
 | `artclub_list_projects` / `artclub_open_project` | Switch local projects |
 | `artclub_export_project` / `artclub_import_project` | Transfer editable project JSON |
 | `artclub_export_png` | Return a PNG preview image |
+| `artclub_list_layers` | Read the layer stack and active layer |
+| `artclub_add_layer` / `artclub_select_layer` | Create and select layers |
+| `artclub_set_layer_visibility` / `artclub_set_layer_locked` | Show/hide and protect layers |
+| `artclub_rename_layer` / `artclub_move_layer` | Rename and reorder layers |
+| `artclub_duplicate_layer` / `artclub_delete_layer` | Duplicate or remove layers |
 
 ## Drawing coordinates
 
@@ -106,7 +111,7 @@ For safe collaborative work, call `artclub_get_status` before editing and pass i
 5. Correct the result with another batch.
 6. Save and export the editable project when finished.
 
-Keep batches small enough to inspect. The current UI still exposes one editable layer and one frame; the project data model is prepared for more, but layer and animation editing are not yet exposed.
+Keep batches small enough to inspect. The editor exposes multiple editable layers (including visibility and lock controls); animation editing remains a later milestone. Agents can manage the same layer stack through MCP tools.
 
 ## Privacy and permissions
 
