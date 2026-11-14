@@ -147,6 +147,42 @@ The command exits nonzero when the input cannot be read/parsed or when `schema.v
 
 An oversized file is rejected before parsing and returns a structured report with `schema.checked: false`, `schema.valid: null`, and a `DOCUMENT_BYTE_LIMIT` diagnostic. Unsupported versions and malformed structures that can still be parsed return both the model's schema errors and independent supplemental findings.
 
+## Deterministic migration preview
+
+Run `--migration-preview` for a legacy single-canvas source file:
+
+    node tools/project-inspector.mjs --migration-preview old-project.json
+
+Use `--json` to receive the full normalized v2 preview payload:
+
+    node tools/project-inspector.mjs --json --migration-preview old-project.json
+
+The command is a preview only. It calls the existing `Project.deserializeProject()` / legacy migration logic and `Project.validateProject()`, then presents the resulting v2 representation together with a structured migration report. It never writes the normalized representation to disk and never edits the source.
+
+The report contains:
+
+- `source.file`, `source.byteCount`, and `source.sha256`: path, exact original byte count and SHA-256 calculated from source bytes (including a UTF-8 BOM, if present).
+- `source.format` and `source.version`: original legacy format/version.
+- `migration.fromVersion` / `migration.toVersion`.
+- `migration.transformedFields`: source-to-target mappings for width/height, name, selected palette index, pixel data and version upgrade.
+- `migration.preservedFields`: values copied without reordering, including palette order.
+- `migration.generatedFields`: v2 fields supplied by the project model or represented by preview-only values.
+- `migration.discardedFields`: legacy-only markers not retained in the v2 project.
+- `migration.warnings`: defaults applied by the model and preview-only metadata policy.
+- `normalizedPreview`: the full normalized project object, with deterministic placeholders for fields that the legacy source never contained.
+- `normalizedJsonBytes`: compact JSON byte length of the normalized preview.
+
+The project model normally creates IDs and timestamps during legacy migration. To keep previews deterministic, this command replaces those generated values in the *preview object only*:
+- Project/layer/frame IDs use stable placeholders derived from the SHA-256 of the source bytes.
+- Metadata timestamps use the fixed epoch marker `1970-01-01T00:00:00.000Z`.
+- The report explicitly marks these IDs/timestamps as preview-only and not source identities or source timestamps. Do not persist these placeholders as though they were part of the original legacy file.
+
+Legacy `projectName` and `selected` defaulting are surfaced in `transformedFields` and `warnings`; the actual model's migration result remains authoritative. A legacy source with invalid dimensions, palette or pixel data is rejected; the preview does not repair missing values.
+
+Migration preview accepts legacy single-canvas inputs only. A v2 source returns `NOT_LEGACY_PROJECT` rather than pretending to perform a migration. Malformed and oversized inputs return structured errors. Input files larger than 64 MiB are rejected before parsing; the rejected-input report includes the measured file size, but cannot include a source hash because the file was not read. A 16 MiB normalized-preview JSON cap prevents excessively large output payloads.
+
+The command returns a nonzero exit code for unreadable, malformed, unsupported or invalid legacy input. Successful preview returns zero even when the report contains explanatory warnings. The source is always left unchanged.
+
 ## Validation and safety
 
 - Validation and migration rules come from `Project.deserializeProject()` and `Project.validateProject()` in `js/project-model.js`.
