@@ -1,7 +1,7 @@
 # Status — Agent 3
 
 - **Task:** AC-011 — Implement standalone animated GIF export
-- **Status:** REVIEW
+- **Status:** IN_PROGRESS — addressing coordinator-directed PR #11 corrections
 - **Branch:** `agent/gif-export`
 - **Base commit:** `fe66725f7d010beca7ca60f497778d419e753d7b`
 - **Latest code commit:** `b4f552f38e3a4557e10d61401af9420843227aae`
@@ -43,3 +43,11 @@ Reviewed PR https://github.com/faiev/ArtClub/pull/6 at head `77d425c9d2d01c56f77
 
 - **Review disposition:** Recommend addressing findings 1 and 2 before integration. Findings 3 and 4 need an explicit, tested frame/onion invalidation contract before animation use. Finding 5 is lower priority but should be documented/tested. This is a review report only, not a code change or merge recommendation.
 - **Last updated:** 2026-11-14 — verified PR #11 and completed read-only review of PR #6.
+
+
+## Coordinator-directed PR #11 corrections
+
+- Coordinator comment requires: (1) replace midpoint-only 5-bit bucket mapping with nearest-palette lookup for the actual source RGB and add Agent 2's deterministic pixel-58 regression; (2) extend Chromium decoding checks to assert dimensions and every RGBA pixel for every frame, including transparent/disposal overlap; (3) reduce peak memory or lower/document the practical export budget and add a stress test.
+- Authorized scope: revise only `agent/gif-export` owned GIF exporter files/tests/docs and the existing GIF browser CI test step. Keep UI/API/MCP integration deferred; do not touch Agent 2 files or PR #3.
+- Starting handoff head: `b4f552f38e3a4557e10d61401af9420843227aae` (6 commits ahead, 0 behind `main`).
+- Latest pre-correction workflow: Node test job passed; GIF browser verification passed; overall workflow failed at the separate pre-existing editor persistence E2E assertion (`agent-bridge/e2e-test.mjs:229`), with MCP skipped.
