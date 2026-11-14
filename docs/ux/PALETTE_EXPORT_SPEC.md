@@ -583,3 +583,18 @@ AC-051 is ready for coordinator review when:
 - Agent 8 palette tools and Agent 3 export planner/encoders are cited as dependencies, not falsely described as integrated.
 - The acceptance-test matrix includes format, error, budget, browser, accessibility and no-mutation coverage.
 - Only this UX specification is delivered; no production UI or module implementation is claimed.
+
+
+## Post UI-01 / module-source recheck — 2026-11-15
+
+The current production `index.html` is blob `4645281c1aad8580529e7feb99cd299a88543913`. UI-01 moved the existing palette and export controls into the workstation inspector/stage but did not add file-based palette workflows or animation-export controls.
+
+- Production palette controls remain preset/custom HEX selection and swatch actions. There is no live GPL/JASC-PAL/JSON file import preview, duplicate-resolution dialog, palette export dialog or persisted color-name metadata.
+- Palette format parsing is now available through merged PR #16 (AC-017), but this is an isolated parser/serializer contract. Palette analysis/transformation/mapping work is still in open PRs #27, #33, #39, #45, #53 and #56; the workflow/integration contract is PR #60. None should be described as production UI integration.
+- The current project palette remains HEX-only. Previewed GPL names and JSON metadata are not persisted by the v2 model without a separate schema/versioning decision.
+- Production still exposes PNG 1×/scaled PNG, SVG and Project JSON export, plus project JSON and image import. GIF encoding is available as a merged isolated module through PR #11, but there is no production GIF, sprite-sheet or export-preflight dialog yet.
+- Sprite-sheet/async export contracts remain in the dependent PR chain: #3 → #21 → #55 → #74. PR #22 is a separate export planner. Preserve parent ordering and do not wire a UI to an unaccepted stacked branch.
+- Before a future import/apply flow, run complete parser validation and show file format, source order, duplicate rows, parse diagnostics and metadata/name loss before any mutation. Cancel/failure must leave palette, artwork pixels, history and persistence unchanged.
+- Before a future animation-export flow, use the accepted planner/encoder contracts. Disclose GIF 10 ms timing granularity, binary transparency, possible quantization and output limits before allocation; do not display progress/cancel affordances unless the current async path supports them.
+
+This is a documentation/source-state update only. No production UI, parser, encoder or browser download workflow is claimed as shipped by this specification.
