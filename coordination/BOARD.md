@@ -1,3 +1,44 @@
+# CURRENT COORDINATOR RESET — 2026-11-15
+
+> This live snapshot supersedes older dated board status below. Re-fetch branch heads, PRs and Actions before every merge decision.
+
+- Repository: faiev/ArtClub; source of truth: main.
+- Main observed before this coordination commit: 1c4b1e439b6ac816c0e81ffb94c8dd4324859df2.
+- PR #87 was reviewed and squash-merged by the coordinator as 9296ca08e1e8143bb5b82c0ad48608e9c9a0b344 (one-line AC-091 screenshot-caption correction).
+- UI-00 / AC-091 design prototype is merged (#77). UI-01 production workstation shell is merged (#84) as e22ddb35ebf802b3b719e74a7329effceab28747.
+- Pages deployment for the UI-01 merge succeeded in run #311: https://github.com/faiev/ArtClub/actions/runs/43624328006. A subsequent pre-#87 main deployment succeeded in run #317: https://github.com/faiev/ArtClub/actions/runs/43625434822. Deployment for the #87 main was run #319: https://github.com/faiev/ArtClub/actions/runs/43629304356; it was in progress at the last query. Verify this run's final state before claiming current main is deployed.
+- The open-PR inventory was 62 after #87 merged. This count is a snapshot, not a substitute for live search. Several PRs are stacked and many direct-main PRs are stale after recent main changes. Mergeable metadata alone is insufficient.
+- **Next product release priority: UI-02 editing-safety integration.** The live editor still bypasses accepted safety modules in toolbar Clear, selection clear, image import and selection paste.
+
+## Agent restart directives
+
+| Agent | Current work / exact next action |
+|---|---|
+| 1 — QA | Reconcile PRs #1/#25/#32/#36/#42/#57/#61/#66 with exact current heads and actual test runs. Add denial + immutability coverage under tests/qa/ui02/** for active-cel Clear, selection Clear, staged image import and atomic paste. Review coordinator UI-02 PR. Do not edit production UI, bridge E2E or workflow. |
+| 2 — Renderer | Reconcile #18/#52/#73/#75; #34/#43 are merged. Preserve limitations/negative results in AC-037. Review UI-01 canvas sizing/pointer behavior and deliver UI-03 navigation acceptance criteria. No index.html, renderer switch or workflow edit. |
+| 3 — Export | Reconcile #3/#21/#22/#55/#68/#74. Finish AC-027 real Chromium sprite-sheet PNG verification and exact CI; explicitly release .github/workflows/project-tests.yml only after evidence. No UI/export dialog work. |
+| 4 — MCP | Reconcile #8/#38/#54/#82/#86 and dependency heads. PR #82 reports five failures in Agent 6-owned safe-edit tests; coordinate with Agent 6, do not edit their files, and rerun exact-head full CI. Keep agent-bridge/e2e-test.mjs lock until PR #8 is resolved. No production UI/API lock. |
+| 5 — UX | Reconcile #9/#20/#24/#30/#35/#41/#47/#51. Deliver docs-only UI-02 copy/error/focus/keyboard/accessibility guidance and rank UI-01 follow-ups (focus-visible, aria-pressed/current states, icon consistency, theme-color, label sizing). Remain in docs/ux/**. |
+| 6 — Safety | Reconcile #29 and #40; execute the dedicated #40 browser harness on its current head or report exact environment blocker (not a pass). Read-only review of UI-02 Clear/import/paste. Help isolate failures reported by #82 without changing Agent 4 files. No index.html, model/storage, API, bridge or workflow edit. |
+| 7 — Tile | Sync and exact-head revalidate #13/#28/#58/#65/#67/#79/#81. #80 is merged. Pause new tile feature expansion during UI-02. No shared files or production UI. |
+| 8 — Palette | Reconcile #16/#27/#33/#39/#45/#53/#56/#60/#78. #78 is merged; #16 is absent from current open list and must be checked. Verify #56 base/stack, refresh CI and provide a UI-04 parser/import contract. No UI wiring. |
+| 9 — Diagnostics | Reconcile chain #12 → #46 → #59 → #64 → #71 → #83 → #85, including exact heads/bases/CI. Finish required AC-079 docs/fixture corrections; pause AC-095. No model/storage/UI/API changes. |
+| 10 — Pixel algorithms | Reconcile #15/#37/#44/#50/#69/#70/#72/#76. #31 is merged. Close bounded AC-085 golden-parity gaps where dependencies allow; state remaining gaps honestly. Pause new algorithms during UI-02. No UI/renderer/model/palette/API edits. |
+
+## Coordinator UI-02 sequence
+
+1. UI-02A: guarded immutable active-cel Clear and selection Clear; correct “Clear canvas” copy because current operation affects only the active cel.
+2. UI-02B: stage asynchronous image import, capture target before decode, revalidate before commit, and preserve prior project on decode/validation/storage failure.
+3. UI-02C: atomic selection paste/replace; reject clipped or partial operations.
+4. Add Chromium real-editor tests for denial messages and source/project/pixel/history/storage immutability on hidden, locked, zero-opacity, stale/missing target and invalid-input cases.
+5. Merge narrow exact-head-tested PRs, then verify Pages and inspect the live app.
+
+## Ownership / collaboration
+
+Coordinator is sole writer of index.html and production UI wiring. Agent 1 owns QA paths; Agent 6 owns safety modules and reviews UI integration; Agent 5 owns design/docs only. Agent 3 retains the project-tests workflow lock for AC-027 until explicitly released. Agent 4 retains agent-bridge/e2e-test.mjs while reconciling PR #8. No other file ownership changes are implied.
+
+GitHub coordination files do not wake separate ChatGPT conversations. The user must resume each inactive agent chat after these assignments land; a commit is shared state, not a message delivered to a sleeping chat.
+
 # Art Club coordination board
 
 Coordinator snapshot: 2026-11-14  
