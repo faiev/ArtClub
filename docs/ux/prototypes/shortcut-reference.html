@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shortcut Reference Prototype — One Pixel Studio</title>
+<style>
+:root{--paper:#f2f0e9;--ink:#202c30;--muted:#697571;--line:#d8ddd5;--panel:#fffefa;--lime:#d8f06f;--coral:#e97960;--blue:#426b84;--soft:#eef1e8;--shadow:0 12px 34px rgba(32,44,48,.07);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink)}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);min-height:100vh}button,input{font:inherit}button{cursor:pointer}
+:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+.shell{max-width:1120px;margin:auto;padding:24px 28px 40px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding-bottom:18px;border-bottom:1px solid var(--line);gap:16px}
+.brand{display:flex;align-items:center;gap:11px;font-size:12px;font-weight:850;letter-spacing:.16em;text-transform:uppercase}
+.mark{width:30px;height:30px;background:var(--ink);border-radius:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:3px;padding:6px}
+.mark i{background:var(--lime);border-radius:1px}.mark i:nth-child(2),.mark i:nth-child(4),.mark i:nth-child(8){opacity:.25}
+.proof{font:700 9px ui-monospace,monospace;letter-spacing:.12em;color:#6c5a4c;background:#f4e9dc;border:1px solid #e6d6c5;padding:7px 10px;border-radius:99px}
+.intro{display:flex;justify-content:space-between;align-items:end;gap:24px;padding:28px 0 20px}
+.kicker{font:700 10px ui-monospace,monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+h1{font-size:clamp(30px,5vw,46px);line-height:1;letter-spacing:-.06em;margin:8px 0}
+.intro p{max-width:620px;color:var(--muted);font-size:13px;line-height:1.6;margin:0}
+.platform{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.platform span{padding:7px 9px;border:1px solid var(--line);background:var(--panel);border-radius:6px;font:10px ui-monospace,monospace}
+.controls{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:center;padding:13px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.search{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:0 12px;min-height:42px}
+.search span{color:var(--muted)}.search input{border:0;outline:0;background:transparent;width:100%;color:var(--ink);font-size:13px}
+.filters{display:flex;gap:5px;flex-wrap:wrap}.filters button{border:1px solid var(--line);background:var(--panel);border-radius:6px;padding:8px 10px;color:var(--muted);font-size:10px}
+.filters button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.layout{display:grid;grid-template-columns:205px minmax(0,1fr);gap:18px;margin-top:20px}
+nav{position:sticky;top:18px;align-self:start;border-left:2px solid #d0d7ca;padding-left:13px;display:grid;gap:7px}
+nav a{color:var(--muted);font-size:12px;text-decoration:none;padding:6px 0}
+nav a:focus-visible,nav a:hover{color:var(--ink);text-decoration:underline}
+.group{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:17px 18px;margin-bottom:12px;box-shadow:var(--shadow)}
+.group-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;border-bottom:1px solid #e8ebe4;padding-bottom:11px;margin-bottom:4px}
+h2{font-size:14px;letter-spacing:-.02em;margin:0}
+.group-head small{font:10px ui-monospace,monospace;color:var(--muted)}
+.command{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #eef0eb}
+.command:last-child{border-bottom:0}
+.name{font-size:12px;font-weight:720}.context{display:block;color:var(--muted);font-size:10px;margin-top:3px;line-height:1.4}
+.keys{display:flex;gap:4px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+kbd{min-width:25px;text-align:center;padding:5px 7px;background:#f1f2ec;border:1px solid #dce1d8;border-bottom-width:2px;border-radius:5px;font:11px ui-monospace,monospace;color:#26343a}
+.or{font:9px ui-monospace,monospace;color:#8a938c}
+.note{margin-top:18px;padding:13px 15px;border-left:3px solid var(--coral);background:#f8eee8;color:#5d514b;font-size:11px;line-height:1.6}
+footer{padding-top:18px;color:var(--muted);font:10px ui-monospace,monospace;letter-spacing:.04em}
+@media(max-width:760px){.shell{padding:16px}.intro{display:block}.platform{justify-content:flex-start;margin-top:14px}.controls{grid-template-columns:1fr}.layout{grid-template-columns:1fr}nav{position:static;display:flex;flex-wrap:wrap;border-left:0;border-bottom:1px solid var(--line);padding:0 0 9px}.command{grid-template-columns:1fr}.keys{justify-content:flex-start}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+  <div class="brand"><span class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span>ONE PIXEL <span style="font-weight:450;color:var(--muted)">/ Studio</span></div>
+  <span class="proof">STATIC PROTOTYPE · NOT PRODUCTION</span>
+</header>
+<main>
+  <section class="intro" aria-labelledby="page-title">
+    <div><div class="kicker">Reference / 01</div><h1 id="page-title">Keyboard shortcuts</h1><p>Keep the hands close to the grid. This reference groups commands by task and names the context in which each shortcut works. Shortcuts are optional accelerators; every command remains available through visible controls.</p></div>
+    <div class="platform" aria-label="Platform modifier convention"><span>Windows · Ctrl</span><span>Linux · Ctrl</span><span>macOS · ⌘ Command</span></div>
+  </section>
+  <div class="controls">
+    <label class="search"><span aria-hidden="true">⌕</span><input type="search" aria-label="Search commands (visual prototype only)" placeholder="Search commands…"><span class="or">/</span></label>
+    <div class="filters" aria-label="Command categories">
+      <button type="button" aria-pressed="true">All</button><button type="button" aria-pressed="false">Tools</button><button type="button" aria-pressed="false">Editing</button><button type="button" aria-pressed="false">Canvas</button><button type="button" aria-pressed="false">Timeline</button>
+    </div>
+  </div>
+  <div class="layout">
+    <nav aria-label="Shortcut sections">
+      <a href="#tools">Tools</a><a href="#editing">Editing &amp; selection</a><a href="#canvas">Canvas navigation</a><a href="#timeline">Timeline</a><a href="#focus">Focus and context</a>
+    </nav>
+    <div>
+      <section class="group" id="tools" aria-labelledby="tools-title">
+        <div class="group-head"><h2 id="tools-title">01 / Tools</h2><small>EDITOR OR CANVAS FOCUS</small></div>
+        <div class="command"><div><span class="name">Brush</span><span class="context">Select the brush tool.</span></div><div class="keys"><kbd>B</kbd></div></div>
+        <div class="command"><div><span class="name">Eraser</span><span class="context">Select the eraser tool.</span></div><div class="keys"><kbd>E</kbd></div></div>
+        <div class="command"><div><span class="name">Fill</span><span class="context">Select flood fill.</span></div><div class="keys"><kbd>G</kbd></div></div>
+        <div class="command"><div><span class="name">Eyedropper</span><span class="context">Select a color from the artwork.</span></div><div class="keys"><kbd>I</kbd></div></div>
+        <div class="command"><div><span class="name">Selection</span><span class="context">Select a rectangular area.</span></div><div class="keys"><kbd>M</kbd></div></div>
+      </section>
+      <section class="group" id="editing" aria-labelledby="editing-title">
+        <div class="group-head"><h2 id="editing-title">02 / Editing and selection</h2><small>CANVAS / EDITOR FOCUS</small></div>
+        <div class="command"><div><span class="name">Undo</span><span class="context">Does not run while a text field or editable control owns focus.</span></div><div class="keys"><kbd>Ctrl</kbd><span class="or">/</span><kbd>⌘</kbd><kbd>Z</kbd></div></div>
+        <div class="command"><div><span class="name">Redo</span><span class="context">One step forward in project history.</span></div><div class="keys"><kbd>Ctrl</kbd><span class="or">/</span><kbd>⌘</kbd><kbd>Shift</kbd><kbd>Z</kbd></div></div>
+        <div class="command"><div><span class="name">Select all pixels</span><span class="context">Native text Select All takes precedence in editable fields.</span></div><div class="keys"><kbd>Ctrl</kbd><span class="or">/</span><kbd>⌘</kbd><kbd>A</kbd></div></div>
+        <div class="command"><div><span class="name">Copy / Cut / Paste</span><span class="context">Uses the app selection clipboard only when the canvas owns focus.</span></div><div class="keys"><kbd>Ctrl</kbd><span class="or">/</span><kbd>⌘</kbd><kbd>C</kbd><span class="or">·</span><kbd>X</kbd><span class="or">·</span><kbd>V</kbd></div></div>
+        <div class="command"><div><span class="name">Clear selection</span><span class="context">Available only when a selection exists.</span></div><div class="keys"><kbd>Delete</kbd><span class="or">/</span><kbd>Backspace</kbd></div></div>
+      </section>
+      <section class="group" id="canvas" aria-labelledby="canvas-title">
+        <div class="group-head"><h2 id="canvas-title">03 / Canvas navigation</h2><small>EDITOR OR CANVAS FOCUS</small></div>
+        <div class="command"><div><span class="name">Zoom out / in</span><span class="context">Changes the editor view only; artwork pixels are not resampled.</span></div><div class="keys"><kbd>[</kbd><span class="or">·</span><kbd>]</kbd></div></div>
+        <div class="command"><div><span class="name">Reset zoom</span><span class="context">Returns to the defined Fit or Actual-size action, as labelled by the final UI.</span></div><div class="keys"><kbd>0</kbd></div></div>
+        <div class="command"><div><span class="name">Move pixel focus</span><span class="context">When a pixel cell owns focus, move by one logical pixel.</span></div><div class="keys"><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd></div></div>
+        <div class="command"><div><span class="name">Activate focused pixel</span><span class="context">Applies the selected tool once at the focused pixel.</span></div><div class="keys"><kbd>Space</kbd><span class="or">/</span><kbd>Enter</kbd></div></div>
+      </section>
+      <section class="group" id="timeline" aria-labelledby="timeline-title">
+        <div class="group-head"><h2 id="timeline-title">04 / Timeline</h2><small>WHEN TIMELINE OWNS FOCUS</small></div>
+        <div class="command"><div><span class="name">Previous / next frame</span><span class="context">Moves the focused frame in the timeline.</span></div><div class="keys"><kbd>←</kbd><span class="or">/</span><kbd>→</kbd></div></div>
+        <div class="command"><div><span class="name">First / last frame</span><span class="context">Moves to the first or final frame.</span></div><div class="keys"><kbd>Home</kbd><span class="or">/</span><kbd>End</kbd></div></div>
+        <div class="command"><div><span class="name">Play / pause</span><span class="context">Only while the timeline region owns focus.</span></div><div class="keys"><kbd>Space</kbd></div></div>
+        <div class="command"><div><span class="name">Stop preview</span><span class="context">Returns the displayed frame to the editing frame.</span></div><div class="keys"><kbd>Shift</kbd><kbd>Space</kbd></div></div>
+      </section>
+      <section class="group" id="focus" aria-labelledby="focus-title">
+        <div class="group-head"><h2 id="focus-title">05 / Focus rules</h2><small>ALWAYS ACTIVE</small></div>
+        <p style="font-size:12px;line-height:1.7;color:var(--muted);margin:7px 0">Text inputs, editable content and dialogs keep their native keyboard behavior. Browser and operating-system shortcuts are never claimed by the editor. Press Escape to close the topmost dialog/menu or cancel the current transient interaction; it must not also change tools as a side effect.</p>
+        <div class="note"><strong>Static prototype notice.</strong> Search and category controls are visual examples only. This page does not install a shortcut handler or invoke editor commands.</div>
+      </section>
+    </div>
+  </div>
+</main>
+<footer>ONE PIXEL STUDIO · COMMAND REFERENCE PATTERN · NON-PRODUCTION</footer>
+</div>
+</body>
+</html>
