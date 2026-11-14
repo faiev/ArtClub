@@ -18,7 +18,7 @@ The goal is to eliminate repeated one-off prompts, hidden handoffs, duplicate wo
 | `assignments/agent-N.md` | Coordinator only | The current assignment and next task for one worker |
 | `status/agent-N.md` | That worker only | Its latest status, evidence, blockers and handoff |
 
-The application source remains in the normal source tree. Worker code must be committed to that worker's feature branch and submitted as a pull request. Coordination status is metadata and should be committed to `main` in the worker's own status file so the other chats can read it immediately.
+The application source remains in the normal source tree. Worker code must be committed to that worker's feature branch and submitted as a pull request. Coordination status is metadata: during bootstrap, update only your own status file on `coordination/orchestration-v1`; after PR #5 merges, update only your own status file on `main` so the other chats can read it.
 
 ## Bootstrap mode (while the coordination PR is still open)
 
@@ -42,15 +42,15 @@ At the beginning of **every** new work session, and after completing any task:
 1. Fetch the latest versions of `coordination/BOARD.md`, your `assignments/agent-N.md`, your own `status/agent-N.md`, `coordination/DECISIONS.md`, and any task documents linked by your assignment. During bootstrap, use ref `coordination/orchestration-v1`; after PR #5 merges, use the default branch `main`.
 2. Read the other agents' status files when your task depends on their work or touches a shared interface.
 3. Confirm the task ID, acceptance criteria, dependencies, allowed files, and current main commit. Do not rely on an old chat prompt if the repository has newer instructions.
-4. Before coding, update only your own status file to `IN_PROGRESS`, recording task ID, branch, base commit, and planned file scope. Commit that status update to `main` if the GitHub connection permits it.
+4. Before coding, update only your own status file to `IN_PROGRESS`, recording task ID, branch, base commit, and planned file scope. During bootstrap, commit that status update to `coordination/orchestration-v1`; after PR #5 merges, commit it to `main`.
 5. Work only on your assigned feature branch. Never commit application code directly to `main`.
 6. Before touching a file, check the file-ownership table in BOARD.md. Do not edit a file currently reserved by another agent. If a dependency or conflict appears, report it and stop the conflicting part.
 7. Run the tests required by the assignment. Report exact commands and results; distinguish tests run locally from CI results.
 8. Commit code to your feature branch. Open or update a draft PR. Do not merge it.
-9. Update only your own status file on `main` to `REVIEW`, `BLOCKED`, or `DONE`. Include PR URL, branch, commit SHA, changed files, test results, known risks, and the exact next handoff.
+9. Update only your own status file on the active coordination source (the bootstrap branch before PR #5 merges, or `main` afterward) to `REVIEW`, `BLOCKED`, or `DONE`. Include PR URL, branch, commit SHA, changed files, test results, known risks, and the exact next handoff.
 10. Do not pick a new task from the backlog yourself. The coordinator assigns work in your assignment file, avoiding two agents claiming the same task.
 
-If you cannot update your status file on `main`, include the complete status update in your chat response and explicitly say it was **not** written to the shared board. Do not claim other agents can see an update that is only in your private chat or unmerged branch.
+If you cannot update your status file on the active coordination source, include the complete status update in your chat response and explicitly say it was **not** written to the shared board. Do not claim other agents can see an update that is only in your private chat or unmerged branch.
 
 ## Task states
 
@@ -84,7 +84,7 @@ Replace `<your-agent-file>` with your own agent number, for example `agent-3.md`
 1. Read all five status files and open PRs.
 2. Review evidence and CI, not just worker claims.
 3. Update the board with accepted state and any new decisions.
-4. Assign the next unblocked task in the relevant assignment file.
+4. Assign the next unblocked task in the relevant assignment file. During bootstrap, make coordinator-owned assignment/board changes on `coordination/orchestration-v1`; after PR #5 merges, make them on `main`.
 5. Send that worker the resume prompt. The worker fetches the new assignment from GitHub.
 6. Merge only after review and required CI checks pass.
 
