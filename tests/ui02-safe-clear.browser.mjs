@@ -126,6 +126,48 @@ async function run() {
     assert.deepEqual(pageErrors, [], "safe Clear interactions must not produce page errors");
     await context.close();
 
+    // A pending autosave must finish before the safe-edit transaction writes.
+    // Delaying both saves makes an overlap observable rather than timing-dependent.
+    const raceContext = await browser.newContext();
+    const racePage = await raceContext.newPage();
+    racePage.on("dialog", async dialog => {
+      if (dialog.type() === "confirm") await dialog.accept();
+      else await dialog.dismiss();
+    });
+    await racePage.goto(url, { waitUntil: "domcontentloaded" });
+    await racePage.waitForFunction(() => Boolean(window.onePixelStudio && window.ArtClubStorage), null, { timeout: 30000 });
+    await racePage.evaluate(() => {
+      const original = window.ArtClubStorage.prototype.saveProject;
+      const probe = window.__safeClearSaveProbe = { active: 0, maxActive: 0, snapshots: [] };
+      window.ArtClubStorage.prototype.saveProject = async function (project) {
+        probe.active += 1;
+        probe.maxActive = Math.max(probe.maxActive, probe.active);
+        const snapshot = JSON.parse(JSON.stringify(project));
+        try {
+          await new Promise(resolve => setTimeout(resolve, 400));
+          probe.snapshots.push(snapshot);
+          return await original.call(this, project);
+        } finally {
+          probe.active -= 1;
+        }
+      };
+      window.onePixelStudio.draw_pixel({ x: 0, y: 0, color: "#ff0000" });
+    });
+    await racePage.waitForFunction(() => window.__safeClearSaveProbe.active === 1, null, { timeout: 5000 });
+    await racePage.locator("#clearBtn").click();
+    await racePage.waitForFunction(() => window.onePixelStudio.get_pixel({ x: 0, y: 0 }).color === null, null, { timeout: 10000 });
+    await racePage.waitForFunction(() => window.__safeClearSaveProbe.snapshots.length >= 2 && window.__safeClearSaveProbe.active === 0, null, { timeout: 10000 });
+    const saveProbe = await racePage.evaluate(() => {
+      const probe = window.__safeClearSaveProbe;
+      const finalProject = probe.snapshots[probe.snapshots.length - 1];
+      const cel = finalProject.cels.find(item =>
+        item.layerId === finalProject.activeLayerId && item.frameId === finalProject.activeFrameId);
+      return { maxActive: probe.maxActive, saves: probe.snapshots.length, finalPixel: cel && cel.pixels[0] };
+    });
+    assert.equal(saveProbe.maxActive, 1, "autosave and safe Clear persistence must never overlap");
+    assert.equal(saveProbe.finalPixel, null, "the last persisted project must match the cleared editor state");
+    await raceContext.close();
+
     // With neither IndexedDB nor localStorage persistence available, the safe
     // transaction must refuse to publish the cleared pixels.
     const blockedContext = await browser.newContext();
