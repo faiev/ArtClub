@@ -388,6 +388,17 @@ async function main() {
 
   registerTool(
     server,
+    "artclub_transform_selection",
+    'Transform the selected active-layer pixels. operation is "flip_h", "flip_v", "rotate_cw" or "rotate_ccw". A 90-degree rotation swaps selection width and height; the result must fit inside the canvas.',
+    z.object({
+      operation: z.enum(["flip_h", "flip_v", "rotate_cw", "rotate_ccw"]),
+      expected_revision: revision
+    }),
+    async args => textResult(await invoke("transform_selection", compactArgs(args)))
+  );
+
+  registerTool(
+    server,
     "artclub_undo",
     "Undo one editing transaction.",
     z.object({}),
