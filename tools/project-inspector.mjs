@@ -2,11 +2,13 @@
 "use strict";
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
 const Project = require("../js/project-model.js");
 const MAX_FILE_BYTES = 64 * 1024 * 1024;
+const MAX_MIGRATION_PREVIEW_BYTES = 16 * 1024 * 1024;
 const READ_BUFFER_BYTES = 64 * 1024;
 const MAX_BATCH_FILES = 500;
 const MAX_BATCH_TOTAL_BYTES = 32 * 1024 * 1024;
@@ -29,6 +31,7 @@ function usage() {
     "  node tools/project-inspector.mjs --batch [--recursive] [--json] <file-or-directory>...",
     "  node tools/project-inspector.mjs --compare [--json] <left-project> <right-project>",
     "  node tools/project-inspector.mjs --diagnostics [--json] <project-file>",
+    "  node tools/project-inspector.mjs --migration-preview [--json] <legacy-project>",
     "",
     "Inspect One Pixel Studio projects without modifying them.",
     "",
@@ -38,6 +41,7 @@ function usage() {
     "  --recursive   Recurse into child directories (requires --batch).",
     "  --compare     Compare two projects without modifying either file.",
     "  --diagnostics Run supplemental deep diagnostics and risk scoring.",
+    "  --migration-preview Show a deterministic, read-only legacy-to-v2 preview.",
     "  --help        Show this help message.",
     "",
     "Single-file and batch inspection accept v2 documents and legacy single-canvas documents.",
@@ -55,6 +59,7 @@ function parseArguments(argv) {
     compare: false,
     comparePaths: [],
     diagnostics: false,
+    migrationPreview: false,
     filePath: null,
     inputPaths: [],
     error: null
@@ -64,8 +69,16 @@ function parseArguments(argv) {
     if (!positionalOnly && argument === "--") { positionalOnly = true; continue; }
     if (!positionalOnly && argument === "--json") { result.json = true; continue; }
     if (!positionalOnly && argument === "--help") { result.help = true; continue; }
+    if (!positionalOnly && argument === "--migration-preview") {
+      if (result.batch || result.compare || result.diagnostics || result.filePath !== null) {
+        result.error = inspectorError("INVALID_ARGUMENT", "--migration-preview cannot be combined with batch, compare, diagnostics or prior file input.", 2);
+        return result;
+      }
+      result.migrationPreview = true;
+      continue;
+    }
     if (!positionalOnly && argument === "--diagnostics") {
-      if (result.batch || result.compare || result.filePath !== null) {
+      if (result.batch || result.compare || result.migrationPreview || result.filePath !== null) {
         result.error = inspectorError("INVALID_ARGUMENT", "--diagnostics cannot be combined with batch, compare, or prior file input.", 2);
         return result;
       }
@@ -73,7 +86,7 @@ function parseArguments(argv) {
       continue;
     }
     if (!positionalOnly && argument === "--batch") {
-      if (result.filePath !== null || result.compare || result.diagnostics) {
+      if (result.filePath !== null || result.compare || result.diagnostics || result.migrationPreview) {
         result.error = inspectorError("INVALID_ARGUMENT", "--batch cannot be combined with a single-file or compare input.", 2);
         return result;
       }
@@ -81,7 +94,7 @@ function parseArguments(argv) {
       continue;
     }
     if (!positionalOnly && argument === "--compare") {
-      if (result.batch || result.diagnostics || result.filePath !== null) {
+      if (result.batch || result.diagnostics || result.migrationPreview || result.filePath !== null) {
         result.error = inspectorError("INVALID_ARGUMENT", "--compare cannot be combined with single-file or batch input.", 2);
         return result;
       }
@@ -180,7 +193,8 @@ function readProjectFile(filePath, byteBudget = MAX_FILE_BYTES) {
       }
       chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
     }
-    return { text: Buffer.concat(chunks, totalBytes).toString("utf8"), bytes: totalBytes };
+    const sourceBuffer = Buffer.concat(chunks, totalBytes);
+    return { text: sourceBuffer.toString("utf8"), bytes: totalBytes, buffer: sourceBuffer };
   } catch (error) {
     if (error && Number.isInteger(error.exitCode)) throw error;
     throw inspectorError("FILE_READ_ERROR", "Unable to read project file " + JSON.stringify(filePath) + ": " + error.message);
@@ -1503,6 +1517,275 @@ function renderHumanDiagnostics(report) {
   return lines.join("\n");
 }
 
+
+function deterministicPreviewId(kind, sourceHash) {
+  return "preview-" + kind + "-" + sourceHash.slice(0, 20);
+}
+function estimateProjectJsonBytes(project) {
+  let estimate = 4096;
+  for (const cel of project.cels) {
+    estimate += 256;
+    for (const pixel of cel.pixels) {
+      estimate += pixel === null ? 5 : (typeof pixel === "string" ? pixel.length + 4 : 16);
+      if (estimate > MAX_MIGRATION_PREVIEW_BYTES) return estimate;
+    }
+  }
+  estimate += project.palette.reduce((sum, color) => sum + color.length + 4, 0);
+  estimate += project.layers.length * 512 + project.frames.length * 512;
+  return estimate;
+}
+function migrationPreviewFailure(filePath, code, message, source) {
+  return {
+    ok: false,
+    mode: "migration-preview",
+    source: source || {
+      file: filePath,
+      byteCount: null,
+      sha256: null,
+      format: null,
+      version: null
+    },
+    migration: {
+      applicable: false,
+      transformedFields: [],
+      preservedFields: [],
+      generatedFields: [],
+      discardedFields: [],
+      warnings: []
+    },
+    error: { code, message },
+    policy: {
+      inputModified: false,
+      outputWritten: false,
+      previewOnly: true
+    }
+  };
+}
+function buildMigrationPreview(data, filePath, sourceBytes, sourceHash) {
+  if (!isLegacyProject(data)) {
+    throw inspectorError(
+      "NOT_LEGACY_PROJECT",
+      "Migration preview accepts legacy single-canvas projects only. The source was not changed."
+    );
+  }
+
+  let project;
+  try {
+    project = Project.deserializeProject(data);
+  } catch (error) {
+    throw inspectorError("INVALID_LEGACY_PROJECT", error.message || "Legacy project migration failed.");
+  }
+  const validation = Project.validateProject(project);
+  if (!validation.valid) {
+    throw inspectorError("INVALID_MIGRATED_PROJECT", validation.errors.join(" "));
+  }
+
+  const idSuffix = sourceHash.slice(0, 20);
+  project.id = deterministicPreviewId("project", sourceHash);
+  project.layers.forEach((layer, index) => {
+    layer.id = "preview-layer-" + String(index + 1).padStart(3, "0") + "-" + idSuffix;
+  });
+  project.frames.forEach((frame, index) => {
+    frame.id = "preview-frame-" + String(index + 1).padStart(3, "0") + "-" + idSuffix;
+  });
+  project.cels.forEach((cel) => {
+    const layer = project.layers.find((item) => item.name === "Layer 1") || project.layers[0];
+    const frame = project.frames[0];
+    cel.layerId = layer.id;
+    cel.frameId = frame.id;
+  });
+  project.activeLayerId = project.layers[0].id;
+  project.activeFrameId = project.frames[0].id;
+  project.metadata = {
+    createdAt: "1970-01-01T00:00:00.000Z",
+    updatedAt: "1970-01-01T00:00:00.000Z"
+  };
+
+  const finalValidation = Project.validateProject(project);
+  if (!finalValidation.valid) {
+    throw inspectorError("INVALID_PREVIEW_PROJECT", finalValidation.errors.join(" "));
+  }
+
+  const estimatedBytes = estimateProjectJsonBytes(project);
+  if (estimatedBytes > MAX_MIGRATION_PREVIEW_BYTES) {
+    throw inspectorError(
+      "MIGRATION_PREVIEW_OUTPUT_LIMIT",
+      "Normalized preview is estimated to exceed the " + MAX_MIGRATION_PREVIEW_BYTES +
+        "-byte output limit; no normalized payload was emitted."
+    );
+  }
+  const normalizedJsonBytes = Buffer.byteLength(JSON.stringify(project), "utf8");
+  if (normalizedJsonBytes > MAX_MIGRATION_PREVIEW_BYTES) {
+    throw inspectorError(
+      "MIGRATION_PREVIEW_OUTPUT_LIMIT",
+      "Normalized preview exceeds the " + MAX_MIGRATION_PREVIEW_BYTES +
+        "-byte output limit; no normalized payload was emitted."
+    );
+  }
+
+  const sourceVersion = Number.isInteger(data.version) ? data.version : 1;
+  const transformedFields = [
+    { source: "w", target: "canvas.width", operation: "mapped" },
+    { source: "h", target: "canvas.height", operation: "mapped" },
+    {
+      source: "projectName",
+      target: "name",
+      operation: data.projectName ? "mapped" : "defaulted"
+    },
+    {
+      source: "selected",
+      target: "selectedColorIndex",
+      operation: Number.isInteger(data.selected) ? "mapped" : "defaulted"
+    },
+    { source: "pixels", target: "cels[0].pixels", operation: "moved into first cel" },
+    { source: "version", target: "version", operation: "upgraded to " + Project.VERSION }
+  ];
+  const preservedFields = [
+    { source: "palette", target: "palette", operation: "copied without reordering" }
+  ];
+  const generatedFields = [
+    { field: "format", previewValue: project.format },
+    { field: "version", previewValue: project.version },
+    { field: "id", previewValue: "preview-only deterministic ID" },
+    { field: "canvas.background", previewValue: null },
+    { field: "layers[0]", previewValue: "one default layer with a preview-only ID" },
+    { field: "frames[0]", previewValue: "one default frame with a preview-only ID and default duration" },
+    { field: "cels[0].layerId", previewValue: "preview-only layer ID reference" },
+    { field: "cels[0].frameId", previewValue: "preview-only frame ID reference" },
+    { field: "activeLayerId", previewValue: "first generated layer ID" },
+    { field: "activeFrameId", previewValue: "first generated frame ID" },
+    { field: "metadata.createdAt", previewValue: "fixed epoch marker" },
+    { field: "metadata.updatedAt", previewValue: "fixed epoch marker" }
+  ];
+  const discardedFields = [
+    { source: "app", reason: "legacy application marker is not part of the v2 schema" }
+  ];
+  const warnings = [
+    "All preview IDs are deterministic placeholders derived from the source-byte hash; they are not persisted identities.",
+    "Migration timestamps use a fixed epoch marker for deterministic previews and are not represented as source timestamps.",
+    "The preview is a report only. No source or destination file is written."
+  ];
+  if (!data.projectName) {
+    warnings.push("Legacy source has no projectName; the project model supplied its default project name.");
+  }
+  if (!Number.isInteger(data.selected)) {
+    warnings.push("Legacy source has no valid selected index; the project model supplied selectedColorIndex 0.");
+  }
+  if (data.version !== Project.VERSION) {
+    warnings.push("Source version " + sourceVersion + " is upgraded to project model version " + Project.VERSION + ".");
+  }
+
+  return {
+    ok: true,
+    mode: "migration-preview",
+    source: {
+      file: filePath,
+      byteCount: sourceBytes,
+      sha256: sourceHash,
+      format: "legacy-single-canvas",
+      version: sourceVersion
+    },
+    migration: {
+      applicable: true,
+      fromVersion: sourceVersion,
+      toVersion: Project.VERSION,
+      transformedFields,
+      preservedFields,
+      generatedFields,
+      discardedFields,
+      warnings
+    },
+    normalizedPreview: project,
+    normalizedJsonBytes,
+    policy: {
+      inputModified: false,
+      outputWritten: false,
+      previewOnly: true,
+      deterministicPreviewIds: true,
+      previewIdsAreSourceIds: false,
+      timestampsAreSourceTimestamps: false
+    }
+  };
+}
+function inspectMigrationPreview(filePath) {
+  let input;
+  try {
+    input = readProjectFile(filePath);
+  } catch (error) {
+    return migrationPreviewFailure(
+      filePath,
+      error.code || "FILE_READ_ERROR",
+      error.message || "Unable to read migration source."
+    );
+  }
+
+  const sourceHash = createHash("sha256").update(input.buffer).digest("hex");
+  const source = {
+    file: filePath,
+    byteCount: input.bytes,
+    sha256: sourceHash,
+    format: null,
+    version: null
+  };
+  let data;
+  try {
+    data = JSON.parse(input.text.replace(/^\uFEFF/, ""));
+  } catch (error) {
+    return migrationPreviewFailure(
+      filePath,
+      "JSON_PARSE_ERROR",
+      "Invalid JSON: " + error.message,
+      source
+    );
+  }
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    source.format = data.format === undefined ? "legacy-single-canvas" : data.format;
+    source.version = Number.isInteger(data.version) ? data.version : null;
+  }
+
+  try {
+    return buildMigrationPreview(data, filePath, input.bytes, sourceHash);
+  } catch (error) {
+    return migrationPreviewFailure(
+      filePath,
+      error.code || "MIGRATION_PREVIEW_FAILED",
+      error.message || "Migration preview failed.",
+      source
+    );
+  }
+}
+function renderHumanMigrationPreview(report) {
+  if (!report.ok) {
+    return [
+      "Project Inspector — Migration Preview",
+      "Status: NOT AVAILABLE",
+      "File: " + report.source.file,
+      "Source bytes: " + (report.source.byteCount === null ? "unknown" : report.source.byteCount),
+      "SHA-256: " + (report.source.sha256 || "unavailable"),
+      "Error [" + report.error.code + "]: " + report.error.message,
+      "Source modified: no"
+    ].join("\n");
+  }
+  return [
+    "Project Inspector — Migration Preview",
+    "Status: PREVIEW ONLY",
+    "File: " + report.source.file,
+    "Source version: " + report.source.version,
+    "Target version: " + report.migration.toVersion,
+    "Source bytes: " + report.source.byteCount,
+    "SHA-256: " + report.source.sha256,
+    "Transformed fields: " + report.migration.transformedFields.length,
+    "Preserved fields: " + report.migration.preservedFields.length,
+    "Generated fields: " + report.migration.generatedFields.length,
+    "Discarded fields: " + report.migration.discardedFields.length,
+    "Warnings: " + report.migration.warnings.length,
+    "Normalized preview JSON bytes: " + report.normalizedJsonBytes,
+    "Preview IDs are source IDs: no",
+    "Source modified: no",
+    "Use --json to inspect the complete normalized preview payload."
+  ].join("\n");
+}
+
 function emitFailure(filePath, jsonMode, error) {
   const failure = {
     ok: false,
@@ -1525,6 +1808,13 @@ function main(argv) {
   const args = parseArguments(argv);
   if (args.help) { process.stdout.write(usage() + "\n"); return; }
   if (args.error) { emitFailure(args.filePath, args.json, args.error); return; }
+  if (args.migrationPreview) {
+    const report = inspectMigrationPreview(args.filePath);
+    if (args.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
+    else process.stdout.write(renderHumanMigrationPreview(report) + "\n");
+    if (!report.ok) process.exitCode = 1;
+    return;
+  }
   if (args.diagnostics) {
     const report = inspectDeepDiagnostics(args.filePath);
     if (args.json) process.stdout.write(JSON.stringify(report, null, 2) + "\n");
