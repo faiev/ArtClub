@@ -82,7 +82,7 @@ export const SUITE_MANIFEST = Object.freeze([
     kind: "node-test",
     files: Object.freeze([
       Object.freeze({
-        path: "tests/qa/runner/run-qa.test.js",
+        path: "tests/qa/runner/run-qa.test.mjs",
         runner: "node-test"
       })
     ])
@@ -124,7 +124,11 @@ function resolveQaPath(root, relativePath) {
   }
 
   if (fs.existsSync(absolutePath)) {
+    const realRoot = fs.realpathSync(absoluteRoot);
     const realQaRoot = fs.realpathSync(qaRoot);
+    if (!isInside(realRoot, realQaRoot)) {
+      throw new Error("tests/qa/ resolves outside the repository root.");
+    }
     const realFile = fs.realpathSync(absolutePath);
     if (!isInside(realQaRoot, realFile) || realFile === realQaRoot) {
       throw new Error("QA file resolves outside tests/qa/.");
