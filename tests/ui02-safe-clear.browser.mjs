@@ -140,14 +140,23 @@ async function run() {
         set(api) {
           const originalOpen = api.open;
           const probe = window.__safeClearSaveProbe = { active: 0, maxActive: 0, snapshots: [], storageOpened: false };
-          window.Image = function () {
-            const image = { width: 1, height: 1, onload: null, onerror: null };
-            Object.defineProperty(image, "src", {
-              configurable: true,
-              set() { window.__pendingSafeClearImage = image; }
-            });
-            return image;
-          };
+          window.__safeClearImageProbe = { created: 0, srcAssigned: 0 };
+          Object.defineProperty(window, "Image", {
+            configurable: true,
+            writable: true,
+            value: function () {
+              window.__safeClearImageProbe.created += 1;
+              const image = { width: 1, height: 1, onload: null, onerror: null };
+              Object.defineProperty(image, "src", {
+                configurable: true,
+                set() {
+                  window.__safeClearImageProbe.srcAssigned += 1;
+                  window.__pendingSafeClearImage = image;
+                }
+              });
+              return image;
+            }
+          });
           // ArtClubStorage is frozen; wrap it with a fresh object instead of
           // assigning to the frozen API's open property.
           const wrappedApi = Object.assign({}, api, {
@@ -184,6 +193,9 @@ async function run() {
       mimeType: "image/png",
       buffer: Buffer.from("delayed image decode fixture")
     });
+    const imageInputType = await racePage.locator("#imageInput").evaluate(input => input.files[0] && input.files[0].type);
+    assert.equal(imageInputType, "image/png");
+    await racePage.waitForFunction(() => window.__safeClearImageProbe.created === 1, null, { timeout: 5000 });
     await racePage.waitForFunction(() => Boolean(window.__pendingSafeClearImage), null, { timeout: 5000 });
     await racePage.locator("#clearBtn").click();
     await racePage.waitForFunction(() => window.__safeClearSaveProbe.active === 1, null, { timeout: 5000 });
