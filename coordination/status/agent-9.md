@@ -136,3 +136,17 @@ This addendum supersedes the earlier 88d2/99-behind comparison snapshot above.
 - Recompared `agent/project-diagnostics-deep` head `381230afa60f7e3efdd6c09244bb45a188bc3b56` against that base: 63 ahead / 247 behind, merge base `b140cbefbcfb3cbe1a2774d1c0025e64efb052ba`.
 - No branch tip changed; all eight PR-head refs still match the SHAs in the table above. The historical exact-head CI results and dependency graph remain as recorded.
 - This addendum is a status-file-only commit on main; it follows the comparison base and therefore adds one main-only commit after the comparison snapshot.
+
+
+## 2026-11-15 — User-directed open PR completion
+
+- **Selection:** Randomly selected open PR #90, `fix(renderer): protect cached colors from public mutation`.
+- **PR:** https://github.com/faiev/ArtClub/pull/90
+- **Reviewed exact head:** `2ab42f27be2661976fd182d284e65e53e3bd3cb7` on existing branch `agent/renderer-parsecolor-defensive-api`; no branch was created.
+- **Scope verified:** `js/canvas-renderer.js` and `tests/canvas-renderer.test.js` only. Public `parseColor()` returns a defensive copy via `rgba(color).slice()`; renderer internals continue using the private cached `rgba()`. Regression test mutates all returned RGBA channels, confirms subsequent parsing remains correct, and verifies rendered pixel bytes.
+- **Base freshness/conflicts:** latest main before merge was `2892c6480b4d6d73ff9c6d6090b96e6fd46c5a05`. Branch had 7 commits ahead / 53 behind at the common base `67fea02e82db4b6da56550cf26e18e1265e9a4ff`; file-level three-way comparison showed no main-side changes in either PR-touched file since that base. `fetch_pr` reported mergeable=true. Existing branch only; no force update or new branch.
+- **Exact-head CI:** [run 43632943858](https://github.com/faiev/ArtClub/actions/runs/43632943858) for `2ab42f27be2661976fd182d284e65e53e3bd3cb7`: `test` job success and `browser-e2e` job success. Browser job included real Chromium editor tests, animated GIF export verification and MCP client integration. No local tests were run.
+- **Completion action:** merged PR #90 using merge method `merge`, with expected head SHA `2ab42f27be2661976fd182d284e65e53e3bd3cb7`. GitHub confirmed `merged=true`.
+- **Merge commit / new main:** `0622618b6a01f8a4265ebc56107aa56f96328980`. Fetched merge commit confirms exactly two changed files: `js/canvas-renderer.js` and `tests/canvas-renderer.test.js`. PR #90 now reports `state=closed`, `merged=true`, and `merged_at=2026-11-14T21:57:23Z`. Main points to the merge commit.
+- **Files changed by this agent in the repository:** only this status file. The two production/test files arrived via the already-existing PR's merge commit; this agent authored no additional source changes.
+- **Unresolved:** no CI run was observed on the merge commit itself; evidence is for the exact PR head. No other PR was modified.
