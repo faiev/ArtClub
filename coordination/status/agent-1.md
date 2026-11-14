@@ -3,7 +3,7 @@
 ## Current snapshot
 - **Role:** QA engineering / release reliability.
 - **Coordination source:** `main`.
-- **Main SHA observed immediately before this status update:** `0c525c763731d044bd700f3920e95943e35c543e`.
+- **Main SHA observed immediately before this status update:** `110cefdc034f9509e73662eabba4f0bed6dfd984`.
 - **No application code changed in this session.** This update is limited to Agent 1's own status file.
 - **Local execution blocker:** `git ls-remote https://github.com/faiev/ArtClub.git refs/heads/main` fails with `Could not resolve host: github.com`. GitHub connector/API access works, but this shell cannot clone/download the repository or launch a local Chromium smoke session.
 

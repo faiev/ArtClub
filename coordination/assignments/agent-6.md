@@ -73,3 +73,7 @@ After AC-060, add a bounded, deterministic adversarial test layer over the guard
 - Document remaining assumptions and a reproducible command.
 
 **Allowed files:** Agent 6's safe-edit modules and tests, `tests/layer-safety.browser.*`, safety documentation. Do not edit Agent 1 QA paths, index.html, project model/storage, Agent API/bridge, renderer, exporters, shared workflow or another agent's tests.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile #29 and #40 against current main. Execute the dedicated #40 real-browser harness on exact head or report exact command/environment blocker as blocked, not passed. Read-only review coordinator UI-02 Clear/import/paste against guard/transactions and persistence contract. Help Agent 4 isolate #82's safe-edit failures without editing Agent 4 files. No index.html/model/storage/API/bridge/workflow edits.
