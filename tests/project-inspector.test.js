@@ -922,3 +922,22 @@ test("migration preview provides a concise human report and enforces mode exclus
   const report = JSON.parse(invalid.stdout);
   assert.equal(report.error.code, "INVALID_ARGUMENT");
 });
+
+
+test("migration preview explicitly reports unrecognized legacy fields as discarded", (t) => {
+  const directory = temporaryDirectory(t);
+  const source = JSON.parse(fs.readFileSync(path.join(FIXTURES, "valid-legacy.json"), "utf8"));
+  source.vendorExtension = { importedBy: "external-tool" };
+  const file = writeDiagnosticProject(directory, "legacy-extra-field.json", source);
+  const original = fs.readFileSync(file);
+
+  const result = runMigrationPreview(file);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.ok(report.migration.discardedFields.some((field) =>
+    field.source === "vendorExtension" &&
+    /not consumed by the current legacy-to-v2/.test(field.reason)));
+  assert.ok(report.migration.warnings.some((warning) =>
+    /Unrecognized legacy source fields/.test(warning)));
+  assert.deepEqual(fs.readFileSync(file), original);
+});
