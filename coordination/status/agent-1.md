@@ -1,3 +1,49 @@
+## D-028 ten-agent branch hygiene — Agent 1 QA report (2026-11-15)
+
+### Main and PR #96 exact-head revalidation
+
+- Latest main observed for this report: c08f18c156ec854abf9dacb23da6b558a36663ed. The D-028 assignment was introduced by 84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa in coordination/BOARD.md.
+- PR #96 branch coordinator/ui-02a-safe-clear, exact head 7071f9550f94f413f4dd414416a804079ee179c4, base main (PR metadata base SHA f156a48df88cd039015c805e6338828b11ac7cc2). Against latest main: 26 ahead / 29 behind, merge base 95e9a83efc0d024b4aa4abde709768db2b9. PR is open, draft, and GitHub reports not mergeable.
+- Exact-head CI: dedicated browser run [#43637386209](https://github.com/faiev/ArtClub/actions/runs/43637386209) succeeded on this SHA. Job ui02-browser ran node tests/ui02-safe-clear.browser.mjs and ended with “UI-02A browser checks passed: active-cel scope, selection scope, undo/redo, locked/hidden denial, and persistence-failure immutability.” Standard Project model run [#43637386219](https://github.com/faiev/ArtClub/actions/runs/43637386219) also succeeded; test and browser-e2e jobs passed. The standard jobs execute node --test tests/*.test.js, node --check agent-bridge/server.mjs, npm run test:e2e, node tests/gif-export.browser.mjs, and npm run test:mcp.
+- Prior browser failure root cause: run [#43636851563](https://github.com/faiev/ArtClub/actions/runs/43636851563) failed at tests/ui02-safe-clear.browser.mjs:167 waiting for window.__safeClearSaveProbe.storageOpened. The old harness assigned api.open = ... directly, but js/project-storage.js returns a frozen API (Object.freeze), so instrumentation could not replace open() and the probe never observed storage initialization. The current test blob b69b6e8215a5079a2cc6908f3c0cd56042622809 wraps the frozen API in a fresh object via Object.assign and replaces the window property; the old failing blob was 8c02c06e96a39897826d5af820b92529be42a033. The current exact-head rerun passes. This was a harness setup failure, not a persistence-race test.
+- Production blockers remain on the exact PR head: index.html still saves nextProject through ordinary projectStorage.saveProject(nextProject) without an expected persisted revision; js/project-storage.js reads then unconditionally writes the current record. A stale tab can overwrite a newer tab's save (P1). After post-persist publication failure, index.html still attempts ordinary saveProject(previousProject), rotating recovery again instead of restoring the exact prior primary + RECOVERY pair (P2). Agent 6 independently reconfirmed both on the immediately preceding integration head in [comment #6884052197](https://github.com/faiev/ArtClub/pull/96#issuecomment-6884052197). Existing exact-head CI does not exercise either scenario. Keep PR #96 draft / blocked.
+- Denial + immutability test gap: browser coverage verifies successful active-cel/selection Clear and undo/redo. Locked-layer controls are disabled and a direct selection-clear call is rejected with a pixel check; hidden-layer coverage checks disabled controls but does not attempt the denied mutation. Zero-opacity denial is only in the pure safe-edit Node test, not the production browser path. Denial/failure assertions do not compare a complete before/after snapshot of project JSON, pixel bytes, undo/redo history, local backup, persisted primary and RECOVERY. Required QA addition: direct active-cel and selection Clear denial attempts for locked, hidden and zero-opacity targets, using a shared full-snapshot equality assertion. Disabled-control checks remain supplemental. Do not edit the excluded tests/ui02-safe-clear* files under this D-028 read-only task.
+
+### QA history / branch reconciliation
+
+Comparisons below are against main c08f18c156ec854abf9dacb23da6b558a36663ed. Branch heads and unique files were verified from live PR metadata and PR diffs.
+
+| PR | Head / base | Ahead / behind main | Unique diff / dependency | Disposition |
+|---|---|---:|---|---|
+| #1 | ffd5b1bda4dd0879949098709cbbe18474205675 / main | 3 / 446 | agent-bridge/e2e-test.mjs only (outside Agent 1 ownership). Coordinator says non-duplicative import identity/per-frame autosave assertions were ported into PR #8 at 8ba67c6740f99ec06babadeeed80282f7a479bf1. PR #8 remains open/draft. | Candidate close only after Coordinator verifies the port on current #8 head. |
+| #25 | c0a7fea2193d37f868818de4b715857cb1575a53 / main | 8 / 292 | Three unique lifecycle fixture/test files in tests/qa/lifecycle/**; nested tests not executed. | Retain parked; unique QA coverage. |
+| #32 | a7c4b367e7759fdc33075960025b14c5592367ff / main | 7 / 289 | Two unique compatibility fixture/test files; focused test not executed; sparse-array validator TODO remains. | Retain parked; unique coverage and unresolved TODO. |
+| #36 | ff8cd4d02d080152737fd4ba1082262350658030 / main | 3 / 286 | Unique GIF import/export contract test and documentation; focused test not executed. Sprite-sheet/palette assertions are dependency notes, not tests against unmerged modules. | Retain parked; partial dependency-bounded QA work. |
+| #42 | ba14048036d83e6ed34f8f240be4657aad35d6dd / main | 6 / 283 | Unique standalone Chromium/IndexedDB lifecycle harness under tests/qa/browser/**; dedicated harness has not been executed. | Retain parked; unique browser harness without execution evidence. |
+| #57 | ab93ef23ce319064ec135d61936b84641fe73416 / main | 32 / 227 | Four AC-033 QA matrix/checker files; historical parent of #66. Exact-head run [#43614995961](https://github.com/faiev/ArtClub/actions/runs/43614995961) passed standard jobs, but nested checker test was not invoked. | Historical parent; #91 is replacement. Candidate close after #91/#93 are reviewed and unique work preserved. |
+| #61 | 21c7b412df53182df5a3923ae738531022ca471c / main | 4 / 251 | Unique nested renderer boundary contract test. parseColor TODO has a proposed production fix in PR #90, not yet merged. | Retain parked pending PR #90/main integration and focused test evidence. |
+| #66 | b579ce3c60ce70be294a80dbdd2be9a86c944075 / agent/qa-release-tooling | 59 / 227 | Runner implementation/test stacked on #57. Exact-head run [#43614894739](https://github.com/faiev/ArtClub/actions/runs/43614894739) passed standard jobs, but nested runner test/CLI were not executed. | Historical stacked child; #93 is replacement. Candidate close after #93 is cleanly reviewed and runner coverage retained. |
+| #91 | b15babfff34e631163d804db32450e7f3cd255ff / main | 7 / 48 | Intended AC-033 four QA files, but actual PR diff also includes coordination/status/agent-2.md through agent-10.md. | Do not merge as-is: foreign status-file changes violate ownership. Coordinator review and clean replacement required. |
+| #93 | 0c8d7275565c5cf472439a94521344be77560f2b / agent/qa-release-tooling-refresh | 28 / 48 | Stacked child of #91; adds runner/verifier, but PR diff also includes the same foreign Agent 2–10 status files. Standard run [#43634444127](https://github.com/faiev/ArtClub/actions/runs/43634444127) passed; nested release/runner tests and verifier are not run by root-only test glob. | Keep stacked/parked pending #91 scope cleanup and focused-test execution; do not merge ahead of parent. |
+| #98 | 86430a232a5ac72e7383c697fdcd690cc77d074d / main | 1 / 29 | One status-only change to coordination/status/agent-1.md, documenting the prior #96 review. | Historical checkpoint; this main status update supersedes it. Candidate close after Coordinator review; no branch deletion without merge-reachability review. |
+
+### Commands, evidence, scope
+
+- Queried latest main commit, BOARD and status through GitHub repository APIs; read the complete D-028 assignment.
+- Queried PR metadata/diffs, exact heads, base refs, comparisons, PR #96 comments, workflow runs/jobs and failed/successful browser logs. Fetched current PR #96 browser test, workflow, project-storage implementation and safe-edit commit path.
+- Local command attempted: git ls-remote https://github.com/faiev/ArtClub.git refs/heads/main — exit 128, Could not resolve host: github.com. No local clone, git fetch, Node test or Chromium execution is claimed. Exact-head CI evidence above is from GitHub Actions.
+- Repository change in this update: only coordination/status/agent-1.md. No branches or PRs created/modified/closed; no production, storage, bridge, workflow or test files edited.
+- Status update commit SHA: pending successful GitHub contents update; record the returned SHA after commit.
+
+### Next 5 actions
+
+1. Keep PR #96 blocked until Agent 4 CAS and Agent 6 exact primary+RECOVERY rollback are implemented and independently tested.
+2. Ask Coordinator to sequence browser denial/full-snapshot QA cases under tests/qa/ui02/** after the read-only D-028 reconciliation; do not modify excluded existing UI-02 tests.
+3. Confirm PR #8 current head still contains PR #1's ported assertions before recommending #1 closure.
+4. Keep #25/#32/#36/#42/#61 parked until unique nested/browser suites are explicitly executed or Coordinator documents a superseding acceptance path.
+5. Have Coordinator reconcile #57/#66 against #91/#93; foreign status-file diffs must be removed from any replacement before merge, with focused nested-suite CI evidence.
+
+
 ## UI-02A QA follow-up — 2026-11-15
 
 - **Active assignment:** UI-02A QA-only review of the coordinator's PR #96; no production edits and no new branch created.
