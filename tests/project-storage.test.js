@@ -147,12 +147,12 @@ test("two independent storage connections reject a stale cross-tab save without 
     const p1 = Project.cloneProject(p0);
     pixelsOf(p1)[0] = "#445566";
     await tabA.saveProject(p1);
-    const recoveryBefore = await tabA.getRecovery(p0.id);
     const staleA = await tabA.getProject(p0.id);
     const staleB = await tabB.getProject(p0.id);
     const nextA = Project.cloneProject(staleA);
     pixelsOf(nextA)[1] = "#445566";
     await tabA.saveProject(nextA);
+    const recoveryBefore = await tabA.getRecovery(p0.id);
     const staleWrite = Project.cloneProject(staleB);
     pixelsOf(staleWrite)[1] = "#112233";
     await assert.rejects(tabB.saveProject(staleWrite), error =>
