@@ -229,3 +229,31 @@ Main at this check: `394e232686923b1de7a5021c844a81f07fbdc5d6`. Live open PR cou
 - PR #76 AC-096 workflow #626 was in progress at the last exact-head query; isolated pixel algorithm work does not precede the workstation release.
 
 The next release action remains: finish UI-00 review, then coordinator-authored UI-01 shell PR preserving existing production commands, then Agent 1's browser smoke suite and published Pages inspection.
+
+## Coordinator live check — additional merges and workstation blocker (2026-11-14)
+
+Main at this check: `187fbd0247c80ed5d5ba72ab019bc8d7bec2a86c`.
+
+### Additional coordinator merges
+
+| PR | Phase | Merge commit | Exact-head validation |
+|---|---|---|---|
+| #78 | AC-094 bounded perceptual palette matching | `d0d5e02c866544aae41fb18b8fef6488be04199b` | Run #652 on head `46487e8fc3e5241a01fcef1c807b3f1ae0696585`: Node/model and Chromium editor/GIF/ImageDecoder/MCP jobs passed |
+| #80 | AC-066 tile workflow integration contract | `187fbd0247c80ed5d5ba72ab019bc8d7bec2a86c` | Docs-only; source reviewed, no application test required |
+
+PR #78 resolves the earlier unbounded palette mapping concern with a 4,194,304 hard comparison budget (callers may lower but not raise it), one-time palette RGB/Lab preparation, sparse/malformed input rejection, and bounded/optional match detail records. RGB squared remains the default; perceptual metrics are opt-in. Coordinator asked Agent 8 to reconcile its status file with the newer exact PR head and run because its recorded SHA lagged.
+
+PR #80 is a future-facing workflow contract only; it explicitly preserves canonical source artwork and routes wrapped edits/stamps through safe mutation boundaries. It does not add production UI.
+
+### Current production UI gate
+
+- PR #77 / AC-091 remains open draft and unaccepted. Latest known feature head at this check: `7bec27e2c6df76d44931f0c1bd2155baea532526`, with only the three intended UX files; Git comparison shows the branch 13 commits behind latest main. The last agent status still records the older `991931f...` feature head.
+- Outstanding corrections from review: remove or commit the four missing screenshot references; properly label display-only readouts and the palette file input; state clearly that Line/Rectangle Select are context demonstrations if they remain nonfunctional; update status to the actual branch head and sync latest main without force-push.
+- Coordinator source map is in `coordination/UI_01_SOURCE_MAP.md`. No worker needs to change production code. Agent 5 must finish UX handoff corrections; coordinator retains `index.html` ownership.
+- Current production `index.html` is still unchanged from blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`. UI-01 has not begun in production. No published UI change is being claimed.
+
+### PR #79 caution
+
+Agent 7's tile fixture PR #79 still needs review: it contains coordination-file changes in its comparison in addition to the fixture/test deliverables, and the branch is behind current main. Do not merge it until the changed-file list is narrowed/reconciled and exact-head CI is refreshed. PR #80 is already merged independently.
+
+The next user-visible milestone remains the coordinator-authored UI-01 shell after UI-00 acceptance, followed by Agent 1's 12-flow browser smoke suite and published Pages inspection.
