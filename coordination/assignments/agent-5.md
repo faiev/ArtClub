@@ -1,56 +1,79 @@
-# Agent 5 — UX / product
+# Agent 5 — UX / interaction design / accessibility
 
-## ASSIGNED — AC-026: Keyboard shortcut and command-discoverability specification
+## Continuous workstream: turn the UX audit into an implementation-ready product experience
 
-Your AC-009 UX implementation roadmap was submitted in PR #9:
-https://github.com/faiev/ArtClub/pull/9
+You own UX research, interaction specifications, acceptance criteria and static prototypes. You are not limited to one shortcuts document. Complete the entire spec pack in sequence and keep working while implementation PRs are reviewed.
 
-The coordinator accepted the documentation deliverable for review. You are assigned the next independent planning task from AC-013.
+### Phase 0 — AC-026: Keyboard shortcut and command-discoverability specification
+Branch agent/keyboard-shortcuts-plan. Sync latest main. Create KEYBOARD_SHORTCUTS_PLAN.md with current handler audit; platform modifier policy for Windows/Linux/macOS; reserved browser/OS combinations; tool/undo/redo/selection/layer/frame/playback shortcuts; focus rules; conflicts; discoverability; keyboard-only/accessibility acceptance matrix. Never intercept browser-reserved shortcuts.
 
-### Branch
+### Phase 1 — AC-049: Canvas navigation and workspace interaction specification
+Create docs/ux/CANVAS_WORKSPACE_SPEC.md. Define pan/zoom, cursor-anchored zoom, fit/reset, minimap decision, touchpad/wheel behavior, keyboard alternatives, responsive panels, focus and viewport boundaries. Align with Agent 2's canvas viewport contract. Include exact acceptance criteria and test cases.
 
-Use the dedicated branch:
-`agent/keyboard-shortcuts-plan`
+### Phase 2 — AC-050: Layer, frame and timeline workflow specification
+Create docs/ux/LAYER_TIMELINE_SPEC.md. Cover layer add/rename/reorder/visibility/lock/opacity, active cel rules, frame duplication/deletion/reorder/duration, onion skin, empty states, undo/redo and destructive confirmation. Include keyboard paths and focus management. Respect Agent 6's safety guard and Agent 3's export ordering contract.
 
-It was created from current main commit:
-`57b4da3cf9be2a9a4b1c98fea942729e42314d54`
+### Phase 3 — AC-051: Palette and export user journeys
+Create docs/ux/PALETTE_EXPORT_SPEC.md. Define import preview/validation/error recovery, duplicate/color-name handling, palette editing and save behavior, export presets, frame selection, timing/transparency disclosures, file naming and download feedback. Cover GPL/JASC-PAL/JSON, sprite-sheet metadata and GIF constraints.
 
-### Work
+### Phase 4 — AC-052: Accessibility and interaction audit
+Audit the current source/UI for keyboard reachability, visible focus, labels/names, contrast, motion/animation preferences, error announcements, dialog focus traps and zoom behavior. Produce docs/ux/ACCESSIBILITY_AUDIT.md with severity, reproducible current behavior, target behavior and automated/manual validation. Do not claim WCAG conformance without an audit.
 
-Inspect the existing keyboard handlers and create `KEYBOARD_SHORTCUTS_PLAN.md`.
+### Phase 5 — AC-053: Static interaction prototypes and design patterns
+Create self-contained static HTML/CSS prototypes under docs/ux/prototypes/ for:
+- shortcut reference/command search;
+- canvas workspace with navigation controls;
+- layer/timeline panel states;
+- palette import preview and export dialog.
+Use the established Art Club visual language and avoid generic AI-dashboard patterns. Prototypes must be clearly labeled as non-production and must not be wired into index.html.
 
-Define an implementation-ready shortcut and discoverability system, including:
+### Phase 6 — AC-054: Integrated UX implementation roadmap
+Update docs/UX_IMPLEMENTATION_PLAN.md or add docs/ux/IMPLEMENTATION_SEQUENCE.md that connects all specs, identifies cross-agent dependencies, prioritizes correctness/safety before workflow improvements and polish, and provides a release-acceptance checklist. Keep each implementation slice small enough for a later owner but broad enough to produce user-visible value.
 
-1. Current keyboard handlers and existing shortcut behavior.
-2. A proposed shortcut map for common tools, undo/redo, selection, layer/frame navigation and playback.
-3. Windows/Linux/macOS modifier policy.
-4. Browser and operating-system reserved shortcut conflicts; never silently intercept browser-reserved combinations.
-5. Focus rules for text inputs, dialogs, menus and editable controls.
-6. Conflict handling and how users can discover shortcuts through help or command reference UI.
-7. Keyboard-only interaction and accessibility expectations.
-8. An acceptance-test matrix covering each shortcut, platform modifier, focus context and conflict case.
-9. Phased implementation order and affected file ownership.
+## Ownership
+Documentation and static prototypes only: KEYBOARD_SHORTCUTS_PLAN.md and docs/ux/**. Do not edit index.html, app JavaScript, CSS, existing tests, bridge or workflow. The coordinator assigns UI implementation ownership separately.
 
-### Scope and constraints
+## Working rules
+The whole specification pack is pre-authorized. Submit a PR for the shortcut spec, then immediately start the workspace spec on a new branch. Do not wait for the coordinator to review each document. Continue through the queue.
 
-- Documentation/specification only.
-- Allowed application file: `KEYBOARD_SHORTCUTS_PLAN.md`.
-- Do not modify `index.html`, application JavaScript, CSS or existing tests.
-- Do not implement a command palette or shortcut UI in this task.
-- Respect the coordinator's shared-file ownership rules.
-- Do not self-assign UI implementation.
+## Handoff
+Update only coordination/status/agent-5.md with completed specs, PRs/branches, audit evidence, prototypes and the next 3–5 actions. Do not merge or self-accept.
 
-### Acceptance criteria
+## Coordinator-added extension — AC-091: Professional workstation design system and interactive prototype
 
-- Every proposed shortcut has a defined action and context.
-- Platform modifier behavior is explicit.
-- Browser/OS reserved combinations are identified and left untouched.
-- Text-input and dialog focus conflicts are resolved.
-- The acceptance-test matrix is specific enough for a later implementation agent.
-- The plan identifies integration files and ownership conflicts.
+The six specification phases are submitted. The next UX deliverable is a serious, high-fidelity workstation prototype informed by those specifications and the coordinator's product critique. This is a design project, not permission to redesign production `index.html`.
 
-### Handoff
+### Design objective
+Make One Pixel Studio feel like a credible pixel-art workstation, not a promotional website, generic SaaS dashboard or playful component demo. Use established creative-software interaction conventions while preserving the product's own identity.
 
-Commit to `agent/keyboard-shortcuts-plan`, open a draft PR against main, and update only `coordination/status/agent-5.md`.
+### Required deliverables
+1. `docs/ux/DESIGN_SYSTEM.md`: semantic color tokens, typography, spacing, density, radii, borders, icon rules, selection/focus/disabled/error states and component behavior.
+2. `docs/ux/prototypes/workstation.html` plus self-contained CSS/JS (no external runtime dependencies): a genuinely interactive prototype, not just static cards or a screenshot.
+3. A full desktop workspace at 1440×900 and a compact layout at 1280×800; include a narrower responsive state and document which panels collapse or move.
+4. Show menu/document tabs, contextual tool options, a consistent tool rail, dominant canvas viewport, docked inspector, real layer-by-frame/cel matrix, timeline/playback/status information, palette and import/export dialogs.
+5. Implement believable interactions: tool selection changes contextual options; frame/layer selection updates active state; timeline playback state changes; panels collapse/resize; dialogs open/close; keyboard focus is visible and navigation is usable.
+6. Use original synthetic pixel-art samples and real text/data. No emoji icons, external stock imagery, large marketing hero, gradient/glow, oversized rounded cards, decorative floating art or indiscriminate accent buttons.
+7. Provide a design rationale and a comparison checklist against the current production UI and the Agent 5 interaction specifications. Label all non-production behavior honestly.
+8. Capture genuine prototype screenshots at the stated viewport sizes and include a task-based review checklist for drawing, changing frame/layer, importing and exporting.
 
-Do not merge or mark the task ACCEPTED/DONE.
+### Visual review standard
+Use restrained graphite surfaces, quiet typography, disciplined alignment, compact but legible controls, precise separators and a restrained accent system. Artwork—not the chrome—must carry the color. The result should resemble carefully designed professional creative software, not a childlike mock UI. Do not imitate Aseprite pixel-for-pixel.
+
+**Allowed files:** `docs/ux/DESIGN_SYSTEM.md` and `docs/ux/prototypes/**`, including local CSS/JS/assets created specifically for the prototype. No index.html, production app CSS/JS, shared tests, bridge, workflow or actual editor integration. Agent 5 may use JavaScript inside the standalone prototype only.
+
+
+## Coordinator-added review — UI-01 visual direction in production PR #84
+
+The coordinator has accepted the graphite/olive direction as a visual basis (decision D-026). Review the actual production shell [PR #84](https://github.com/faiev/ArtClub/pull/84) at its current head after fetching main and PR metadata. Previous candidate head: `af2717daea892331b77482bc3e3c85fbbc1fabce`; exact-head run #43621240342 passed both CI jobs.
+
+- Check whether the implementation carries the approved design system into the live app without looking generic, toy-like or overly dense.
+- Review hierarchy, panel proportions, typography, contrast, icon treatment, selected/focus states, canvas dominance and timeline/inspector balance.
+- Provide focused, ranked visual findings and screenshots at 1440×900 / 1280×800 if available. Distinguish aesthetic suggestions from functional blockers.
+- Do not require prototype-only menu/tab/cel-matrix behavior to be faked in production. Existing commands and DOM remain authoritative in UI-01.
+- Also reconcile your AC-091 handoff issues in PR #77: branch synchronization, correct feature head in your status, screenshot-link/reference consistency, associated labels for display/file controls, and explicit Line/Rectangle Select prototype behavior. Keep #77 draft until those are resolved.
+
+**Boundaries:** Agent 5 remains design reviewer only. Do not modify `index.html`, production JS/CSS, shared tests, bridge, workflows or PR #84 branch. Post review findings on #84 and update your own status file with the exact branch/head you inspected.
+
+
+## Coordinator restart directive — 2026-11-15
+Reconcile UX PRs #9/#20/#24/#30/#35/#41/#47/#51. Deliver docs-only UI-02 clear/import/paste interaction and error copy, accessible focus return and non-color-only status guidance. Rank UI-01 focus-visible, aria-selected/pressed, icon, theme-color and label-size follow-ups with reproduction and acceptance tests. Remain docs/ux-only.

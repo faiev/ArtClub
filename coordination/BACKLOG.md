@@ -1,98 +1,115 @@
-# Art Club backlog
+# Art Club backlog — rolling multi-agent workstreams
 
-The coordinator owns task assignment and prioritization. Active task owners/states live in BOARD.md.
+The coordinator owns this roadmap. The detailed, pre-authorized phase queues live in each agent's assignment. A listed phase is already authorized for its owner; workers do not need a new coordinator approval between phases.
 
-## Existing follow-ups
+## Continuous workstream index
 
-### AC-007 — Integrate sprite-sheet export into editor and agent tools
-- Candidate: Agent 3
-- State: QUEUED after AC-027 is accepted and AC-004's Agent API/MCP contract is accepted.
-- Add UI controls and download flow for PNG plus JSON metadata; expose the same operation through browser Agent API/MCP without duplicating exporter logic.
-- Do not begin shared UI/API edits until the coordinator grants file locks.
+| Agent | Workstream | Authorized phase range | Deliverable family |
+|---|---|---|---|
+| 1 | QA / release reliability | AC-025, AC-029–033, AC-087 | regression matrix, lifecycle/migration/export coverage, browser QA harness, release checker |
+| 2 | Rendering / navigation | AC-028, AC-034–038, AC-088 | real-browser renderer tests, viewport/navigation utility, renderer adapter, benchmarks, integration demo |
+| 3 | Animation / export | AC-011, AC-027, AC-039–042, AC-089 | GIF, sprite-sheet browser verification/layouts, export planner, stress/compatibility corpus, export docs |
+| 4 | Agent API / MCP | AC-004, AC-043–048, AC-090 | deadlines/cancellation, process locking, security, capability discovery, export/pixel adapters, resilience |
+| 5 | UX / accessibility | AC-026, AC-049–054, AC-091 | keyboard spec, workspace, layer/timeline, palette/export, accessibility audit, static prototypes, integrated roadmap |
+| 6 | Editing safety | AC-015, AC-055–060, AC-092 | fail-closed guard, immutable edit transactions, mutation-path audit, browser harness, import staging, integration contract |
+| 7 | Tile workflows | AC-016, AC-061–066, AC-093 | tile transforms, offset preview, tile-map data model, seam diagnostics, atlas planner, integration contract |
+| 8 | Palette tooling | AC-017, AC-067–073, AC-094 | palette analysis, color science, transformations/generators, palette mapping, accessibility diagnostics, fuzz/format corpus |
+| 9 | Project diagnostics | AC-018, AC-074–079, AC-095 | batch inspect, structural diff, deep diagnostics, migration preview, CI/SARIF report, docs |
+| 10 | Pixel algorithms | AC-019, AC-080–086, AC-096 | raster primitives, flood fill, color/gradient operations, transforms, advanced dithering, golden fixtures, catalog |
 
-### AC-008 — Add stale-write and single-writer concurrency contract
-- Candidate: Agent 4
-- State: QUEUED behind AC-004 acceptance; independent test-design/documentation can be prepared meanwhile.
-- Verify stale revisions are rejected with structured errors and no newer edit is silently overwritten. Document single-writer policy; do not claim collaboration without tests.
+## Workstream execution rules
 
-### AC-012 — Integrate the Canvas 2D renderer
-- Candidate: Agent 2
-- State: QUEUED behind AC-028 real-browser correctness validation and benchmark evidence, plus coordinator-approved UI ownership.
-- Integrate incrementally, preserve DOM fallback, verify pointer mapping, selection, grid, onion skin, keyboard/accessibility and large-canvas behavior.
+- PR creation is a checkpoint, not completion of the agent's work.
+- Each worker moves to the next unfinished, unblocked phase from its assignment without waiting for review/merge.
+- Keep PRs narrow: one PR per coherent deliverable; use separate feature branches for independent phases.
+- If a phase depends on a module PR that is not merged, work on independent phases, interface contracts, tests/fixtures and docs while it is pending.
+- A worker must keep the next 3–5 actions in its own status file.
+- No agent may idle merely because its PR is under review.
+- Shared-file locks remain authoritative. The queue does not authorize editing another agent's files or index.html.
+- Workers pause only for genuine blockers that prevent all useful independent work.
+- ChatGPT chats do not wake from GitHub changes; the queue reduces coordinator prompts but does not provide background execution.
+
+## Integration and shared-file constraints
+
+### Shared E2E
+Agent 4 is the only worker authorized to edit the bridge browser E2E file while reconciling PR #8. Agent 1's PR #1 audit is read-only. Preserve the PR #10 recovery regression.
+
+### Project test workflow
+PR #11 is merged. Agent 3 currently owns .github/workflows/project-tests.yml for AC-027 sprite-sheet browser verification/CI wiring. Agent 2 may build and run browser harness files/docs but must not change the workflow until Agent 3 releases the lock.
+
+### Application UI
+index.html and editor UI integration remain coordinator-controlled. Agents can build isolated modules, static UX prototypes, acceptance matrices, browser harnesses and integration contracts without stopping for the UI lock. No implicit UI authorization.
+
+### Exporter dependency
+Agent 3 owns GIF/sprite-sheet modules. Other agents may consume the documented contract in tests or planning but must not edit exporter implementation.
+
+## Existing queued follow-ups
+
+### AC-007 — Export UI and Agent API integration
+Candidate: Agents 3 and 4, with coordinator-appointed single UI owner.
+State: QUEUED until AC-004, AC-011 and AC-027 are accepted/merged. Add export controls, progress/cancel/error feedback and API/MCP adapters without duplicating encoding logic.
+
+### AC-008 — Stale-write and single-writer contract
+Candidate: Agent 4.
+State: INCLUDED in AC-043–048. Retain explicit limits for multiple bridge processes and uncertain in-flight operations.
+
+### AC-012 — Canvas renderer UI integration
+Candidate: Agents 2 and 5.
+State: QUEUED behind AC-028 and AC-034–038 browser validation and coordinator-issued index.html lock. Preserve the DOM fallback until parity and accessibility are demonstrated.
 
 ### AC-013 — Keyboard shortcuts and command discoverability
-- Candidate: Agent 5
-- State: Specification task AC-026 assigned; implementation remains queued.
-- Define shortcuts, conflict handling, help/discoverability and acceptance tests before implementation.
+Candidate: Agent 5.
+State: INCLUDED in AC-026 and AC-049–054.
 
-### AC-014 — Frame thumbnails and cel workflow improvements
-- Candidate: Agent 3
-- State: QUEUED behind exporter API/UI work and timeline integration ownership.
-- Specify thumbnails, copy/paste cels and frame navigation as a testable workflow.
+### AC-014 — Frame thumbnails and cel workflow
+Candidate: Agents 3 and 5.
+State: Future UI work after exporter/timeline contracts and UI lock.
 
-## Agents 6–10 follow-ups
+### AC-020–024 — Initial integration follow-ups
+- AC-020 layer safety integration — Agent 6, after guard/transaction phases and UI lock.
+- AC-021 tiled preview integration — Agent 7, after tile workflow phases and renderer/UI lock.
+- AC-022 palette controls — Agent 8, after palette tools and UI lock.
+- AC-023 pixel-effects integration — Agent 10, after algorithm catalog and UI/API lock.
+- AC-024 inspector enhancements — Agent 9; its batch/diff/deep-diagnostic scope is already included in AC-074–079.
 
-### AC-020 — Integrate shared layer-edit safety guard
-- Candidate: Agent 6
-- State: QUEUED after AC-015 acceptance.
-- Wire the tested guard into Clear, image import and browser Agent API edit paths. Coordinator assigns one integration owner and locks shared files first. Verify hidden/locked layers cannot be changed through every edit path in Chromium.
+## Detailed workstream definitions
 
-### AC-021 — Add seamless tile preview to editor
-- Candidate: Agent 7
-- State: QUEUED after AC-016 acceptance and renderer/UI ownership availability.
-- Add a toggleable tiled preview using the isolated module, without changing artwork data or contaminating exports. Add browser tests for edge painting and exact tile output.
+The canonical deliverables, file ownership, acceptance criteria and phase ordering for AC-025 through AC-086 are in:
+- coordination/assignments/agent-1.md
+- coordination/assignments/agent-2.md
+- coordination/assignments/agent-3.md
+- coordination/assignments/agent-4.md
+- coordination/assignments/agent-5.md
+- coordination/assignments/agent-6.md
+- coordination/assignments/agent-7.md
+- coordination/assignments/agent-8.md
+- coordination/assignments/agent-9.md
+- coordination/assignments/agent-10.md
 
-### AC-022 — Add palette file controls to UI
-- Candidate: Agent 8
-- State: QUEUED after AC-017 acceptance.
-- Add GPL, JASC-PAL and JSON import/export controls, preserving order and names where supported. Coordinate UI ownership with Agent 4/5.
+These are not merely suggestions: they are the current pre-authorized queues. The coordinator may reorder or suspend a phase only when a new dependency, safety concern, user decision or file conflict requires it.
 
-### AC-023 — Integrate pixel-art craft algorithms
-- Candidate: Agent 10
-- State: QUEUED after AC-019 acceptance.
-- Define UI/Agent API interface for symmetry, outline, shading and dithering. Integrate only after module contracts are accepted and shared files are released.
+## Coordinator-added extension phases (2026-11-14)
 
-### AC-024 — Project inspector enhancements
-- Candidate: Agent 9
-- State: QUEUED after AC-018 acceptance.
-- Consider optional batch inspection, structured project diff and CI artifact diagnostics. No auto-repair or source modification without a separate assignment.
+The following follow-on phases have been appended to the canonical assignments on `main`. Each is pre-authorized only after the owner's existing queue is complete or its earlier phases have been submitted and the new phase's own dependencies are met.
 
-## Coordinator-assigned follow-ups
+| Agent | Extension | Deliverable |
+|---|---|---|
+| 1 | **AC-087** | Discoverable, deterministic runner for nested QA suites; explicit suite manifest, safe child-process invocation and machine-readable results |
+| 2 | **AC-088** | Real-Chromium workload study comparing production editor, isolated DOM renderer and isolated Canvas renderer; evidence-based adoption gates |
+| 3 | **AC-089** | Async GIF/sprite-sheet export entry points with cooperative cancellation, structured progress and byte-identical deterministic output |
+| 4 | **AC-090** | Offline, read-only local MCP bridge doctor with configuration, runtime, browser and profile-lock diagnostics |
+| 5 | **AC-091** | Professional workstation design system and high-fidelity interactive prototype, explicitly separate from production UI |
+| 6 | **AC-092** | Seeded adversarial/property-style conformance tests for guard, immutable transactions and import staging |
+| 7 | **AC-093** | Deterministic 4/8-neighbor autotile rule resolver and versioned ruleset contract |
+| 8 | **AC-094** | Opt-in CIEDE2000 perceptual palette matching with published reference-pair tests; preserve existing RGB defaults |
+| 9 | **AC-095** | Read-only exact-byte and semantic project fingerprints plus bounded duplicate detection |
+| 10 | **AC-096** | Deterministic quadratic/cubic Bézier rasterization with integer pixel output and bounded tessellation |
 
-### AC-025 — Audit remaining QA coverage in PR #1
-- Owner: Agent 1
-- State: ASSIGNED
-- Scope: Read-only compare PR #1 against current main (including PR #10) and PR #8. Identify unique assertions, duplicate assertions and a safe keep/drop list.
-- Constraint: Do not edit `agent-bridge/e2e-test.mjs`; Agent 4 is the only writer during PR #8 reconciliation.
-- Handoff: update only agent-1 status; no code PR required.
+### Sequencing and ownership
 
-### AC-026 — Keyboard shortcut and command-discoverability specification
-- Owner: Agent 5
-- State: ASSIGNED
-- Branch: `agent/keyboard-shortcuts-plan` (created from main prior to PR #6 merge; update against latest main without force-pushing).
-- Allowed file: `KEYBOARD_SHORTCUTS_PLAN.md` only.
-- Requirements: inspect existing key handlers; propose common tool/undo/redo/selection/layer/frame/playback shortcuts; define Windows/Linux/macOS modifier policy; identify browser/OS reserved combinations; define focus rules for inputs/dialogs; discoverability/help behavior; keyboard-only/accessibility acceptance matrix; phased implementation and ownership.
-- Constraint: documentation only, no index.html/app JS/CSS/test edits.
-- Handoff: draft PR and update only agent-5 status.
-
-### AC-027 — Complete real-browser sprite-sheet PNG verification
-- Owner: Agent 3
-- State: QUEUED_AFTER_AC011_SYNC
-- Branch: `agent/animation-export` (existing PR #3).
-- Goal: update PR #3 to latest main and add real Chromium PNG decode verification for complete RGBA raster, dimensions, transparency, margins/spacing, frame order and JSON metadata correspondence.
-- Constraints: keep PR #3 separate from PR #11; do not edit index.html/Agent API/MCP; do not edit `.github/workflows/project-tests.yml` until PR #11 has merged and the coordinator releases the workflow lock.
-- Handoff: update PR #3 and agent-3 status with exact browser/CI evidence.
-
-### AC-028 — Real-browser Canvas renderer validation and benchmark capture
-- Owner: Agent 2
-- State: READY
-- Branch: `agent/renderer-browser-validation` (created from current main commit `1ba0aaee597d5bf11083c97a03a312c7ee434530`).
-- Files: `tests/canvas-renderer.browser.html`, `tests/canvas-renderer.browser.mjs`, `benchmarks/renderer-browser-validation.md`, and optionally `benchmarks/renderer-benchmark.html`.
-- Goal: use real Chromium to validate complete raster pixels, transparency, nearest-neighbor scaling, overlay isolation, fractional-DPR pointer mapping, frame/revision invalidation and onion-mask changes. Capture DOM-grid versus Canvas timings at 32/64/128/256/512 with warm-ups, multiple samples, median, p95, raw samples and environment metadata.
-- Constraints: do not modify index.html, project model, Agent API, MCP or bridge. Do not claim a general speedup from a single CI runner. Keep DOM renderer active.
-- Workflow lock: Agent 3 owns `.github/workflows/project-tests.yml` during PR #11 reconciliation. Agent 2 may prepare tests/docs but may only add a workflow step after PR #11 merges and coordinator releases that file.
-- Handoff: new draft PR and agent-2 status with real-browser results and exact CI.
-
-## Integration policy
-
-All modules remain local, deterministic and isolated until their acceptance evidence is complete. No UI/API integration starts without a coordinator-issued shared-file lock. A green CI run applies only to its exact commit and tested base; repeat it after base updates.
+- These phases do not supersede any unfinished phase in the existing queue. Agents complete their current authorized sequence first, unless a dependency requires switching to a listed independent phase.
+- AC-091 is a standalone UX prototype and design system only. It grants no production `index.html` or application CSS/JS lock.
+- AC-088 measures the current production editor and isolated renderer separately; it grants no renderer or UI integration authority.
+- AC-089 adds async/cancellation behavior only to Agent 3's exporter modules; Agent 4 retains bridge request cancellation ownership.
+- AC-087 does not authorize editing `.github/workflows/project-tests.yml`; Agent 3's AC-027 workflow lock remains until explicitly released.
+- No extension permits changes to another agent's tests/modules, project model/storage, or shared files outside the assignment's stated ownership.

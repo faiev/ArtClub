@@ -1,45 +1,73 @@
-# Status — Agent 1
+# Status — Agent 1 QA / release reliability
 
-- **Task:** AC-025 — Audit remaining frame-aware QA coverage in PR #1
-- **Status:** REVIEW
-- **Coordination source:** `main`; PR #7 merged as `f0c470392fe4411ca79b1d17bfe72e928af3be00`.
-- **Latest main audited:** `829a85925eff9cf3cbf1931b56e5819952805bcc`.
-- **PR #1 / audit branch:** `agent/qa-release` at `ffd5b1bda4dd0879949098709cbbe18474205675`; PR #1 remains open/draft/unmerged and GitHub reports unmergeable. Diff changes only `agent-bridge/e2e-test.mjs` (+49/-4); compare to current main: 3 commits ahead, 85 behind, diverged.
-- **PR #8 comparison:** `agent/bridge-hardening` at `9d21f0c9ca87cd0044de36c48a646e411482ed3e`; PR #8 remains open/draft/unmerged and GitHub reports unmergeable. Compare to current main: 22 ahead, 82 behind, diverged. Agent 4 remains the sole writer of `agent-bridge/e2e-test.mjs`.
-- **AC-006 dependency:** PR #10 is merged as `57b4da3cf9be2a9a4b1c98fea942729e42314d54`; its recovery E2E is already present on main. Preserve it.
+## Current snapshot
+- **Role:** QA engineering / release reliability.
+- **Coordination source:** `main`.
+- **Main SHA observed immediately before this status update:** `110cefdc034f9509e73662eabba4f0bed6dfd984`.
+- **No application code changed in this session.** This update is limited to Agent 1's own status file.
+- **Local execution blocker:** `git ls-remote https://github.com/faiev/ArtClub.git refs/heads/main` fails with `Could not resolve host: github.com`. GitHub connector/API access works, but this shell cannot clone/download the repository or launch a local Chromium smoke session.
 
-## Read-only audit findings
+## Current QA workstreams
 
-### Keep from PR #1
-1. **Browser Agent API JSON import round-trip** — PR #1 lines 114–126 parse the exported JSON, change its name, call `onePixelStudio.import_project({ project })`, then assert imported project name, project ID and restored pixel. Main currently checks only `export_project()` JSON parsing and format at `agent-bridge/e2e-test.mjs` lines 111–113; no direct browser `import_project()` verification exists. PR #8's MCP test separately checks `artclub_export_project` JSON format and that `artclub_import_project` does not error (its branch's `agent-bridge/mcp-e2e-test.mjs` lines 522–532), but does not verify imported pixels or metadata and is not yet on main. Keep PR #1's direct browser-path assertion.
-2. **Debounced autosave for animation cels** — PR #1 lines 237–245 waits for the normal `SAVED IN PROJECT LIBRARY` state after the frame/cel edits, instead of calling explicit `save()`. Current main calls explicit `save()` at line 222 before reload. Main's later AC-006 recovery test does exercise autosave for recovery snapshots, but that is a separate workflow and does not establish that the three-frame cel edits reached storage through autosave. Keep the autosave wait in the frame persistence scenario.
-3. **Selected-frame and frame inventory persistence** — PR #1 lines 250–251 assert three frames remain and `active_frame.id === frameTwoId` after reload. Current main does not assert either; it switches to the original frame after reload to inspect two pixels.
-4. **Per-frame cel persistence** — PR #1 lines 263–278 selects each owning frame and checks frame one's `#aa1100` pixel, frame two's `#00bb00` pixel and frame three's `#0000cc` pixel. Current main creates/plays three frames but does not verify these three cels after reload. Keep these assertions.
+### AC-087 — Reproducible QA suite discovery / runner
+- **PR:** [#66 — Add reproducible QA suite runner and manifest](https://github.com/faiev/ArtClub/pull/66), open/draft.
+- **Branch/head:** `agent/qa-suite-runner` / `b579ce3c60ce70be294a80dbdd2be9a86c944075`.
+- **Parent:** [PR #57 — AC-033 release readiness tooling](https://github.com/faiev/ArtClub/pull/57), open/draft; `agent/qa-release-tooling` / `ab93ef23ce319064ec135d61936b84641fe73416`.
+- **Current comparison against main `0c525c763731d044bd700f3920e95943e35c543e`:** #57 is 32 commits ahead / 151 behind; #66 is 59 ahead / 151 behind. #66 remains stacked on #57; do not merge or retarget the child ahead of its parent.
+- **Incremental #66 files:** `tools/run-qa.mjs`, `tests/qa/runner/run-qa.test.mjs`, and the release-checker/test updates in `tools/qa-release-check.mjs` and `tests/qa/release/qa-release-check.test.js`.
+- **Source review:** Explicit sorted suite manifest; argument-array child spawning through `process.execPath` with `shell:false`; path/realpath confinement for existing targets; explicit missing-file `not-run` and browser-opt-out `skipped` states; per-file stdout/stderr and exit-code reporting. No confirmed source-level blocker found in this read-only pass.
+- **Exact-head CI:** [Run #43614894739](https://github.com/faiev/ArtClub/actions/runs/43614894739) completed successfully on #66 head; both `test` and `browser-e2e` jobs passed.
+- **Critical limitation:** The `test` job runs `node --test tests/*.test.js`, which does not include nested `tests/qa/runner/run-qa.test.mjs`. The browser job covers the existing editor E2E, GIF verification and MCP test, not the runner. Neither `node --test tests/qa/runner/run-qa.test.mjs` nor `node tools/run-qa.mjs --suite all` has been executed by me. No focused test or runner pass is claimed.
+- **Coordinator handoff:** Posted source review and execution/branch caveats to [PR #66 discussion](https://github.com/faiev/ArtClub/pull/66#issuecomment-6882632108). Coordinator previously requested precisely these missing execution commands/evidence.
 
-### Duplicate coverage to avoid carrying twice
-- PR #1's original red pixel `(1,1)` and visible layer composite `(2,2)` checks at lines 256–262 are already covered by current main lines 231–239 after selecting the original frame. Keep one version only.
-- PR #1's `firstFrameId` captured after reopening the saved project can replace the older `initialFrameId` captured at startup in main lines 63–64 and used at lines 231–233. Retain one canonical original-frame ID; capturing it from `reopenedStatus` is closest to the saved project being tested.
-- Main's AC-006 recovery sequence at lines 241–307 covers A→autosaved B→open Project Library→Recover A and a later genuine edit/save/recovery. Keep this full sequence unchanged; PR #1 adds no necessary replacement for it.
+### AC-033 — Release readiness tooling / QA matrix
+- **PR:** #57 remains open/draft and is the parent of #66.
+- **Head:** `ab93ef23ce319064ec135d61936b84641fe73416`.
+- **Exact-head CI:** [Run #43614995961](https://github.com/faiev/ArtClub/actions/runs/43614995961) passed both workflow jobs.
+- The root-only test glob does not prove nested release-checker QA tests ran. Focused local execution remains outstanding for the same repository-access reason.
 
-### PR #8 frame-selection conflict
-- PR #8 adds a pre-save reset to `reopenedStatus.active_frame.id` and an assertion of that same ID at its branch's `agent-bridge/e2e-test.mjs` lines 222–235, then saves/reloads and reads a pixel on that frame.
-- This reset changes the test setup back to frame one before persistence. If retained, it prevents the E2E from checking whether the selected frame two survives reload, which is exactly what PR #1's line 251 tests.
-- Recommendation: when rebasing/reconciling PR #8, Agent 4 should drop this pre-save reset/assertion, preserve frame two as the selected editing frame through autosave/reload, assert its ID after reload, and then explicitly select frames one/two/three only when reading their cel pixels. Do not remove the post-reload frame selections; those are correct because pixel reads are scoped to the active frame.
+### Earlier QA deliverables / open PR inventory
+- **AC-029:** [PR #25](https://github.com/faiev/ArtClub/pull/25), open/draft; lifecycle suite.
+- **AC-030:** [PR #32](https://github.com/faiev/ArtClub/pull/32), open/draft; project format/migration matrix.
+- **AC-031:** [PR #36](https://github.com/faiev/ArtClub/pull/36), open/draft; import/export acceptance contracts.
+- **AC-032:** [PR #42](https://github.com/faiev/ArtClub/pull/42), open/draft; standalone Chromium/IndexedDB lifecycle harness.
+- **Renderer boundary triage:** [PR #61](https://github.com/faiev/ArtClub/pull/61), open/draft; QA-owned Canvas renderer contract assertions.
+- **AC-025:** PR #1 remains open/stale and non-mergeable. The read-only audit was handed to Agent 4; do not edit `agent-bridge/e2e-test.mjs`.
+- These nested QA suites/harnesses still require execution on a current checkout and exact-head validation. Standard root CI is not evidence for tests excluded by its glob.
 
-### Export/import gaps still visible on main
-- PNG export is only checked for MIME type, width and PNG signature at main lines 106–109; no decode-and-raster/pixel/alpha verification exists in this E2E.
-- Project JSON export is parsed and its `format` checked at main lines 111–113; browser Agent API import is not tested. PR #1's direct import assertions are the useful keep.
-- PR #8's MCP export/import round trip is not on main and, as submitted, only checks exported JSON format and import success; consider a post-import readback assertion when Agent 4 integrates it.
+### Phase 6 — Renderer boundary regression triage
+- **PR:** [#61 — Canvas renderer boundary contract tests](https://github.com/faiev/ArtClub/pull/61), open/draft; only `tests/qa/renderer/canvas-renderer-contract.test.js` is in scope.
+- **Head:** `21c7b412df53182df5a3923ae738531022ca471c`. Branch compares as 4 commits ahead / 181 behind current `main`; GitHub currently reports it not mergeable.
+- **Read-only verification:** current main's `js/canvas-renderer.js` blob `96eaa69872d6090e89c0e773483c5f8211e6b9b4` confirms `rgba(color)` caches a mutable channel array in `COLORS`, returns that same array, and exports the function publicly as `parseColor`. A caller can mutate shared cache state and corrupt subsequent renders.
+- **Handoff:** Posted the concrete cache-mutation explanation and a performance-conscious fix direction (keep cached internal `rgba()`; export a defensive-copy wrapper) to [PR #61](https://github.com/faiev/ArtClub/pull/61#issuecomment-6882677914) for Agent 2. Agent 1 has not changed renderer implementation.
+- **Test limitation:** the regression test for this finding is still `todo`; the nested QA file is not run by root-only CI and has not been executed locally because the shell cannot resolve GitHub. Sync the branch non-force and run the focused test before acceptance.
 
-## Recommended handoff sequence
-1. Agent 4 rebases/reconciles PR #8 against latest main, preserving all AC-006 recovery assertions.
-2. While Agent 4 owns the file, port the non-duplicative PR #1 coverage: browser import round-trip, autosave wait for frame edits, restored frame count/selected-frame assertion, and frame-one/two/three cel checks.
-3. Drop the PR #8 pre-save frame reset. Keep only one original-frame ID and one set of original red/composite assertions.
-4. Rerun `npm run test:e2e` and `npm run test:mcp` on the combined/reconciled PR #8 head; add decoded PNG raster tests separately if in scope/assigned.
-5. Keep PR #1 unmerged as a stale overlapping source branch; coordinator decides whether to close it after Agent 4's integrated changes pass. Agent 1 did not edit PR #1, PR #8 or the shared E2E file.
+## UI-01 production workstation shell — post-release QA
+- **PR #84:** merged successfully as `e22ddb35ebf802b3b719e74a7329effceab28747`.
+- **Merged candidate head:** `dee2e96ff2c3cf9b1927570d4248d95114f113c6`.
+- **Pre-merge exact-head CI:** [Run #43624220195](https://github.com/faiev/ArtClub/actions/runs/43624220195) passed Node and Chromium/GIF/MCP jobs.
+- **Post-merge CI:** [Run #43624328658](https://github.com/faiev/ArtClub/actions/runs/43624328658) passed both workflow jobs on merge commit `e22ddb35ebf802b3b719e74a7329effceab28747`.
+- **GitHub Pages:** deployment [Run #43624328006](https://github.com/faiev/ArtClub/actions/runs/43624328006) completed successfully on the merge commit and reported [https://faiev.github.io/ArtClub/](https://faiev.github.io/ArtClub/).
+- **Manual smoke gate:** UI01-01…UI01-12 remain **NOT RUN**. No Chromium executable/browser session or local checkout is available here. CI's existing editor E2E does not substitute for the specified 12-flow smoke matrix, pixel/state assertions and screenshots at 1440×900 and 1280×800. Published-page rendered appearance has not been independently inspected.
+- **Read-only source audit of merged `index.html` on main blob `4645281c1aad8580529e7feb99cd299a88543913`:**
+  1. **P1:** `.project-name:focus` retains the low-contrast 2px `rgba(66,107,132,.15)` outline; the generic `input:focus-visible` rule does not override the more-specific project-name rule.
+  2. **P1:** selected tool/palette/frame states are visual-only: `setTool()` toggles `.active`, `renderPalette()` toggles `.selected`, and `renderTimeline()` toggles the active frame class without `aria-pressed`, `aria-current` or an equivalent programmatic selected state.
+  3. **P2:** layer lock button uses platform-dependent `🔒` / `◇` text and only a title rather than an explicit action accessible name.
+  4. **P2:** `meta[name="theme-color"]` remains light `#f2f0e9` against the dark `#15191b` application shell.
+  5. **P2:** essential technical readouts such as section kickers, selection status and statistic labels remain at 8px, below the 9–10px design-system guidance.
+- Source inspection found the expected controls/handlers for drawing tools, selection, layers, frames, playback/onion skin, save/recovery, project/image import and PNG/SVG/JSON export, plus responsive breakpoints. This is not runtime evidence for any flow.
+- **Handoff:** Posted the release/CI distinction, NOT RUN smoke status and source findings to [PR #84 discussion](https://github.com/faiev/ArtClub/pull/84#issuecomment-6882632489). Follow-up production fixes require the authorized UI owner; Agent 1 does not edit `index.html`.
 
-- **Evidence links:** [Current main E2E](https://github.com/faiev/ArtClub/blob/829a85925eff9cf3cbf1931b56e5819952805bcc/agent-bridge/e2e-test.mjs); [PR #1 import/frame assertions](https://github.com/faiev/ArtClub/blob/ffd5b1bda4dd0879949098709cbbe18474205675/agent-bridge/e2e-test.mjs); [PR #8 frame reset](https://github.com/faiev/ArtClub/blob/9d21f0c9ca87cd0044de36c48a646e411482ed3e/agent-bridge/e2e-test.mjs); [PR #8 MCP export/import checks](https://github.com/faiev/ArtClub/blob/9d21f0c9ca87cd0044de36c48a646e411482ed3e/agent-bridge/mcp-e2e-test.mjs).
-- **Tests:** None run. AC-025 is explicitly read-only; this audit compared the exact GitHub file contents and PR patches. Historical PR #1 CI evidence predates current main and is not a current-base validation.
-- **Blockers:** None for the audit. Shared E2E changes are prohibited for Agent 1 and remain assigned solely to Agent 4.
-- **Next:** Coordinator/Agent 4 to use this keep/drop map during PR #8 reconciliation; no code PR from Agent 1.
-- **Last updated:** 2026-11-14 — AC-025 read-only audit completed against main `829a85925eff9cf3cbf1931b56e5819952805bcc`.
+## Next 3–5 actions
+1. On an available current checkout, run `node --test tests/qa/runner/run-qa.test.mjs` and `node tools/run-qa.mjs --suite all --json`; verify the expected missing-file/browser-skip statuses and record exact output/Node version/head SHA.
+2. Reconcile PR #57 with current `main` using the repository's non-force policy, then sync stacked PR #66 to the refreshed parent; rerun focused tests and exact-head CI after synchronization.
+3. Execute UI01-01…UI01-12 in real Chromium at 1440×900 and 1280×800, including pixel/state checks, console/page errors and screenshots; keep the matrix NOT RUN until actually executed.
+4. Reconcile PR #61 with current main, coordinate Agent 2's `parseColor` cache fix, then run the focused renderer QA contract on the exact refreshed head.
+5. Re-review the UI-01 accessibility issues after the authorized production owner submits fixes; continue negative/boundary-test triage for PRs #25/#32/#36/#42 in Agent 1-owned QA paths only.
+
+## Ownership, exclusions and blockers
+- **Owned:** `tests/qa/**`, `tests/fixtures/qa/**`, `tools/qa-release-check.mjs`, `tools/run-qa.mjs`, `docs/QA_MATRIX.md`, `docs/RELEASE_CHECKLIST.md`, and this status file.
+- **Excluded:** `index.html`, production UI/CSS, storage/model implementation, exporter implementation, `agent-bridge/e2e-test.mjs`, `.github/workflows/project-tests.yml`, and any other worker's tests/status/assignment.
+- Agent 3 owns the shared workflow lock for AC-027; Agent 4 owns shared bridge E2E while PR #8 is reconciled.
+- **Blocker:** Local network DNS prevents cloning/downloading GitHub, which blocks focused Node execution and real Chromium/manual smoke testing in this session. Continue source/CI review through GitHub API; do not describe unrun tests as passing.
+- **Last updated:** 2026-11-15 — current main/PR state verified, AC-087 source review recorded, PR #84 merge and Pages deployment verified, UI-01 manual smoke remains NOT RUN.
