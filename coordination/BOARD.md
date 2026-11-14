@@ -386,3 +386,13 @@ Main snapshot before this board update: `e5583f694925abedcd7db19f9eee2077745cc95
 ### Production / publication truth
 - Current main `index.html` remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; PR #84 is not merged. The published app is therefore still unchanged. After reviewer gates pass, merge exact tested head and verify GitHub Pages deployment/live editor before claiming release.
 - Full current evidence and boundaries are in [coordination/INTEGRATION_PLAN.md](INTEGRATION_PLAN.md).
+
+## Coordinator validation update — UI-01 full exact-head CI (2026-11-14)
+
+Main snapshot before this board update: `881ddd15448632afb1e7defbf09549b2a0778338`.
+
+- UI-00/AC-091 is merged as PR #77 (`a229a8c0028dc4290c3f5da811fa565fc3a17610`).
+- PR #84 UI-01 source/test tree passed exact-head workflow [#43623873430](https://github.com/faiev/ArtClub/actions/runs/43623873430) on `64d68de63abae730623ac81b670562a950d66759` (base `2158b11245905dc3de458784b63f7c0e391e9df2`). Node job: 241 passed / 0 failed. Chromium job: real editor drawing, undo/redo, layers, custom canvas, playback, onion skin, PNG, IndexedDB recovery; GIF ImageDecoder every-pixel checks; MCP client E2E all passed.
+- The test tree is the same `index.html` + `tests/ui-workstation-shell.test.js` diff currently in PR #84. The earlier clipped-canvas regression is fixed and covered by the passing drawing E2E.
+- Independent reviews are still pending: Agent 1 12-flow QA, Agent 2 canvas sizing/pointer/responsive review, Agent 5 visual review of production implementation. The Actions workflow emits no screenshots, so explicit 1440×900 / 1280×800 visual inspection is not yet verified.
+- Production `index.html` on main remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`. Do not merge or claim published UI until the independent review gate is completed; after merge, verify Pages deployment/live URL.
