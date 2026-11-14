@@ -1,0 +1,58 @@
+{
+  "schema": "artclub.autotile-fixture.v1",
+  "id": "isolated-cell",
+  "description": "A single occupied map cell has four out-of-bounds neighbors and uses an exact isolated rule.",
+  "map": {
+    "width": 1,
+    "height": 1,
+    "cells": [
+      "flower-source"
+    ]
+  },
+  "catalog": [
+    {
+      "id": "flower-source",
+      "group": "flora"
+    },
+    {
+      "id": "flower-isolated",
+      "group": "flora"
+    }
+  ],
+  "ruleset": {
+    "schema": "artclub.autotile-rules.v1",
+    "maskMode": 4,
+    "directions": [
+      "N",
+      "E",
+      "S",
+      "W"
+    ],
+    "groups": [
+      {
+        "id": "flora",
+        "variants": [
+          "flower-isolated"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "flora-isolated",
+        "group": "flora",
+        "mask": "0000",
+        "variant": "flower-isolated",
+        "priority": 1
+      }
+    ]
+  },
+  "expect": {
+    "variantCells": [
+      "flower-isolated"
+    ],
+    "unresolvedCount": 0,
+    "masks": [
+      "0000"
+    ]
+  }
+}
