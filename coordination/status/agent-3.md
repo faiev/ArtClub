@@ -1,14 +1,14 @@
 # Status — Agent 3
 
 - **Task:** AC-011 — Implement standalone animated GIF export
-- **Status:** IN_PROGRESS — addressing coordinator-directed PR #11 corrections
+- **Status:** REVIEW — coordinator-directed corrections implemented; current CI passed; awaiting coordinator re-review
 - **Branch:** `agent/gif-export`
 - **Base commit:** `fe66725f7d010beca7ca60f497778d419e753d7b`
-- **Latest code commit:** `b4f552f38e3a4557e10d61401af9420843227aae`
+- **Latest code commit:** `da81f74ecccf2d74d8a1033e9eee42c98b7845b5`
 - **PR:** https://github.com/faiev/ArtClub/pull/11
 - **Changed files:** `js/gif-export.js`, `tests/gif-export.test.js`, `tests/gif-export.browser.html`, `tests/gif-export.browser.mjs`, `GIF_EXPORT.md`, `.github/workflows/project-tests.yml`.
-- **PR #11 current verification:** PR head remains `b4f552f38e3a4557e10d61401af9420843227aae`, base `fe66725f7d010beca7ca60f497778d419e753d7b`, draft/open/mergeable. Latest run https://github.com/faiev/ArtClub/actions/runs/43603137011: Node test job passed; browser job overall failed at the existing editor persistence E2E assertion `agent-bridge/e2e-test.mjs:229` (expected `#ff0000`, got `null`); dedicated Playwright GIF browser test passed via Chromium ImageDecoder (2 frames, red/blue first pixels, transparent pixels alpha 0, image/gif Blob 105 bytes); MCP step skipped after the editor E2E failure.
-- **GIF unit evidence:** `node --test tests/gif-export.test.js` — 10/10 passed; syntax checks passed; FFmpeg and ImageMagick independently decoded/inspected the output. GIF implementation was not modified during this resume/review.
+- **PR #11 current verification:** PR remains open, draft and mergeable. Latest head `da81f74ecccf2d74d8a1033e9eee42c98b7845b5`; PR targets `main`. The latest PR workflow run https://github.com/faiev/ArtClub/actions/runs/43605119104 (run #119) completed **success**: Node/model/editor suite **48 passed, 0 failed**; real-browser editor E2E passed; GIF Chromium `ImageDecoder` test passed with native 2×2 dimensions and every RGBA byte matched for both frames (including transparency/disposal overlap); MCP client E2E passed. No merge performed.
+- **GIF test evidence:** Latest CI includes the GIF-specific and repository Node tests: 48/48 passed. The seeded quantization regression and 1,048,576-pixel stress test passed; Chromium checked full-frame RGBA for both frames. Earlier FFmpeg and ImageMagick local inspection of the original 2×2 GIF also passed.
 
 ## Coordinator-directed read-only review — PR #6
 
@@ -51,3 +51,14 @@ Reviewed PR https://github.com/faiev/ArtClub/pull/6 at head `77d425c9d2d01c56f77
 - Authorized scope: revise only `agent/gif-export` owned GIF exporter files/tests/docs and the existing GIF browser CI test step. Keep UI/API/MCP integration deferred; do not touch Agent 2 files or PR #3.
 - Starting handoff head: `b4f552f38e3a4557e10d61401af9420843227aae` (6 commits ahead, 0 behind `main`).
 - Latest pre-correction workflow: Node test job passed; GIF browser verification passed; overall workflow failed at the separate pre-existing editor persistence E2E assertion (`agent-bridge/e2e-test.mjs:229`), with MCP skipped.
+
+
+## Coordinator-directed AC-011 corrections — completed
+
+- Replaced 5-bit bucket-midpoint lookup with actual-RGB nearest-palette lookup using a palette k-d tree and a bounded 65,536-entry exact-RGB cache. Added the deterministic Agent 2 LCG regression: the source pixel at index 58 is `#D2384E`, remains in the median-cut palette, and is decoded back as that exact pixel.
+- Expanded the Chromium `ImageDecoder` test to assert every frame's native dimensions and compare the complete RGBA raster for every frame. The second-frame transparency at the prior-frame green pixel verifies disposal clears the previous image; CI reported both rasters equal to the expected values.
+- Reduced maximum selected output from 16,777,216 to 1,048,576 frame pixels and maximum encoded output from 64 MiB to 16 MiB. Kept project source-cel validation separate at 16,777,216 pixels. Added a stress test that encodes four 512×512 frames (exactly the output budget) and rejects a fifth before frame composition. Documented buffer budgeting and exclusions in `GIF_EXPORT.md`.
+- Updated PR #11 description with the corrections and current CI evidence. PR remains draft pending coordinator re-review.
+- Branch is now 10 commits ahead of current `main` and 1 behind because Agent 1's AC-006 recovery fix advanced `main` to `57b4da3cf9be2a9a4b1c98fea942729e42314d54`. No rebase/merge was performed; the successful PR workflow tested the current PR merge context.
+- No UI/API/MCP integration; AC-007 remains queued and was not started.
+- **Last updated:** 2026-11-14 — completed coordinator corrections and verified PR workflow run #119.
