@@ -1389,6 +1389,11 @@ function agentMoveSelection(payload){
   moveSelectionPixels(payload.dx,payload.dy);
   return getAgentStatus();
 }
+function agentTransformSelection(payload){
+  payload=payload||{};assertAgentSelectionAction(payload);
+  transformSelection(payload.operation);
+  return getAgentStatus();
+}
 
 function installAgentAPI(){
   if(!window.ArtClubAgentAPI)throw new Error("Agent API module failed to load.");
@@ -1421,7 +1426,8 @@ function installAgentAPI(){
     pasteSelection:agentPasteSelection,
     clearSelection:agentClearSelection,
     deselect:agentDeselect,
-    moveSelection:agentMoveSelection
+    moveSelection:agentMoveSelection,
+    transformSelection:agentTransformSelection
   });
 }
 
