@@ -1980,7 +1980,7 @@ function agentSetLayerVisibility(payload){
   const layer=requireAgentLayer(payload);
   if(layer.visible!==payload.visible){
     remember();layer.visible=payload.visible;
-    renderGrid();renderLayers();renderStats();scheduleSave();
+    renderGrid();renderLayers();renderStats();renderSelectionTools();scheduleSave();
   }
   return getAgentStatus();
 }
