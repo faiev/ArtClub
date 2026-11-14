@@ -6,6 +6,7 @@ import path from "node:path";
 import { EventEmitter } from "node:events";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { validateAllSuitesReport } from "./verify-qa-runner-ci.mjs";
 
 import {
   SUITE_MANIFEST,
