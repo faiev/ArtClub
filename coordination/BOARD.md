@@ -2,7 +2,7 @@
 
 Coordinator snapshot: 2026-11-14  
 Coordination source: `main`  
-Main snapshot used for this reconciliation: `0b131a963baabc5a83c5a9d6e570671abcda9f44`  
+Main snapshot used for this reconciliation: `38e980ffdb1c3d4512cb60e80a302874065520c9`  
 Repository: `faiev/ArtClub`
 
 > This board is the live index. It reconciles worker-owned status files with the current open PR inventory. An open PR is not automatically ready to merge; stacked dependencies, exact-head CI and explicit ownership still apply.
@@ -38,7 +38,7 @@ GitHub coordination files do not wake inactive ChatGPT chats or run them in the 
 - **Agent 1:** PR #61 is not yet reflected in the previously fetched status file.
 - All workers must update only their own status files with the current branch/head, parent chain, exact tested SHA, CI state, completed phases and next 3–5 actions.
 
-## Open PR inventory (50 open after #14 and #31 merges)
+## Historical open PR inventory (50 open after #14 and #31 merges; see live check below)
 
 | Owner | Open PRs |
 |---|---|
@@ -122,3 +122,45 @@ The full scope and file ownership live in:
 - `coordination/DECISIONS.md`
 
 Workers update only their own `coordination/status/agent-N.md`; the coordinator maintains this board.
+
+
+## Coordinator live check — 2026-11-14 16:30 UTC
+
+Current main at the time of this check: `38e980ffdb1c3d4512cb60e80a302874065520c9`. The live PR search returned 57 open pull requests. The historical inventory above predates the latest safety merges and must not be used as the current count.
+
+### Confirmed coordinator merges
+
+| PR | Phase | Merge commit |
+|---|---|---|
+| #14 | AC-015 layer edit safety guard | `b53708dd73a4a0d00a7fdd2c79048054a2024295` |
+| #23 | AC-055 expanded edit-target contract | `8ae25528af84c8fa4808ad375e4053e0f934eb14` |
+| #26 | AC-056 immutable safe-edit transactions | `fc0c36e8e59108f21a9bb90886d053d6dfe02153` |
+| #31 | AC-080 deterministic raster primitives | `bfa919499e65f5bcbcacfd6e686e3214b9eaa24a` |
+| #48 | AC-059 import staging | `103b5c488c262a0c34807d38361f193895e1e7db` |
+| #49 | AC-060 safe-edit integration contract | `87c15b08d41653e255922e3961698608ab991708` |
+| #62 | AC-092 seeded safe-edit conformance | `567c178df307b8332f6dd156b313021be77cf5f4` |
+
+### Current agent handoffs
+
+| Agent | Live state at check | Coordinator action / blocker |
+|---|---|---|
+| 1 — QA | UI-01 12-flow smoke plan prepared; AC-087 #66 remains stacked on #57 | Waiting for a real UI-01 candidate. Runner's nested tests need direct execution evidence; root `tests/*.test.js` does not discover them. |
+| 2 — Renderer | AC-037 submitted as #73; AC-038 now active | #73 had no CI run at check. Continue real workload characterization and integration-readiness package. |
+| 3 — Export | #3 exporter, #21 layout, #55 stress corpus, #68 docs/gallery remain in a dependency chain | #3 had green CI but stale branch/base and inherited workflow/coordination files in its combined diff. Finish AC-027 browser PNG verification; retain workflow lock until explicit release. |
+| 4 — Bridge | #8 bridge hardening with #38/#54 stacked | #8 had a green run but still carried inherited safety files and was not merge-ready. Sync latest main, narrow diff, preserve PR #10 frame/recovery E2E and rerun. |
+| 5 — UX | AC-026 and AC-049–054 submitted; AC-091 prototype not present in latest status | **Immediate design dependency:** deliver the high-fidelity workstation prototype. Coordinator still owns production `index.html`. |
+| 6 — Safety | AC-015/055/056/059/060/092 all merged | PR #40 standalone browser harness remains unexecuted; PR #29 audit remains open. Update status after merges. |
+| 7 — Tile | AC-065 active; #65/#67 submitted, both stale | Refresh #65/#67 to current main and rerun exact-head CI before review. |
+| 8 — Palette | AC-094/#63 submitted; prior CI green | #63 review requires a bounded comparison-work budget, palette metric precomputation and bounded per-pixel details. PR #16 still skips sparse palette entries. |
+| 9 — Diagnostics | AC-077 active; #12→#46→#59→#64→#71 stacked | Refresh parent PR #12 first; retarget/retest children parent-first. |
+| 10 — Pixel algorithms | AC-085/086 active; #69/#70/#72 submitted | #15 sparse point-array finding remains unfixed; #69/#70 need latest-main sync; #72 had no CI run. |
+
+### Approval / integration queue
+
+- **Ready on main:** the seven safety and raster PRs listed above are merged. They are isolated engineering work, not claims of completed production UI integration.
+- **Do not merge yet:** #15 and #16 until sparse-array review findings are fixed; #63 until its worst-case work/memory budget is bounded; #40 until its standalone browser runner has actually passed.
+- **Stale parent branches:** #3, #8 and #12 have recent green CI but their source/base diffs are stale or inherit already-merged changes. Green CI on the old branch does not approve the current main diff.
+- **Stacked children:** keep #21/#55/#68 behind #3; #38/#54 behind #8; #46/#59/#64/#71 behind #12.
+- **Production UI:** no UI-01 implementation PR exists at this check. Agent 1 is ready to run its smoke plan, but Agent 5's AC-091 prototype is still outstanding. The coordinator remains sole writer of production `index.html`.
+
+This live section supersedes stale counts and status rows elsewhere in this historical board until the full table is reconciled.
