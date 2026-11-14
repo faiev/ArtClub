@@ -2479,7 +2479,8 @@ $("projectInput").addEventListener("change",async e=>{
     e.target.value="";
   }
 });
-$("importImageBtn").addEventasync function commitImportedImage(file,target,source,image){
+$("importImageBtn").addEventListener("click",()=>$("imageInput").click());
+async function commitImportedImage(file,target,source,image){
   if(!isImportTargetCurrent(target)){
     toast("The project or edit target changed while the image was loading. Choose the image again.");
     return false;
@@ -2561,9 +2562,6 @@ $("imageInput").addEventListener("change",e=>{
   };
   image.src=url;
   e.target.value="";
-});
-mage.")};
-  img.src=url;e.target.value="";
 });
 $("demoBtn").addEventListener("click",()=>{
   if(!confirm("Restore the starter artwork? Your current canvas will be replaced."))return;
