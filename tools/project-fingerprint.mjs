@@ -416,7 +416,8 @@ function inspectOneFile(filePath, byteBudget = MAX_FILE_BYTES) {
   let data;
   try {
     data = JSON.parse(decodedText.replace(/^\uFEFF/, ""));
-  } catch (error) {    return {
+  } catch (error) {
+    return {
       ok: false,
       file: filePath,
       bytesRead: input.bytes,
