@@ -1,12 +1,92 @@
 # Status — Agent 4
 
-- **Current task:** Coordinator-requested read-only dependency review for PR #96 (D-028).
-- **Status:** INVESTIGATION COMPLETE — actionable P1/P2 design prepared; no production files changed and no tests claimed.
-- **PR #96:** [UI-02A safe active-cel/selection Clear](https://github.com/faiev/ArtClub/pull/96), open/draft.
-- **Exact PR head inspected:** `7071f9550f94f413f4dd414416a804079ee179c4`.
-- **Branch:** `coordinator/ui-02a-safe-clear`; head matches the requested SHA.
-- **Scope:** read-only source and coordination review. No branch, code, workflow, Agent 1, or Agent 6 files modified. Only this Agent 4 status file and a concise PR discussion handoff are being updated.
-- **Tests:** NOT RUN. This execution environment has GitHub source access but no repository checkout/runtime; no test pass is claimed.
+- **Current task:** D-028 read-only branch/PR dependency inventory for MCP/bridge PRs #8/#38/#54/#82/#86/#92 and historical bridge refs.
+- **Status:** INVENTORY COMPLETE; no code, branch, PR-state or workflow changes. Only this status file updated.
+- **Latest main:** `84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa` (GitHub `refs/heads/main`, fetched live).
+- **Acceptance:** dependency graph, exact heads, direct parent deltas, main divergence, changed files, exact-head CI and ownership conflicts recorded below.
+- **Local tests/commands:** no shell commands or local tests run; this session had GitHub API read access but no checkout/runtime. CI evidence below is fetched from GitHub Actions and is not a local test claim.
+
+## Current assignment — 2026-11-15 branch hygiene
+
+### 1. PR dependency inventory
+
+All six PRs are open and draft. Their current PR metadata heads and base branches were fetched live. Direct parent comparisons use the exact declared parent head; cumulative main comparisons use current main `84a9d83a059f41f3b3d4e7f1f2e02bcfb67cbbfa`.
+
+| PR | Branch / exact head | Base | Unique commits vs direct parent | Files changed by this PR vs parent | Cumulative vs current main | Current Actions |
+|---|---|---|---:|---:|---:|---|
+| [#8 AC-004](https://github.com/faiev/ArtClub/pull/8) | `agent/bridge-hardening` / `1a04d834ec3bb77610b4b83375ab89ce78720112` | `main` (PR base SHA `dc647d10708e6a8596a8ab7df5b37b311729c66f`) | 60 from merge-base; compare is diverged | 11 | 60 ahead / 75 behind; merge base `dc647d10708e6a8596a8ab7df5b37b311729c66f` | [#43622700035](https://github.com/faiev/ArtClub/actions/runs/43622700035): `test` failed; `browser-e2e` passed |
+| [#38 AC-043](https://github.com/faiev/ArtClub/pull/38) | `agent/ac-043-operation-deadlines` / `8ab838fae2c83414af29f0cc7b4a72fd0122e46d` | `agent/bridge-hardening` | 27 | 7 | 87 ahead / 75 behind; same merge base | [#43622711281](https://github.com/faiev/ArtClub/actions/runs/43622711281): `test` failed; `browser-e2e` passed |
+| [#54 AC-044](https://github.com/faiev/ArtClub/pull/54) | `agent/ac-044-profile-lock` / `5ad306cb282182415cc867f0c9f1582724993eb8` | `agent/ac-043-operation-deadlines` | 23 | 6 | 110 ahead / 75 behind; same merge base | [#43622747415](https://github.com/faiev/ArtClub/actions/runs/43622747415): `test` failed; `browser-e2e` passed |
+| [#82 AC-045](https://github.com/faiev/ArtClub/pull/82) | `agent/ac-045-security-hardening` / `f3aa9d29397e85c39c60f323a5e4ba7306acec72` | `agent/ac-044-profile-lock` | 16 | 7 | 126 ahead / 75 behind; same merge base | [#43622756765](https://github.com/faiev/ArtClub/actions/runs/43622756765): `test` failed; `browser-e2e` passed |
+| [#86 AC-046](https://github.com/faiev/ArtClub/pull/86) | `agent/ac-046-capability-contract` / `77cc76ca4b6d75dece3e38f8864f11dc33642055` | `agent/ac-045-security-hardening` | 4 | 8 | 130 ahead / 75 behind; same merge base | [#43622831950](https://github.com/faiev/ArtClub/actions/runs/43622831950): `test` failed; `browser-e2e` passed |
+| [#92 AC-048](https://github.com/faiev/ArtClub/pull/92) | `agent/ac-048-resilience-observability` / `d059c6d60e639371102d9560660eff20c5fc97e3` | `agent/ac-046-capability-contract` | 14 | 11 | 144 ahead / 75 behind; same merge base | [#43631517622](https://github.com/faiev/ArtClub/actions/runs/43631517622): `test` failed; `browser-e2e` passed |
+
+Direct parent graph verified by compare results:
+
+`main → #8 (60 commits) → #38 (+27) → #54 (+23) → #82 (+16) → #86 (+4) → #92 (+14)`.
+
+Every child comparison is `ahead` with `behind_by=0`; merge base equals the parent head. All six cumulative comparisons against current main are `diverged`, `behind_by=75`, and share merge base `dc647d10708e6a8596a8ab7df5b37b311729c66f`. Thus the child PRs are correctly stacked relative to one another, but the chain is stale relative to main. GitHub's `mergeable=true` on children is not evidence that the chain is ready to land; #8 itself reports `mergeable=false`.
+
+### 2. Changed-file boundaries by direct PR delta
+
+- **#8 (11):** `AGENT_API.md`, `agent-bridge/README.md`, `agent-bridge/e2e-test.mjs`, `agent-bridge/mcp-e2e-test.mjs`, `agent-bridge/package.json`, `agent-bridge/server.mjs`, `index.html`, `js/agent-api.js`, `js/layer-edit-guard.js`, `tests/agent-api.test.js`, `tests/layer-edit-guard.test.js`.
+- **#38 (7):** `AGENT_API.md`, `agent-bridge/README.md`, `agent-bridge/mcp-e2e-test.mjs`, `agent-bridge/operation-queue.mjs`, `agent-bridge/operation-queue.test.mjs`, `agent-bridge/package.json`, `agent-bridge/server.mjs`.
+- **#54 (6):** `AGENT_API.md`, `agent-bridge/README.md`, `agent-bridge/package.json`, `agent-bridge/profile-lock.mjs`, `agent-bridge/profile-lock.test.mjs`, `agent-bridge/server.mjs`.
+- **#82 (7):** `AGENT_API.md`, `agent-bridge/README.md`, `agent-bridge/mcp-e2e-test.mjs`, `agent-bridge/package.json`, `agent-bridge/security-utils.mjs`, `agent-bridge/security-utils.test.mjs`, `agent-bridge/server.mjs`.
+- **#86 (8):** `AGENT_API.md`, `agent-bridge/README.md`, `agent-bridge/capabilities.mjs`, `agent-bridge/capabilities.test.mjs`, `agent-bridge/fixtures/capabilities-v1.json`, `agent-bridge/mcp-e2e-test.mjs`, `agent-bridge/package.json`, `agent-bridge/server.mjs`.
+- **#92 (11):** `agent-bridge/README.md`, `agent-bridge/bridge-observability.mjs`, `agent-bridge/bridge-observability.test.mjs`, `agent-bridge/capabilities.mjs`, `agent-bridge/capabilities.test.mjs`, `agent-bridge/fixtures/capabilities-v1.json`, `agent-bridge/mcp-e2e-test.mjs`, `agent-bridge/operation-queue.mjs`, `agent-bridge/operation-queue.test.mjs`, `agent-bridge/package.json`, `agent-bridge/server.mjs`.
+
+### 3. Exact-head CI and failure evidence
+
+The current head SHAs above exactly match the `head_sha` reported by the corresponding GitHub Actions runs. In every fetched run, the `browser-e2e` job completed successfully and the `test` job failed at the step `Run model and editor interaction tests`. Run IDs and exact heads are in the table. The run/job metadata endpoint exposed job conclusions and step names, but not the step's assertion log text in this session; no individual failing assertion names are inferred here.
+
+PR #82's current description records five inherited failures in Agent 6-owned `tests/safe-edit-conformance.test.js` and `tests/safe-edit-operations.test.js`; it explicitly states its own changed-file set does not include those files. The same failed `test` job continues through #86 and #92, while their browser jobs pass. Treat this as a known inherited parent-chain CI blocker pending a fresh exact-head full-suite run and Agent 6/coordinator diagnosis—not as an Agent 4 implementation failure or a verified root-cause log. Exact run URLs: #8 `43622700035`, #38 `43622711281`, #54 `43622747415`, #82 `43622756765`, #86 `43622831950`, #92 `43631517622`.
+
+### 4. Cross-agent conflicts and shared-file locks
+
+- **Confirmed Agent 6 ownership conflict in #8 ancestry:** fetched PR #8 patch explicitly removes from `js/layer-edit-guard.js` the `LAYER_ZERO_OPACITY`, revision-context, selection-validation and related metadata guards, and removes the corresponding regression tests from `tests/layer-edit-guard.test.js` (including zero-opacity, malformed opacity/metadata, frame metadata, stale project/frame/composite revisions, invalid selections and canvas-limit tests). The current branch is 75 commits behind main, so this stale snapshot would conflict with/revert newer safety work unless reconciled carefully. Both paths are Agent 6-owned under current board exclusions. Agent 4 did not edit either file.
+- **Agent 4 shared E2E lock:** #8 changes `agent-bridge/e2e-test.mjs`, the file Agent 4 is sole writer of while reconciling #8. No other agent ownership was found for the file; however this current assignment is read-only, so no change was made.
+- **Production UI/API lock:** #8's cumulative diff also contains `index.html` and `js/agent-api.js`. These are inherited historical changes, not authorized new work under D-028. Current coordinator owns production UI; no edit or branch sync was attempted.
+- #38/#54/#82/#86/#92 direct deltas stay within bridge files and bridge documentation. They inherit #8's older ancestry and its cross-agent/UI diff until the parent is reconciled.
+
+### 5. Historical bridge-related refs
+
+- Branch search found `agent/bridge-hardening` (the #8 head branch) and `agent/ac-047-export-pixel-adapters` (no open PR found by head-branch search).
+- `agent/ac-047-export-pixel-adapters` compares **identical** to PR #86 head `77cc76ca4b6d75dece3e38f8864f11dc33642055` (0 ahead / 0 behind, no unique files/commits). It is a redundant alias ref, not an additional deliverable. Candidate for coordinator review as a redundant branch only after confirming no external consumer; not deleted.
+- The other bridge phase refs correspond to the six open PR branches in the table. No branch was deleted, moved or force-pushed.
+
+### 6. Disposition recommendation (coordinator decision only)
+
+| PR / ref | Recommendation | Rationale |
+|---|---|---|
+| #8 | **Retain parked; reconcile before any merge decision** | Parent for all descendants; 60 unique commits but 75 behind main; `mergeable=false`; includes stale Agent 6 guard/test removals and inherited `index.html`/Agent API changes. Do not close while descendants depend on it. |
+| #38 | **Retain parked as required parent** | 27 unique bridge commits on #8; exact-head test job fails; do not merge before #8 and full CI. |
+| #54 | **Retain parked as required parent** | 23 unique profile-lock commits on #38; exact-head test job fails; no independent main merge path. |
+| #82 | **Retain parked as required parent** | 16 unique security commits on #54; five inherited Agent 6 safe-edit assertions reported failing; exact-head test job fails. |
+| #86 | **Retain parked as required parent** | 4 unique capability-contract commits on #82; exact-head test job fails; #92 depends on it. |
+| #92 | **Retain parked as leaf candidate** | 14 unique observability commits on #86; exact-head test job fails; no listed downstream PR. Do not close without coordinator's disposition decision. |
+| `agent/ac-047-export-pixel-adapters` | **Redundant-ref candidate for coordinator review** | Identical to #86 head, no PR, no unique commits/files. Preserve pending coordinator confirmation; no delete action available/attempted. |
+
+### 7. Commands, evidence and execution boundary
+
+- **Shell commands executed:** none. No repository checkout or local runtime was available.
+- **Read-only GitHub operations executed:** fetched repository metadata and `refs/heads/main`; fetched `coordination/BOARD.md`, `coordination/assignments/agent-4.md` and this status file; fetched PR metadata for #8/#38/#54/#82/#86/#92; compared each head with its direct parent and current main; fetched exact-head Actions workflow-run/job metadata; searched bridge-related branches and PR head references; fetched PR #8 patch to inspect ownership conflicts.
+- **Changed files:** only `coordination/status/agent-4.md` (this report). No production files, tests, workflows, branches or PR states changed.
+- **Status commit:** recorded by the GitHub update-file operation after this report is written; verify the returned commit SHA before reporting it.
+- **CI evidence:** the six linked GitHub Actions runs are exact-head evidence, all browser-e2e passed and all `test` jobs failed. No local tests were run.
+
+### 8. Unresolved blockers / next actions
+
+1. Coordinator + Agent 6 must reconcile the stale Agent 6 guard/test changes in #8 against current main without losing accepted safe-edit behavior.
+2. Coordinator must decide whether/how to rebase or otherwise reconcile the 75-commit main divergence while preserving the six-PR parent chain; Agent 4 made no ref changes.
+3. Obtain full failing test logs for the `test` job on #92 (and preferably #8/#82) to identify exact five inherited assertions; current job metadata only proves failed step, and PR #82 description supplies the five-failure report.
+4. After parent reconciliation, rerun complete exact-head CI sequentially through the stack; browser-e2e green alone is not sufficient.
+5. Coordinator reviews the redundant `agent/ac-047-export-pixel-adapters` ref and makes any retain/delete decision; no deletion is authorized here.
+
+---
+
+## Historical report — PR #96 persistence/recovery review
+
 
 ## 1. Files and functions inspected
 
