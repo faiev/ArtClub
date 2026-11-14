@@ -20,8 +20,6 @@ export function validateAllSuitesReport(report, options = {}) {
   const manifest = options.manifest || SUITE_MANIFEST;
   const errors = [];
   const selectedNames = manifest.map(suite => suite.name);
-  const suiteRecords = new Map((report && Array.isArray(report.suites) ? report.suites : [])
-    .map(suite => [suite.name, suite]));
   const counts = { executed: 0, passed: 0, failed: 0, skipped: 0, notRun: 0 };
   let firstFailureExitCode = null;
 
@@ -35,19 +33,59 @@ export function validateAllSuitesReport(report, options = {}) {
   if (!Array.isArray(report.notRunSuites) || report.notRunSuites.length !== 0) {
     errors.push("--suite all must not report any suite as unselected");
   }
+  if (!Array.isArray(report.suites)) {
+    errors.push("report.suites must be an array");
+  }
+
+  const suiteRecords = new Map();
+  if (Array.isArray(report.suites)) {
+    for (const suite of report.suites) {
+      if (!suite || typeof suite.name !== "string") {
+        errors.push("suite record is missing a valid name");
+        continue;
+      }
+      if (suiteRecords.has(suite.name)) {
+        errors.push("duplicate suite record: " + suite.name);
+        continue;
+      }
+      suiteRecords.set(suite.name, suite);
+      if (!selectedNames.includes(suite.name)) {
+        errors.push("unexpected suite record: " + suite.name);
+      }
+    }
+    if (report.suites.length !== manifest.length) {
+      errors.push("suite record count does not match the complete manifest");
+    }
+  }
 
   for (const suite of manifest) {
     const record = suiteRecords.get(suite.name);
     if (!record || !Array.isArray(record.files)) {
-      errors.push("missing suite record: " + suite.name);
+      errors.push("missing suite record or file list: " + suite.name);
       continue;
     }
     if (record.files.length !== suite.files.length) {
       errors.push("file count mismatch for suite: " + suite.name);
-      continue;
     }
+
+    const fileRecords = new Map();
+    for (const file of record.files) {
+      if (!file || typeof file.path !== "string") {
+        errors.push("file record is missing a valid path in suite: " + suite.name);
+        continue;
+      }
+      if (fileRecords.has(file.path)) {
+        errors.push("duplicate file record in " + suite.name + ": " + file.path);
+        continue;
+      }
+      fileRecords.set(file.path, file);
+      if (!suite.files.some(entry => entry.path === file.path)) {
+        errors.push("unexpected file record in " + suite.name + ": " + file.path);
+      }
+    }
+
     for (const entry of suite.files) {
-      const file = record.files.find(item => item.path === entry.path);
+      const file = fileRecords.get(entry.path);
       if (!file) {
         errors.push("missing file record: " + entry.path);
         continue;
