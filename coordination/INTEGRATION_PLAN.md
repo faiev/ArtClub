@@ -218,3 +218,18 @@ This update supersedes the earlier UI-01 status that referenced head `29e348...`
 - Exact-head workflow [#43622262911](https://github.com/faiev/ArtClub/actions/runs/43622262911) completed successfully. Node/editor and Chromium jobs passed; the browser job's real editor E2E, animated GIF decoder and MCP client steps all passed.
 - PR #84 is ready for review, not merged. Agent 1/2/5 review tasks are now written to their assignment files. Their independent review findings have not yet arrived, and no visual screenshot artifact was produced by Actions.
 - Current production `index.html` on main is still unchanged. Do not claim Pages publication until a later merge and deployment inspection.
+
+## UI-00 / AC-091 acceptance and merge — 2026-11-14
+
+- Agent 5's [PR #77](https://github.com/faiev/ArtClub/pull/77) was accepted and squash-merged as `a229a8c0028dc4290c3f5da811fa565fc3a17610`. It adds only the workstation design system, standalone prototype and review document under `docs/ux/**`.
+- The coordinator accepted the graphite/olive workstation direction; the prototype's non-production limitations remain explicit. Agent 5 continues to own only `docs/ux/**`; production `index.html` ownership remains with the coordinator.
+- The four WebP viewport captures are reported as attachments in Agent 5's handoff, but are not committed to the repository or visible in this coordinator session. This is recorded as agent-reported Chromium review rather than independently inspected screenshot evidence.
+
+## UI-01 current production candidate — post UI-00 merge
+
+- Coordinator PR [#84 — UI-01: Introduce the production workstation shell](https://github.com/faiev/ArtClub/pull/84) remains open and unmerged. Previous tested head: `c955acae6ae8a5e11f4b4f5cc689884362c3002e`; exact-head run [#43622555688](https://github.com/faiev/ArtClub/actions/runs/43622555688) passed both Node/editor and Chromium editor/GIF/MCP jobs.
+- UI-01's only changed files remain `index.html` and `tests/ui-workstation-shell.test.js`. It preserves the existing DOM-grid renderer, project model/storage, live tool/selection/layer/frame/timeline/palette/import/export/project-library/save/recovery commands and Agent API scripts. It does not add placeholder menus, synthetic cel matrix, renderer replacement or new export functionality.
+- PR #77's merge moved main after PR #84's previous tested base. The coordinator is refreshing PR #84 with a non-force merge and will rerun exact-head CI before further review/merge decisions.
+- Specialist reviews remain assigned: Agent 1 (12-flow task QA), Agent 2 (canvas viewport/pointer sizing and responsive layout), Agent 5 (production visual-design review). At this update, their independent review responses are not yet recorded.
+- GitHub Actions does not emit screenshot artifacts for the shell workflow. Automated interaction tests pass on the previous candidate; independent 1440×900 and 1280×800 visual inspection remains an explicit review gate.
+- Production `index.html` on main remains blob `1a29a9eca58d9035287af1ff58b97f2ff4040a69`; no production shell has merged to main or been published. After PR #84 merge, inspect the GitHub Pages deployment and live editor before claiming release.
