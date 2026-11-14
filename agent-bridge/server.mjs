@@ -9,13 +9,53 @@ import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import { chromium } from "playwright";
 import * as z from "zod/v4";
 
-const APP_URL = process.env.ARTCLUB_URL || "https://faiev.github.io/ArtClub/";
+function validateAppUrl(value) {
+  let url;
+  try { url = new URL(value); }
+  catch { throw new Error("ARTCLUB_URL must be a valid absolute URL."); }
+
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("ARTCLUB_URL must use HTTPS (or HTTP on localhost for development).");
+  }
+  if (url.username || url.password) {
+    throw new Error("ARTCLUB_URL must not contain embedded credentials.");
+  }
+
+  const host = url.hostname.toLowerCase();
+  const isLoopback = host === "localhost" || host === "127.0.0.1" ||
+    host === "::1" || host === "[::1]";
+  if (url.protocol === "http:" && !isLoopback) {
+    throw new Error("Insecure HTTP is allowed only for localhost development URLs.");
+  }
+  return url.href;
+}
+
+const APP_URL = validateAppUrl(
+  process.env.ARTCLUB_URL || "https://faiev.github.io/ArtClub/"
+);
 const PROFILE_DIR = process.env.ARTCLUB_PROFILE_DIR ||
   path.join(os.homedir(), ".artclub-agent-browser");
 const HEADLESS = process.env.ARTCLUB_HEADLESS === "1";
 
+const REVISION_GUARDED_METHODS = new Set([
+  "draw_pixel", "draw_line", "draw_rectangle", "draw_ellipse", "fill",
+  "erase_pixel", "erase_rectangle", "set_color", "execute",
+  "undo", "redo",
+  "add_layer", "select_layer", "set_layer_visibility", "set_layer_locked",
+  "rename_layer", "move_layer", "duplicate_layer", "delete_layer",
+  "set_selection", "select_all", "copy_selection", "cut_selection",
+  "paste_selection", "clear_selection", "deselect", "move_selection",
+  "transform_selection",
+  "add_frame", "duplicate_frame", "select_frame", "delete_frame",
+  "move_frame", "set_frame_duration", "rename_frame",
+  "open_project", "import_project"
+]);
+
 let browserContext;
 let page;
+let connectionPromise;
+let operationQueue = Promise.resolve();
+const monitoredPages = new WeakSet();
 
 function compactArgs(args) {
   return Object.fromEntries(
@@ -24,50 +64,145 @@ function compactArgs(args) {
 }
 
 async function connectToEditor() {
-  browserContext = await chromium.launchPersistentContext(PROFILE_DIR, {
-    headless: HEADLESS,
-    viewport: { width: 1440, height: 1000 },
-    acceptDownloads: true
-  });
+  if (connectionPromise) return connectionPromise;
 
-  page = browserContext.pages()[0] || await browserContext.newPage();
-  page.on("pageerror", error => {
-    console.error("[Art Club browser]", error.message);
-  });
+  connectionPromise = (async () => {
+    if (!browserContext) {
+      const context = await chromium.launchPersistentContext(PROFILE_DIR, {
+        headless: HEADLESS,
+        viewport: { width: 1440, height: 1000 },
+        acceptDownloads: true
+      });
+      browserContext = context;
+      context.once("close", () => {
+        if (browserContext === context) {
+          browserContext = null;
+          page = null;
+        }
+      });
+    }
 
-  await page.goto(APP_URL, { waitUntil: "domcontentloaded" });
-  await page.waitForFunction(
-    () => Boolean(window.onePixelStudio),
-    null,
-    { timeout: 45_000 }
-  );
+    const context = browserContext;
+    const candidate = context.pages().find(item => !item.isClosed()) ||
+      await context.newPage();
+    page = candidate;
 
-  const status = await invoke("get_status");
-  console.error(
-    '[Art Club] Connected to "' + status.project_name + '" ' +
-    '(' + status.canvas.width + "×" + status.canvas.height + ') at ' + APP_URL
-  );
+    if (!monitoredPages.has(candidate)) {
+      monitoredPages.add(candidate);
+      candidate.on("pageerror", error => {
+        console.error("[Art Club browser]", error.message);
+      });
+      candidate.on("close", () => {
+        if (page === candidate) page = null;
+      });
+      candidate.on("crash", () => {
+        console.error("[Art Club browser] The editor page crashed.");
+        if (page === candidate) page = null;
+      });
+    }
+
+    await candidate.goto(APP_URL, { waitUntil: "domcontentloaded" });
+    await candidate.waitForFunction(
+      () => Boolean(window.onePixelStudio),
+      null,
+      { timeout: 45_000 }
+    );
+
+    const status = await candidate.evaluate(() => window.onePixelStudio.get_status());
+    console.error(
+      '[Art Club] Connected to "' + status.project_name + '" ' +
+      '(' + status.canvas.width + "×" + status.canvas.height + ') at ' + APP_URL
+    );
+    return status;
+  })();
+
+  try {
+    return await connectionPromise;
+  } catch (error) {
+    const context = browserContext;
+    browserContext = null;
+    page = null;
+    try { await context?.close(); } catch {}
+    const message = error && error.message ? error.message : String(error);
+    throw new Error("Could not connect to the Art Club editor: " + message);
+  } finally {
+    connectionPromise = null;
+  }
 }
 
-async function invoke(method, args) {
-  if (!page || page.isClosed()) {
-    throw new Error("The Art Club browser window is not available.");
-  }
-  return page.evaluate(async ({ methodName, payload }) => {
-    const api = window.onePixelStudio;
-    if (!api) throw new Error("Art Club Agent API is not ready in this tab.");
-    const fn = api[methodName];
-    if (typeof fn !== "function") {
-      throw new Error("Art Club does not support agent method: " + methodName);
+async function readyPage() {
+  if (page && !page.isClosed()) {
+    try {
+      const ready = await page.evaluate(() =>
+        Boolean(window.onePixelStudio &&
+          typeof window.onePixelStudio.get_status === "function")
+      );
+      if (ready) return page;
+    } catch {
+      // The page may have been closed, crashed or navigated away. Reconnect below.
     }
-    return await fn(payload);
-  }, { methodName: method, payload: args === undefined ? null : args });
+  }
+
+  await connectToEditor();
+  if (!page || page.isClosed()) {
+    throw new Error("The Art Club browser page could not be restored.");
+  }
+  return page;
+}
+
+async function invokeNow(method, args) {
+  const targetPage = await readyPage();
+  try {
+    return await targetPage.evaluate(async ({ methodName, payload, requiresRevision }) => {
+      const api = window.onePixelStudio;
+      if (!api) throw new Error("Art Club Agent API is not ready in this tab.");
+      const fn = api[methodName];
+      if (typeof fn !== "function") {
+        throw new Error("Art Club does not support agent method: " + methodName);
+      }
+
+      if (requiresRevision) {
+        const expected = payload && payload.expected_revision;
+        if (!Number.isSafeInteger(expected) || expected < 0) {
+          throw new Error("expected_revision is required. Call artclub_get_status and pass its revision before editing.");
+        }
+        const current = api.get_status();
+        if (current.revision !== expected) {
+          throw new Error("The project changed since your last read. Call artclub_get_status again, review the updated state, and retry with its revision.");
+        }
+      }
+      return await fn(payload);
+    }, {
+      methodName: method,
+      payload: args === undefined ? null : args,
+      requiresRevision: REVISION_GUARDED_METHODS.has(method)
+    });
+  } catch (error) {
+    const message = error && error.message ? error.message : String(error);
+    if (targetPage.isClosed() || /target closed|browser has been closed|page crashed/i.test(message)) {
+      throw new Error(
+        'The browser disconnected during "' + method + '". The operation may have completed; ' +
+        "call artclub_get_status before retrying. The next tool call will reconnect automatically. " +
+        "Original error: " + message
+      );
+    }
+    throw error;
+  }
+}
+
+function invoke(method, args) {
+  // MCP clients may issue tool calls concurrently. Serialize the bridge's view of
+  // the editor so each revision check and operation completes before the next starts.
+  const operation = () => invokeNow(method, args);
+  const pending = operationQueue.then(operation, operation);
+  operationQueue = pending.catch(() => {});
+  return pending;
 }
 
 function textResult(value) {
   const text = typeof value === "string"
     ? value
-    : JSON.stringify(value, null, 2);
+    : JSON.stringify(value === undefined ? null : value, null, 2);
   const result = { content: [{ type: "text", text }] };
   if (value && typeof value === "object" && !Array.isArray(value)) {
     result.structuredContent = value;
@@ -83,7 +218,7 @@ function registerTool(server, name, description, inputSchema, handler) {
       return {
         content: [{
           type: "text",
-          text: error && error.message ? error.message : String(error)
+          text: name + " failed: " + (error && error.message ? error.message : String(error))
         }],
         isError: true
       };
@@ -95,13 +230,13 @@ async function main() {
   await connectToEditor();
 
   const server = new McpServer(
-    { name: "art-club-pixel-studio", version: "0.1.0" },
+    { name: "art-club-pixel-studio", version: "0.2.0" },
     { maxToolInputElements: 12_000 }
   );
 
   const coordinate = z.number().int().min(0).max(511);
   const color = z.string().regex(/^#[0-9a-fA-F]{6}$/);
-  const revision = z.number().int().nonnegative().optional();
+  const revision = z.number().int().nonnegative();
 
   registerTool(
     server,
@@ -132,7 +267,7 @@ async function main() {
     "artclub_get_palette",
     "Read the active project's palette.",
     z.object({}),
-    async () => textResult(await invoke("get_palette"))
+    async () => textResult({ palette: await invoke("get_palette") })
   );
 
   registerTool(
@@ -249,7 +384,7 @@ async function main() {
     "artclub_list_layers",
     "List layers in bottom-to-top order. Each layer reports its id, name, visibility, lock and active state.",
     z.object({}),
-    async () => textResult(await invoke("list_layers"))
+    async () => textResult({ layers: await invoke("list_layers") })
   );
 
   registerTool(
@@ -525,16 +660,16 @@ async function main() {
     server,
     "artclub_undo",
     "Undo one editing transaction.",
-    z.object({}),
-    async () => textResult(await invoke("undo"))
+    z.object({ expected_revision: revision }),
+    async args => textResult(await invoke("undo", compactArgs(args)))
   );
 
   registerTool(
     server,
     "artclub_redo",
     "Redo the last undone transaction.",
-    z.object({}),
-    async () => textResult(await invoke("redo"))
+    z.object({ expected_revision: revision }),
+    async args => textResult(await invoke("redo", compactArgs(args)))
   );
 
   registerTool(
@@ -550,14 +685,14 @@ async function main() {
     "artclub_list_projects",
     "List projects saved in this browser's local Art Club library.",
     z.object({}),
-    async () => textResult(await invoke("list_projects"))
+    async () => textResult({ projects: await invoke("list_projects") })
   );
 
   registerTool(
     server,
     "artclub_open_project",
     "Open a project by project_id from artclub_list_projects.",
-    z.object({ project_id: z.string().min(1) }),
+    z.object({ project_id: z.string().min(1), expected_revision: revision }),
     async args => textResult(await invoke("open_project", args))
   );
 
@@ -566,19 +701,22 @@ async function main() {
     "artclub_export_project",
     "Export the active editable project as versioned project JSON.",
     z.object({}),
-    async () => textResult(await invoke("export_project"))
+    async () => textResult({ project_json: await invoke("export_project") })
   );
 
   registerTool(
     server,
     "artclub_import_project",
     "Import a versioned Art Club project from a JSON string. This replaces the active editor document after preserving the current project.",
-    z.object({ project_json: z.string().min(2).max(20_000_000) }),
+    z.object({ project_json: z.string().min(2).max(20_000_000), expected_revision: revision }),
     async args => {
       let project;
       try { project = JSON.parse(args.project_json); }
       catch { throw new Error("project_json is not valid JSON."); }
-      return textResult(await invoke("import_project", { project }));
+      return textResult(await invoke("import_project", {
+        project,
+        expected_revision: args.expected_revision
+      }));
     }
   );
 
@@ -600,13 +738,21 @@ async function main() {
             type: "text",
             text: "PNG preview: " + png.width + "×" + png.height + " pixels"
           }
-        ]
+        ],
+        structuredContent: {
+          mime_type: png.mime_type,
+          width: png.width,
+          height: png.height
+        }
       };
     }
   );
 
   const shutdown = async () => {
-    try { await browserContext?.close(); } catch (error) {
+    const context = browserContext;
+    browserContext = null;
+    page = null;
+    try { await context?.close(); } catch (error) {
       console.error("[Art Club] Browser shutdown:", error.message);
     }
   };
