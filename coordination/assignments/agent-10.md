@@ -64,3 +64,7 @@ After AC-086, add pixel-grid curve primitives that can support a future Pencil/C
 - Provide a pure API that can be consumed by a future shape/curve tool, but do not wire it into the live editor.
 
 **Allowed files:** `js/pixel-curves.js`, `tests/pixel-curves.test.js`, synthetic curve fixtures and pixel-algorithm documentation only. Do not edit existing pixel primitive/effect modules, Agent 7 tile code, renderer, index.html, project model or Agent API.
+
+
+## Coordinator restart directive — 2026-11-15
+Refresh PRs #15/#37/#44/#50/#69/#70/#72/#76 against current main. Reconcile exact heads/bases/dependencies/tests. Close bounded AC-085 golden-parity gaps (raw-buffer coverage for AC-019 and AC-081–084, repeated-run determinism, allocation/runtime guards, non-mutation stress) where dependencies permit; report unmerged dependencies honestly. Pause new algorithms during UI-02. No UI/renderer/model/palette/API/bridge/workflow edits.
