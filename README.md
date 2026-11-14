@@ -17,6 +17,15 @@ A browser-based pixel art editor. It is a static site: no build step, backend, a
 - Automatic local save in the current browser
 - Versioned editable project format (v2), with automatic migration from earlier single-canvas project files
 
+## AI-agent access
+
+One Pixel Studio exposes a versioned browser Agent API, so browser-connected agents can issue exact pixel operations instead of clicking screen coordinates. A local MCP bridge exposes drawing, inspection, undo/redo, project-library and PNG-preview tools to compatible AI clients.
+
+- [Agent API reference](AGENT_API.md)
+- [Local MCP bridge setup](agent-bridge/README.md)
+
+The MCP bridge is optional. It opens a dedicated Chromium profile and connects over local stdio; the static Pages site does not host an MCP server.
+
 ## Privacy
 
 Artwork stays in your browser. The editor does not upload images or project data to a server. Local save is tied to the browser and device; export a JSON project to back up or move your work.
