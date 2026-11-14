@@ -223,6 +223,71 @@ test("resizing an existing canvas preserves and resamples its artwork", async ()
   assert.equal(editor.agent.get_status().canvas.height, 24);
 });
 
+test("layers composite in order and visibility reveals lower-layer pixels", async () => {
+  const editor = await bootEditor();
+  const originalColor = (await editor.agent.get_pixel({ x: 2, y: 2 })).color;
+
+  editor.document.getElementById("addLayerBtn").emit("click");
+  let rows = editor.document.getElementById("layerList").children;
+  assert.equal(rows.length, 2);
+  assert.match(rows[1].children[0].textContent, /Layer 2/);
+
+  await editor.agent.draw_pixel({ x: 2, y: 2, color: "#ff0000" });
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#ff0000");
+
+  // Select the bottom layer and paint a different color under the red pixel.
+  rows[0].children[0].emit("click");
+  await editor.agent.draw_pixel({ x: 2, y: 2, color: "#0000ff" });
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#ff0000");
+
+  // Hide the top layer; the blue lower-layer pixel should become visible.
+  rows = editor.document.getElementById("layerList").children;
+  rows[1].children[1].children[0].emit("click");
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#0000ff");
+
+  // Undo the visibility toggle and the top-layer red pixel is visible again.
+  await editor.agent.undo();
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#ff0000");
+  assert.notEqual(originalColor, "#ff0000");
+});
+
+test("locked layers reject both human and agent drawing", async () => {
+  const editor = await bootEditor();
+  editor.document.getElementById("addLayerBtn").emit("click");
+  let rows = editor.document.getElementById("layerList").children;
+  rows[1].children[1].children[1].emit("click");
+
+  const status = editor.agent.get_status();
+  assert.equal(status.active_layer.locked, true);
+  assert.throws(
+    () => editor.agent.draw_pixel({ x: 3, y: 3, color: "#ff00ff" }),
+    /active layer is locked/
+  );
+
+  rows = editor.document.getElementById("layerList").children;
+  rows[1].children[1].children[1].emit("click");
+  assert.equal(editor.agent.get_status().active_layer.locked, false);
+  await editor.agent.draw_pixel({ x: 3, y: 3, color: "#ff00ff" });
+  assert.equal((await editor.agent.get_pixel({ x: 3, y: 3 })).color, "#ff00ff");
+});
+
+test("duplicate, delete and undo preserve layer contents", async () => {
+  const editor = await bootEditor();
+  await editor.agent.draw_pixel({ x: 4, y: 4, color: "#abcdef" });
+  editor.document.getElementById("duplicateLayerBtn").emit("click");
+  let status = editor.agent.get_status();
+  assert.equal(status.layers.length, 2);
+  assert.equal((await editor.agent.get_pixel({ x: 4, y: 4 })).color, "#abcdef");
+
+  editor.document.getElementById("deleteLayerBtn").emit("click");
+  status = editor.agent.get_status();
+  assert.equal(status.layers.length, 1);
+  await editor.agent.undo();
+  status = editor.agent.get_status();
+  assert.equal(status.layers.length, 2);
+  assert.equal((await editor.agent.get_pixel({ x: 4, y: 4 })).color, "#abcdef");
+});
+
 test("brush paints on pointer down and commits the stroke", async () => {
   const editor = await bootEditor();
   editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
