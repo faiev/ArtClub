@@ -1,22 +1,21 @@
 # Status — Agent 5
 
-## Current assignment — AC-026: Keyboard shortcut and command-discoverability specification
+## Active workstream — UX / accessibility / interaction design
 
-- **Status:** REVIEW
-- **Branch:** `agent/keyboard-shortcuts-plan`
-- **Feature document commit:** `22f3ad53310c6fc0b1ff394898e35c7b42f21592`
-- **Latest branch sync:** will be reconciled with the final AC-026 status handoff commit before PR #20 is opened
-- **PR:** [#20 — AC-026: Specify keyboard shortcuts and command discoverability](https://github.com/faiev/ArtClub/pull/20) (open, draft; GitHub reports mergeable)
-- **Allowed deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md` only.
-- **Scope:** Documentation/specification only. No application JS, HTML, CSS, tests, command-palette or shortcut UI implementation.
-- **Coordinator source:** `main`; PR #7 is merged.
-- **Source inspection:** Current `index.html` keyboard handling at lines 1865–1894 (pixel-grid arrow/Space/Enter behavior), 2073–2092 (document keydown handler), static shortcut legend at lines 293–300. Current handler uses Ctrl OR Meta, handles Undo and Save before text-input guard, does not exclude dialogs/contenteditable, includes B/E/G/I/M tools, Mod+C/X/V/A/D, Delete/Backspace selection clear, Escape, [, ], 0 zoom. Layer/frame navigation and playback shortcuts are not currently implemented.
-- **Discoverability findings:** Static legend labels only Command glyphs, is hidden at mobile breakpoints, and omits navigation/playback. Existing `tests/editor-interactions.test.js` contains no keyboard shortcut tests; README has no shortcut reference.
-- **Deliverable:** `KEYBOARD_SHORTCUTS_PLAN.md`, 368 lines; 13 main sections. Includes current behavior, shortcut map, Ctrl/Command policy, browser/OS reserved conflicts, focus rules, keyboard-only accessibility, responsive discoverability, acceptance-test matrix, phased order and file ownership.
-- **Validation:** Fetched the committed document back from the feature branch and verified all assignment topics/sections. PR #17 and PR #19 were closed unmerged after their changed-file lists picked up status-file updates committed to main after PR creation. PR #20 is the clean-base replacement. Application tests are not run for this documentation-only task; the specification defines implementation-level tests.
-- **Branch synchronization:** No force updates. The feature branch is synchronized with the latest main tree using a two-parent merge commit before PR #20 is opened.
-- **Blockers:** None.
-- **Next action:** Coordinator review of PR #20. No implementation or command-palette work is self-assigned.
+### Phase 1 — AC-049: Canvas navigation and workspace interaction specification
+
+- **Status:** IN_PROGRESS
+- **Branch:** `agent/canvas-workspace-spec`
+- **Branch starting base:** `8806de86441b2de79471c74fade8a2caa7fc23c5`
+- **Allowed deliverable:** `docs/ux/CANVAS_WORKSPACE_SPEC.md`
+- **Scope:** Documentation/specification only; do not edit `index.html`, app JS, CSS, existing tests, bridge or workflow. No UI lock is granted.
+- **Dependency reviewed:** Agent 2's AC-034 assignment defines a renderer-independent `js/canvas-viewport.js` utility for pan, zoom, fit/reset, cursor anchor, coordinate transforms, DPR/fractional bounds and deterministic transform state. There is no `js/canvas-viewport.js` on main yet. AC-049 will define the UX contract and stay implementation/API-neutral.
+- **Current source audit:** `index.html` has toolbar zoom buttons and `[`/`]`/0 shortcuts; `applyZoom()` scales the grid relative to the fitted largest canvas side, clamps to 0.5–2 in quarter steps, and labels the default fit-relative scale as 100%. The canvas wrapper is scrollable but there is no explicit pan mode, cursor-anchored zoom, Fit action or minimap. Grid uses pointer capture for edit strokes and `touch-action:none`. Project dimensions are limited to 512 per side.
+- **PR #18 / Agent 2 status:** AC-028 browser harness is submitted, but its dedicated renderer browser suite and benchmark have not yet been executed. Do not assume measured viewport/renderer timings or active renderer integration.
+- **Previous phase AC-026:** `KEYBOARD_SHORTCUTS_PLAN.md` submitted in [PR #20](https://github.com/faiev/ArtClub/pull/20), open/draft/unmerged. It is a checkpoint, not a blocker for AC-049.
+- **Next queue:** (1) complete AC-049 spec and acceptance matrix; (2) AC-050 layer/frame/timeline workflow spec; (3) AC-051 palette/export user-journey spec; (4) AC-052 accessibility audit; (5) AC-053 static interaction prototypes; then AC-054 integrated UX implementation sequence.
+- **Tests:** No tests run yet; AC-049 is documentation-only. Structural/source validation will be recorded on submission.
+- **Blockers:** None for documentation. Live editor UI work remains coordinator-controlled and is explicitly out of scope.
 - **Last updated:** 2026-11-14.
 
 ## Previous task — AC-009
