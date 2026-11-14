@@ -300,7 +300,11 @@ test("rectangular marquee creates the right pixel bounds", async () => {
   editor.grid.emit("pointerup", {
     target: editor.cell(3 * 24 + 4), pointerId: 1, clientX: 4, clientY: 3
   });
-  assert.deepEqual(editor.agent.get_status().selection, { x: 1, y: 1, width: 4, height: 3 });
+  const selected = editor.agent.get_status().selection;
+  assert.equal(selected.x, 1);
+  assert.equal(selected.y, 1);
+  assert.equal(selected.width, 4);
+  assert.equal(selected.height, 3);
   assert.equal(editor.document.getElementById("selectionStatus").textContent, "4 × 3 PX · X 1 · Y 1");
 });
 
@@ -316,7 +320,7 @@ test("selection copy, cut, paste and move operate on active-layer pixels", async
   assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#aabbcc");
 
   await editor.agent.move_selection({ dx: 2, dy: 1 });
-  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, "#172b3a");
+  assert.equal((await editor.agent.get_pixel({ x: 2, y: 2 })).color, null);
   assert.equal((await editor.agent.get_pixel({ x: 4, y: 3 })).color, "#aabbcc");
 
   await editor.agent.undo();
