@@ -9,15 +9,40 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const execFileAsync = promisify(execFile);
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
+const bridgeRequire = createRequire(path.join(scriptDirectory, "../agent-bridge/package.json"));
 
-async function findChromium() {
+function getChromiumCandidates(chromiumPath, playwrightPath) {
   const candidates = [
-    process.env.CHROMIUM_PATH,
+    chromiumPath,
+    playwrightPath,
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
     "/usr/bin/google-chrome",
     "/usr/bin/google-chrome-stable"
-  ].filter(Boolean);
+  ];
+  return candidates.filter((candidate, index) =>
+    typeof candidate === "string" && candidate.length > 0 &&
+    candidates.indexOf(candidate) === index
+  );
+}
+
+function getPlaywrightChromiumPath() {
+  try {
+    const playwright = bridgeRequire("playwright");
+    if (playwright.chromium && typeof playwright.chromium.executablePath === "function") {
+      return playwright.chromium.executablePath();
+    }
+  } catch (_) {
+    // Playwright is an optional source of Chromium; keep checking system paths.
+  }
+  return null;
+}
+
+async function findChromium() {
+  const candidates = getChromiumCandidates(
+    process.env.CHROMIUM_PATH,
+    getPlaywrightChromiumPath()
+  );
 
   for (const candidate of candidates) {
     try {
@@ -74,7 +99,7 @@ async function main() {
   }
 }
 
-export { extractResult };
+export { extractResult, getChromiumCandidates, findChromium };
 
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
   main().catch(error => {
