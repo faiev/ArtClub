@@ -49,7 +49,11 @@ status = studio.get_status(); // use the new revision for the next edit
 
 The direct browser API keeps `expected_revision` optional for backward compatibility, but omitting it removes stale-write protection. The local MCP bridge requires it for every document-changing tool, including layer, selection, frame, undo/redo and project-switch operations.
 
-The bridge serializes tool calls. If two agents submit edits based on the same revision, the first accepted edit advances the document revision and the later stale edit is rejected. The rejected agent must read the new status, inspect the current artwork and decide whether its planned change is still appropriate; the bridge does not automatically replay edits.
+The bridge serializes tool calls within one MCP server process. If two clients send edits through that same server using the same revision, the first accepted edit advances the document revision and the later stale edit is rejected. The rejected client must read the new status, inspect the current artwork and decide whether its planned change is still appropriate; the bridge does not automatically replay edits. This is a single-writer contract, not a distributed lock: do not run multiple bridge processes against one browser profile.
+
+Tool-handler failures return both an MCP text error and structured content with `ok: false` and `error: { tool, name, message }`. Input-schema failures may be rejected by the MCP SDK before the handler runs, so their error shape is SDK-controlled.
+
+The bridge has no hard per-operation timeout or cancellation mechanism for a page evaluation. A hung editor evaluation can hold the serialized queue; restart the bridge only after considering that an in-flight mutation may already have completed. After a disconnect, call `get_status` before attempting any retry.
 
 ## Drawing operations
 
@@ -335,6 +339,10 @@ const png = await studio.export_png();
 
 The project library uses browser-local IndexedDB. JSON export is the portable backup. PNG preview export returns base64 data for an agent to inspect.
 
+## Future animation-export integration
+
+Keep sprite-sheet and GIF encoders in standalone JavaScript modules that accept the versioned project document (or a validated project object) and return export bytes plus metadata. The browser UI and Agent API should call those same modules; the MCP bridge should expose thin wrappers around Agent API methods and return the bytes as image/resource content. Do not reimplement palette quantization, frame timing, transparency or encoding in the MCP server. This keeps one encoder implementation and avoids coupling the encoder to DOM state or MCP transport.
+
 ## Current limits
 
-The editor exposes editable layers, rectangular selection/transforms and a multi-frame timeline. Frame-aware agent commands edit the active frame's cel; real-time playback, onion skin and animation export remain outstanding.
+The editor exposes editable layers, rectangular selection/transforms and a multi-frame timeline. Frame-aware agent commands edit the active frame's cel; real-time playback and onion skin are available. Sprite-sheet and animated GIF export are not yet exposed through the Agent API or MCP bridge.
