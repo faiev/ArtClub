@@ -87,3 +87,29 @@ The canonical deliverables, file ownership, acceptance criteria and phase orderi
 - coordination/assignments/agent-10.md
 
 These are not merely suggestions: they are the current pre-authorized queues. The coordinator may reorder or suspend a phase only when a new dependency, safety concern, user decision or file conflict requires it.
+
+## Coordinator-added extension phases (2026-11-14)
+
+The following follow-on phases have been appended to the canonical assignments on `main`. Each is pre-authorized only after the owner's existing queue is complete or its earlier phases have been submitted and the new phase's own dependencies are met.
+
+| Agent | Extension | Deliverable |
+|---|---|---|
+| 1 | **AC-087** | Discoverable, deterministic runner for nested QA suites; explicit suite manifest, safe child-process invocation and machine-readable results |
+| 2 | **AC-088** | Real-Chromium workload study comparing production editor, isolated DOM renderer and isolated Canvas renderer; evidence-based adoption gates |
+| 3 | **AC-089** | Async GIF/sprite-sheet export entry points with cooperative cancellation, structured progress and byte-identical deterministic output |
+| 4 | **AC-090** | Offline, read-only local MCP bridge doctor with configuration, runtime, browser and profile-lock diagnostics |
+| 5 | **AC-091** | Professional workstation design system and high-fidelity interactive prototype, explicitly separate from production UI |
+| 6 | **AC-092** | Seeded adversarial/property-style conformance tests for guard, immutable transactions and import staging |
+| 7 | **AC-093** | Deterministic 4/8-neighbor autotile rule resolver and versioned ruleset contract |
+| 8 | **AC-094** | Opt-in CIEDE2000 perceptual palette matching with published reference-pair tests; preserve existing RGB defaults |
+| 9 | **AC-095** | Read-only exact-byte and semantic project fingerprints plus bounded duplicate detection |
+| 10 | **AC-096** | Deterministic quadratic/cubic Bézier rasterization with integer pixel output and bounded tessellation |
+
+### Sequencing and ownership
+
+- These phases do not supersede any unfinished phase in the existing queue. Agents complete their current authorized sequence first, unless a dependency requires switching to a listed independent phase.
+- AC-091 is a standalone UX prototype and design system only. It grants no production `index.html` or application CSS/JS lock.
+- AC-088 measures the current production editor and isolated renderer separately; it grants no renderer or UI integration authority.
+- AC-089 adds async/cancellation behavior only to Agent 3's exporter modules; Agent 4 retains bridge request cancellation ownership.
+- AC-087 does not authorize editing `.github/workflows/project-tests.yml`; Agent 3's AC-027 workflow lock remains until explicitly released.
+- No extension permits changes to another agent's tests/modules, project model/storage, or shared files outside the assignment's stated ownership.
