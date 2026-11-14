@@ -133,6 +133,8 @@ test("reports missing required files and bridge scripts as failures", () => {
     ));
     assert.equal(report.ci.status, "unverified");
     assert.equal(report.ci.verified, false);
+    assert.equal(report.releaseReady, false);
+    assert.equal(report.releaseStatus, "unverified");
     assert.equal(report.ci.runUrl, null);
     assert.equal(report.ci.testedSha, null);
   } finally {
