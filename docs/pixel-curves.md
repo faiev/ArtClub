@@ -19,7 +19,7 @@ Both endpoints are included when they lie inside the canvas. Each flattened chor
 - De Casteljau subdivision uses integer midpoint arithmetic. Exact half ties round away from zero. This fixed rounding policy is applied at every subdivision level.
 - Flatness is tested against the finite chord segment, not just its infinite supporting line. Every inner control point must lie within the configured perpendicular tolerance of the segment; when the projection falls outside the segment, distance to the nearest endpoint is tested. A zero-length chord uses endpoint distance.
 - Cross-product flatness comparisons use BigInt integer arithmetic, avoiding floating-point threshold instability. The tolerance is measured in fixed-point units.
-- When a chord is flat enough, both chord endpoints are rounded to the nearest integer pixel; exact half-pixel ties round away from zero. The chord is then rasterized by integer Bresenham traversal.
+- When a chord is flat enough, both chord endpoints are rounded to the nearest integer pixel; exact half-pixel ties round away from zero. The chord is then rasterized by integer major-axis sampling. Exact half ties in the minor coordinate round toward the segment endpoint; reversing or reflecting a segment therefore reflects the selected pixel as well.
 - The algorithm uses an explicit stack, pushing the right half before the left half so output traversal remains left-to-right along the supplied curve parameter. It does not rely on JavaScript recursion depth.
 
 Default options:
