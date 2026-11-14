@@ -140,25 +140,29 @@ async function run() {
         set(api) {
           const originalOpen = api.open;
           const probe = window.__safeClearSaveProbe = { active: 0, maxActive: 0, snapshots: [], storageOpened: false };
-          api.open = async function (...args) {
-            const storage = await originalOpen.apply(this, args);
-            probe.storageOpened = true;
-            const originalSave = storage.saveProject.bind(storage);
-            storage.saveProject = async function (project) {
-              probe.active += 1;
-              probe.maxActive = Math.max(probe.maxActive, probe.active);
-              const snapshot = JSON.parse(JSON.stringify(project));
-              try {
-                await new Promise(resolve => setTimeout(resolve, 400));
-                probe.snapshots.push(snapshot);
-                return await originalSave(project);
-              } finally {
-                probe.active -= 1;
-              }
-            };
-            return storage;
-          };
-          Object.defineProperty(window, "ArtClubStorage", { configurable: true, writable: true, value: api });
+          // ArtClubStorage is frozen; wrap it with a fresh object instead of
+          // assigning to the frozen API's open property.
+          const wrappedApi = Object.assign({}, api, {
+            open: async function (...args) {
+              const storage = await originalOpen.apply(api, args);
+              probe.storageOpened = true;
+              const originalSave = storage.saveProject.bind(storage);
+              storage.saveProject = async function (project) {
+                probe.active += 1;
+                probe.maxActive = Math.max(probe.maxActive, probe.active);
+                const snapshot = JSON.parse(JSON.stringify(project));
+                try {
+                  await new Promise(resolve => setTimeout(resolve, 400));
+                  probe.snapshots.push(snapshot);
+                  return await originalSave(project);
+                } finally {
+                  probe.active -= 1;
+                }
+              };
+              return storage;
+            }
+          });
+          Object.defineProperty(window, "ArtClubStorage", { configurable: true, writable: true, value: wrappedApi });
         }
       });
     });
