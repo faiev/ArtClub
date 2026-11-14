@@ -900,7 +900,7 @@ test("migration preview reports oversized input without attempting to parse or w
   const report = JSON.parse(result.stdout);
   assert.equal(report.ok, false);
   assert.equal(report.error.code, "FILE_TOO_LARGE");
-  assert.equal(report.source.byteCount, null);
+  assert.equal(report.source.byteCount, MAX_FILE_BYTES + 1);
   assert.equal(report.source.sha256, null);
   assert.equal(report.policy.outputWritten, false);
 });
