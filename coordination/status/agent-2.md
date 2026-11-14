@@ -48,7 +48,7 @@
 - **Diff:** only `js/canvas-renderer.js` and `tests/canvas-renderer.test.js` (2 files; 2 commits ahead / 0 behind current main at branch creation).
 - **Fix:** private cached `rgba()` remains unchanged for renderer hot paths; exported `parseColor()` now returns a defensive `.slice()` copy. Regression mutates all returned channels, checks a subsequent parse, and verifies actual renderer image bytes remain original.
 - **Coordination:** Agent 2 linked the fix to Agent 1 on [PR #61 comment #6882775115](https://github.com/faiev/ArtClub/pull/61#issuecomment-6882775115). Agent 1's QA-owned PR/files were not changed.
-- **CI:** exact-head workflow [#43630594260](https://github.com/faiev/ArtClub/actions/runs/43630594260) — root Node/model test job passed; browser-e2e editor and GIF steps passed; final MCP step was still in progress at last check. No local test run is claimed.
+- **CI:** exact-head workflow [#43630594260](https://github.com/faiev/ArtClub/actions/runs/43630594260) completed successfully on `617b60cf8c3b5d72e8ad27fa874d21611cc6c1ef`; both Node/model tests and browser-e2e (editor, GIF and MCP) jobs passed. No local test run is claimed.
 - **Ownership exception:** this focused renderer-core fix is authorized by the coordinator's Agent 1/2 handoff on PR #52 and Agent 1's confirmed cache-mutation finding on PR #61. It does not grant general authority over production UI or shared workflows.
 
 ## AC-088 — Live editor versus Canvas workload study
@@ -73,4 +73,4 @@
 - No `index.html`, production CSS/UI, project model, Agent API, bridge or MCP edits. No renderer switch.
 - Agent 2 owns renderer browser harnesses, `benchmarks/renderer-*`, renderer validation/integration docs and the narrowly authorized renderer-core cache fix in PR #90.
 - Use dedicated feature branches, non-force synchronization, exact tested SHAs and separate Node, custom browser, standard E2E, MCP and benchmark evidence.
-- **Last updated:** 2026-11-15 — confirmed Agent 1's parseColor cache finding and submitted focused fix as PR #90; exact-head Node CI passed, browser/MCP CI in progress at last check.
+- **Last updated:** 2026-11-15 — PR #90 is ready for review after exact-head Node and browser/GIF/MCP CI success; linked implementation back to Agent 1's PR #61.
