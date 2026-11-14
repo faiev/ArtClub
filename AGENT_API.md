@@ -63,23 +63,38 @@ await studio.draw_pixel({
 
 await studio.draw_line({
   x1: 2, y1: 2, x2: 9, y2: 2,
-  color: "#ffffff"
+  color: "#ffffff",
+  expected_revision: studio.get_status().revision
 });
 
 await studio.draw_rectangle({
   x1: 3, y1: 4, x2: 10, y2: 12,
-  color: "#53717a", filled: true
+  color: "#53717a", filled: true,
+  expected_revision: studio.get_status().revision
 });
 
 await studio.draw_ellipse({
   x1: 5, y1: 5, x2: 13, y2: 12,
-  color: "#87a7a0", filled: false
+  color: "#87a7a0", filled: false,
+  expected_revision: studio.get_status().revision
 });
 
-await studio.fill({ x: 0, y: 0, color: "#172b3a" });
-await studio.erase_pixel({ x: 4, y: 7 });
-await studio.erase_rectangle({ x1: 2, y1: 2, x2: 5, y2: 5 });
-await studio.set_color({ color: "#ffcc66" });
+await studio.fill({
+  x: 0, y: 0, color: "#172b3a",
+  expected_revision: studio.get_status().revision
+});
+await studio.erase_pixel({
+  x: 4, y: 7,
+  expected_revision: studio.get_status().revision
+});
+await studio.erase_rectangle({
+  x1: 2, y1: 2, x2: 5, y2: 5,
+  expected_revision: studio.get_status().revision
+});
+await studio.set_color({
+  color: "#ffcc66",
+  expected_revision: studio.get_status().revision
+});
 ```
 
 All drawing commands use the same pixel buffer as the on-screen editor. They therefore appear immediately in the canvas and participate in its undo/redo and autosave workflow.
@@ -95,18 +110,36 @@ const baseLayerId = status.active_layer.id;
 status = await studio.add_layer({ name: "Highlights", expected_revision: status.revision });
 const highlightLayerId = status.active_layer.id;
 
-await studio.draw_pixel({ x: 8, y: 8, color: "#f5c66d" });
+await studio.draw_pixel({
+  x: 8, y: 8, color: "#f5c66d",
+  expected_revision: studio.get_status().revision
+});
 
 status = await studio.select_layer({ layer_id: baseLayerId, expected_revision: status.revision });
-await studio.draw_line({ x1: 5, y1: 5, x2: 12, y2: 5, color: "#172b3a" });
+await studio.draw_line({
+  x1: 5, y1: 5, x2: 12, y2: 5, color: "#172b3a",
+  expected_revision: studio.get_status().revision
+});
 
 // Read the visible result after all visible layers are composited.
 const visiblePixel = studio.get_pixel({ x: 8, y: 8 });
 
-await studio.set_layer_visibility({ layer_id: highlightLayerId, visible: false });
-await studio.set_layer_locked({ layer_id: baseLayerId, locked: true });
-await studio.rename_layer({ layer_id: highlightLayerId, name: "Warm highlights" });
-await studio.move_layer({ layer_id: highlightLayerId, direction: "down" });
+await studio.set_layer_visibility({
+  layer_id: highlightLayerId, visible: false,
+  expected_revision: studio.get_status().revision
+});
+await studio.set_layer_locked({
+  layer_id: baseLayerId, locked: true,
+  expected_revision: studio.get_status().revision
+});
+await studio.rename_layer({
+  layer_id: highlightLayerId, name: "Warm highlights",
+  expected_revision: studio.get_status().revision
+});
+await studio.move_layer({
+  layer_id: highlightLayerId, direction: "down",
+  expected_revision: studio.get_status().revision
+});
 ```
 
 Available layer methods: `list_layers`, `add_layer`, `select_layer`, `set_layer_visibility`, `set_layer_locked`, `rename_layer`, `move_layer`, `duplicate_layer` and `delete_layer`.
@@ -125,22 +158,37 @@ status = await studio.set_selection({
 });
 
 // Copy/cut/paste are local editor clipboard operations.
-await studio.copy_selection();
-await studio.cut_selection();
-await studio.paste_selection();
+await studio.copy_selection({ expected_revision: studio.get_status().revision });
+await studio.cut_selection({ expected_revision: studio.get_status().revision });
+await studio.paste_selection({ expected_revision: studio.get_status().revision });
 
 // Pixel edits and fills are constrained to the selected rectangle.
-await studio.draw_pixel({ x: 6, y: 5, color: "#f5c66d" });
-await studio.move_selection({ dx: 2, dy: 0 });
+await studio.draw_pixel({
+  x: 6, y: 5, color: "#f5c66d",
+  expected_revision: studio.get_status().revision
+});
+await studio.move_selection({
+  dx: 2, dy: 0,
+  expected_revision: studio.get_status().revision
+});
 
 // Exact transforms of the selected active-layer pixels.
-await studio.transform_selection({ operation: "flip_h" });
-await studio.transform_selection({ operation: "flip_v" });
-await studio.transform_selection({ operation: "rotate_cw" });
+await studio.transform_selection({
+  operation: "flip_h",
+  expected_revision: studio.get_status().revision
+});
+await studio.transform_selection({
+  operation: "flip_v",
+  expected_revision: studio.get_status().revision
+});
+await studio.transform_selection({
+  operation: "rotate_cw",
+  expected_revision: studio.get_status().revision
+});
 // or "rotate_ccw"
 
-await studio.clear_selection();
-await studio.deselect();
+await studio.clear_selection({ expected_revision: studio.get_status().revision });
+await studio.deselect({ expected_revision: studio.get_status().revision });
 ```
 
 Available selection methods: `set_selection`, `select_all`, `copy_selection`, `cut_selection`, `paste_selection`, `clear_selection`, `deselect`, `move_selection` and `transform_selection`.
@@ -162,30 +210,46 @@ const added = await studio.add_frame({
 });
 const walkFrameId = added.active_frame.id;
 
-await studio.draw_pixel({ x: 8, y: 8, color: "#f5c66d" });
+await studio.draw_pixel({
+  x: 8, y: 8, color: "#f5c66d",
+  expected_revision: studio.get_status().revision
+});
 
-await studio.select_frame({ frame_id: originalFrameId });
-await studio.select_frame({ frame_id: walkFrameId });
+await studio.select_frame({
+  frame_id: originalFrameId,
+  expected_revision: studio.get_status().revision
+});
+await studio.select_frame({
+  frame_id: walkFrameId,
+  expected_revision: studio.get_status().revision
+});
 
 // Duplicate the frame and all of its layer cels.
 const copy = await studio.duplicate_frame({
   frame_id: walkFrameId,
-  name: "Walk 2 copy"
+  name: "Walk 2 copy",
+  expected_revision: studio.get_status().revision
 });
 
 await studio.set_frame_duration({
   frame_id: copy.active_frame.id,
-  duration_ms: 180
+  duration_ms: 180,
+  expected_revision: studio.get_status().revision
 });
 await studio.rename_frame({
   frame_id: copy.active_frame.id,
-  name: "Walk 2 contact pose"
+  name: "Walk 2 contact pose",
+  expected_revision: studio.get_status().revision
 });
 await studio.move_frame({
   frame_id: copy.active_frame.id,
-  direction: "up"
+  direction: "up",
+  expected_revision: studio.get_status().revision
 });
-await studio.delete_frame({ frame_id: copy.active_frame.id });
+await studio.delete_frame({
+  frame_id: copy.active_frame.id,
+  expected_revision: studio.get_status().revision
+});
 
 const frames = studio.list_frames();
 ```
@@ -260,7 +324,10 @@ await studio.import_project({
 });
 
 const savedProjects = await studio.list_projects();
-await studio.open_project({ project_id: savedProjects[0].id });
+await studio.open_project({
+  project_id: savedProjects[0].id,
+  expected_revision: studio.get_status().revision
+});
 
 const png = await studio.export_png();
 // { mime_type, width, height, data_base64 }
