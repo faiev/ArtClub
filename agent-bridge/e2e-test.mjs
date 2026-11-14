@@ -117,12 +117,17 @@ async function run() {
     const listAfterFirstSave = await page.evaluate(() => window.onePixelStudio.list_projects());
     assert.ok(listAfterFirstSave.some(project => project.id === firstProjectId));
 
-    page.once("dialog", dialog => dialog.accept());
     await page.locator("#newProjectBtn").click();
+    await page.locator("#canvasWidthInput").fill("32");
+    await page.locator("#canvasHeightInput").fill("48");
+    await page.locator("#confirmCanvasDialog").click();
     await page.waitForFunction(
       previousId => window.onePixelStudio.get_status().project_id !== previousId,
       firstProjectId
     );
+    const rectangularStatus = await page.evaluate(() => window.onePixelStudio.get_status());
+    assert.equal(rectangularStatus.canvas.width, 32);
+    assert.equal(rectangularStatus.canvas.height, 48);
     await page.evaluate(() => window.onePixelStudio.save());
     const projects = await page.evaluate(() => window.onePixelStudio.list_projects());
     assert.ok(projects.length >= 2, "creating a new project should keep the previous one in IndexedDB");
