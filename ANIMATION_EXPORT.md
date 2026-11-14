@@ -8,7 +8,7 @@ Art Club's v2 project document already stores animation frames, per-frame durati
 - Export the visible composite by default, or an explicit set of layer IDs (including hidden layers).
 - Preserve the document's bottom-to-top layer order when compositing.
 - Arrange frames horizontally, vertically or in a grid.
-- Configure grid columns, outer margin and inter-frame spacing.
+- Configure grid rows and/or columns, outer margin and inter-frame spacing. Rows-only derives columns; columns-only derives rows; fixed rows × columns must fit the selected frames, with unused cells left empty or filled with the configured background.
 - Keep transparency by default, or specify an opaque #RRGGBB background.
 - Preserve every frame's original duration in JSON metadata.
 - Write PNG pixels with ImageData and putImageData at native resolution. No scaling, smoothing, palette remapping or interpolation is performed.
@@ -64,7 +64,8 @@ Builds a native-resolution RGBA buffer and frame rectangle list. This is useful 
 | frameIds | all frames in project order | Non-empty, unique frame ID array; supplied order becomes export order |
 | layerIds | visible layers | Non-empty, unique layer ID array; chosen layers are composited in document order |
 | layout | horizontal | horizontal, vertical or grid |
-| columns | ceil(sqrt(frameCount)) for grid | Grid column count; horizontal and vertical layouts determine columns automatically |
+| columns | ceil(sqrt(frameCount)) for grid | Grid column count. With rows only, columns are derived from selected frame count. Horizontal/vertical layouts determine columns automatically. |
+| rows | derived from frameCount / columns | Optional grid row count. When both rows and columns are supplied, rows × columns must fit every selected frame; extra cells remain unused. Valid only for grid layout. |
 | margin | 0 | Transparent/filled outer margin in pixels |
 | spacing | 0 | Gap between frame cells in pixels |
 | backgroundColor | null | Transparent background, or a valid #RRGGBB fill |
@@ -74,7 +75,7 @@ The returned sheet contains width, height, frameWidth, frameHeight, layout infor
 
 ### buildMetadata(sheet, imageFilename)
 
-Creates JSON-compatible metadata in the one-pixel-studio-sprite-sheet format, version 1. Each entry in frames contains index, frameId, name, x, y, width, height and durationMs. Coordinates describe the top-left corner of that frame's rectangle in the PNG.
+Creates JSON-compatible metadata in the `one-pixel-studio-sprite-sheet` format, schema version 1. Each `frames` entry contains zero-based output index, source `frameId` and `name`, exact integer PNG `x`/`y`/`width`/`height` rectangle, and original `durationMs`. Frame-array order is the requested export order. `layout.rows` and `layout.columns` describe the complete packing grid, including unused cells in a partially filled explicit grid. The metadata object is plain JSON and round-trips through `JSON.stringify`/`JSON.parse` without changing the contract.
 
 Example output (illustrative IDs, names and timings):
 
@@ -121,8 +122,8 @@ Run the real-browser PNG verification after installing the Playwright dependency
     cd agent-bridge && npm install --ignore-scripts && cd ..
     node tests/sprite-sheet-export.browser.mjs
 
-The Playwright runner opens `tests/sprite-sheet-export.browser.html` in headless Chromium. The browser exports a deterministic three-frame PNG in grid, horizontal and vertical layouts and decodes each actual Blob using `createImageBitmap`; every RGBA byte is compared against independent expected rasters. It checks the 7×7 grid's PNG signature and dimensions, transparent margins/gutters/cells, explicit frame ordering, row/column layout and JSON frame metadata (IDs, names, rectangles and durations). Additional decoded cases cover horizontal/vertical native dimensions and an explicit background color filling margins, gutters and transparent source pixels. Invalid 513px canvas dimensions, a too-small output-pixel budget and malformed HEX cel data must be rejected.
+The Playwright runner opens `tests/sprite-sheet-export.browser.html` in headless Chromium. The browser exports deterministic PNGs in grid, horizontal and vertical layouts and decodes each actual Blob using `createImageBitmap`; every RGBA byte is compared against independent expected rasters. It checks the 7×7 grid's PNG signature and dimensions, transparent margins/gutters/cells, explicit frame ordering, rectangles and JSON frame metadata (IDs, names, rectangles and durations). Additional decoded cases cover horizontal/vertical native dimensions and an explicit background color filling margins, gutters and transparent source pixels. Invalid 513px canvas dimensions, a too-small output-pixel budget and malformed HEX cel data must be rejected. The shared Actions workflow now runs this browser runner after the GIF decoder test.
 
-The browser page/runner are prepared as a standalone command. The shared `.github/workflows/project-tests.yml` browser step remains unchanged while its PR #11 workflow lock is active; wire this runner into CI only after PR #11 merges and the coordinator releases that file lock.
+The browser page/runner are also executed by the shared `.github/workflows/project-tests.yml` workflow. Current-head CI verifies the editor browser suite, GIF decoder, sprite-sheet PNG decoder and MCP E2E as separate steps.
 
-The unit tests cover exact RGBA buffer output, visible/selected layer compositing, frame ordering and durations, all three layouts, margin/spacing metadata, transparency/background color, validation and the canvas PNG encoding path.
+The unit tests cover exact RGBA buffer output, visible/selected layer compositing, frame ordering and durations, all three layouts, explicit rows/columns packing, margin/spacing metadata, unused-cell transparency, JSON metadata round trips, transparency/background color, validation and the canvas PNG encoding path.
