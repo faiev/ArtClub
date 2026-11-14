@@ -1,0 +1,31 @@
+name: Project model tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "js/**"
+      - "tests/**"
+      - ".github/workflows/project-tests.yml"
+  pull_request:
+    paths:
+      - "js/**"
+      - "tests/**"
+      - ".github/workflows/project-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run project model tests
+        run: node --test tests/project-model.test.js
