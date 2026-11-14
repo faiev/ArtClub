@@ -97,7 +97,15 @@
     return new ProjectStorage(db, model);
   };
 
-  ProjectStorage.prototype.saveProject = async function (project) {
+  let commitSequence = 0;
+  function newCommitToken() {
+    const cryptoObject = root && root.crypto;
+    if (cryptoObject && typeof cryptoObject.randomUUID === "function") return cryptoObject.randomUUID();
+    commitSequence += 1;
+    return String(Date.now()) + ":" + String(commitSequence) + ":" + String(Math.random()).slice(2);
+  }
+
+  ProjectStorage.prototype.saveProject = async function (project, expectedRevision) {
     const copy = this.model.cloneProject(project);
     const now = new Date().toISOString();
     copy.metadata = copy.metadata || {};
@@ -112,8 +120,13 @@
       data: copy
     };
 
-    const hasExpected = this.revisions.has(copy.id);
-    const expectedRevision = hasExpected ? this.revisions.get(copy.id) : 0;
+    const hasCachedRevision = this.revisions.has(copy.id);
+    const expected = Number.isSafeInteger(expectedRevision)
+      ? expectedRevision
+      : (hasCachedRevision ? this.revisions.get(copy.id) : 0);
+    if (!Number.isSafeInteger(expected) || expected < 0) {
+      throw new TypeError("expectedRevision must be a non-negative safe integer.");
+    }
     const tx = this.db.transaction([PROJECTS, RECOVERY], "readwrite");
     const projects = tx.objectStore(PROJECTS);
     const recovery = tx.objectStore(RECOVERY);
@@ -127,8 +140,8 @@
     previousRequest.onsuccess = function () {
       const previous = previousRequest.result || null;
       const actualRevision = revisionOf(previous);
-      if (actualRevision !== expectedRevision) {
-        failure = conflictError(copy.id, expectedRevision, actualRevision);
+      if (actualRevision !== expected) {
+        failure = conflictError(copy.id, expected, actualRevision);
         try { tx.abort(); } catch (_) {}
         return;
       }
@@ -139,13 +152,14 @@
         if (previous && previous.data && sameProjectContent(projectModel, copy, previous.data)) {
           savedRecord = previous;
           receipt = Object.freeze({ projectId: copy.id, committedRevision: actualRevision, noOp: true });
-          this.revisions.set(copy.id, actualRevision);
           return;
         }
 
         const nextRevision = actualRevision + 1;
+        const commitToken = newCommitToken();
         record.revision = nextRevision;
-        receipt = Object.freeze({ projectId: copy.id, committedRevision: nextRevision });
+        record.commitToken = commitToken;
+        receipt = Object.freeze({ projectId: copy.id, committedRevision: nextRevision, commitToken: commitToken });
         this.rollbackReceipts.set(receipt, {
           previous: previous,
           previousRecovery: previousRecovery,
@@ -161,7 +175,6 @@
         }
         projects.put(record);
         savedRecord = record;
-        this.revisions.set(copy.id, nextRevision);
       }.bind(this);
       recoveryRequest.onerror = function () {
         failure = recoveryRequest.error || new Error("Could not read the project recovery snapshot.");
@@ -176,6 +189,8 @@
     try { await done; }
     catch (error) { throw failure || error; }
     if (failure) throw failure;
+    if (!savedRecord) throw new Error("The project save transaction completed without a saved record.");
+    this.revisions.set(copy.id, revisionOf(savedRecord));
     return {
       id: savedRecord.id,
       name: savedRecord.name,
@@ -188,8 +203,9 @@
   };
 
   ProjectStorage.prototype.restoreIfCurrent = async function (receipt) {
+    if (receipt && receipt.noOp) return true;
     const snapshot = receipt && this.rollbackReceipts.get(receipt);
-    if (!snapshot || receipt.noOp) {
+    if (!snapshot) {
       throw new Error("The rollback receipt is invalid, expired, or belongs to another storage session.");
     }
     const projectId = receipt.projectId;
@@ -202,7 +218,8 @@
     currentRequest.onsuccess = function () {
       const current = currentRequest.result || null;
       const actualRevision = revisionOf(current);
-      if (!current || actualRevision !== receipt.committedRevision) {
+      if (!current || actualRevision !== receipt.committedRevision ||
+          current.commitToken !== receipt.commitToken) {
         failure = conflictError(projectId, receipt.committedRevision, actualRevision);
         try { tx.abort(); } catch (_) {}
         return;
@@ -285,6 +302,7 @@
     tx.objectStore(PROJECTS).delete(id);
     tx.objectStore(RECOVERY).delete(id);
     await done;
+    this.revisions.delete(id);
   };
 
   ProjectStorage.prototype.close = function () {
