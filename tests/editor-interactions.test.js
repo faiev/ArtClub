@@ -454,6 +454,66 @@ test("timeline UI can switch frames and change frame duration", async () => {
   assert.equal(editor.document.getElementById("frameList").children.length, 2);
 });
 
+test("onion skin marks previous and next frame pixels without changing artwork", async () => {
+  const editor = await bootEditor();
+  await editor.agent.draw_pixel({ x: 1, y: 1, color: "#ff0000" });
+  const firstFrame = editor.agent.get_status().active_frame.id;
+  const second = await editor.agent.add_frame({ name: "Middle" });
+  const secondFrame = second.active_frame.id;
+  const third = await editor.agent.add_frame({ name: "Last" });
+  await editor.agent.draw_pixel({ x: 3, y: 3, color: "#0000ff" });
+  await editor.agent.select_frame({ frame_id: secondFrame });
+  await editor.agent.set_onion_skin({ enabled: true });
+
+  assert.equal((await editor.agent.get_pixel({ x: 1, y: 1 })).color, null);
+  assert.equal((await editor.agent.get_pixel({ x: 3, y: 3 })).color, null);
+  assert.equal(editor.cell(1 * 24 + 1).classList.contains("onion-before"), true);
+  assert.equal(editor.cell(3 * 24 + 3).classList.contains("onion-after"), true);
+
+  await editor.agent.draw_pixel({ x: 1, y: 1, color: "#00ff00" });
+  assert.equal(editor.cell(1 * 24 + 1).classList.contains("onion-before"), false);
+  assert.equal((await editor.agent.get_pixel({ x: 1, y: 1 })).color, "#00ff00");
+  assert.notEqual(firstFrame, third.active_frame.id);
+});
+
+test("playback preview does not change the editing frame and blocks drawing until paused", async () => {
+  const editor = await bootEditor();
+  const firstFrame = editor.agent.get_status().active_frame.id;
+  const second = await editor.agent.add_frame({ name: "Preview frame", duration_ms: 40 });
+  const editingFrame = second.active_frame.id;
+  await editor.agent.set_playback_mode({ mode: "pingpong" });
+  await editor.agent.set_onion_skin({ enabled: true });
+
+  const playing = await editor.agent.play();
+  assert.equal(playing.playback.playing, true);
+  assert.equal(playing.playback.mode, "pingpong");
+  assert.equal(playing.active_frame.id, editingFrame);
+  assert.equal(editor.document.getElementById("playBtn").textContent, "Pause");
+  assert.throws(
+    () => editor.agent.draw_pixel({ x: 4, y: 4, color: "#ff00ff" }),
+    /Pause animation preview/
+  );
+
+  const paused = await editor.agent.pause();
+  assert.equal(paused.playback.playing, false);
+  assert.equal(paused.playback.previewing, true);
+  assert.equal(paused.active_frame.id, editingFrame);
+
+  const stopped = await editor.agent.stop_playback();
+  assert.equal(stopped.playback.previewing, false);
+  assert.equal(stopped.playback.onion_skin, true);
+  assert.equal(stopped.active_frame.id, editingFrame);
+
+  await editor.agent.play();
+  await editor.agent.pause();
+  // A paused preview is safe to leave: the next edit returns to the selected frame.
+  await editor.agent.draw_pixel({ x: 4, y: 4, color: "#00ffff" });
+  assert.equal((await editor.agent.get_pixel({ x: 4, y: 4 })).color, "#00ffff");
+  assert.equal(editor.agent.get_status().playback.previewing, false);
+  await editor.agent.select_frame({ frame_id: firstFrame });
+  assert.equal(editor.agent.get_status().active_frame.id, firstFrame);
+});
+
 test("brush paints on pointer down and commits the stroke", async () => {
   const editor = await bootEditor();
   editor.grid.emit("pointerdown", { target: editor.cell(0), pointerId: 1, clientX: 1, clientY: 1 });
