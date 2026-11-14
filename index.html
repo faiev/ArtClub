@@ -492,7 +492,7 @@ function activeLayer(){
 }
 function isActiveLayerEditable(){
   const layer=activeLayer();
-  return Boolean(layer&&!layer.locked);
+  return Boolean(layer&&!layer.locked&&layer.visible);
 }
 function layerPixels(layer){
   if(!projectDoc||!layer)return null;
@@ -985,7 +985,7 @@ function getAgentStatus(){
     revision:documentRevision,
     human_stroke_in_progress:drawing,
     history:{can_undo:undoStack.length>0,can_redo:redoStack.length>0},
-    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","draw_ellipse","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png"]
+    capabilities:["get_status","get_canvas","get_pixel","get_palette","draw_pixel","draw_line","draw_rectangle","draw_ellipse","fill","erase_pixel","erase_rectangle","clear_canvas","set_color","execute","undo","redo","save","export_project","import_project","list_projects","open_project","export_png","layers"]
   };
 }
 function getAgentCanvas(options){
@@ -1227,7 +1227,8 @@ function download(name,type,content){
 function canvasFromPixels(scale){
   const c=document.createElement("canvas");c.width=w*scale;c.height=h*scale;
   const ctx=c.getContext("2d");ctx.imageSmoothingEnabled=false;
-  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const col=pixels[y*w+x];if(col){ctx.fillStyle=col;ctx.fillRect(x*scale,y*scale,scale,scale)}}
+  const visiblePixels=compositePixels();
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const col=visiblePixels[y*w+x];if(col){ctx.fillStyle=col;ctx.fillRect(x*scale,y*scale,scale,scale)}}
   return c;
 }
 function safeFilename(){
@@ -1239,7 +1240,7 @@ function exportPNG(scale){
 }
 $("pngBtn").addEventListener("click",()=>exportPNG(1));$("scaledBtn").addEventListener("click",()=>exportPNG(16));
 $("svgBtn").addEventListener("click",()=>{
-  const shapes=[];for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=pixels[y*w+x];if(c)shapes.push('<rect x="'+x+'" y="'+y+'" width="1" height="1" fill="'+c+'"/>')}
+  const visiblePixels=compositePixels(),shapes=[];for(let y=0;y<h;y++)for(let x=0;x<w;x++){const c=visiblePixels[y*w+x];if(c)shapes.push('<rect x="'+x+'" y="'+y+'" width="1" height="1" fill="'+c+'"/>')}
   const svg='<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" shape-rendering="crispEdges">\n'+shapes.join("\n")+'\n</svg>';
   download(safeFilename()+"-"+w+"x"+h+".svg","image/svg+xml;charset=utf-8",svg);toast("Crisp vector SVG exported.");
 });
