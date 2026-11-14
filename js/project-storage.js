@@ -79,6 +79,13 @@
     return record && Number.isSafeInteger(record.revision) ? record.revision : 0;
   }
 
+  function revisionTokenOf(record) {
+    return {
+      revision: revisionOf(record),
+      commitToken: record && typeof record.commitToken === "string" ? record.commitToken : null
+    };
+  }
+
   function conflictError(projectId, expected, actual) {
     const error = new Error("This project was saved in another tab. Reload it before saving again.");
     error.name = "ProjectRevisionConflictError";
@@ -120,10 +127,9 @@
       data: copy
     };
 
-    const hasCachedRevision = this.revisions.has(copy.id);
-    const expected = Number.isSafeInteger(expectedRevision)
-      ? expectedRevision
-      : (hasCachedRevision ? this.revisions.get(copy.id) : 0);
+    const cachedToken = this.revisions.get(copy.id) || { revision: 0, commitToken: null };
+    const expected = Number.isSafeInteger(expectedRevision) ? expectedRevision : cachedToken.revision;
+    const expectedCommitToken = expected === cachedToken.revision ? cachedToken.commitToken : null;
     if (!Number.isSafeInteger(expected) || expected < 0) {
       throw new TypeError("expectedRevision must be a non-negative safe integer.");
     }
@@ -140,7 +146,8 @@
     previousRequest.onsuccess = function () {
       const previous = previousRequest.result || null;
       const actualRevision = revisionOf(previous);
-      if (actualRevision !== expected) {
+      const actualCommitToken = previous && typeof previous.commitToken === "string" ? previous.commitToken : null;
+      if (actualRevision !== expected || actualCommitToken !== expectedCommitToken) {
         failure = conflictError(copy.id, expected, actualRevision);
         try { tx.abort(); } catch (_) {}
         return;
@@ -190,7 +197,7 @@
     catch (error) { throw failure || error; }
     if (failure) throw failure;
     if (!savedRecord) throw new Error("The project save transaction completed without a saved record.");
-    this.revisions.set(copy.id, revisionOf(savedRecord));
+    this.revisions.set(copy.id, revisionTokenOf(savedRecord));
     return {
       id: savedRecord.id,
       name: savedRecord.name,
@@ -236,7 +243,7 @@
     try { await done; }
     catch (error) { throw failure || error; }
     this.rollbackReceipts.delete(receipt);
-    if (snapshot.previous) this.revisions.set(projectId, snapshot.previousRevision);
+    if (snapshot.previous) this.revisions.set(projectId, revisionTokenOf(snapshot.previous));
     else this.revisions.delete(projectId);
     return true;
   };
@@ -271,7 +278,7 @@
       this.revisions.delete(id);
       return null;
     }
-    this.revisions.set(id, revisionOf(record));
+    this.revisions.set(id, revisionTokenOf(record));
     return this.model.deserializeProject(record.data);
   };
 
