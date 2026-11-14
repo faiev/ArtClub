@@ -54,6 +54,13 @@
     if (points.length > MAX_PIXELS) {
       throw new RangeError("stroke contains too many points.");
     }
+    // Array iteration methods skip holes. Reject every missing own slot before map()
+    // so malformed strokes cannot be silently shortened.
+    for (let index = 0; index < points.length; index += 1) {
+      if (!Object.prototype.hasOwnProperty.call(points, index)) {
+        throw new TypeError("point " + index + " must be an own array entry.");
+      }
+    }
     return points.map(function (point, index) {
       if (!point || typeof point !== "object" || Array.isArray(point) ||
           !Number.isSafeInteger(point.x) || !Number.isSafeInteger(point.y)) {
