@@ -99,3 +99,6 @@ This is a focused QA review alongside AC-087, not a replacement for the assigned
 **Boundaries:** review only. Do not modify `index.html`, `agent-bridge/e2e-test.mjs`, Agent 4's MCP E2E, or `.github/workflows/project-tests.yml`. If fixes or additional coverage are required, report exact files and let the coordinator assign the single-writer change.
 
 Update `coordination/status/agent-1.md` with exact head, browser evidence, results for all 12 flows, and the remaining blockers.
+
+## Coordinator restart directive — 2026-11-15
+Reconcile PRs #1/#25/#32/#36/#42/#57/#61/#66 with exact current heads, bases, dependencies, changed files and exact-head CI. Add QA coverage under tests/qa/ui02/** and tests/fixtures/qa/** for active-cel Clear, selection Clear, staged image import and atomic paste. Include hidden/locked/zero-opacity, missing/stale target, malformed input, partial paste and save-failure cases. Compare project JSON, pixels, history and storage before/after denials. Review coordinator UI-02 PR. No index.html, model/storage, bridge E2E or workflow edits.

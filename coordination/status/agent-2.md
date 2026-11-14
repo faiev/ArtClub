@@ -1,13 +1,13 @@
 # Status — Agent 2
 
-## Current resume snapshot — 2026-11-15
+## Current resume snapshot — 2026-11-15 (renderer cache fix submitted)
 
 - **Coordination source:** `main` at `9296ca08e1e8143bb5b82c0ad48608e9c9a0b344` (verified from the live branch ref).
 - **Current focus:** post-release viewport review for UI-01 is submitted; AC-088 exists only as an incomplete two-lane scaffold and is not ready for review.
 - **UI-01 specialist review:** PR #84 is merged as `e22ddb35ebf802b3b719e74a7329effceab28747`. Agent 2 posted post-merge follow-up comment [#6882601604](https://github.com/faiev/ArtClub/pull/84#issuecomment-6882601604).
 - **Review finding (source-level, not browser-confirmed):** `applyZoom()` in `index.html` computes both inline dimensions using wrapper width only; the final `#pixelGrid` rule independently constrains max-width and max-height. A short wrapper can therefore clamp height without recalculating width, risking aspect-ratio distortion at 1280×800 and for portrait/square canvases. No resize observer/window resize handler was found to rerun `applyZoom()`. Existing pointer handling remains cell-target based via `getCell()`; no Canvas renderer switch was introduced.
 - **Verification limitation:** this session did not run Chromium or inspect a live screenshot. A local clone failed because `github.com` could not be resolved; the Pages URL was not accessible through the page viewer. The PR comment labels the sizing issue as a risk to reproduce, not an observed browser failure.
-- **Production files changed by Agent 2:** none.
+- **Production files changed by Agent 2:** `js/canvas-renderer.js` only in the isolated renderer core (not production `index.html`); see PR #90 below.
 
 ## Completed phases and PR ledger
 
@@ -43,6 +43,14 @@
 - Historical exact-head workflow #747 passed 243 Node/model tests and the standard editor Chromium/GIF/MCP jobs on the recorded PR head. The standalone demo has separate historical Chromium DPR/fallback evidence; workflow #747 did not execute that demo.
 - Recommendation remains defer production Canvas replacement; DOM renderer stays active until end-to-end parity, input, accessibility, lifecycle and fallback gates pass.
 
+### Renderer cache-mutation fix — AC-028/renderer correctness follow-up
+- **PR #90:** [draft fix](https://github.com/faiev/ArtClub/pull/90), branch `agent/renderer-parsecolor-defensive-api` @ `617b60cf8c3b5d72e8ad27fa874d21611cc6c1ef`.
+- **Diff:** only `js/canvas-renderer.js` and `tests/canvas-renderer.test.js` (2 files; 2 commits ahead / 0 behind current main at branch creation).
+- **Fix:** private cached `rgba()` remains unchanged for renderer hot paths; exported `parseColor()` now returns a defensive `.slice()` copy. Regression mutates all returned channels, checks a subsequent parse, and verifies actual renderer image bytes remain original.
+- **Coordination:** Agent 2 linked the fix to Agent 1 on [PR #61 comment #6882775115](https://github.com/faiev/ArtClub/pull/61#issuecomment-6882775115). Agent 1's QA-owned PR/files were not changed.
+- **CI:** exact-head workflow [#43630594260](https://github.com/faiev/ArtClub/actions/runs/43630594260) completed successfully on `617b60cf8c3b5d72e8ad27fa874d21611cc6c1ef`; both Node/model tests and browser-e2e (editor, GIF and MCP) jobs passed. No local test run is claimed.
+- **Ownership exception:** this focused renderer-core fix is authorized by the coordinator's Agent 1/2 handoff on PR #52 and Agent 1's confirmed cache-mutation finding on PR #61. It does not grant general authority over production UI or shared workflows.
+
 ## AC-088 — Live editor versus Canvas workload study
 
 - **Branch:** `agent/live-editor-canvas-workload-study` @ `522b9432dee1f0196234e46578c42c7087bc1489`.
@@ -53,16 +61,16 @@
 
 ## Next 3–5 authorized actions
 
-1. Ask the UI integrator to reproduce or correct the UI-01 aspect-ratio/resize concern from PR #84; provide read-only viewport/pointer review on the resulting exact production candidate.
-2. When UI-03 navigation wiring is opened, review cursor/viewport geometry and DPR/pointer behavior without changing production UI ownership.
-3. Before any review request, reconcile AC-028 (#18), AC-036 (#52) and AC-037 (#73) branches against latest `main`; their recorded evidence is historical and they are 105–209 commits behind.
-4. Keep AC-038 PR #75 draft until it is synchronized to latest main and its standalone demo runner is revalidated on the exact head.
-5. Resume AC-088 after the coordinator's production-integration priority permits it: add a genuine production-editor E2E lane, reproducible Node Playwright runner, raw repeated samples, and an evidence-based adoption report. Do not change `index.html`, the shared workflow, renderer core or project model.
+1. Recheck exact-head PR #90 workflow #43630594260; request review and keep it draft until CI and coordinator review are complete.
+2. Keep Agent 1's PR #61 coordinated with PR #90; verify the QA TODO is resolved by the merged public API behavior after acceptance.
+3. Ask the UI integrator to reproduce or correct the UI-01 aspect-ratio/resize concern from PR #84; provide read-only viewport/pointer review on the resulting exact production candidate.
+4. When UI-03 navigation wiring is opened, review cursor/viewport geometry and DPR/pointer behavior without changing production UI ownership.
+5. Reconcile AC-028 (#18), AC-036 (#52), AC-037 (#73) and AC-038 (#75) only when the next review/merge window is assigned; their recorded exact-head evidence is stale and the branches are 30–209 commits behind.
 
 ## Shared constraints
 
 - Agent 3 owns `.github/workflows/project-tests.yml` for AC-027; do not edit it without explicit release.
 - No `index.html`, production CSS/UI, project model, Agent API, bridge or MCP edits. No renderer switch.
-- Agent 2 may edit only renderer browser harnesses, `benchmarks/renderer-*` and renderer validation/integration docs.
+- Agent 2 owns renderer browser harnesses, `benchmarks/renderer-*`, renderer validation/integration docs and the narrowly authorized renderer-core cache fix in PR #90.
 - Use dedicated feature branches, non-force synchronization, exact tested SHAs and separate Node, custom browser, standard E2E, MCP and benchmark evidence.
-- **Last updated:** 2026-11-15 — UI-01 specialist review follow-up posted; AC-088 branch audited as incomplete and stale.
+- **Last updated:** 2026-11-15 — PR #90 is ready for review after exact-head Node and browser/GIF/MCP CI success; linked implementation back to Agent 1's PR #61.
