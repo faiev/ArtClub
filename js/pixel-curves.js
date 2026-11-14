@@ -178,38 +178,64 @@
       : Math.floor((value + FIXED_SCALE / 2) / FIXED_SCALE);
   }
 
-  function rasterizeIntegerLine(x0, y0, x1, y1, width, height, output, seen) {
-    const dx = Math.abs(x1 - x0);
-    const sx = x0 < x1 ? 1 : -1;
-    const dyAbs = Math.abs(y1 - y0);
-    const dy = -dyAbs;
-    const sy = y0 < y1 ? 1 : -1;
-    const steps = Math.max(dx, dyAbs) + 1;
+  function roundRatioTowardDirection(numerator, denominator, direction) {
+    const lower = Math.floor(numerator / denominator);
+    const remainder = numerator - lower * denominator;
+    const doubled = remainder * 2;
+    if (doubled > denominator) return lower + 1;
+    if (doubled < denominator) return lower;
+    // At exact half ties, round toward the segment endpoint. Reversing or
+    // reflecting a segment therefore reflects the selected pixel as well.
+    return direction > 0 ? lower + 1 : lower;
+  }
 
-    let error = dx + dy;
-    let x = x0;
-    let y = y0;
-    for (let i = 0; i < steps; i += 1) {
-      if (x >= 0 && y >= 0 && x < width && y < height) {
-        const key = x + "," + y;
-        if (!seen.has(key)) {
-          seen.add(key);
-          output.push({ x, y });
+  function rasterizeIntegerLine(x0, y0, x1, y1, width, height, output, seen) {
+    const deltaX = x1 - x0;
+    const deltaY = y1 - y0;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    const steps = Math.max(absX, absY) + 1;
+
+    if (absX >= absY && absX > 0) {
+      for (let i = 0; i <= absX; i += 1) {
+        const x = x0 + (deltaX > 0 ? i : -i);
+        const numerator = y0 * absX + deltaY * i;
+        const y = roundRatioTowardDirection(numerator, absX, deltaY);
+        if (x >= 0 && y >= 0 && x < width && y < height) {
+          const key = x + "," + y;
+          if (!seen.has(key)) {
+            seen.add(key);
+            output.push({ x, y });
+          }
         }
       }
-      if (x === x1 && y === y1) break;
+      return steps;
+    }
 
-      const twiceError = 2 * error;
-      if (twiceError >= dy) {
-        error += dy;
-        x += sx;
+    if (absY > 0) {
+      for (let i = 0; i <= absY; i += 1) {
+        const y = y0 + (deltaY > 0 ? i : -i);
+        const numerator = x0 * absY + deltaX * i;
+        const x = roundRatioTowardDirection(numerator, absY, deltaX);
+        if (x >= 0 && y >= 0 && x < width && y < height) {
+          const key = x + "," + y;
+          if (!seen.has(key)) {
+            seen.add(key);
+            output.push({ x, y });
+          }
+        }
       }
-      if (twiceError <= dx) {
-        error += dx;
-        y += sy;
+      return steps;
+    }
+
+    if (x0 >= 0 && y0 >= 0 && x0 < width && y0 < height) {
+      const key = x0 + "," + y0;
+      if (!seen.has(key)) {
+        seen.add(key);
+        output.push({ x: x0, y: y0 });
       }
     }
-    return steps;
+    return 1;
   }
 
   function rasterizeBezier(controlPoints, degree, options) {
