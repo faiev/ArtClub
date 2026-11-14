@@ -25,7 +25,7 @@ const REQUIRED_FILES = [
   "tests/qa/browser/project-lifecycle.mjs",
   "tests/qa/release/qa-release-check.test.js",
   "tests/qa/renderer/canvas-renderer-contract.test.js",
-  "tests/qa/runner/run-qa.test.mjs",
+  "tests/qa/runner/run-qa.test.mjs",\n  "tests/qa/runner/verify-qa-runner-ci.mjs",
   "tools/run-qa.mjs",
   "docs/QA_MATRIX.md",
   "docs/RELEASE_CHECKLIST.md",
@@ -61,7 +61,7 @@ const REQUIRED_QA_COMMANDS = [
   "node --test tests/qa/release/qa-release-check.test.js",
   "node --test tests/qa/renderer/canvas-renderer-contract.test.js",
   "node --test tests/qa/runner/run-qa.test.mjs",
-  "node tools/run-qa.mjs --suite all",
+  "node tools/run-qa.mjs --suite all",\n  "node tests/qa/runner/verify-qa-runner-ci.mjs",
   "node tools/run-qa.mjs --suite browser --include-browser",
   "node tests/qa/browser/project-lifecycle.mjs"
 ];
