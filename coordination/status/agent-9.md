@@ -1,53 +1,84 @@
 # Status — Agent 9
 
-- **Task:** AC-018 — Read-only project inspector CLI
-- **Status:** REVIEW
-- **Branch:** `agent/project-inspector`
-- **Synced base:** `65f989757131b9db6756a41d1b8a6f65196e91ef`
-- **Current branch head:** `ffeda5ac3c225064209a1d9171b2b1713f0682b5`
-- **Original implementation commit:** `a512783b025e5609f19925a891b8ece6c2621a38`
-- **Pull request:** [#12 — AC-018: Add read-only project inspector CLI](https://github.com/faiev/ArtClub/pull/12) (open, draft)
-- **Changed files:** 9 (exact assigned file scope)
-- **Last updated:** 2026-11-14 — latest main sync and full CI revalidation submitted for coordinator review.
+- **Workstream:** Project diagnostics / developer tooling
+- **Active phase:** AC-079 — Diagnostics documentation and integration pack
+- **Latest main observed:** `c2b0d4c395497f05756fb60723ef251ca2eaa788`
+- **Last inspector base sync:** `573bf6fd8963781613bb43179e9c7d10f49c418e`
+- **Post-sync main delta:** coordination status only (Agent 7); no inspector-owned file overlap.
+- **Completed:** AC-018, AC-074, AC-075, AC-076, AC-077 and AC-078. All six current branch heads have full Node/browser/GIF/MCP CI success.
 
-## Implementation summary
+## Branch and PR ledger
 
-- Added an offline Node CLI using built-in modules and the existing CommonJS `js/project-model.js`.
-- Reuses `Project.deserializeProject()` and `Project.validateProject()` for authoritative v2 validation and in-memory legacy migration.
-- Supports human-readable and `--json` output with stable diagnostics and nonzero exit codes for invalid files.
-- Reports source/normalized format and version, project name/ID, canvas dimensions, palette size, layer/frame counts, active layer/frame, cel count, expected/actual pixel totals, visibility/lock state, frame durations, and occupied/transparent pixel totals.
-- Legacy input is migrated in memory only. The input is opened read-only; it is never rewritten.
-- Enforces a 64 MiB file-size cap before and during reads.
-- Added a UTF-8 BOM input regression case.
-- No UI, storage, project-model, renderer, Agent API or bridge implementation files were changed.
+| Phase | Branch / exact head | PR | Parent | Current state |
+|---|---|---|---|---|
+| AC-018 — single-file inspector | `agent/project-inspector` / `dc897d82d438e8a5cb6527d8f3541e65a8f7aadc` | [#12](https://github.com/faiev/ArtClub/pull/12) | `main` | Open draft; exact-head CI passed |
+| AC-074 — batch inspection | `agent/project-inspector-batch` / `c273fa255207792ee2d9ef22b2a8802de8c5017d` | [#46](https://github.com/faiev/ArtClub/pull/46) | PR #12 | Open draft; exact-head CI passed |
+| AC-075 — structural comparison | `agent/project-inspector-diff` / `3a3a858cbec32b8a842de05d30d755167f4a122d` | [#59](https://github.com/faiev/ArtClub/pull/59) | PR #46 | Open draft; exact-head CI passed |
+| AC-076 — deep diagnostics | `agent/project-inspector-diagnostics` / `63e469679148a68c60b5aa09ad53eb55bcd115dd` | [#64](https://github.com/faiev/ArtClub/pull/64) | PR #59 | Open draft; exact-head CI passed |
+| AC-077 — migration preview | `agent/project-inspector-migration-preview` / `7e2481ffb670ab15e1906b579488bcf07ffcc09a` | [#71](https://github.com/faiev/ArtClub/pull/71) | PR #64 | Open draft; exact-head CI passed |
+| AC-078 — CI artifact report | `agent/project-inspector-ci-report` / `d66f74735582f24021406b87650a31ff9b340e15` | [#83](https://github.com/faiev/ArtClub/pull/83) | PR #71 | Open draft; exact-head CI passed |
+| AC-079 — documentation/integration pack | To create | Not opened | PR #83 stack | Active; begin on separate branch |
 
-## Synchronization and scope evidence
+Stack: PR #12 → #46 → #59 → #64 → #71 → #83. Keep descendant PRs stacked until parents merge. No Agent 9 PR has been merged or self-accepted.
 
-- Latest `main` at sync: `65f989757131b9db6756a41d1b8a6f65196e91ef`.
-- Feature branch head: `ffeda5ac3c225064209a1d9171b2b1713f0682b5`.
-- Compare against `main`: 0 commits behind; 15 commits ahead (including main-sync merge commits and the feature work).
-- The source diff is exactly the 9 assigned AC-018 files: CLI, test, six fixtures, and documentation.
-- The PR remains open and draft. Agent 9 has not merged it.
+## Completed phase summaries
 
-## Test evidence — GitHub Actions run #172
+### AC-018 — Read-only project inspector
+- Offline Node CLI; uses the existing model as validation/migration authority.
+- Human/JSON output, stable errors, 64 MiB per-file cap, read-only inputs and source-immutability coverage.
+- Legacy migration is in memory only; generated identifiers are not represented as source IDs.
 
-Workflow: https://github.com/faiev/ArtClub/actions/runs/43607076693
+### AC-074 — Bounded batch inspection
+- `--batch` and optional `--recursive`; lexical deterministic ordering, duplicate suppression/warnings, per-file errors and no symlink following.
+- Limits: 500 unique files, 32 MiB aggregate, 64 MiB/file, 10,000 directory entries, 32 directory levels.
 
-- **Passed:** `node --test tests/*.test.js` — 67 passed, 0 failed, 0 skipped. This includes all 9 project-inspector tests.
-- **Passed:** `node --check agent-bridge/server.mjs`.
-- **Passed:** `npm run test:e2e` — Chromium browser E2E completed successfully.
-- **Passed:** `npm run test:mcp` — MCP client integration E2E completed successfully.
-- Both workflow jobs (`test` and `browser-e2e`) completed with conclusion `success`.
+### AC-075 — Structural comparison
+- `--compare left.json right.json`; stable human/JSON summaries across canvas, palette, project metadata, layers, frames, cels and bounded pixel-index differences.
+- v2 matching uses exact source IDs only; legacy-to-legacy uses normalized positions; mixed-format records are not cross-matched.
+- Missing cel differs from transparent `null`; pixel samples are capped at 100/cel.
 
-Local execution was not performed: this environment could not resolve github.com for a local clone. The passing results above are from GitHub Actions, not a local run.
+### AC-076 — Deep diagnostics and risk scoring
+- `--diagnostics [--json]`; model validation remains authoritative and supplemental findings are separate.
+- Checks dimensions/version, duplicate IDs and cel pairs, references/active targets, malformed or short/long/sparse arrays, invalid pixels, byte/pixel budgets and suspicious palette entries.
+- Fixed severity weights and risk score capped at 100; no repair/write-back.
 
-## Risks and limitations
+### AC-077 — Deterministic migration preview
+- `--migration-preview [--json]` invokes the actual legacy deserialize path and validates the v2 result.
+- Reports exact source-byte SHA-256/byte count, source and target versions, transformed/preserved/generated/discarded fields and warnings.
+- Preview IDs derive deterministically from source hash and are explicitly not source identities; timestamps use fixed epoch markers.
+- Unknown top-level legacy fields are explicitly listed as discarded with a warning.
+- 64 MiB source cap and 16 MiB normalized JSON output cap; no source or destination file is written.
 
-- Files above 64 MiB are rejected as an explicit inspector safety limit, even if they might otherwise meet the project model's structural limits.
-- Occupied/transparent totals count all cel pixel slots, including hidden layers and non-active frames; they are not flattened composite-image totals.
-- Legacy source files lack v2 project/layer/frame IDs, so synthetic migration IDs are not shown as source IDs.
-- The CLI does not repair or rewrite projects, batch-inspect, compare project versions, or integrate into the editor UI. Such enhancements remain separate tasks.
+### AC-078 — Versioned CI artifact report
+- `--ci-report <project-file>` always emits JSON with `artifactSchemaVersion: 1`.
+- Includes input path/size/format/version, project summary, authoritative validation, supplemental diagnostics and source paths, severity/count totals, risk, read-only flags and exit-code policy.
+- Status values: `valid`, `invalid`, `incomplete`; exit codes 0/1/2 are documented.
+- SARIF intentionally omitted to avoid claiming compatibility without a reviewed mapping for the inspector's diagnostic paths/codes/severity model.
 
-## Handoff
+## Exact-head CI evidence
 
-Coordinator: review PR #12 and the full passing run #172 evidence. The latest branch is synchronized with `main`, the diff remains within Agent 9's nine owned paths, and the implementation is ready for review. Agent 9 remains in `REVIEW` and does not self-accept or merge.
+| Phase | Tested head | Actions run | Node tests | Browser / GIF / MCP |
+|---|---|---:|---:|---|
+| AC-018 | `dc897d82d438e8a5cb6527d8f3541e65a8f7aadc` | [#705](https://github.com/faiev/ArtClub/actions/runs/43619270426) | 246 pass, 0 fail, 0 skip | All passed |
+| AC-074 | `c273fa255207792ee2d9ef22b2a8802de8c5017d` | [#708](https://github.com/faiev/ArtClub/actions/runs/43619291567) | 254 pass, 0 fail, 0 skip | All passed |
+| AC-075 | `3a3a858cbec32b8a842de05d30d755167f4a122d` | [#712](https://github.com/faiev/ArtClub/actions/runs/43619311939) | 264 pass, 0 fail, 0 skip | All passed |
+| AC-076 | `63e469679148a68c60b5aa09ad53eb55bcd115dd` | [#717](https://github.com/faiev/ArtClub/actions/runs/43619348408) | 274 pass, 0 fail, 0 skip | All passed |
+| AC-077 | `7e2481ffb670ab15e1906b579488bcf07ffcc09a` | [#718](https://github.com/faiev/ArtClub/actions/runs/43619367155) | 282 pass, 0 fail, 0 skip | All passed |
+| AC-078 | `d66f74735582f24021406b87650a31ff9b340e15` | [#750](https://github.com/faiev/ArtClub/actions/runs/43619990920) | 287 pass, 0 fail, 0 skip | All passed |
+
+For each listed run, both workflow jobs completed successfully. Browser E2E includes Chromium editor tests, animated GIF ImageDecoder verification and MCP client integration. Local execution was not performed; test claims above are from GitHub Actions logs.
+
+## Next queue
+
+1. **AC-079 — Diagnostics documentation/integration pack** (active): create `docs/PROJECT_DIAGNOSTICS.md` for single-file, batch, compare, diagnostics, migration preview and CI report; examples, limits, schemas and exit policies.
+2. Add/organize diagnostic fixtures and immutability tests for any cases not already represented.
+3. Open AC-079 as a separate draft PR stacked on #83; run the full current CI and record exact evidence.
+4. **AC-095 — Project fingerprints and duplicate detection:** separate CLI/library, exact-byte and versioned semantic hashes, bounded batch mode, identity/content policy and tests.
+5. Reconcile stacked PR bases parent-first after coordinator review; never merge own PRs or claim UI integration.
+
+## Constraints and handoff
+
+- All inspector operations remain local and read-only; no automatic correction or write-back.
+- Do not modify project-model/storage, editor UI, Agent API, bridge, workflow or another agent's tests.
+- PRs #12/#46/#59/#64/#71/#83 remain stacked drafts; coordinator handles review, merge and acceptance.
+- The two main commits after the last code sync only changed Agent 7 coordination status; application code has no overlap, but re-sync before the next review/merge if more main changes land.

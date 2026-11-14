@@ -67,3 +67,35 @@ Do not edit agent-bridge/e2e-test.mjs, .github/workflows/project-tests.yml, inde
 
 ## Required handoff
 Maintain coordination/status/agent-1.md with phase completion, branches/PRs, current-head CI, next queue and actual blockers. You do not merge PRs or self-accept work.
+
+## Coordinator-added extension — AC-087: QA suite discovery and local runner
+
+After the existing AC-033 release checker and ongoing regression-triage work, build a reproducible runner for the QA-owned nested suites that are not discovered by the current root-only `node --test tests/*.test.js` command.
+
+### Deliverable
+- Add `tools/run-qa.mjs` and focused tests under `tests/qa/runner/`.
+- Maintain an explicit, sorted suite manifest for lifecycle, compatibility, import/export and browser QA suites. Discover files only within `tests/qa/**`; do not silently sweep unrelated tests.
+- Support selecting one named suite or all suites, human-readable output and stable JSON summary.
+- Spawn Node's built-in test runner with argument arrays (no shell interpolation), preserve exit codes, capture per-suite output and report skipped/not-run suites explicitly.
+- Validate paths against the repository root and reject unknown suite names or paths escaping the QA directory.
+- Document separate Node and real-browser commands. The runner must not install dependencies, change files, launch deployments or claim that an unexecuted browser suite passed.
+- Add fixtures/stub child-process tests for argument safety, missing files, failing suites, deterministic ordering, JSON schema and exit behavior.
+
+**Allowed files:** `tools/run-qa.mjs`, `tests/qa/runner/**`, `docs/QA_MATRIX.md`, `docs/RELEASE_CHECKLIST.md`.
+
+Do not edit the shared workflow, root test script, feature modules, index.html, storage/model code or another worker's tests. If workflow-level discovery is eventually needed, prepare the exact command and ask the coordinator for a separate workflow lock after Agent 3 releases it.
+
+
+## Coordinator-added review — UI-01 production shell / PR #84
+
+This is a focused QA review alongside AC-087, not a replacement for the assigned QA runner work.
+
+- Review the current head of [PR #84](https://github.com/faiev/ArtClub/pull/84) after fetching the latest main and PR metadata. The previous candidate head was `af2717daea892331b77482bc3e3c85fbbc1fabce`; it passed exact-head Actions run #43621240342 (Node/editor + Chromium/GIF/MCP).
+- Execute the prepared 12-flow UI-01 smoke plan against that exact PR head where the browser harness allows. Record a pass/fail/blocked matrix with browser, viewport, tested SHA, and specific reproduction steps; do not infer all 12 pass from the repository's existing E2E pass.
+- Prioritize drawing/erase/fill/pick/shape, selection and clear denial safety, layer/frame CRUD, playback/onion skin, save/reload/recovery, project/image import, PNG/SVG/JSON export, keyboard focus and responsive layout.
+- Report whether any existing capability is hidden, unreachable, clipped, mislabeled or behaviorally changed by the shell.
+- Provide screenshots at 1440×900 and 1280×800 if your available browser tooling supports them; otherwise explicitly state the screenshot limitation.
+
+**Boundaries:** review only. Do not modify `index.html`, `agent-bridge/e2e-test.mjs`, Agent 4's MCP E2E, or `.github/workflows/project-tests.yml`. If fixes or additional coverage are required, report exact files and let the coordinator assign the single-writer change.
+
+Update `coordination/status/agent-1.md` with exact head, browser evidence, results for all 12 flows, and the remaining blockers.
