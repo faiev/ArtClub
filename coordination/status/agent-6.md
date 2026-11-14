@@ -22,7 +22,7 @@ Read-only safety review of coordinator PR #96 at its latest inspected head, plus
 - No production files or other agents' files changed.
 
 ## Tests and CI actually checked
-- No local tests executed: this execution environment has no mounted checkout and no node executable; no local pass is claimed.
+- No local tests executed: Node v22.16.0 and Chromium are installed, but no repository checkout is mounted. Attempted `git clone --depth 1 --branch agent/layer-safety-browser https://github.com/faiev/ArtClub.git /tmp/artclub-agent6`; it failed with `Could not resolve host: github.com`. Therefore the dedicated runner could not be launched; no local pass is claimed.
 - PR #96 standard Project model workflow run #43636851524: success.
 - PR #96 dedicated UI-02 browser workflow run #43636851563: failure. Job log identifies timeout at tests/ui02-safe-clear.browser.mjs:167 waiting for window.__safeClearSaveProbe.storageOpened. This is a harness setup/initialization failure; it does not test or clear P1/P2.
 - AC-058 standard workflow run #43639272626: success, but it does not execute node tests/layer-safety.browser.mjs. Dedicated AC-058 runner remains unexecuted.
