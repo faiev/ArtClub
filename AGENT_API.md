@@ -53,6 +53,11 @@ await studio.draw_rectangle({
   color: "#53717a", filled: true
 });
 
+await studio.draw_ellipse({
+  x1: 5, y1: 5, x2: 13, y2: 12,
+  color: "#87a7a0", filled: false
+});
+
 await studio.fill({ x: 0, y: 0, color: "#172b3a" });
 await studio.erase_pixel({ x: 4, y: 7 });
 await studio.erase_rectangle({ x1: 2, y1: 2, x2: 5, y2: 5 });
@@ -79,7 +84,7 @@ const result = await studio.execute({
 });
 ```
 
-Supported command types: `draw_pixel`, `erase_pixel`, `draw_line`, `draw_rectangle`, `erase_rectangle`, `fill`, `clear_canvas`, and `set_color`.
+Supported command types: `draw_pixel`, `erase_pixel`, `draw_line`, `draw_rectangle`, `draw_ellipse`, `erase_rectangle`, `fill`, `clear_canvas`, and `set_color`.
 
 Safety rules:
 - One batch contains at most 1,000 commands.
