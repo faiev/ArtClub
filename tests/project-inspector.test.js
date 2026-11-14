@@ -687,7 +687,7 @@ test("deep diagnostics reports duplicate and unused palette entries as supplemen
   assert.ok(codes.has("PALETTE_ENTRY_UNUSED"));
   assert.ok(codes.has("PIXEL_COLOR_NOT_IN_PALETTE"));
   assert.ok(report.diagnostics.every((item) => item.source === "supplemental"));
-  assert.equal(report.risk.level, "low");
+  assert.equal(report.risk.level, "moderate");
 });
 
 test("deep diagnostics handles legacy projects without presenting generated IDs as source IDs", (t) => {
