@@ -379,6 +379,13 @@ function restore(source){
   $("gridSize").value=String(w);
   renderAll();scheduleSave();updateHistoryButtons();
 }
+const HISTORY_LIMIT=100;
+function remember(){
+  undoStack.push(snapshot());
+  if(undoStack.length>HISTORY_LIMIT)undoStack.shift();
+  redoStack.length=0;
+  updateHistoryButtons();
+}
 function undo(){if(!undoStack.length)return;redoStack.push(snapshot());restore(undoStack.pop());}
 function redo(){if(!redoStack.length)return;undoStack.push(snapshot());restore(redoStack.pop());}
 function updateHistoryButtons(){$("undoBtn").disabled=!undoStack.length;$("redoBtn").disabled=!redoStack.length}
