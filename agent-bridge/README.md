@@ -82,6 +82,11 @@ Restart or reload the MCP client after adding the server. The server should expo
 | `artclub_copy_selection` / `artclub_cut_selection` / `artclub_paste_selection` | Copy, cut and paste selected pixels |
 | `artclub_move_selection` / `artclub_clear_selection` / `artclub_deselect` | Move, clear or remove the selection |
 | `artclub_transform_selection` | Flip horizontally/vertically or rotate 90° |
+| `artclub_list_frames` | Read timeline order, names, durations and active frame |
+| `artclub_add_frame` / `artclub_duplicate_frame` | Add blank frames or copy every layer cel |
+| `artclub_select_frame` / `artclub_delete_frame` | Switch or delete a frame |
+| `artclub_move_frame` / `artclub_set_frame_duration` | Reorder frames and set playback timing |
+| `artclub_rename_frame` | Rename a frame |
 
 ## Drawing coordinates
 
@@ -115,7 +120,7 @@ For safe collaborative work, call `artclub_get_status` before editing and pass i
 5. Correct the result with another batch.
 6. Save and export the editable project when finished.
 
-Keep batches small enough to inspect. The editor exposes multiple editable layers and rectangular selection/edit transforms. Agents can manage the same layer stack, set selections, constrain edits, and transform selected pixels through MCP tools. Animation editing remains a later milestone.
+Keep batches small enough to inspect. The editor exposes multiple editable layers, rectangular selection/edit transforms and a multi-frame timeline. Agents can manage layers and frames, set selections, constrain edits, transform selected pixels and set frame timing through MCP tools. Playback, onion skin and animation exports remain future work.
 
 ## Privacy and permissions
 
