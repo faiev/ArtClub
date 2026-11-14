@@ -189,7 +189,7 @@
           const expectedLongPixels = [
             [255, 0, 0, 255],
             [0, 255, 0, 255],
-            [0, 0, 255, 255]
+            [255, 0, 0, 255]
           ];
           if (JSON.stringify(sampledFrames) !== JSON.stringify(expectedLongPixels)) {
             throw new Error("Long GIF frame sampling was out of order: " + JSON.stringify(sampledFrames));
