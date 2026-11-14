@@ -104,7 +104,12 @@ async function run() {
       "artclub_delete_frame",
       "artclub_move_frame",
       "artclub_set_frame_duration",
-      "artclub_rename_frame"
+      "artclub_rename_frame",
+      "artclub_play_animation",
+      "artclub_pause_animation",
+      "artclub_stop_animation_preview",
+      "artclub_set_playback_mode",
+      "artclub_set_onion_skin"
     ]) {
       assert.ok(names.has(required), "MCP server should register " + required);
     }
@@ -363,6 +368,38 @@ async function run() {
     });
     assert.equal(frameCountAfterDelete.structuredContent.frames.length, 2);
     await client.callTool({
+      name: "artclub_set_playback_mode",
+      arguments: { mode: "pingpong" }
+    });
+    const onionEnabled = await client.callTool({
+      name: "artclub_set_onion_skin",
+      arguments: { enabled: true }
+    });
+    assert.equal(onionEnabled.structuredContent.playback.onion_skin, true);
+    const playing = await client.callTool({
+      name: "artclub_play_animation",
+      arguments: {}
+    });
+    assert.equal(playing.structuredContent.playback.playing, true);
+    const rejectedDuringPlayback = await client.callTool({
+      name: "artclub_draw_pixel",
+      arguments: { x: 17, y: 17, color: "#ff00ff" }
+    });
+    assert.equal(rejectedDuringPlayback.isError, true, "agents must not draw while playback is running");
+    const paused = await client.callTool({
+      name: "artclub_pause_animation",
+      arguments: {}
+    });
+    assert.equal(paused.structuredContent.playback.playing, false);
+    assert.equal(paused.structuredContent.playback.previewing, true);
+    const stopped = await client.callTool({
+      name: "artclub_stop_animation_preview",
+      arguments: {}
+    });
+    assert.equal(stopped.structuredContent.playback.previewing, false);
+    assert.equal(stopped.structuredContent.playback.onion_skin, true);
+
+    await client.callTool({
       name: "artclub_delete_frame",
       arguments: { frame_id: secondFrameId }
     });
@@ -399,7 +436,7 @@ async function run() {
     });
     assert.equal(invalidResult.isError, true, "invalid coordinates should be rejected");
 
-    console.log("MCP E2E passed: drawing, layer/selection management, animation frames and timing, pixel readback, PNG preview, save and input validation.");
+    console.log("MCP E2E passed: drawing, layers, selections, animation frames, playback modes, onion skin, pixel readback, PNG preview, save and input validation.");
   } finally {
     await client.close().catch(() => {});
     await new Promise(resolve => staticServer.close(resolve));
