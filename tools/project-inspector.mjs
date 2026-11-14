@@ -232,8 +232,10 @@ function inspectProject(data, filePath, fileSizeBytes) {
   };
 }
 function inspectOneFile(filePath, byteBudget = MAX_FILE_BYTES) {
+  let bytesRead = 0;
   try {
     const input = readProjectFile(filePath, byteBudget);
+    bytesRead = input.bytes;
     let data;
     try {
       data = JSON.parse(input.text.replace(/^\uFEFF/, ""));
@@ -248,7 +250,7 @@ function inspectOneFile(filePath, byteBudget = MAX_FILE_BYTES) {
         file: filePath,
         error: { code: error.code || "INSPECTION_FAILED", message: error.message || "Project inspection failed." }
       },
-      bytesRead: Number.isFinite(error.bytesRead) ? error.bytesRead : 0
+      bytesRead: Number.isFinite(error.bytesRead) ? error.bytesRead : bytesRead
     };
   }
 }
