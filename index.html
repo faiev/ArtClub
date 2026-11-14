@@ -1014,14 +1014,37 @@ function copySelection(){
   selectionClipboard={width:selection.width,height:selection.height,pixels:copied};
   renderSelectionTools();toast("Selection copied.");return true;
 }
-function cutSelection(){
-  if(!selection){toast("Select an area first.");return false}
-  if(!isActiveLayerEditable()){toast("The active layer is locked or hidden.");return false}
-  copySelection();remember();
-  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
-    pixels[(selection.y+y)*w+selection.x+x]=null;
+async function cutSelection(){
+  if(!selection){toast("Select an area first.");return false;}
+  if(safeEditBusy){toast("Another safe edit is already being saved.");return false;}
+  if(drawing){toast("Finish the current stroke before cutting.");return false;}
+  let source;
+  try{source=createSafeEditProject();}
+  catch(error){toast(error.message||"The active edit target is unavailable.");return false;}
+  const target={
+    revision:documentRevision,
+    projectId:source.id,
+    layerId:source.activeLayerId,
+    frameId:source.activeFrameId
+  };
+  const copied=[];
+  for(let row=0;row<selection.height;row++){
+    for(let col=0;col<selection.width;col++){
+      copied.push(pixels[(selection.y+row)*w+selection.x+col]);
+    }
   }
-  renderGrid();renderStats();scheduleSave();toast("Selection cut.");return true;
+  const result=window.ArtClubSafeEditOperations.clearActiveCel(source,{
+    layerId:target.layerId,frameId:target.frameId,
+    selection:{x:selection.x,y:selection.y,width:selection.width,height:selection.height}
+  });
+  if(!result.ok){toast(safeEditDenialMessage(result));return false;}
+  if(result.changedPixels===0){selectionClipboard={width:selection.width,height:selection.height,pixels:copied};renderSelectionTools();toast("Selection copied; it was already empty.");return true;}
+  const committed=await commitSafeEditResult(result,source,target,"Selection cut.");
+  if(committed){
+    selectionClipboard={width:selection.width,height:selection.height,pixels:copied};
+    renderSelectionTools();
+  }
+  return committed;
 }
 function createSafeEditProject(){
   if(!projectDoc)throw new Error("The editor project is not ready yet.");
