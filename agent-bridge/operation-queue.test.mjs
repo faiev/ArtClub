@@ -135,6 +135,7 @@ test("a failed operation does not poison later queue work", async () => {
 
   await assert.rejects(failure, /simulated browser error/);
   assert.equal(await recovery, "recovered");
+  await queue.drain();
   assert.deepEqual(queue.getStats(), {
     active: 0, queued: 0, closed: false, maxPending: 64
   });
