@@ -8,9 +8,9 @@ This is the persistent coordination system for ten worker chats plus one coordin
 
 These files provide shared assignments, backlog, status, ownership and decisions. They do **not** automatically wake a ChatGPT chat, run it in the background, or let one chat message another. A worker only executes when its chat receives a prompt. The goal of this system is to make every resumed session productive for as long as possible and remove coordinator approval between pre-authorized tasks.
 
-## Operating model: one product release lane
+## Operating model: ten agents, five shared branch slots
 
-The 2026-11-15 delivery reset in `coordination/BOARD.md` and decision D-028 supersedes the broad parallel workstream model below. During the UI-02 release, only the Coordinator, Agent 1 (QA) and Agent 6 (safety review) are active. Other agents must not create new feature branches or PRs unless the Coordinator explicitly reactivates them for a named dependency. Existing work is preserved and individually triaged; it is not automatically considered shipped.
+All ten agents may be scheduled by the coordinator, in parallel or in batches, but they share **five active non-main branch slots total**. The five-slot budget—not the agent count—sets the parallel-work limit. The coordinator may assign multiple agents to one branch only with non-overlapping file ownership and explicit coordination. Agents without a current assignment/branch slot remain paused; they must not create one themselves. The older three-chat restriction in D-028 is superseded by D-029, while its product-delivery focus and ownership boundaries remain in force.
 
 ## Historical operating model (paused during UI-02)
 
