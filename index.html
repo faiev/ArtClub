@@ -1060,6 +1060,18 @@ function safeEditContextIsCurrent(context){
     JSON.stringify(selection||null)===JSON.stringify(context.selection)&&
     JSON.stringify(layerState)===JSON.stringify(context.layerState));
 }
+async function clearAgentActiveCel(options){
+  const context=captureSafeEditContext();
+  const result=SafeEditOperations.clearActiveCel(snapshot(),{});
+  if(!result.ok)throw new Error(result.message||"This cel cannot be cleared safely.");
+  const label=options&&typeof options.label==="string"?options.label.slice(0,80):"Agent edit";
+  if(result.changedPixels===0){
+    return {ok:true,revision:documentRevision,commands_applied:1,changed_pixels:0,project_id:activeProjectId,label};
+  }
+  const committed=await commitSafeEditResult(result,context,"Active cel cleared.");
+  if(!committed)throw new Error("The active cel could not be cleared safely.");
+  return {ok:true,revision:documentRevision,commands_applied:1,changed_pixels:result.changedPixels,project_id:activeProjectId,label};
+}
 async function commitSafeEditResult(result,context,successMessage){
   if(safeEditCommitPending){toast("An edit is already being saved.");return false}
   safeEditCommitPending=true;
@@ -1801,6 +1813,12 @@ function executeAgentCommands(commands,options){
     throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
   }
   const validated=validateAgentCommands(commands);
+  if(validated.some(command=>command.type==="clear_canvas")){
+    if(validated.length!==1){
+      throw new Error("clear_canvas must be sent as a standalone command so the safe edit can be committed atomically.");
+    }
+    return clearAgentActiveCel(options);
+  }
   const newColors=[...new Set(validated.map(command=>command.color).filter(Boolean))].filter(color=>!palette.includes(color));
   if(palette.length+newColors.length>ProjectModel.LIMITS.maxPaletteColors)throw new Error("The palette would exceed the 256-color safety limit.");
   const before=snapshot();
@@ -2052,9 +2070,9 @@ function agentPasteSelection(payload){
   if(!pasteSelection())throw new Error("There is no editable clipboard selection to paste.");
   return getAgentStatus();
 }
-function agentClearSelection(payload){
+async function agentClearSelection(payload){
   payload=payload||{};assertAgentSelectionAction(payload);
-  if(!clearSelectedPixels())throw new Error("There is no editable active selection to clear.");
+  if(!await clearSelectedPixels())throw new Error("There is no editable active selection to clear.");
   return getAgentStatus();
 }
 function agentDeselect(payload){
