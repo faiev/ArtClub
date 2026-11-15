@@ -41,7 +41,7 @@ This policy supersedes every conflicting instruction in older assignments, statu
 
 - Prioritize user-visible production features and integration. Stop speculative modules, unrelated feature expansion, duplicate prototypes, benchmark-only tasks, test-runner experiments and documentation-only PRs unless the coordinator explicitly identifies them as necessary to ship the current release.
 - Combine related, authorized tasks into complete implementation slices using coordinator-assigned direct commits to `main`. Do not create a branch or PR because an AC number, release, or agent changes.
-- One task assignment must describe a meaningful product outcome, the owning branch slot, allowed files and expected integration point. Agents must not invent follow-on tasks or split one deliverable into artificial microtasks.
+- One task assignment must describe a meaningful product outcome, exact owned files, dependencies and expected integration point. Agents must not invent follow-on tasks or split one deliverable into artificial microtasks.
 - Keep the existing single-writer file ownership rules. Branch/PR limits do not grant permission to edit another agent's files.
 - The coordinator is responsible for sequencing the work, integrating the release and maintaining the live branch/PR budget. Agents must stop before any action that would breach a cap.
 
