@@ -7,7 +7,8 @@
 
 ## Live repository state
 
-- Main at board reset: `276e4f2ee9e70b483a5e0f0fbb8c68f8aa4bcee5`.
+- Main baseline before the cleanup: `276e4f2ee9e70b483a5e0f0fbb8c68f8aa4bcee5`.
+- Role-based coordination reset commit: `18d7876b54fcc24f679ccb9db52074bdf86b7d5f`.
 - Open PRs: 0 at the last live check.
 - Non-main branches: one existing grandfathered branch, `coordinator/ui-02-safe-edit-mainline`.
 - New branch creation: prohibited permanently.

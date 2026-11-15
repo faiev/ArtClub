@@ -1,6 +1,6 @@
 # Art Club — agent coordination
 
-This directory defines the **current role-based team**. It replaces the retired AC workstream / Agent 1–10 coordination system. Do not use old numbered assignments or status files.
+This directory defines the **current role-based team**. The former numbered workstream system has been retired. Do not use its old task queues or status reports.
 
 ## Read these files
 
