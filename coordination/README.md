@@ -2,15 +2,15 @@
 
 This is the persistent coordination system for ten worker chats plus one coordinator.
 
-> **MANDATORY POLICY:** Read and follow [ORCHESTRATION_POLICY.md](ORCHESTRATION_POLICY.md) before doing any work. It sets a hard cap of five shared working branches, a hard cap of fifty open PRs per release cohort, prohibits test-only branches/PRs, and permits only one consolidated final validation run immediately before release. It overrides every conflicting older instruction in this README, BOARD, BACKLOG, DECISIONS, assignment or status file. Ten agents do not mean ten branches.
+> **MANDATORY POLICY:** Read and follow [ORCHESTRATION_POLICY.md](ORCHESTRATION_POLICY.md) before doing any work. It permits **zero new non-main branches**, retains the one already-existing `coordinator/ui-02-safe-edit-mainline` branch only for its current UI-02 work, caps open PRs at fifty, prohibits test-only workstreams, and permits only one consolidated final validation run immediately before release. All subsequent authorized changes are direct commits to `main` with coordinator-assigned file scopes. This policy overrides every conflicting older instruction in this README, BOARD, BACKLOG, DECISIONS, assignment or status file.
 
 ## Important runtime limitation
 
 These files provide shared assignments, backlog, status, ownership and decisions. They do **not** automatically wake a ChatGPT chat, run it in the background, or let one chat message another. A worker only executes when its chat receives a prompt. The goal of this system is to make every resumed session productive for as long as possible and remove coordinator approval between pre-authorized tasks.
 
-## Operating model: ten agents, five shared branch slots
+## Operating model: ten agents, zero new working branches
 
-All ten agents may be scheduled by the coordinator, in parallel or in batches, but they share **five active non-main branch slots total**. The five-slot budget—not the agent count—sets the parallel-work limit. The coordinator may assign multiple agents to one branch only with non-overlapping file ownership and explicit coordination. Agents without a current assignment/branch slot remain paused; they must not create one themselves. The older three-chat restriction in D-028 is superseded by D-029, while its product-delivery focus and ownership boundaries remain in force.
+All ten agents may be scheduled by the coordinator in parallel only when their assigned file ownership does not overlap. **No agent may create another branch.** Authorized application and coordination changes are committed directly to `main` with coordinator-issued path ownership and serialized writes to shared files. The already-existing `coordinator/ui-02-safe-edit-mainline` branch is grandfathered only for the UI-02 work already on it; it must not become a reusable branch for future releases. Agents without an explicit file assignment remain paused or perform only requested read-only review. The older three-chat restriction in D-028 is superseded by D-029, while its product-delivery focus and ownership boundaries remain in force.
 
 ## Historical operating model (paused during UI-02)
 
@@ -41,7 +41,7 @@ This is a rolling workstream. Agents are expected to submit several useful deliv
 | coordination/assignments/agent-N.md | Coordinator | Full authorized workstream queue for one worker |
 | coordination/status/agent-N.md | Matching worker | Progress, branch/PR ledger, CI evidence, next queue and blockers |
 
-Only the coordinator edits README, BOARD, BACKLOG, DECISIONS and assignment files. Each worker edits only its own status file on main. Application code belongs on feature branches and is submitted through PRs.
+Only the coordinator edits README, BOARD, BACKLOG, DECISIONS and assignment files. Each worker edits only its own status file on `main`. Application code is committed directly to `main` only under a coordinator-issued exact-path assignment; workers must not edit shared or coordinator-owned files.
 
 ## Active coordination source
 
@@ -76,15 +76,13 @@ Keep a compact rolling ledger:
 
 The status file is not a diary; keep it accurate and useful for the next resume.
 
-## Branch and PR cadence
+## Branch and PR cadence — zero new branches
 
-- One PR per cohesive deliverable or tightly related phase group.
-- Once PR is open, continue on a different branch for independent next work.
-- Do not put follow-on tasks that can be separate PRs into an already submitted PR just to avoid creating a branch.
-- For stacked work, clearly state the parent PR and avoid claiming integration until the dependency is merged.
-- After every main update, refresh the branch with a non-force merge/rebase policy agreed in the repo; preserve commits and rerun tests on the resulting head.
-- A successful CI result applies only to the tested commit SHA and base.
-- A PR waiting for review is not a task queue and is not permission to stop.
+- Do not create, recreate, fork, rename, or reactivate any non-main branch.
+- All new authorized work lands through direct commits to `main`; the coordinator assigns exact paths and ensures one writer per file.
+- The existing `coordinator/ui-02-safe-edit-mainline` branch is grandfathered only for its current UI-02 slice. Do not use it for unrelated work or a later release.
+- Do not create a new PR that requires a new branch. The coordinator may use the grandfathered branch only to finish that already-started UI-02 slice.
+- Preserve existing history. Never force-update or delete an existing branch.
 
 ## Shared-file locks and safe autonomy
 
@@ -108,7 +106,7 @@ The status file is not a diary; keep it accurate and useful for the next resume.
 
 ## Generic resume prompt
 
-> Resume your Art Club work from the GitHub coordination system. Fetch the latest README, BOARD, BACKLOG, DECISIONS, your assignment and your status from main. Read the entire multi-phase assignment and status queue. Start the first unfinished, unblocked item immediately. A PR being open or awaiting review is not a reason to stop: after submitting one deliverable, continue to the next independent authorized phase without waiting for the coordinator. Keep a ranked queue of the next 3–5 actions in your status file. Respect shared-file locks, keep code on your own feature branches, run/report exact tests, and never merge your own PR. Pause only for a genuine external blocker and continue any independent work.
+> Resume your Art Club work from the GitHub coordination system. Fetch the latest README, BOARD, BACKLOG, DECISIONS, your assignment and your status from main. Read the entire multi-phase assignment and status queue. Start the first unfinished, unblocked item immediately. A PR being open or awaiting review is not a reason to stop: after submitting one deliverable, continue to the next independent authorized phase without waiting for the coordinator. Keep a ranked queue of the next 3–5 actions in your status file. Respect shared-file locks, follow the coordinator-issued direct-to-main file assignment; never create a branch or self-authorize a main update. Pause only for a genuine external blocker and continue any independent work.
 
 ## Coordinator workflow
 
