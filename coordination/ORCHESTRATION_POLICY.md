@@ -55,3 +55,19 @@ This policy supersedes every conflicting instruction in older assignments, statu
 5. If it passes, ship/deploy that version and record the release commit, deployment and final PR disposition. Only then may the coordinator ask the user to authorize a new release cycle.
 
 **Default when uncertain: stop branch/PR creation, do not run tests, preserve existing work, and ask the coordinator.** No agent may interpret urgency or “keep going” as permission to exceed these hard limits.
+
+## 6. Execution efficiency — build first, avoid unnecessary inspection
+
+This section applies to every agent and every role. The objective is to spend time on useful product work, not repeated coordination or repository archaeology.
+
+- **Minimal startup:** Fetch the latest `main` once. Read this policy, the current board/decisions, and only the assignment and status files relevant to your own role. The coordinator may inspect other agents' status files when making a concrete scheduling or dependency decision; agents must not read all ten assignments/statuses by default.
+- **Batch GitHub work:** Make independent GitHub reads in parallel where possible. Prefer one branch listing, one open-PR listing and targeted file reads over many serial queries. Record the current `main` SHA, assigned branch head and fetched file SHAs; do not fetch unchanged files repeatedly.
+- **No historical PR archaeology:** Do not reopen, restore, recreate, audit, reconcile, merge, close, or otherwise act on old PRs or deleted branches unless the user explicitly asks. Do not inventory closed PRs, deleted branches, stale historical snapshots or old agent work merely to understand today's task. A deleted branch is not a recovery task. Current work starts from current `main`.
+- **Inspect only what the task needs:** Find the relevant symbols/paths first, then read the smallest useful source ranges. Do not repeatedly fetch entire large files, search the same terms, or inspect unrelated modules. Expand inspection only when a concrete dependency, conflict, security issue or integration boundary requires it.
+- **Implementation before paperwork:** Once scope, ownership and dependencies are clear, begin the highest-priority authorized implementation. Do not generate another plan, report or coordination document when the task calls for building or reviewing the product. Do not ask questions whose answers are already in the repository or current conversation.
+- **Role-appropriate focus:** Designers review the actual affected interface and interaction; analysts research only enough to support a concrete product decision; coders implement the production workflow; verifiers review the relevant diff and safety boundaries; the coordinator resolves only the decisions and dependencies needed to keep delivery moving.
+- **One useful review pass:** Review the changed diff and its direct integration points. Avoid repeated review passes that add no new evidence. Do not run tests outside the single authorized release gate.
+- **Concise communication:** Send an update when a meaningful milestone is reached or a real blocker appears. Do not narrate every API call, repeat repository facts, or send progress messages that do not help a teammate act. Final reports should state the result, changed paths/commit, integration need and genuine blocker only.
+- **Stop when evidence is sufficient:** Do not continue searching after the required facts are established. If a required fact is unavailable, state the precise limitation and continue other authorized work rather than broadening into unrelated investigation.
+
+**Default:** use the smallest set of reads and actions that safely establishes scope, then make substantial product progress. Speed must not compromise ownership, data integrity, the five-branch/fifty-PR limits, or the single release-validation gate.
