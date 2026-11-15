@@ -11,7 +11,7 @@
 - Left `js/project-storage.js` and its revision-aware save / conditional rollback contract unchanged.
 
 ## Integration state and limits
-- Branch comparison after the commit: 7 commits ahead / 8 behind current `main`; the branch diff reports only `index.html`. Coordinator must reconcile this existing UI-02 slice against current `main`; no rebase, merge, force-update or PR was performed.
+- Branch comparison at final handoff: 7 commits ahead / 9 behind current `main`; the branch diff reports only `index.html` (the extra behind commit is this status handoff on `main`). Coordinator must reconcile this existing UI-02 slice against current `main`; no rebase, merge, force-update or PR was performed.
 - Live repository state at handoff: one non-main branch (the grandfathered UI-02 branch), zero open PRs.
 - No automated tests were run, in accordance with the single release-gate policy. This is a source-reviewed implementation handoff, not a test pass or release claim.
 - Next owner: Coordinator to review and integrate this exact branch commit into `main`; then release the shared `index.html` writer slot according to the board.
