@@ -1,5 +1,47 @@
 > **MANDATORY CURRENT ORCHESTRATION POLICY:** [coordination/ORCHESTRATION_POLICY.md](ORCHESTRATION_POLICY.md) governs all work from this point forward. The allowance for creating new non-main branches is **ZERO**. The already-existing `coordinator/ui-02-safe-edit-mainline` branch is grandfathered only to finish its current UI-02 slice and must not be reused for a future release. All other authorized work proceeds as coordinator-assigned direct commits to `main`; the release-cohort PR ceiling remains **50**, no test-only workstream is allowed, and automated validation runs only once at the consolidated release gate after integration. Every older branch/PR count, assignment and workstream instruction below is historical unless revalidated under this policy. Do not revive closed PRs or deleted branches.
 
+
+---
+
+# UX HANDOFF — Scrollbar policy, opt-in animation workspace and editor usability (2026-11-15)
+
+**Coordinator action requested.** Agent 5 completed a read-only UX audit of the live production UI and the current coordinator UI-02 branch. The detailed source findings are in [Agent 5 status — Follow-up UX audit](status/agent-5.md). This board entry is the actionable handoff; it does not grant Agent 5 production-file ownership or authorize a new branch/PR.
+
+## P1 — Required workspace behavior
+
+1. **Only the canvas may show a scrollbar.** Scrolling must continue to work wherever content overflows, but scrollbar chrome must be invisible across the rest of the application, including tool rail, inspector, layer list, frame strip, Projects dialog and responsive page scroll. Preserve wheel, touchpad, touch and keyboard scrolling. The canvas viewport is the sole visible-scrollbar exception. Do not “fix” this by disabling overflow/scrolling.
+   - Source locations on current main: `index.html` CSS around 172 (project list), 188 (layer list), 212 (frame list), 273–283 (tool/inspector panels), 347 (canvas viewport), 405 (frame list), and responsive rules 441–466 (page/tool panel scrolling).
+   - The frame list explicitly sets `scrollbar-width: thin`; other scroll regions also need hidden scrollbar chrome.
+
+2. **Animation editing is an opt-in workspace, not permanent furniture.** Hide/collapse `#timelineArea` by default. Add an obvious **Animate** action in the main workspace/canvas toolbar. Activating it opens the timeline with frames, add/duplicate/delete, duration, onion-skin and playback controls; closing it returns the recovered height to the canvas. When a project has only one frame, show a simple “Add a second frame to start animating” entry state; do not leave disabled playback mode and onion-skin controls permanently visible.
+   - Current source: `#timelineArea` is always mounted below the canvas (`index.html` 600–619); CSS reserves 176 px on desktop (394–395) and 172 px on mobile (477). A `+ Frame` control exists, but there is no clear Animate open/close action.
+
+3. **Make secondary controls contextual.** Show selection actions when the Select tool/selection makes them relevant; do not permanently occupy the tool rail with disabled Copy/Cut/Paste/Clear/Flip/Rotate buttons. Move the full shortcut cheat sheet into a Help/keyboard overlay. Keep essential actions discoverable without reserving permanent canvas space.
+
+## Additional findings to address in priority order
+
+- **P1 — Clear semantics:** current-main toolbar says “Clear canvas” but clears only the active pixel array/cel. The coordinator branch has a more accurate active-cel confirmation; carry matching visible label, accessible name and confirmation through integration.
+- **P1 — Paste integrity:** current main and coordinator branch clip a pasted selection to the remaining canvas bounds and still report success. Reject a paste that cannot fit in full; do not partially mutate pixels or history.
+- **P1 — Staged image import:** preserve the original project/layer/frame/revision target while an image decodes; validate that target again before commit and preserve the prior project on decode/storage failure.
+- **P1 — Keyboard context:** do not intercept text-field undo or browser Save Page. Gate editor shortcuts away from inputs, selects, textareas, contenteditable, dialogs, IME composition and AltGraph. Show Ctrl/Cmd labels appropriate to the platform.
+- **P2 — Zoom truthfulness:** current “100%” is a fit-relative multiplier, not one CSS pixel per logical pixel; maximum is 200%. Provide distinct Fit and Actual Size, a useful high-magnification range and stable zoom anchoring.
+- **P2 — Discoverability/accessibility:** provide touch/keyboard-accessible layer/frame rename and palette removal rather than relying on double-click/right-click; add programmatic selected/pressed states and descriptive names for tools, layers and frame actions.
+- **P2 — Layout consistency:** consolidate canvas setup/view controls; move “Restore starter artwork” out of everyday canvas settings; avoid duplicate active-tool labels; preserve access in short desktop windows.
+- **P2 — Large canvas performance risk:** 512×512 permits 262,144 DOM pixel cells, and pointer movement triggers full composite/stat recomputation. Profile realistic large projects before expanding this rendering approach. This is a source-level risk, not a measured benchmark.
+- **P2 — Cel discoverability:** expose populated, allocated-blank and unallocated layer/frame cels; navigation should not silently create cels merely because a user browses.
+
+## Ownership and release boundary
+
+- Production `index.html` remains Coordinator-owned. Agent 5 has no allocated branch and performed no production edit, test run, branch creation or PR creation for this audit.
+- Treat these as UX acceptance requirements for the existing UI-02 integration lane; do not create another branch or PR for the report.
+- Keep the single consolidated release validation at the release gate. This review is source inspection only, not browser verification or release sign-off.
+- **Requested first implementation:** non-canvas scrollbar hiding with scrolling preserved, followed by the on-demand Animate workspace and contextual tool actions.
+
+Detailed source locations, rationale and validation limits: [coordination/status/agent-5.md](status/agent-5.md).
+
+---
+
+
 # LIVE COORDINATOR VERIFICATION — 2026-11-15 01:46 IST
 
 - Latest authoritative main: `404e412e34e28827e1bac7e66f821c2c15e06f26` (verified via Git ref).
