@@ -241,3 +241,33 @@ Related closed PRs on the UX branch set: #17 and #19 used `agent/keyboard-shortc
 - **Changed files in this assignment:** only `coordination/status/agent-5.md` (this report). No other path, branch ref, PR state, or workflow was changed.
 - **Coordinator handoff:** The inventory supports parking all non-UI-02 UX deliverables while the UI-02 release lane proceeds. Review the old AC-009 roadmap against AC-054 before closing #9; inspect the unmerged workstation branch delta before any branch cleanup; consider deletion of `agent/ux-audit` only after confirming its ancestry/no-dependency status. The Coordinator alone owns final disposition and cleanup.
 - **Last updated:** 2026-11-15.
+
+
+## Live-state refresh and coordinator-branch UX review — 2026-11-15
+
+This refresh supersedes earlier live branch/PR counts above. It is a read-only product review; only this Agent 5 status file is updated.
+
+### Current repository state at review
+
+- Main ref at review start: `b5f78332360b08ed860cec6134d95f52839d9790`.
+- Live branch list: `main` and `coordinator/ui-02-safe-edit-mainline` only. The non-main branch is coordinator-owned; no UX branch was allocated to Agent 5.
+- Live open-PR listing: **0**.
+- Coordinator branch head: `f1154d87b5e329178fee0445c575f0b2097e49a9`, one commit ahead of main; compare reports only `index.html` changed (+118 / -11). No write was made to that branch.
+- Historical UX PR state rechecked: #20, #77, #87 and #95 are merged; #9, #24, #30, #35, #41, #47 and #51 are closed unmerged. UI-02 PR #96 is closed unmerged. No historical PR or old UX branch was modified, reopened or recreated.
+
+### Read-only UI-02 UX review — coordinator branch
+
+Reviewed `index.html` at `coordinator/ui-02-safe-edit-mainline` (file blob `432271ec4a950cd9222260346acadfd9e3d3d06e`). This is source inspection only; no tests or browser run were performed.
+
+1. **Clear scope wording — remaining P1 polish.** The toolbar button still exposes `aria-label="Clear canvas"` and `title="Clear canvas"` (`index.html:584`), while the confirmation correctly says it clears only the active cel and leaves other layers/frames unchanged (`2360–2363`). Rename the tooltip and accessible name to match the operation. For beginner clarity, prefer “Clear current frame on selected layer” as the accessible name, with “Clear active cel” as compact tooltip if space is constrained. The branch correctly routes both toolbar and selection Clear through `clearActiveCelSafely` / `SafeEditOperations.clearActiveCel` (`1027–1040, 2360–2363`); this is an improvement over main's direct pixel-array mutation.
+2. **Paste still permits silent partial results — P1.** `pasteSelection` (`1126–1145`) clamps clipboard width/height to the remaining canvas area, then reports “Selection pasted.” This can silently truncate copied pixels. The UX contract should reject a paste that does not fit in full, leave pixels/history unchanged, and announce a specific recovery message such as “This selection does not fit here. Move the selection or copy a smaller area.”
+3. **Image import still lacks staged target confirmation — P1.** The handler (`2424` onward) decodes asynchronously and reads live `w`, `h`, `palette` and `pixels` in `img.onload`; it does not preserve/revalidate the project, active layer, active frame and document revision captured when the user selected the file. A layer/frame/project change during decode can redirect the import. The flow should stage the decoded result, revalidate the original target before commit, and preserve the project on decode, validation or storage failure. Invalid MIME-type handling returns before clearing the file input, which can also make reselecting the same rejected file unreliable.
+4. **Keyboard context handling — P1/P2.** Global Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z and Ctrl/Cmd+S handling still occurs before the editable-control check (`2450–2457`). This suppresses native text-field undo and intercepts the browser's Save Page chord. Preserve browser-reserved shortcuts and gate editor shortcuts before handling them in inputs, textareas, selects, contenteditable elements, dialogs, IME composition and AltGraph.
+5. **Programmatic selected/pressed states — P2 accessibility.** No `aria-pressed` or `aria-selected` appears in the coordinator branch's `index.html`. Tool selection is reflected through the visual `.active` class (`setTool`), and layer visibility/lock actions rely on glyphs and `title` strings in `renderLayers`. Expose selected/pressed states and explicit accessible names that include the layer name. The existing toast is a polite live status region, which is a useful baseline; selection/status changes still need concise announcement behavior where it materially changes available actions.
+
+### Handoff / authorization boundary
+
+- No UX-specific production file or docs were changed. No branch or PR was created. No tests were run.
+- The highest-value UX follow-up is to align the Clear button's accessible/tooltip name with its active-cel scope, then provide explicit UX acceptance wording for full-fit paste and staged import failure/recovery.
+- Agent 5 has no allocated branch. Remain read-only until the Coordinator assigns a branch slot or requests a narrowly scoped status/documentation update. The Coordinator retains production `index.html` ownership.
+- **Last refreshed:** 2026-11-15.
