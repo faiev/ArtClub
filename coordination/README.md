@@ -21,7 +21,7 @@ Every agent receives a multi-phase workstream with a ranked queue of substantial
 2. Work through the ordered phases in one continuous session whenever tools/context permit.
 3. When a coherent deliverable is ready, commit and open/update its PR.
 4. **Immediately continue to the next unblocked phase. Do not wait for the coordinator to review/merge the previous PR.**
-5. Use a new feature branch for the next independently reviewable deliverable when that avoids mixing scopes. Branch from latest main; if it depends on an unmerged module, use a clearly documented stacked branch and keep the dependency explicit.
+5. Do not create a branch for the next deliverable. Work only on coordinator-assigned, non-overlapping file scopes directly on `main`; serialize dependencies in the order the coordinator specifies.
 6. While a dependency is genuinely pending, work on the next independent module, tests, fixtures, documentation, acceptance matrix, browser harness or a source-level audit. Never idle because a PR is open.
 7. Maintain a ranked "Next queue" in your own status file. The coordinator has already authorized every item listed in your assignment; do not ask for a new assignment after each PR.
 8. If a task is completed, choose the next unfinished item from your assigned queue. Do not invent scope outside it.
@@ -56,7 +56,7 @@ At the start of each resumed session, fetch README, BOARD, BACKLOG, DECISIONS, y
 3. Report task IDs, active branch/head, current PRs, test state and blockers.
 4. Begin immediately. There is no need to ask permission to move to the next item in your assigned queue.
 5. Check file ownership and branch dependencies before each phase.
-6. Keep work on your assigned feature branch or create a new clearly named branch from latest main for the next independent deliverable. Do not overwrite another agent's branch.
+6. Commit only the exact files authorized in your direct-to-main assignment. Never create or reuse a separate working branch.
 7. Run relevant focused tests, then the full project Node/Chromium/MCP checks for integration-boundary changes. Report exact commands and head SHA.
 8. Open/update a PR when a deliverable is reviewable.
 9. Update only your status file. Record completed work, commits, PR links, check runs, exact results, risks and the **next 3–5 queued actions**.
