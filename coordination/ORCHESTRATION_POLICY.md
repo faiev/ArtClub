@@ -1,4 +1,4 @@
-# Mandatory orchestration policy — five branches, fifty PRs, one release gate
+# Mandatory orchestration policy — zero new branches, fifty-PR ceiling, one release gate
 
 **Effective:** 2026-11-15  
 **Applies to:** all ten agents, the coordinator, every resumed agent chat, and every GitHub-side orchestration instruction.  
@@ -6,16 +6,15 @@
 
 This policy supersedes every conflicting instruction in older assignments, status files, backlog entries, board snapshots, prompts and coordination decisions. In particular, it overrides any instruction to create a branch after each task/PR, continue by opening another PR, run tests after each small change, or create test-only branches/PRs. The coordinator must assign work within these limits; agent autonomy never overrides them.
 
-## 1. Ten agents share five branch slots
+## 1. Zero new working branches — permanent rule
 
-- There are ten agents, but **the entire team shares a maximum of five active non-main working branches**. This is five total, not five per agent.
-- `main` is the protected baseline and is not counted as a working branch.
-- The five-slot cap includes feature, coordinator, integration, QA, safety-review, documentation, hotfix, experiment and any other working branch. There are no exceptions for urgency, agent count, stacked work or testing.
-- **Never create a branch for a test, a test of a test, a benchmark, a tiny task, or a separate PR-sized follow-up.** Testing does not get its own branch.
-- Reuse the five existing working branches. Group related work into substantial, coherent changes. Retire and delete a branch before opening a replacement slot; do not exceed five even temporarily.
-- The coordinator assigns branch slots. An agent without an assigned slot stays paused or performs only explicitly authorized read-only review. Two agents may share a slot only when the coordinator assigns it and their file ownership does not overlap.
-- Closed or merged historical branches are frozen. They are not invitations to resume old work or create descendants. A frozen branch can only be reactivated by the coordinator after a working slot is available.
-- Before any branch creation or reactivation, the coordinator checks the live branch list and records which of the five slots is being used. If five slots are occupied, branch creation stops.
+- **The team-wide allowance for creating new non-main branches is ZERO.** This is not a per-agent allowance. No agent, including the coordinator, may create, fork, rename, recreate, or reactivate a working branch.
+- This rule is permanent because branch refs are treated as lasting repository history and must not be multiplied for each task, agent, release, or version.
+- **Grandfathered existing branch:** `coordinator/ui-02-safe-edit-mainline` already existed when this rule was adopted. It is the only non-main branch currently present and may be used only to finish the UI-02 work already committed to it. Do not repurpose it for a different release or create descendants from it. After its current work receives a final disposition, leave it untouched as a permanent historical ref.
+- Do not delete, force-update, rename, or otherwise rewrite any existing branch. Existing historical branches are not work queues; do not revive them or attempt to recover deleted branches.
+- All new authorized implementation and documentation work must be committed directly to `main`, with coordinator-assigned scope, one writer per file, and serialized updates for shared files. Workers must never push to `main` without an explicit assignment covering the exact paths they own.
+- Because there are zero new branch slots, do not open a new PR that requires creating a branch. The coordinator may finish the one grandfathered UI-02 slice from its existing branch if a PR is necessary; all later work proceeds through authorized direct commits to `main`.
+- Do not run tests or create testing infrastructure to justify a branch exception. There are no urgency, agent-count, hotfix, stacked-work, documentation, QA, or testing exceptions.
 
 ## 2. Maximum fifty open PRs; hard stop at the cap
 
@@ -41,14 +40,14 @@ This policy supersedes every conflicting instruction in older assignments, statu
 ## 4. Build the release, not a pile of experiments
 
 - Prioritize user-visible production features and integration. Stop speculative modules, unrelated feature expansion, duplicate prototypes, benchmark-only tasks, test-runner experiments and documentation-only PRs unless the coordinator explicitly identifies them as necessary to ship the current release.
-- Combine related, authorized tasks into a small number of complete implementation slices on the five shared branches. Do not create a new branch or PR just because an AC number or agent changes.
+- Combine related, authorized tasks into complete implementation slices using coordinator-assigned direct commits to `main`. Do not create a branch or PR because an AC number, release, or agent changes.
 - One task assignment must describe a meaningful product outcome, the owning branch slot, allowed files and expected integration point. Agents must not invent follow-on tasks or split one deliverable into artificial microtasks.
 - Keep the existing single-writer file ownership rules. Branch/PR limits do not grant permission to edit another agent's files.
 - The coordinator is responsible for sequencing the work, integrating the release and maintaining the live branch/PR budget. Agents must stop before any action that would breach a cap.
 
 ## 5. Release sequence and authority
 
-1. Coordinator selects the product work required for the next user-visible release and assigns it to no more than five working branches.
+1. Coordinator selects the product work required for the next user-visible release and assigns exact, non-overlapping file scopes for direct commits to `main`; the grandfathered UI-02 branch may only finish its already-started slice.
 2. Agents complete substantial, compatible work within those slots. No test runs or new test branches during this implementation phase.
 3. The coordinator resolves the release-cohort PRs within the 50-PR ceiling and integrates the approved changes.
 4. When the newest version is assembled and ready to ship, freeze implementation and dispatch the single consolidated final validation workflow on `main`.
@@ -70,4 +69,4 @@ This section applies to every agent and every role. The objective is to spend ti
 - **Concise communication:** Send an update when a meaningful milestone is reached or a real blocker appears. Do not narrate every API call, repeat repository facts, or send progress messages that do not help a teammate act. Final reports should state the result, changed paths/commit, integration need and genuine blocker only.
 - **Stop when evidence is sufficient:** Do not continue searching after the required facts are established. If a required fact is unavailable, state the precise limitation and continue other authorized work rather than broadening into unrelated investigation.
 
-**Default:** use the smallest set of reads and actions that safely establishes scope, then make substantial product progress. Speed must not compromise ownership, data integrity, the five-branch/fifty-PR limits, or the single release-validation gate.
+**Default:** use the smallest set of reads and actions that safely establishes scope, then make substantial product progress. Speed must not compromise ownership, data integrity, the zero-new-branch rule, the fifty-PR ceiling, or the single release-validation gate.
