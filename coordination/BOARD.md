@@ -7,7 +7,7 @@
 
 ## Live repository state
 
-- Main at role-based coordination reset: `a82b3669e5451ade2aee482009a8231324ad075e`.
+- Current `main` HEAD: `2415e3b131a9bfa1dc3fa4db5a7a2ecf61774030`.
 - Open PRs: 0 at last live check.
 - Non-main branches: one existing grandfathered branch, `coordinator/ui-02-safe-edit-mainline`.
 - New branch creation: permanently prohibited.
@@ -37,6 +37,19 @@ These five discovery tasks may run concurrently because they do not write produc
 ### Implementation — serialized single-writer queue
 
 Only the named coder may write the listed file during that step. The next coder waits until the owner hands off the exact commit and the coordinator releases the file.
+
+### Current implementation blocker — Step 0 only
+
+Live check on 2026-11-15:
+- `main`: `2415e3b131a9bfa1dc3fa4db5a7a2ecf61774030`.
+- Grandfathered Clear branch: `e37d6ce86147152ee53642b629aa4d0c710b63dd`.
+- Branch comparison: 6 commits ahead, 7 behind; the cumulative changed-file list contains only `index.html` (+118/−11 relative to the merge base).
+- Do not merge the whole divergent branch blindly. Review and transfer only the approved Clear slice into current `main`; leave the grandfathered branch intact.
+
+**Concrete API defect for Coder 2:** on the grandfathered branch, `clearSelectedPixels()` is async (around line 1027), but `agentClearSelection(payload)` remains synchronous (around line 2055) and checks `!clearSelectedPixels()`. Since the call returns a Promise, the check is always truthy and the handler returns `getAgentStatus()` before the safe-edit commit has completed. Make the handler async, await `clearSelectedPixels()`, throw when its resolved result is false, and return `getAgentStatus()` only after the awaited operation succeeds. Confirm the caller preserves/reports the returned Promise and propagates rejection; the Agent API adapter currently returns `adapter.clearSelection(args)` directly.
+
+**Step 0 acceptance gate:** no success status before persistence and context validation finish; false result/rejection must remain a failure; returned status must reflect the committed state. Verifier signs off before coordinator transfers the Clear slice to `main`. Until then, Coder 1's `index.html` writer slot remains locked. No tests during implementation.
+
 
 **Step 0 — Coder 2 / safe editing: finish the existing Clear slice**
 
