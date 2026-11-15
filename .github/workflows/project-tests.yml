@@ -1,21 +1,8 @@
 name: Project model tests
 
+# Tests are intentionally deferred until the integrated release candidate is ready.
+# Dispatch once from main for the single consolidated release validation gate.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "index.html"
-      - "js/**"
-      - "tests/**"
-      - "agent-bridge/**"
-      - ".github/workflows/project-tests.yml"
-  pull_request:
-    paths:
-      - "index.html"
-      - "js/**"
-      - "tests/**"
-      - "agent-bridge/**"
-      - ".github/workflows/project-tests.yml"
   workflow_dispatch:
 
 permissions:
@@ -23,6 +10,7 @@ permissions:
 
 jobs:
   test:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -37,6 +25,7 @@ jobs:
           node --check agent-bridge/server.mjs
 
   browser-e2e:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository

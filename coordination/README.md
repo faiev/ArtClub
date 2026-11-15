@@ -2,6 +2,8 @@
 
 This is the persistent coordination system for ten worker chats plus one coordinator.
 
+> **MANDATORY POLICY:** Read and follow [ORCHESTRATION_POLICY.md](ORCHESTRATION_POLICY.md) before doing any work. It sets a hard cap of five shared working branches, a hard cap of fifty open PRs per release cohort, prohibits test-only branches/PRs, and permits only one consolidated final validation run immediately before release. It overrides every conflicting older instruction in this README, BOARD, BACKLOG, DECISIONS, assignment or status file. Ten agents do not mean ten branches.
+
 ## Important runtime limitation
 
 These files provide shared assignments, backlog, status, ownership and decisions. They do **not** automatically wake a ChatGPT chat, run it in the background, or let one chat message another. A worker only executes when its chat receives a prompt. The goal of this system is to make every resumed session productive for as long as possible and remove coordinator approval between pre-authorized tasks.

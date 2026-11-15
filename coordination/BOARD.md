@@ -1,3 +1,5 @@
+> **MANDATORY CURRENT ORCHESTRATION POLICY:** [coordination/ORCHESTRATION_POLICY.md](ORCHESTRATION_POLICY.md) and D-029 govern all work from this point forward. Ten agents share **five active non-main branch slots**, the release cohort is capped at **50 open PRs**, no test-only branch/PR is allowed, and automated tests run only once as the consolidated release gate after integration. These rules override every conflicting historical snapshot, assignment and instruction below. Any branch/PR counts and workstream instructions later in this file are historical unless revalidated and authorized under that policy.
+
 # LIVE COORDINATOR VERIFICATION — 2026-11-15 01:46 IST
 
 - Latest authoritative main: `404e412e34e28827e1bac7e66f821c2c15e06f26` (verified via Git ref).
