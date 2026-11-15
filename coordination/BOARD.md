@@ -7,79 +7,122 @@
 
 ## Live repository state
 
-- Main baseline before the cleanup: `276e4f2ee9e70b483a5e0f0fbb8c68f8aa4bcee5`.
-- Role-based coordination reset commit: `18d7876b54fcc24f679ccb9db52074bdf86b7d5f`.
-- Open PRs: 0 at the last live check.
+- Main at role-based coordination reset: `a82b3669e5451ade2aee482009a8231324ad075e`.
+- Open PRs: 0 at last live check.
 - Non-main branches: one existing grandfathered branch, `coordinator/ui-02-safe-edit-mainline`.
-- New branch creation: prohibited permanently.
-- The grandfathered branch contains the previously started UI-02 Clear implementation only. It is not a branch template and must not be reused for a later release.
-- Do not inspect, revive, close, merge, restore or recreate old PRs or deleted branches unless the user explicitly requests it.
-- The old numbered assignment/status files and AC workstream backlog have been retired. Their content remains in Git history, not as current instructions.
+- New branch creation: permanently prohibited.
+- The grandfathered branch may only finish its already-started UI-02 Clear work. It is not reusable. Do not delete or rewrite it.
+- Do not act on historical PRs or deleted branches unless the user explicitly requests it.
 
 ## Product objective
 
-Build Art Club as a polished, practical pixel-art editor. The canvas must remain the center of the workspace. Every control must earn its space and every visible action must work.
+Build Art Club as a polished, practical pixel-art editor. The canvas is the center of the workspace. Keep its logical pixels square, preserve accurate input, remove meaningless permanent controls and make every visible action useful.
 
-## Current priority queue
+## Next execution plan
 
-### P0 — Canvas geometry and workspace integrity
-- Canvas stays centered and usable on desktop; the editor must not arbitrarily shrink the canvas.
-- Every logical pixel remains square at all supported canvas dimensions, viewport sizes and zoom levels.
-- Pointer coordinates must continue to target the correct logical pixel after resize, zoom and device-pixel-ratio changes.
-- Side panels must not distort the canvas or silently force rectangular pixel cells.
+This is the active role-based plan. It replaces the former numbered-agent and AC workstream queues. All sessions must read `TEAM_MODEL.md`, `ORCHESTRATION_POLICY.md`, this board and `DECISIONS.md` before acting. The coordinator is the only person who changes this board or grants file ownership.
 
-**Acceptance:** square pixel cells, correct edge-pixel input, stable responsive layout and no canvas clipping at common desktop sizes.
+### Parallel discovery — start immediately
 
-### P0 — Remove unnecessary workspace chrome
-- The canvas is the only area allowed to display a visible scrollbar.
-- Scrolling must remain functional wherever content overflows; hide scrollbar chrome in other panels and page regions.
-- Do not disable overflow as a shortcut.
+| Seat | Assignment | Output / boundary |
+|---|---|---|
+| UI Designer | Produce one concrete canvas-first desktop layout proposal. Resolve canvas width/height constraints, side-panel proportions, compact tool hierarchy, palette placement/expansion and responsive breakpoints. Explicitly preserve square logical pixels and prevent canvas shrinkage. | Return concise annotated dimensions/layout and the trade-offs. No production files, no prototype project. |
+| UX Designer | Specify the interaction model for the Animate workspace, contextual selection actions, single selected-tool indicator, expandable palette and keyboard/help surface. Include empty, active, disabled and error states plus keyboard/focus behavior. | Return interaction rules and observable acceptance criteria. No production files. |
+| Competitor Analyst | Compare a small, relevant set of pixel-art editors on canvas sizing/zoom, tool organization, palette expansion, animation timeline and workspace visibility. Research actual current behavior, cite source URLs and access dates, and report only patterns that solve an identified Art Club problem. | Decision-ready comparison: adopt/adapt/avoid. No generic feature catalog and no production files. |
+| Verifier — UI | Inspect current `main/index.html` for canvas shrink/square-cell/pointer-coordinate risks, nested scrollbars, toolbar duplication and permanent timeline space. | Source-only findings with exact selectors/lines and concrete acceptance checks. Do not edit or run tests. |
+| Verifier — safety | Review only the current grandfathered UI-02 branch against current `main`: Clear transaction, context invalidation, storage conflict/rollback handling and Agent API/bridge return semantics. Check for asynchronous false-success/stale-response behavior. | Source-only findings tied to the exact branch SHA. Do not modify code or run tests. Do not re-review old PRs. |
 
-**Acceptance:** visible scrollbar only on the canvas viewport; wheel, touchpad, touch and keyboard scrolling still work in other regions.
+These five discovery tasks may run concurrently because they do not write production files or each other's files. The coordinator combines the results once and makes the product decisions.
 
-### P0 — Make animation opt-in
-- Timeline is hidden/collapsed by default and does not permanently reserve canvas height.
-- Add a clear **Animate** action that opens the animation workspace.
-- Closing the animation workspace returns the recovered space to the canvas.
-- For a one-frame project, show a useful “add another frame” entry state rather than irrelevant disabled playback controls.
+### Implementation — serialized single-writer queue
 
-**Acceptance:** animation controls are absent until requested; opening/closing the workspace works and does not disrupt the drawing area.
+Only the named coder may write the listed file during that step. The next coder waits until the owner hands off the exact commit and the coordinator releases the file.
 
-### P0 — Simplify tool and selection controls
-- Remove meaningless empty space in the left toolbar and use a compact, intentional hierarchy.
-- Show the selected tool only once visually; keep its programmatic selected state accessible.
-- Show selection actions only when they are relevant to the selected tool or an active selection.
-- Move the full shortcut reference into a Help/keyboard surface.
+**Step 0 — Coder 2 / safe editing: finish the existing Clear slice**
 
-**Acceptance:** no redundant tool labels, no permanently visible disabled selection controls, and essential commands remain discoverable.
+- Work only on the grandfathered `coordinator/ui-02-safe-edit-mainline` branch.
+- Finish active-cel and selection Clear integration. Verify that the UI and Agent API/bridge do not report success or return stale status before the asynchronous safe-edit commit completes.
+- Preserve the revision-aware `project-storage.js` contract already present; do not replace it with a second storage mechanism.
+- Do not add paste or import work to this branch.
+- Hand off the exact branch head, changed paths and remaining limitations to the coordinator. No tests during implementation.
 
-### P1 — Expandable palette
-- Provide an obvious way to expand/collapse the palette and access all colors.
-- Expansion must not distort the canvas or create another always-visible scrollbar.
-- Preserve current color selection and make palette controls keyboard/touch accessible.
+**Step 1 — Coder 1 / editor layout: canvas and scroll integrity**
 
-### P1 — Safe editing completion
-- Preserve the existing active-cel Clear safety work on the grandfathered branch until it has a final integration decision.
-- Reject paste operations that would otherwise be clipped or partially applied.
-- Stage image imports against the original project/layer/frame/revision and revalidate before commit.
-- The latest selected image request must win; stale asynchronous decodes must never overwrite newer intent.
-- Preserve project data and history on validation or storage failure.
+- After Step 0 is integrated, take the sole `index.html` writer slot on `main`.
+- Fix the desktop canvas shrink and logical pixel aspect ratio. Ensure a logical pixel remains square at supported canvas dimensions, viewport sizes and zoom levels.
+- Prevent tool/inspector panel widths from squeezing the drawable canvas below a usable minimum. Use responsive collapse/reflow rather than distorting the grid.
+- Hide all scrollbar chrome outside the canvas viewport while preserving scrolling in every region that needs it.
+- Remove wasteful empty space in the left rail and align the layout with the approved UI Designer proposal.
+- Hand off the exact commit and visual/source reasoning; do not start the timeline task until the coordinator releases `index.html`.
 
-### P1 — Correct keyboard and feedback behavior
-- Do not steal native text-field undo or browser-reserved shortcuts.
-- Respect inputs, selects, textareas, contenteditable, dialogs, IME composition and AltGraph.
-- Use platform-appropriate Ctrl/Cmd labels and clear, truthful status/error messages.
+**Step 2 — Coder 1 / controls and workspace: timeline, toolbar and palette**
 
-### P2 — Workspace polish
-- Distinguish Fit from true Actual Size (1:1) zoom.
-- Keep zoom centered/anchored predictably.
-- Expose accessible rename, visibility, lock and palette actions without relying only on double-click or right-click.
-- Profile large canvases before changing the renderer architecture.
+- Take the `index.html` writer slot only after Step 1 is handed off.
+- Hide/collapse the timeline by default. Add an obvious Animate action that opens/closes the animation workspace and returns its height to the canvas when closed.
+- At one frame, present a useful add-frame entry state instead of permanent disabled playback/onion controls.
+- Show the selected tool only once visually, with a proper accessible selected state.
+- Show selection actions only when the Select tool or a real selection makes them relevant. Move the complete shortcut reference into a Help/keyboard surface.
+- Add an expandable/collapsible palette without shrinking the canvas or introducing another always-visible scrollbar.
+- Hand off the exact commit and interaction states; wait for the coordinator before the next shared-file owner.
 
-## Current assignment policy
+**Step 3 — Coder 2 / editing behavior: atomic paste and staged image import**
 
-The coordinator assigns one outcome and exact file scope at a time using the role model. No agent self-assigns. Shared files have one writer. Designers and analysts produce decision-ready findings; coders implement approved behavior; verifiers review the implementation. Work not explicitly assigned remains paused.
+- Take the `index.html` writer slot after Step 2, unless the coordinator explicitly schedules a different non-overlapping path.
+- Reject any paste that cannot fit in full. No clipping, partial pixels, history entries or false success messages.
+- Stage image decoding against the original project/layer/frame/dimensions/revision. Revalidate immediately before commit.
+- Use a monotonically increasing import request identity so the most recently selected image wins regardless of decode completion order.
+- Guarantee object-URL cleanup on every terminal path and preserve artwork/history/storage on failure.
+- Keep keyboard shortcut handling out of inputs, textareas, selects, contenteditable elements, dialogs, IME composition and AltGraph. Do not intercept browser-reserved Save Page or native text undo.
+- Hand off exact changed paths/commit and unresolved limitations.
+
+No two implementation steps may write `index.html` simultaneously. If an implementation needs another file, the coordinator must explicitly assign that path before it is changed.
+
+## Verifier handoff sequence
+
+- UI Verifier reviews Step 0 for visible Clear scope and interaction truthfulness, then Step 1/2 for geometry, pixel squareness, scroll behavior, timeline visibility, toolbar clarity and palette expansion.
+- Safety Verifier reviews Step 0 transaction/bridge behavior, then Step 3 paste/import atomicity and failure behavior.
+- Verifiers report source evidence and specific defects only. Do not run test suites during implementation. The single final release validation remains deferred until the release candidate is assembled.
+
+## Coordinator responsibilities
+
+1. Collect the five parallel discovery deliverables and resolve any design/UX/competitor disagreement.
+2. Own the single-writer queue and release `index.html` between implementation steps.
+3. Integrate Step 0 from the grandfathered branch into `main` only after the source review. Keep the existing branch afterward as historical; do not delete or reuse it.
+4. Keep all subsequent work directly on `main`; create no branches or PRs.
+5. Assemble all approved work, freeze implementation, and authorize the one consolidated release-validation workflow.
+6. If validation passes, deploy and verify the live editor before calling the work shipped.
+
+## Acceptance priorities
+
+### P0 — canvas integrity
+- Canvas remains large and centered on desktop.
+- Logical pixel cells are square, including non-square canvas dimensions.
+- Pointer input hits the intended first/last cells after resize and zoom.
+- No accidental clipping or inaccessible controls at common desktop sizes.
+
+### P0 — usable workspace
+- The canvas is the only visible-scrollbar exception; all other scrolling still works.
+- Timeline is opt-in through Animate and does not reserve space by default.
+- The toolbar is compact; the active tool is not repeated in three places.
+- Selection commands are contextual rather than permanently occupying the left rail.
+
+### P1 — palette and safe editing
+- Palette can expand/collapse without distorting the canvas.
+- Clear affects only the active cel and communicates that accurately.
+- Paste is all-or-nothing.
+- Image import is bound to its original target and newest request.
+- Failed edits leave artwork, history and persistence unchanged.
+
+### P1 — keyboard and accessibility
+- Browser and native editing shortcuts are preserved.
+- Tool, layer, frame and palette states are programmatically exposed.
+- Important actions do not depend only on hover, double-click or right-click.
+
+### P2 — polish
+- Fit and Actual Size (1:1) are distinct and correctly named.
+- Zoom anchoring is predictable.
+- Large-canvas performance is measured only when a release decision needs it.
 
 ## Release status
 
-The UX requirements above are priorities, not claims that they are implemented. No new release is declared here. Automated validation remains deferred until the coordinator declares the assembled `main` candidate ready and authorizes the single release gate.
+These are planned tasks, not claims of implementation. No new release is declared. Automated validation remains deferred until all approved changes are on `main` and the coordinator authorizes the single release gate.

@@ -1,73 +1,90 @@
 # Art Club — role-based team model
 
-## Team structure
+## Ten seats, seven functions
 
-The team has **10 agent sessions organized around seven functional roles**. A role can have more than one session, but each task has one accountable owner and explicit file boundaries. The previous numbered AC workstreams are retired.
+The team has ten agent sessions. These seat labels identify responsibilities, not the retired numbered-agent workstreams.
 
-| Function | Seats | Primary responsibility |
-|---|---:|---|
-| UI Designer | 1 | Visual direction, canvas-first layout, hierarchy, component and responsive design |
-| UX Designer | 1 | User flows, discoverability, interaction logic, accessibility and usability |
-| Competitor Analyst | 1 | Evidence-based research of competing pixel-art/design tools and actionable product opportunities |
-| Coder 1 — Editor/UI | 2 | Production editor layout, canvas presentation, controls, interactions and responsive behavior |
-| Coder 2 — Core/features | 2 | Application logic, state, persistence, import/export and reusable feature behavior |
-| Verifier | 2 | Independent implementation review, regression-risk analysis, accessibility and release acceptance |
-| Coordinator | 1 | Product priorities, task allocation, file ownership, integration, release and deployment |
+| Seat | Function | Responsibility |
+|---|---|---|
+| UI Designer | UI design | Canvas-first visual hierarchy, dimensions, responsive layout and visual consistency |
+| UX Designer | UX design | User journeys, contextual controls, keyboard, focus, feedback and accessibility |
+| Competitor Analyst | Product research | Current competitor workflow research with sources and actionable recommendations |
+| Coder 1 — Layout | Editor/UI | Canvas geometry, pixel squareness, scroll behavior, responsive layout and toolbar density |
+| Coder 1 — Workspace | Editor/UI | Timeline/Animate workspace, contextual selection actions, palette expansion and UI state |
+| Coder 2 — Safe editing | Core/features | Finish existing UI-02 Clear integration; preserve safe transaction and bridge result semantics |
+| Coder 2 — Editing behavior | Core/features | Atomic paste, staged image import, latest-request-wins and keyboard command behavior |
+| Verifier — UI | Verification | Independent review of canvas geometry, workspace behavior, visual hierarchy and accessibility |
+| Verifier — safety | Verification | Independent review of mutation atomicity, async behavior, persistence and failure paths |
+| Coordinator | Coordination | Priorities, exact file ownership, serialized integration, release and deployment |
 
-The coordinator may rebalance the ten sessions between functions when the current release needs it. This does not create additional roles, branches or parallel writers.
+The coordinator may change seat responsibilities, but must update the board before work changes. One deliverable has one accountable owner.
 
-## Role responsibilities and boundaries
+## Responsibilities and boundaries
 
 ### UI Designer
-- Define the visual system, layout, density, sizing and responsive behavior.
-- Resolve canvas prominence, pixel geometry, toolbar composition, palette presentation and workspace balance.
-- Deliver specific screen/state guidance and review the actual implementation against it.
-- Do not create endless decorative prototypes or claim that a design is implemented.
+- Design the actual production interface, not a disconnected concept.
+- Prioritize drawable canvas size, square pixel cells, sensible panel widths, compact tool rail and discoverable palette.
+- Provide concrete dimensions, hierarchy, responsive behavior and interaction-state visuals.
+- No production source edits or speculative prototype work unless explicitly assigned.
 
 ### UX Designer
-- Define how users discover and operate tools, selections, layers, frames, animation and project actions.
-- Remove unnecessary permanent controls and hidden gestures.
-- Specify keyboard, pointer, touch, focus, feedback, error and accessibility behavior.
-- Convert user complaints into clear, observable acceptance criteria.
+- Define how users discover and operate selection, layers, frames, animation, palette and project actions.
+- Remove permanent disabled/irrelevant controls and hidden-gesture-only workflows.
+- Specify keyboard, pointer, touch, focus, error and success feedback.
+- Turn user complaints into observable acceptance criteria.
+- No production source edits unless explicitly assigned.
 
 ### Competitor Analyst
-- Research relevant competing pixel-art editors and creative tools.
-- Compare actual workflows, canvas behavior, palette handling, timelines, toolbars, zoom and workspace customization.
-- Cite product names, source URLs, dates and observed details.
-- Recommend what Art Club should adopt, adapt or deliberately avoid. Do not copy competitors blindly or produce a generic feature dump.
+- Compare a small relevant group of current pixel-art tools.
+- Research real workflows for canvas sizing, zoom, toolbars, palettes, animation and workspace customization.
+- Cite product, URL, access date and observed behavior.
+- Recommend adopt/adapt/avoid and explain why. Avoid generic feature lists and feature copying.
+- No production source edits.
 
-### Coder 1 — Editor/UI
-- Implement approved production UI, CSS, layout and input interactions.
-- Preserve square logical pixels, accurate pointer mapping, responsive layout and usable canvas space.
-- Wire controls to real behavior; do not add fake buttons, decorative placeholders or duplicate indicators.
-- Coordinate with Coder 2 at module/API boundaries.
+### Coder 1 — Layout
+- Own assigned editor layout/CSS and canvas presentation paths.
+- Preserve square logical pixels, correct coordinate mapping, responsive layout and usable canvas area.
+- Remove wasteful tool rail space and hide non-canvas scrollbar chrome without disabling scrolling.
 
-### Coder 2 — Core/features
-- Implement approved application logic, state transitions, safe editing, storage, import/export and reusable feature behavior.
-- Preserve data, history, immutability and failure semantics.
-- Keep interfaces plain JavaScript and compatible with the existing local-first architecture.
-- Do not build isolated modules unless the coordinator has identified a concrete production integration path.
+### Coder 1 — Workspace
+- Own assigned animation/timeline visibility, toolbar states, contextual selection actions and expandable palette behavior.
+- Ensure every control performs a real action and states are accessible.
+- Coordinate the `index.html` writer slot with Coder 1 — Layout; never edit it at the same time.
 
-### Verifier
-- Independently inspect the exact changed code and user-visible workflow.
-- Look for data loss, stale state, partial operations, race conditions, keyboard/focus failures, responsive breakage, accessibility regressions and false success messages.
-- Separate verified facts from assumptions. State exact paths and reproduction conditions.
-- Do not trigger tests during implementation. Participate in the one consolidated release validation gate when authorized.
+### Coder 2 — Safe editing
+- Complete only the already-started UI-02 Clear change on the grandfathered branch.
+- Preserve existing revision-aware storage and rollback contracts.
+- Ensure UI/Agent API/bridge responses correctly await asynchronous safe-edit completion.
+- Do not repurpose the grandfathered branch for later tasks.
+
+### Coder 2 — Editing behavior
+- Implement all-or-nothing paste and target-stable, staged image import.
+- Handle asynchronous request ordering, validation, cancellation/cleanup and storage failure without partial mutation.
+- Coordinate any shared `index.html` edits through the coordinator's serialized writer slot.
+
+### Verifier — UI
+- Independently inspect the actual changed UI and source.
+- Check pixel geometry, responsive overflow, toolbar discoverability, timeline open/close, palette expansion, focus and accessibility.
+- Report concrete defects and evidence; do not run tests during implementation.
+
+### Verifier — safety
+- Independently inspect safe-edit, paste, import and persistence paths.
+- Check races, stale targets, transaction boundaries, failure rollback and false success.
+- Report exact code paths and reproduction sequences; do not run tests during implementation.
 
 ### Coordinator
-- Own the product roadmap, board, policy, decisions, task assignments and file-writer schedule.
-- Translate user feedback and design/research findings into concrete implementation slices.
-- Assign exact paths to coders; prevent overlapping writes; integrate changes to `main`.
-- Keep the branch/PR restrictions and the single release gate intact.
-- Publish only after the actual production build, deployment and live workflow are verified.
+- Convert user feedback and design evidence into a small ordered product queue.
+- Assign one writer per file and serialize changes to shared paths.
+- Integrate directly into `main` under the zero-new-branch rule.
+- Keep the single release-validation gate and verify deployment/live workflows before claiming completion.
 
-## Collaboration sequence
+## Working sequence
 
-1. UX Designer and UI Designer turn the user need into an interaction and visual proposal.
-2. Competitor Analyst supplies relevant evidence where comparison can change the decision.
-3. Coordinator selects the product behavior and defines acceptance criteria and file ownership.
-4. Coder 1 and Coder 2 implement disjoint slices; they coordinate before touching shared interfaces.
-5. Verifiers review the actual change and report specific defects without starting separate test cycles.
-6. Coordinator integrates, prepares the release candidate and authorizes the single final validation.
+1. UI Designer + UX Designer + Competitor Analyst define and justify the product behavior.
+2. Verifiers independently inspect the current baseline and grandfathered UI-02 change.
+3. Coordinator resolves design choices and assigns exact acceptance criteria.
+4. Coders implement one shared-file slice at a time in the order on `BOARD.md`.
+5. Verifiers review each material diff without launching per-task tests.
+6. Coordinator assembles the release and authorizes the single final validation.
 
-Not every task needs every role. Do not manufacture work to keep an agent busy. The coordinator may assign a small focused team and leave the other sessions paused.
+Not every seat needs to be active at once. Do not manufacture work or run parallel edits on shared files.
