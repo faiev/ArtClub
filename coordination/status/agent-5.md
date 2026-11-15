@@ -313,3 +313,126 @@ Read-only source audit responding to the user's additional product feedback. No 
 - Priority order for product decisions: (1) hide all non-canvas scrollbar chrome while preserving scroll; (2) make animation workspace opt-in; (3) reduce always-visible toolbar controls; (4) align Clear scope, reject partial paste and stage import; (5) repair shortcut context and platform labels; (6) clarify zoom semantics/range; then accessibility, hidden gestures and performance work.
 - No branch was allocated to Agent 5. Production `index.html` remains Coordinator-owned. No branch, PR, merge, branch deletion or test run was performed by Agent 5.
 - **Last refreshed:** 2026-11-15.
+
+
+---
+
+## Role-based UX Designer discovery handoff — 2026-11-15
+
+**Board assignment:** Specify the interaction model for Animate, contextual selection actions, the single selected-tool indicator, expandable palette and keyboard/help surface. Include empty, active, disabled and error states plus keyboard/focus behavior.
+
+**Scope:** UX specification and observable acceptance criteria only. No production files, prototypes, branch, PR or tests.
+
+### 1. Animate workspace
+
+**Entry and visibility**
+- The workspace starts closed. The canvas must not reserve timeline height while it is closed.
+- Put one clearly labelled **Animate** button in the main workspace toolbar. It toggles the timeline open/closed and exposes `aria-expanded` and `aria-controls`.
+- Opening the workspace reveals the timeline without changing document dimensions, zoom, selected tool, active layer or active frame. Closing it stops playback, preserves frame data and settings, hides the timeline from both keyboard navigation and the accessibility tree, and returns focus to the Animate button.
+- Provide a visible close control. Escape closes the workspace only when focus is not inside an editing field, popover or nested dialog.
+
+**States**
+- **Empty / one-frame state:** Show a short explanation such as “Add a frame to start animating” and a primary **Add frame** action. Do not show disabled Play, loop, ping-pong or onion-skin controls as permanent furniture.
+- **Active / two-or-more-frame state:** Show the frame strip, Add, Duplicate and Delete actions, per-frame duration, onion-skin toggle and playback controls. Identify the active frame visually and programmatically.
+- **Disabled:** Do not allow deletion of the last remaining frame. Disable an action only when its precondition is false (for example, Duplicate when no frame is active); place the reason in visible helper text, not only a hover tooltip. At one frame, omit irrelevant playback controls rather than displaying a row of disabled buttons.
+- **Error:** If frame creation, deletion, duration update or playback setup fails, keep the workspace open, preserve the previous frame/document state, show an action-specific inline error and announce it with an alert/live region. Do not show success before the operation has completed.
+
+**Keyboard and focus**
+- All controls are native buttons/inputs with visible focus indicators and descriptive accessible names.
+- Tab/Shift+Tab moves through timeline actions and frames in a predictable order. When a frame has focus, Left/Right moves between frames; Home/End moves to first/last. Do not capture those keys while a text field is being edited.
+- Enter/Space activates the focused control. Duration is a labelled numeric input with validation and an understandable error state.
+- Playback changes its accessible name between Play and Pause and exposes its pressed/playing state. Closing the workspace stops playback. Reduced-motion preferences must be respected by surrounding UI motion; explicit playback remains user-controlled.
+
+### 2. Contextual selection actions
+
+**Visibility and placement**
+- Remove the permanent Copy/Cut/Paste/Clear/Select all/Deselect/Flip/Rotate block from the tool rail.
+- When Select is active and there is no selection, show a compact instruction (“Drag on the canvas to select pixels”) rather than a full row of unusable actions. Paste may appear when the internal clipboard contains valid content.
+- When a selection exists, expose a compact contextual action group in the workspace's contextual-controls area (not as a permanently reserved toolbar). Keep it available while the selection remains active, even if the user temporarily switches to another tool.
+- When the selection is dismissed, remove the group from layout and keyboard navigation. Do not leave hidden focusable buttons.
+
+**Action preconditions**
+- Copy requires a non-empty selection.
+- Cut, Clear and Delete require a non-empty selection on an editable/unlocked active cel.
+- Flip and Rotate require a non-empty selection and a valid transform target.
+- Paste requires clipboard content and a destination where the complete content can fit. A paste that cannot fit must be rejected as a whole; never silently clip or partially mutate pixels/history.
+- Deselect is available only while a selection exists. Select all is available only when the Select workflow is active and the canvas has an editable target.
+- A disabled action must explain its reason (for example, “Unlock this layer to cut pixels”). Do not rely on color, hover or icon shape alone.
+
+**States**
+- **Empty:** With Select active and no selection, show the selection hint. Do not show Cut/Clear/Flip/Rotate/Deselect as active commands.
+- **Active:** With a non-empty selection, show only actions whose preconditions are met; visibly identify the selection and its bounds.
+- **Disabled:** Explain missing clipboard content, locked target or invalid paste fit next to the relevant action. A disabled action must not create history or change the document.
+- **Error:** A failed command leaves artwork, selection and history unchanged; show a clear message and permit a safe retry. Do not announce a completed edit until its commit has succeeded.
+
+**Keyboard and focus**
+- Tab order should enter the contextual action group after the relevant canvas/tool controls; leaving the group returns naturally to the canvas/workspace.
+- Keep familiar selection shortcuts only while the editor/canvas owns focus. Preserve native text editing in fields and browser-reserved shortcuts. Escape first cancels an in-progress marquee/transform; otherwise it clears the active selection.
+- Every action has a text accessible name, including the target context where needed. After a successful destructive action, keep focus on the nearest still-valid control; after an error, do not unexpectedly move focus.
+
+### 3. One selected-tool indicator
+
+- The tool rail is the sole visible selected-tool indicator. The active tool button gets the selected visual treatment and `aria-pressed="true"`; all other tool buttons expose false.
+- Remove duplicate visible active-tool captions/status labels elsewhere in the canvas header or below the canvas. Contextual settings may remain, but label them by function (for example, “Brush size”), not as another “Brush selected” indicator.
+- A screen-reader-only status announcement may say “Brush tool selected” when the user changes tools. It is not a second visible indicator.
+- Tool buttons need descriptive accessible names. Selected styling and keyboard focus styling must be visually distinct; focus must not be mistaken for selection.
+- Switching tools preserves the current selection and document state unless that tool's documented behavior explicitly changes them.
+
+**States**
+- **Empty/initial:** One default tool is selected on load and announced once; no duplicate caption.
+- **Active:** Exactly one tool rail button is selected at any time.
+- **Disabled:** A genuinely unavailable tool is disabled with a visible reason; it must not appear selected.
+- **Error:** If a tool action cannot start, retain the previous active tool and report the reason; do not visually select a tool whose action failed.
+
+### 4. Expandable palette
+
+**Visibility and behavior**
+- Keep a compact palette summary visible: current foreground/background colors and a clear **Expand palette** control. Expansion reveals the full swatch collection and palette actions in the existing side-panel region; it must not squeeze or resize the canvas, change zoom, or create a new permanently visible scrollbar.
+- Collapse returns to the compact summary without changing the selected colors. The expanded state may persist while the user works in the current session, but it must not force the workspace open on a fresh project.
+- The expand control exposes `aria-expanded` and `aria-controls`. Swatches expose their color value/name and selected state; selected color must have a high-contrast outline/marker, not color-only indication.
+- Scrolling a long palette remains possible by wheel, touchpad, touch and keyboard while scrollbar chrome stays hidden outside the canvas.
+
+**States**
+- **Empty:** If no swatches exist, show an explanatory empty state and one useful Add color action; do not show an empty swatch grid.
+- **Active:** Show swatches and clearly identify the selected foreground/background colors. A swatch selection updates the chosen color without changing the current tool or canvas zoom.
+- **Disabled:** Explain why a palette action is unavailable (for example, a read-only imported palette); do not present inert icons as working controls.
+- **Error:** If adding/editing/removing a color fails, preserve the previous palette and selected colors, keep the palette open and announce an actionable error.
+
+**Keyboard and focus**
+- Expand/collapse is activated by Enter/Space. Escape collapses the palette and restores focus to the Expand palette button.
+- Swatches are keyboard-operable. Use arrow keys to move within a swatch grid, Home/End for row/list boundaries, and Enter/Space to select. Do not trap focus in a non-modal palette.
+- Each swatch has an accessible name such as “Warm gray, #8A8178”; its selected state is programmatically exposed.
+
+### 5. Keyboard/help surface
+
+- Replace the always-visible shortcut cheat sheet with one discoverable **Keyboard shortcuts** entry in Help (a visible Help button/menu item is required).
+- The shortcut reference opens as an accessible dialog or clearly labelled Help surface. If modal, expose dialog semantics, move focus into it, keep Tab navigation inside while open, close on Escape, and restore focus to the invoking Help control.
+- Shortcut labels must be platform-aware: Ctrl for Windows/Linux and Cmd for macOS. Do not display a Mac-only glyph to Linux/Windows users.
+- Global editor shortcuts must not run while focus is in input, textarea, select, contenteditable, a dialog/popover, or while IME composition/AltGraph is active. Preserve browser-reserved commands; do not hijack Ctrl/Cmd+S for Save Page or Ctrl/Cmd+Z for native text-field undo.
+- A visible help entry remains usable by pointer, touch and keyboard even when the `?` shortcut is unavailable in a text-editing context.
+
+**States**
+- **Empty:** The Help surface always contains a concise shortcut list and a note about context-sensitive shortcuts; it does not require a shortcut to open.
+- **Active:** Opening Help gives it a clear heading and predictable focus order. Closing restores focus to the original trigger.
+- **Disabled:** Shortcuts that are unavailable in the current context are marked as contextual, not presented as globally active.
+- **Error:** If the Help surface cannot open, leave current focus and editor state intact and provide a non-destructive explanation; no command is triggered as a fallback.
+
+### Observable acceptance criteria for Coordinator / implementation
+
+1. On initial load, the timeline is closed and consumes zero layout height; the canvas gains that space.
+2. The Animate button reports expanded/collapsed state. Opening and closing it does not alter canvas dimensions, zoom, active tool, active layer or active frame.
+3. With one frame, the timeline presents Add frame guidance and no permanent disabled playback/onion-skin row. Adding a second frame reveals the real animation controls.
+4. Closing the timeline stops playback, preserves all frames/settings and returns focus to Animate.
+5. With Select active but no selection, users see a concise instruction, not a permanent bank of disabled commands.
+6. With a selection, only valid contextual actions are exposed. Clearing/deselecting the selection removes those actions from both layout and tab order.
+7. A locked layer, missing clipboard or paste that cannot fit produces an explicit reason and no partial document/history mutation.
+8. Exactly one tool button has selected styling and `aria-pressed=true`; no duplicate visible selected-tool caption appears elsewhere.
+9. Expanding/collapsing the palette does not change canvas bounds, aspect ratio, zoom or selected colors. Palette scrolling works without visible scrollbar chrome.
+10. Every palette swatch is keyboard selectable and exposes its color label/value and selected state to assistive technology.
+11. The full shortcut list is discoverable through Help and works with keyboard, pointer and touch.
+12. Linux/Windows users see Ctrl labels; macOS users see Cmd labels. Editable controls, IME composition, AltGraph and browser-reserved shortcuts retain native behavior.
+13. All disabled controls have an understandable reason; hover tooltips are never the only explanation.
+14. Errors preserve artwork, history, selection, palette and focus context; no failure is announced as success.
+15. Every interactive element has a visible keyboard focus indicator and a descriptive accessible name. Reduced-motion preferences are respected.
+
+**Implementation boundary:** This is a UX discovery deliverable, not approval to change `index.html`. The board's serialized Coder 1 writer queue remains authoritative. The Coordinator should resolve any disagreement with the UI Designer's layout proposal and then pass these acceptance criteria to Coder 1.
