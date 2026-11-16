@@ -53,7 +53,7 @@ A follow-up integrity fix cancels a queued autosave before a safe edit begins, a
 
 **Verification performed:** source-level integration review only. Confirmed unique DOM IDs, no missing JavaScript ID lookups, Promise propagation through the Agent API adapter, expected helper modules present on `main`, and wiring for Animate, palette, selection, paste, import and keyboard behavior. No automated tests or manual browser session have been run. Do not describe the changes as tested or release-verified.
 
-The next step is one consolidated release validation on `main` after the candidate is frozen and the release gate is authorized. The grandfathered branch is no longer an active work surface.
+The Pages build/deployment workflow for current `main` (`00aa6a5`) completed successfully (run `43844790807`). The consolidated project-test workflow is configured as manual `workflow_dispatch`; it has not run against this candidate. The available GitHub integration exposes workflow reads but no dispatch action, so the release test gate still needs to be started from GitHub Actions → **Project model tests** → **Run workflow** on `main`. No automated tests or manual browser smoke test were run here. The grandfathered branch is no longer an active work surface.
 
 **Step 0 — Coder 2 / safe editing: COMPLETE on `main` (`a8bdcbf`)**
 
