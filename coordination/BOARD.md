@@ -7,7 +7,7 @@
 
 ## Live repository state
 
-- Current `main` HEAD: `6ac299f255ef8950ac1edf354a0874c9508386b9`.
+- Latest implementation commit on `main`: `6ac299f255ef8950ac1edf354a0874c9508386b9`.
 - No PRs were created during this implementation; the last recorded open-PR count was 0.
 - Non-main branches: one existing grandfathered branch, `coordinator/ui-02-safe-edit-mainline`.
 - New branch creation: permanently prohibited.
