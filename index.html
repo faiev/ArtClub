@@ -820,6 +820,7 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="./js/project-model.js"></script>
+<script src="./js/import-staging.js"></script>
 <script src="./js/project-storage.js"></script>
 <script src="./js/layer-edit-guard.js"></script>
 <script src="./js/safe-edit-operations.js"></script>
@@ -829,9 +830,11 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
 "use strict";
 const $ = id => document.getElementById(id);
 const ProjectModel = window.ArtClubProject;
+const ImportStaging = window.ArtClubImportStaging;
 const SafeEditOperations = window.ArtClubSafeEditOperations;
 if (!ProjectModel) throw new Error("One Pixel Studio project model failed to load.");
 if (!SafeEditOperations) throw new Error("One Pixel Studio safe-edit operations failed to load.");
+if (!ImportStaging) throw new Error("One Pixel Studio import staging failed to load.");
 const STORAGE_KEY = "one-pixel-studio-project-v2";
 const LEGACY_STORAGE_KEY = "one-pixel-studio-project-v1";
 const ACTIVE_PROJECT_KEY = "one-pixel-studio-active-project";
@@ -2624,6 +2627,10 @@ $("imageInput").addEventListener("change",async e=>{
     toast("Choose an image file.");
     return;
   }
+  if(file.size>ImportStaging.LIMITS.maxImageBytes){
+    toast("Image files must be 8 MB or smaller.");
+    return;
+  }
   if(!projectDoc){
     toast("The project is still loading. Try the image import again.");
     return;
@@ -2635,7 +2642,7 @@ $("imageInput").addEventListener("change",async e=>{
 
   let objectUrl=null;
   try{
-    const context=captureSafeEditContext();
+    const editContext=captureSafeEditContext();
     const targetProject=snapshot();
     const targetWidth=w,targetHeight=h,targetPalette=palette.slice();
     if(!targetPalette.length)throw new Error("Add a palette color before importing an image.");
@@ -2647,45 +2654,48 @@ $("imageInput").addEventListener("change",async e=>{
       image.src=objectUrl;
     });
     if(requestId!==imageImportRequestId)return;
+    if(image.naturalWidth>ImportStaging.LIMITS.maxDimension||
+       image.naturalHeight>ImportStaging.LIMITS.maxDimension){
+      throw new Error("Image dimensions must not exceed 512 × 512 pixels.");
+    }
 
-    const stagingCanvas=document.createElement("canvas");
-    stagingCanvas.width=targetWidth;
-    stagingCanvas.height=targetHeight;
-    const context2d=stagingCanvas.getContext("2d",{willReadFrequently:true});
-    if(!context2d)throw new Error("Image conversion is not available in this browser.");
-    context2d.imageSmoothingEnabled=false;
-    context2d.clearRect(0,0,targetWidth,targetHeight);
-    const scale=Math.min(targetWidth/image.width,targetHeight/image.height);
-    const drawWidth=Math.max(1,Math.round(image.width*scale));
-    const drawHeight=Math.max(1,Math.round(image.height*scale));
-    context2d.drawImage(image,Math.floor((targetWidth-drawWidth)/2),Math.floor((targetHeight-drawHeight)/2),drawWidth,drawHeight);
-    const data=context2d.getImageData(0,0,targetWidth,targetHeight).data;
-    const nextPixels=blank(targetWidth,targetHeight);
-    for(let index=0;index<targetWidth*targetHeight;index++){
-      const offset=index*4,alpha=data[offset+3];
-      if(alpha<32)continue;
-      let best=targetPalette[0],distance=Infinity;
-      targetPalette.forEach(color=>{
-        const red=parseInt(color.slice(1,3),16)-data[offset];
-        const green=parseInt(color.slice(3,5),16)-data[offset+1];
-        const blue=parseInt(color.slice(5,7),16)-data[offset+2];
-        const candidate=red*red+green*green+blue*blue;
-        if(candidate<distance){distance=candidate;best=color}
-      });
-      nextPixels[index]=best;
+    const sourceCanvas=document.createElement("canvas");
+    sourceCanvas.width=image.naturalWidth;
+    sourceCanvas.height=image.naturalHeight;
+    const sourceContext=sourceCanvas.getContext("2d",{willReadFrequently:true});
+    if(!sourceContext)throw new Error("Image conversion is not available in this browser.");
+    sourceContext.imageSmoothingEnabled=false;
+    sourceContext.clearRect(0,0,sourceCanvas.width,sourceCanvas.height);
+    sourceContext.drawImage(image,0,0);
+    const rgba=sourceContext.getImageData(0,0,sourceCanvas.width,sourceCanvas.height).data;
+    const staged=ImportStaging.stageImageImport({
+      width:sourceCanvas.width,
+      height:sourceCanvas.height,
+      rgba:rgba,
+      sourceBytes:file.size
+    },{
+      palette:targetPalette,
+      targetWidth:targetWidth,
+      targetHeight:targetHeight
+    });
+    if(!staged.ok){
+      const message=staged.diagnostics.map(item=>item.message).filter(Boolean).join(" ");
+      throw new Error(message||"The image could not be staged safely.");
     }
     if(requestId!==imageImportRequestId)return;
-    if(!safeEditContextIsCurrent(context)){
+    if(!safeEditContextIsCurrent(editContext)){
       toast("The artwork changed during image conversion. Import the image again to target the current cel.");
       return;
     }
-    const result=SafeEditOperations.replaceActiveCel(targetProject,nextPixels);
+    const result=SafeEditOperations.replaceActiveCel(targetProject,staged.commit.pixels);
     if(!result.ok)throw new Error(result.message||"The image could not be applied to the original cel.");
     if(result.changedPixels===0){
       toast("The converted image matches the active cel. No changes were made.");
       return;
     }
-    await commitSafeEditResult(result,context,"Image converted to "+targetWidth+" × "+targetHeight+" grid cells.");
+    const mapped=staged.warnings.length?" Palette-mapped with transparency preserved.":"";
+    await commitSafeEditResult(result,editContext,
+      "Image converted to "+targetWidth+" × "+targetHeight+" grid cells."+mapped);
   }catch(error){
     if(requestId===imageImportRequestId){
       toast(error&&error.message?error.message:"Could not import that image safely.");
