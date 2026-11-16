@@ -1176,6 +1176,7 @@ async function clearAgentActiveCel(options){
 }
 async function commitSafeEditResult(result,context,successMessage){
   if(safeEditCommitPending){toast("An edit is already being saved.");return false}
+  clearTimeout(saveTimer);saveTimer=null;
   safeEditCommitPending=true;
   let receipt=null;
   let persisted=false;
