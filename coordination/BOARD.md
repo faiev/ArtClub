@@ -7,7 +7,7 @@
 
 ## Live repository state
 
-- Current `main` HEAD: `85983719da0edeffa6cb2837f9933e0a73c70198`.
+- Current `main` HEAD: `6ac299f255ef8950ac1edf354a0874c9508386b9`.
 - No PRs were created during this implementation; the last recorded open-PR count was 0.
 - Non-main branches: one existing grandfathered branch, `coordinator/ui-02-safe-edit-mainline`.
 - New branch creation: permanently prohibited.
@@ -47,13 +47,13 @@ The coordinator completed the serialized implementation queue directly on `main`
 | Step 0 — Safe Clear | Integrated the active-cel/selection transaction, storage rollback, async Agent API response and pending-input guard. The grandfathered branch remains unchanged. | `a8bdcbf` |
 | Step 1 — Canvas/layout | Compact responsive side columns, canvas-first sizing, common square logical cell size fitted against both viewport axes, resize observation and hidden non-canvas scrollbar chrome. | `35a74cd` |
 | Step 2 — Workspace | Timeline is opt-in through Animate, one-frame entry state, contextual selection controls, one selected-tool indicator, collapsible palette and Help shortcut dialog. | `35a74cd` |
-| Step 3 — Editing behavior | Paste is all-or-nothing and transaction-backed; image import uses captured project/layer/frame/dimensions/palette, latest-request-wins identity, context revalidation and guaranteed object-URL cleanup; keyboard handling preserves native text/browser commands. | `cd8af12` |
+| Step 3 — Editing behavior | Paste is all-or-nothing and transaction-backed; import uses the repository's validated `import-staging.js` pipeline, size/dimension limits, latest-request-wins identity, target revalidation and guaranteed object-URL cleanup; keyboard handling preserves native text/browser commands. | `cd8af12`, `ddb9f1f`, `6ac299f` |
 
 A follow-up integrity fix cancels a queued autosave before a safe edit begins, avoiding a delayed save racing the explicit transaction: `8598371`.
 
 **Verification performed:** source-level integration review only. Confirmed unique DOM IDs, no missing JavaScript ID lookups, Promise propagation through the Agent API adapter, expected helper modules present on `main`, and wiring for Animate, palette, selection, paste, import and keyboard behavior. No automated tests or manual browser session have been run. Do not describe the changes as tested or release-verified.
 
-The Pages build/deployment workflow for current `main` (`00aa6a5`) completed successfully (run `43844790807`). The consolidated project-test workflow is configured as manual `workflow_dispatch`; it has not run against this candidate. The available GitHub integration exposes workflow reads but no dispatch action, so the release test gate still needs to be started from GitHub Actions → **Project model tests** → **Run workflow** on `main`. No automated tests or manual browser smoke test were run here. The grandfathered branch is no longer an active work surface.
+The Pages build/deployment for `00aa6a5` completed successfully, but that run predates the final image-staging commits now on `main`. The latest code commit still needs its own Pages deployment result. The consolidated project-test workflow is configured as manual `workflow_dispatch`; it has not run against this candidate. The available GitHub integration exposes workflow reads but no dispatch action, so the release test gate still needs to be started from GitHub Actions → **Project model tests** → **Run workflow** on `main`. No automated tests or manual browser smoke test were run here. The grandfathered branch is no longer an active work surface.
 
 **Step 0 — Coder 2 / safe editing: COMPLETE on `main` (`a8bdcbf`)**
 
