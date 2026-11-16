@@ -1,17 +1,17 @@
 # Art Club — live product board
 
 **Authority:** `main`  
-**Last refreshed:** 2026-11-15  
+**Last refreshed:** 2026-11-16  
 **Team model:** `TEAM_MODEL.md`  
 **Rules:** `ORCHESTRATION_POLICY.md`
 
 ## Live repository state
 
-- Current `main` HEAD: `2415e3b131a9bfa1dc3fa4db5a7a2ecf61774030`.
-- Open PRs: 0 at last live check.
+- Current `main` HEAD: `85983719da0edeffa6cb2837f9933e0a73c70198`.
+- No PRs were created during this implementation; the last recorded open-PR count was 0.
 - Non-main branches: one existing grandfathered branch, `coordinator/ui-02-safe-edit-mainline`.
 - New branch creation: permanently prohibited.
-- The grandfathered branch may only finish its already-started UI-02 Clear work. It is not reusable. Do not delete or rewrite it.
+- The grandfathered branch `coordinator/ui-02-safe-edit-mainline` (head `69b18987a207999ba11e8b49a47cde2f0294f55d`) is now historical after the Clear slice was ported to `main`. Do not reuse, delete, force-update or rewrite it.
 - Do not act on historical PRs or deleted branches unless the user explicitly requests it.
 
 ## Product objective
@@ -38,20 +38,24 @@ These five discovery tasks may run concurrently because they do not write produc
 
 Only the named coder may write the listed file during that step. The next coder waits until the owner hands off the exact commit and the coordinator releases the file.
 
-### Current implementation blocker — Step 0 only
+### Integration and implementation status — 2026-11-16
 
-Live check on 2026-11-15:
-- `main`: `2415e3b131a9bfa1dc3fa4db5a7a2ecf61774030`.
-- Grandfathered Clear branch: `e37d6ce86147152ee53642b629aa4d0c710b63dd`.
-- Branch comparison: 6 commits ahead, 7 behind; the cumulative changed-file list contains only `index.html` (+118/−11 relative to the merge base).
-- Do not merge the whole divergent branch blindly. Review and transfer only the approved Clear slice into current `main`; leave the grandfathered branch intact.
+The coordinator completed the serialized implementation queue directly on `main`, without creating a branch or PR.
 
-**Concrete API defect for Coder 2:** on the grandfathered branch, `clearSelectedPixels()` is async (around line 1027), but `agentClearSelection(payload)` remains synchronous (around line 2055) and checks `!clearSelectedPixels()`. Since the call returns a Promise, the check is always truthy and the handler returns `getAgentStatus()` before the safe-edit commit has completed. Make the handler async, await `clearSelectedPixels()`, throw when its resolved result is false, and return `getAgentStatus()` only after the awaited operation succeeds. Confirm the caller preserves/reports the returned Promise and propagates rejection; the Agent API adapter currently returns `adapter.clearSelection(args)` directly.
+| Step | Result | Main commit |
+|---|---|---|
+| Step 0 — Safe Clear | Integrated the active-cel/selection transaction, storage rollback, async Agent API response and pending-input guard. The grandfathered branch remains unchanged. | `a8bdcbf` |
+| Step 1 — Canvas/layout | Compact responsive side columns, canvas-first sizing, common square logical cell size fitted against both viewport axes, resize observation and hidden non-canvas scrollbar chrome. | `35a74cd` |
+| Step 2 — Workspace | Timeline is opt-in through Animate, one-frame entry state, contextual selection controls, one selected-tool indicator, collapsible palette and Help shortcut dialog. | `35a74cd` |
+| Step 3 — Editing behavior | Paste is all-or-nothing and transaction-backed; image import uses captured project/layer/frame/dimensions/palette, latest-request-wins identity, context revalidation and guaranteed object-URL cleanup; keyboard handling preserves native text/browser commands. | `cd8af12` |
 
-**Step 0 acceptance gate:** no success status before persistence and context validation finish; false result/rejection must remain a failure; returned status must reflect the committed state. Verifier signs off before coordinator transfers the Clear slice to `main`. Until then, Coder 1's `index.html` writer slot remains locked. No tests during implementation.
+A follow-up integrity fix cancels a queued autosave before a safe edit begins, avoiding a delayed save racing the explicit transaction: `8598371`.
 
+**Verification performed:** source-level integration review only. Confirmed unique DOM IDs, no missing JavaScript ID lookups, Promise propagation through the Agent API adapter, expected helper modules present on `main`, and wiring for Animate, palette, selection, paste, import and keyboard behavior. No automated tests or manual browser session have been run. Do not describe the changes as tested or release-verified.
 
-**Step 0 — Coder 2 / safe editing: finish the existing Clear slice**
+The next step is one consolidated release validation on `main` after the candidate is frozen and the release gate is authorized. The grandfathered branch is no longer an active work surface.
+
+**Step 0 — Coder 2 / safe editing: COMPLETE on `main` (`a8bdcbf`)**
 
 - Work only on the grandfathered `coordinator/ui-02-safe-edit-mainline` branch.
 - Finish active-cel and selection Clear integration. Verify that the UI and Agent API/bridge do not report success or return stale status before the asynchronous safe-edit commit completes.
@@ -59,7 +63,7 @@ Live check on 2026-11-15:
 - Do not add paste or import work to this branch.
 - Hand off the exact branch head, changed paths and remaining limitations to the coordinator. No tests during implementation.
 
-**Step 1 — Coder 1 / editor layout: canvas and scroll integrity**
+**Step 1 — Coder 1 / editor layout: COMPLETE on `main` (`35a74cd`)**
 
 - After Step 0 is integrated, take the sole `index.html` writer slot on `main`.
 - Fix the desktop canvas shrink and logical pixel aspect ratio. Ensure a logical pixel remains square at supported canvas dimensions, viewport sizes and zoom levels.
@@ -68,7 +72,7 @@ Live check on 2026-11-15:
 - Remove wasteful empty space in the left rail and align the layout with the approved UI Designer proposal.
 - Hand off the exact commit and visual/source reasoning; do not start the timeline task until the coordinator releases `index.html`.
 
-**Step 2 — Coder 1 / controls and workspace: timeline, toolbar and palette**
+**Step 2 — Coder 1 / controls and workspace: COMPLETE on `main` (`35a74cd`)**
 
 - Take the `index.html` writer slot only after Step 1 is handed off.
 - Hide/collapse the timeline by default. Add an obvious Animate action that opens/closes the animation workspace and returns its height to the canvas when closed.
@@ -78,7 +82,7 @@ Live check on 2026-11-15:
 - Add an expandable/collapsible palette without shrinking the canvas or introducing another always-visible scrollbar.
 - Hand off the exact commit and interaction states; wait for the coordinator before the next shared-file owner.
 
-**Step 3 — Coder 2 / editing behavior: atomic paste and staged image import**
+**Step 3 — Coder 2 / editing behavior: COMPLETE on `main` (`cd8af12`)**
 
 - Take the `index.html` writer slot after Step 2, unless the coordinator explicitly schedules a different non-overlapping path.
 - Reject any paste that cannot fit in full. No clipping, partial pixels, history entries or false success messages.
@@ -138,4 +142,4 @@ No two implementation steps may write `index.html` simultaneously. If an impleme
 
 ## Release status
 
-These are planned tasks, not claims of implementation. No new release is declared. Automated validation remains deferred until all approved changes are on `main` and the coordinator authorizes the single release gate.
+Steps 0–3 are implemented on `main` as listed above. Source review is complete; automated validation and manual browser verification remain outstanding. No new release is declared. Run the single consolidated release gate only after the candidate is frozen and the coordinator authorizes it.
