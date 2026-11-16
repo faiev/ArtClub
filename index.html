@@ -581,7 +581,7 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
           <button class="zoom-value" id="zoomReset" title="Reset zoom">100%</button>
           <button class="zoom-button" id="zoomIn" aria-label="Zoom in" title="Zoom in ( ] )">＋</button>
         </div>
-        <button class="icon-button" id="clearBtn" aria-label="Clear canvas" title="Clear canvas">⌫</button>
+        <button class="icon-button" id="clearBtn" aria-label="Clear active cel" title="Clear active cel">⌫</button>
       </div>
     </div>
     <div class="canvas-toolbar">
@@ -738,13 +738,17 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
 
 <script src="./js/project-model.js"></script>
 <script src="./js/project-storage.js"></script>
+<script src="./js/layer-edit-guard.js"></script>
+<script src="./js/safe-edit-operations.js"></script>
 <script src="./js/agent-api.js"></script>
 <script>
 (function(){
 "use strict";
 const $ = id => document.getElementById(id);
 const ProjectModel = window.ArtClubProject;
+const SafeEditOperations = window.ArtClubSafeEditOperations;
 if (!ProjectModel) throw new Error("One Pixel Studio project model failed to load.");
+if (!SafeEditOperations) throw new Error("One Pixel Studio safe-edit operations failed to load.");
 const STORAGE_KEY = "one-pixel-studio-project-v2";
 const LEGACY_STORAGE_KEY = "one-pixel-studio-project-v1";
 const ACTIVE_PROJECT_KEY = "one-pixel-studio-active-project";
@@ -763,6 +767,7 @@ let projectDoc=null;
 let projectStorage=null;
 let activeProjectId=null;
 let documentRevision=0;
+let safeEditCommitPending=false;
 const grid=$("pixelGrid");
 
 function blank(width,height){const rows=height===undefined?width:height;return Array(width*rows).fill(null)}
@@ -829,7 +834,7 @@ function activeLayer(){
 }
 function isActiveLayerEditable(){
   const layer=activeLayer();
-  return Boolean(layer&&!layer.locked&&layer.visible);
+  return Boolean(layer&&!layer.locked&&layer.visible&&Number.isFinite(layer.opacity)&&layer.opacity>0);
 }
 function displayFrameId(){
   return playbackFrameId||projectDoc.activeFrameId;
@@ -1019,14 +1024,128 @@ function cutSelection(){
   }
   renderGrid();renderStats();scheduleSave();toast("Selection cut.");return true;
 }
-function clearSelectedPixels(){
+async function clearSelectedPixels(){
   if(!selection){toast("Select an area first.");return false}
-  if(!isActiveLayerEditable()){toast("The active layer is locked or hidden.");return false}
-  remember();
-  for(let y=0;y<selection.height;y++)for(let x=0;x<selection.width;x++){
-    pixels[(selection.y+y)*w+selection.x+x]=null;
+  return clearActiveCelSafely({...selection},"Selection cleared.");
+}
+async function clearActiveCelSafely(selectionRect,successMessage){
+  if(safeEditCommitPending){toast("An edit is being saved. Try again in a moment.");return false}
+  const context=captureSafeEditContext();
+  const source=snapshot();
+  const options=selectionRect?{selection:selectionRect}:{};
+  const result=SafeEditOperations.clearActiveCel(source,options);
+  if(!result.ok){toast(result.message||"This cel cannot be edited safely.");return false}
+  if(result.changedPixels===0){toast("There are no pixels to clear.");return false}
+  return commitSafeEditResult(result,context,successMessage);
+}
+function captureSafeEditContext(){
+  const layer=activeLayer();
+  return {
+    documentRevision:documentRevision,
+    projectId:projectDoc&&projectDoc.id,
+    layerId:projectDoc&&projectDoc.activeLayerId,
+    frameId:projectDoc&&projectDoc.activeFrameId,
+    selection:selection?{...selection}:null,
+    layerState:layer?{visible:layer.visible,locked:layer.locked,opacity:layer.opacity}:null
+  };
+}
+function safeEditContextIsCurrent(context){
+  const layer=activeLayer();
+  const layerState=layer?{visible:layer.visible,locked:layer.locked,opacity:layer.opacity}:null;
+  return Boolean(projectDoc&&
+    documentRevision===context.documentRevision&&
+    projectDoc.id===context.projectId&&
+    projectDoc.activeLayerId===context.layerId&&
+    projectDoc.activeFrameId===context.frameId&&
+    JSON.stringify(selection||null)===JSON.stringify(context.selection)&&
+    JSON.stringify(layerState)===JSON.stringify(context.layerState));
+}
+async function clearAgentActiveCel(options){
+  const context=captureSafeEditContext();
+  const result=SafeEditOperations.clearActiveCel(snapshot(),{});
+  if(!result.ok)throw new Error(result.message||"This cel cannot be cleared safely.");
+  const label=options&&typeof options.label==="string"?options.label.slice(0,80):"Agent edit";
+  if(result.changedPixels===0){
+    return {ok:true,revision:documentRevision,commands_applied:1,changed_pixels:0,project_id:activeProjectId,label};
   }
-  renderGrid();renderStats();scheduleSave();return true;
+  const committed=await commitSafeEditResult(result,context,"Active cel cleared.");
+  if(!committed)throw new Error("The active cel could not be cleared safely.");
+  return {ok:true,revision:documentRevision,commands_applied:1,changed_pixels:result.changedPixels,project_id:activeProjectId,label};
+}
+async function clearAgentActiveCel(options){
+  const context=captureSafeEditContext();
+  const result=SafeEditOperations.clearActiveCel(snapshot(),{});
+  if(!result.ok)throw new Error(result.message||"This cel cannot be cleared safely.");
+  const label=options&&typeof options.label==="string"?options.label.slice(0,80):"Agent edit";
+  if(result.changedPixels===0){
+    return {ok:true,revision:documentRevision,commands_applied:1,changed_pixels:0,project_id:activeProjectId,label};
+  }
+  const committed=await commitSafeEditResult(result,context,"Active cel cleared.");
+  if(!committed)throw new Error("The active cel could not be cleared safely.");
+  return {ok:true,revision:documentRevision,commands_applied:1,changed_pixels:result.changedPixels,project_id:activeProjectId,label};
+}
+async function commitSafeEditResult(result,context,successMessage){
+  if(safeEditCommitPending){toast("An edit is already being saved.");return false}
+  safeEditCommitPending=true;
+  let receipt=null;
+  let persisted=false;
+  try{
+    result.project.metadata=result.project.metadata||{};
+    result.project.metadata.updatedAt=new Date().toISOString();
+    if(projectStorage){
+      const saved=await projectStorage.saveProject(result.project);
+      receipt=saved.rollbackReceipt;
+      persisted=true;
+      if(!safeEditContextIsCurrent(context)){
+        await projectStorage.restoreIfCurrent(receipt);
+        persisted=false;
+        toast("The editor changed before this edit could be committed. No edit was applied.");
+        return false;
+      }
+    }
+    if(!writeLocalBackup(result.project)){
+      throw new Error("The project could not be backed up on this device. The edit was not applied.");
+    }
+    if(!safeEditContextIsCurrent(context)){
+      if(persisted){
+        await projectStorage.restoreIfCurrent(receipt);
+        persisted=false;
+      }
+      writeLocalBackup(snapshot());
+      toast("The editor changed before this edit could be committed. No edit was applied.");
+      return false;
+    }
+    remember();
+    loadProjectIntoEditor(result.project,false);
+    documentRevision+=1;
+    renderStats();
+    renderSelectionTools();
+    toast(successMessage);
+    return true;
+  }catch(error){
+    if(persisted&&receipt&&projectStorage){
+      try{
+        await projectStorage.restoreIfCurrent(receipt);
+        persisted=false;
+        writeLocalBackup(snapshot());
+      }catch(rollbackError){
+        $("saveState").textContent="CHANGED IN ANOTHER TAB · RELOAD";
+        toast("A concurrent project change prevented safe rollback. Reload the project before editing.");
+        console.error("Safe-edit rollback conflict:",rollbackError);
+        return false;
+      }
+    }
+    if(error&&error.code==="PROJECT_REVISION_CONFLICT"){
+      $("saveState").textContent="CHANGED IN ANOTHER TAB · RELOAD";
+      toast("This project was saved in another tab. Reload it before editing.");
+    }else{
+      toast(error&&error.message?error.message:"The edit could not be saved safely.");
+    }
+    console.error("Safe edit was not committed:",error);
+    return false;
+  }finally{
+    safeEditCommitPending=false;
+  }
 }
 function pasteSelection(){
   if(!selectionClipboard){toast("Copy or cut a selection first.");return false}
@@ -1541,6 +1660,18 @@ function toast(message){
   const t=$("toast");t.textContent=message;t.classList.add("show");
   clearTimeout(toast.timer);toast.timer=setTimeout(()=>t.classList.remove("show"),2100);
 }
+document.addEventListener("pointerdown",event=>{
+  if(!safeEditCommitPending)return;
+  event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+},true);
+document.addEventListener("click",event=>{
+  if(!safeEditCommitPending)return;
+  event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+},true);
+document.addEventListener("keydown",event=>{
+  if(!safeEditCommitPending)return;
+  event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+},true);
 function getCell(e){
   const direct=e.target&&e.target.closest?e.target.closest(".pixel-cell"):null;
   const hit=direct||document.elementFromPoint(e.clientX,e.clientY);
@@ -1694,6 +1825,12 @@ function executeAgentCommands(commands,options){
     throw new Error("The canvas changed since your last read. Fetch get_status again and retry with the new revision.");
   }
   const validated=validateAgentCommands(commands);
+  if(validated.some(command=>command.type==="clear_canvas")){
+    if(validated.length!==1){
+      throw new Error("clear_canvas must be sent as a standalone command so the safe edit can be committed atomically.");
+    }
+    return clearAgentActiveCel(options);
+  }
   const newColors=[...new Set(validated.map(command=>command.color).filter(Boolean))].filter(color=>!palette.includes(color));
   if(palette.length+newColors.length>ProjectModel.LIMITS.maxPaletteColors)throw new Error("The palette would exceed the 256-color safety limit.");
   const before=snapshot();
@@ -1945,9 +2082,9 @@ function agentPasteSelection(payload){
   if(!pasteSelection())throw new Error("There is no editable clipboard selection to paste.");
   return getAgentStatus();
 }
-function agentClearSelection(payload){
+async function agentClearSelection(payload){
   payload=payload||{};assertAgentSelectionAction(payload);
-  if(!clearSelectedPixels())throw new Error("There is no editable active selection to clear.");
+  if(!await clearSelectedPixels())throw new Error("There is no editable active selection to clear.");
   return getAgentStatus();
 }
 function agentDeselect(payload){
@@ -2250,9 +2387,9 @@ $("canvasForm").addEventListener("submit",async e=>{
   else resizeCanvas(width,height);
   $("canvasDialog").close();
 });
-$("clearBtn").addEventListener("click",()=>{
-  if(!confirm("Clear every pixel on this canvas?"))return;
-  remember();pixels=blank(w,h);renderGrid();renderStats();scheduleSave();toast("Canvas cleared.");
+$("clearBtn").addEventListener("click",async()=>{
+  if(!confirm("Clear every pixel on the active cel? Other layers and frames will remain unchanged."))return;
+  await clearActiveCelSafely(null,"Active cel cleared.");
 });
 $("gridSize").addEventListener("change",e=>{
   if(e.target.value==="custom"){openCanvasDialog("resize");syncDimensionSelect();return}
