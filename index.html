@@ -499,13 +499,84 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
   width:100%;height:auto;max-width:min(100%,560px);max-height:100%;
 }
 
+
+/* Canvas-first workspace and interaction refinements */
+*{scrollbar-width:none;-ms-overflow-style:none}
+*::-webkit-scrollbar{display:none;width:0;height:0}
+.canvas-wrap{scrollbar-width:thin;-ms-overflow-style:auto}
+.canvas-wrap::-webkit-scrollbar{display:block;width:9px;height:9px}
+.canvas-wrap::-webkit-scrollbar-track{background:rgba(90,105,96,.10);border-radius:99px}
+.canvas-wrap::-webkit-scrollbar-thumb{background:rgba(85,101,91,.38);border:2px solid #f1f2ec;border-radius:99px}
+.shell{width:min(100%,1740px);max-width:1740px;padding-left:clamp(12px,2vw,30px);padding-right:clamp(12px,2vw,30px)}
+.workspace{grid-template-columns:minmax(136px,150px) minmax(0,1fr) minmax(194px,222px);gap:10px;min-height:clamp(540px,calc(100vh - 260px),900px)}
+.tools-panel,.inspector{min-width:0;min-height:0;overflow:auto;padding:12px}
+.stage{min-width:0;min-height:0;padding:15px 16px 13px}
+.stage-head{gap:10px;flex-wrap:nowrap}
+.stage-title{flex:1 1 auto}
+.stage-actions{flex:0 1 auto;min-width:0}
+.canvas-wrap{flex:1 1 auto;min-height:0;overflow:auto;justify-content:safe center;align-items:safe center;padding:18px}
+.pixel-grid{flex:0 0 auto;max-width:none}
+.tool-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.tool{min-height:52px;padding:6px 3px;gap:4px;font-size:9px}
+.tool .glyph{width:25px;height:25px;font-size:15px}
+.panel-head{gap:8px;margin-bottom:10px}
+.tools-panel .rule{margin:11px 0}
+.selection-tools{display:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:9px}
+.selection-tools.visible{display:grid}
+.selection-tools .small-button{min-width:0;padding:7px 3px;font-size:9px}
+.selection-status{display:none}
+.selection-status.visible{display:block;margin-top:7px;font-size:9px}
+.canvas-tool-state{gap:7px}
+.canvas-caption{padding-top:8px}
+.active-tool-label{display:none}
+.timeline-area{display:none;flex:0 0 auto;max-height:220px;overflow:auto;margin-top:10px;padding-top:10px}
+.timeline-area.is-open{display:block}
+.timeline-head{align-items:center;flex-wrap:wrap}
+.timeline-actions{flex-wrap:wrap}
+.animation-hint{margin:0 auto 0 10px;color:var(--muted);font-size:10px;line-height:1.4}
+.timeline-playback{display:flex;align-items:center;gap:5px}
+.palette-head-actions{display:flex;align-items:center;gap:8px}
+.palette-collapse-button{border:0;background:transparent;color:#66736d;font:700 9px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.06em;padding:5px 3px}
+.palette-collapse-button:hover{color:var(--ink)}
+.palette-content{display:block}
+.palette-area.collapsed .palette-content{display:none}
+.palette-area.collapsed{padding-bottom:2px}
+.palette-content .palette-grid{margin-bottom:2px}
+.animate-toggle{white-space:nowrap;min-height:32px;padding:7px 9px}
+.animate-toggle[aria-expanded="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.help-shortcuts{display:grid;gap:0;border:1px solid #e7eae3;border-radius:11px;overflow:hidden}
+.help-shortcuts>div{display:flex;align-items:center;gap:6px;padding:11px 13px;border-bottom:1px solid #edf0e9;font-size:11px;color:#53615a}
+.help-shortcuts>div:last-child{border-bottom:0}
+.help-shortcuts>div span{flex:1;min-width:0}
+@media(max-width:1120px){
+  .workspace{grid-template-columns:minmax(128px,148px) minmax(0,1fr);min-height:0}
+  .inspector{grid-column:1/-1;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr);align-items:start;overflow:visible}
+  .inspector>.rule{display:none}
+  .palette-area{grid-row:span 2}
+  .stage{min-height:560px}
+}
+@media(max-width:700px){
+  .workspace{grid-template-columns:minmax(0,1fr);min-height:0}
+  .tools-panel{overflow:visible}
+  .tools-panel .panel-head{margin-bottom:8px}
+  .tool-list{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .stage{min-height:530px;padding:12px}
+  .stage-head{align-items:flex-start;flex-wrap:wrap}
+  .stage-title{flex:1 1 100%;justify-content:space-between}
+  .stage-actions{width:100%;justify-content:flex-end;flex-wrap:wrap}
+  .canvas-wrap{min-height:0;padding:12px 9px}
+  .inspector{grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible}
+  .inspector .palette-area{grid-column:1/-1;grid-row:auto}
+  .timeline-area{max-height:260px}
+}
+@media(prefers-reduced-motion:reduce){.tool,.animate-toggle{transition:none}}
 </style>
 </head>
 <body>
 <div class="shell">
 <header class="topbar">
   <div class="brand"><div class="brandmark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="brandname">ONE PIXEL <span>/ STUDIO</span></div></div>
-  <div class="topmeta"><button class="small-button" id="projectLibraryBtn" type="button">Projects</button><span class="local-pill">Private by design</span><span class="save-state" id="saveState">LOCAL SAVE · READY</span></div>
+  <div class="topmeta"><button class="small-button" id="projectLibraryBtn" type="button">Projects</button><button class="small-button" id="shortcutsBtn" type="button" aria-haspopup="dialog">Help</button><span class="local-pill">Private by design</span><span class="save-state" id="saveState">LOCAL SAVE · READY</span></div>
 </header>
 <section class="intro">
   <div><div class="eyebrow">A tiny studio for exact pixel art</div><h1>One cell. One color.<br>Zero ambiguity.</h1><p>Draw at the grid level. Every square is a real pixel — no blur, no surprise sub-pixels.</p></div>
@@ -524,7 +595,7 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
       <button class="tool" data-tool="ellipse" title="Ellipse"><span class="glyph">◯</span>Ellipse</button>
       <button class="tool" data-tool="select" title="Rectangular selection (M)"><span class="glyph">▧</span>Select</button>
     </div>
-    <div class="selection-tools" id="selectionTools">
+    <div class="selection-tools" id="selectionTools" role="group" aria-label="Selection actions" aria-hidden="true">
       <button class="small-button" id="selectionCopyBtn" type="button" disabled>Copy</button>
       <button class="small-button" id="selectionCutBtn" type="button" disabled>Cut</button>
       <button class="small-button" id="selectionPasteBtn" type="button" disabled>Paste</button>
@@ -552,16 +623,7 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
       </select>
       <button class="small-button full" id="customCanvasBtn" type="button" style="margin-top:8px">↔ Custom width &amp; height</button>
     </div>
-    <div class="rule"></div>
-    <div class="shortcut-list">
-      <div class="field-label">Shortcuts</div>
-      <div class="shortcut"><span>Brush / Erase</span><span><kbd>B</kbd> <kbd>E</kbd></span></div>
-      <div class="shortcut"><span>Fill / Pick / Select</span><span><kbd>G</kbd> <kbd>I</kbd> <kbd>M</kbd></span></div>
-      <div class="shortcut"><span>Copy / Cut / Paste</span><span><kbd>⌘ C</kbd> <kbd>⌘ X</kbd> <kbd>⌘ V</kbd></span></div>
-      <div class="shortcut"><span>Select all / Deselect</span><span><kbd>⌘ A</kbd> <kbd>⌘ D</kbd></span></div>
-      <div class="shortcut"><span>Undo / Redo</span><span><kbd>⌘ Z</kbd> <kbd>⇧ Z</kbd></span></div>
-      <div class="shortcut"><span>Save project</span><span><kbd>⌘ S</kbd></span></div>
-    </div>
+
   </aside>
 
   <section class="panel stage">
@@ -581,6 +643,7 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
           <button class="zoom-value" id="zoomReset" title="Reset zoom">100%</button>
           <button class="zoom-button" id="zoomIn" aria-label="Zoom in" title="Zoom in ( ] )">＋</button>
         </div>
+        <button class="small-button animate-toggle" id="animateToggleBtn" type="button" aria-expanded="false" aria-controls="timelineArea">Animate</button>
         <button class="icon-button" id="clearBtn" aria-label="Clear active cel" title="Clear active cel">⌫</button>
       </div>
     </div>
@@ -588,20 +651,20 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
       <div class="canvas-tool-state">
         <span class="active-color-dot" id="activeColorDot"></span>
         <span class="active-color-label" id="activeColorLabel">#E96F55</span>
-        <span class="toolbar-divider"></span>
-        <span class="active-tool-label" id="toolMeta">BRUSH · 1 PX</span>
+        
       </div>
       <span class="canvas-tip" id="canvasTip">DRAG TO DRAW</span>
     </div>
     <div class="canvas-wrap">
       <div id="pixelGrid" class="pixel-grid" role="grid" aria-label="Pixel art canvas"></div>
     </div>
-    <div class="canvas-caption"><span>GRID <strong id="gridCaption">24 × 24</strong> · <strong id="fillCaption">—</strong> filled</span><span id="activeToolCaption">BRUSH TOOL</span></div>
-    <section class="timeline-area" id="timelineArea">
+    <div class="canvas-caption"><span>GRID <strong id="gridCaption">24 × 24</strong> · <strong id="fillCaption">—</strong> filled</span></div>
+    <section class="timeline-area" id="timelineArea" aria-label="Animation workspace" aria-hidden="true">
       <div class="timeline-head">
         <div class="timeline-heading"><strong>Timeline</strong><span id="frameCount">1 FRAME</span></div>
+        <p class="animation-hint" id="animationHint">Add a second frame to enable animation playback.</p>
         <div class="timeline-actions">
-          <div class="timeline-playback">
+          <div class="timeline-playback" id="timelinePlayback">
             <button class="small-button primary" id="playBtn" type="button" disabled>Play</button>
             <select class="timeline-mode" id="playbackMode" aria-label="Playback mode">
               <option value="loop">Loop</option>
@@ -611,8 +674,8 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
             <label class="timeline-onion"><input type="checkbox" id="onionToggle"> Onion</label>
           </div>
           <button class="small-button" id="addFrameBtn" type="button">＋ Frame</button>
-          <button class="small-button" id="duplicateFrameBtn" type="button">Duplicate</button>
-          <button class="small-button" id="deleteFrameBtn" type="button">Delete</button>
+          <button class="small-button hidden" id="duplicateFrameBtn" type="button">Duplicate</button>
+          <button class="small-button hidden" id="deleteFrameBtn" type="button">Delete</button>
         </div>
       </div>
       <div class="frame-list" id="frameList" aria-label="Animation frames"></div>
@@ -620,8 +683,9 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
   </section>
 
   <aside class="panel inspector">
-    <section class="palette-area">
-      <div class="panel-head"><h2>02 / Palette</h2><span class="section-kicker" id="colorCount">12 COLORS</span></div>
+    <section class="palette-area" id="paletteArea">
+      <div class="panel-head"><h2>02 / Palette</h2><div class="palette-head-actions"><span class="section-kicker" id="colorCount">12 COLORS</span><button class="palette-collapse-button" id="paletteCollapseBtn" type="button" aria-expanded="true" aria-controls="paletteContent">Collapse</button></div></div>
+      <div class="palette-content" id="paletteContent">
       <div class="palette-grid" id="paletteGrid" aria-label="Color palette"></div>
       <div class="palette-presets">
         <label class="field-label" for="palettePreset">Palette collection</label>
@@ -639,6 +703,7 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
         <button class="small-button" id="addColorBtn" title="Add color to palette">+</button>
       </div>
       <div style="margin-top:8px;color:#929b95;font-size:9px;line-height:1.45">Select a swatch, or add any color. Right-click a swatch to remove it.</div>
+      </div>
     </section>
     <div class="rule"></div>
     <section class="layers-area">
@@ -732,6 +797,24 @@ input[type=color]{background:#252e30;border:1px solid #414d4f;border-radius:3px}
         <button class="small-button primary" id="confirmCanvasDialog" type="submit">Create blank canvas</button>
       </div>
     </form>
+  </div>
+</dialog>
+<dialog class="project-dialog help-dialog" id="helpDialog" aria-labelledby="helpDialogTitle">
+  <div class="project-dialog-inner">
+    <div class="project-dialog-head">
+      <div><div class="eyebrow">Quick reference</div><h2 id="helpDialogTitle">Keyboard shortcuts</h2></div>
+      <button class="icon-button" id="closeHelpDialog" type="button" aria-label="Close keyboard shortcuts">×</button>
+    </div>
+    <p class="project-dialog-copy">Shortcuts work when the canvas has focus. Text fields, dialogs and browser-native commands keep their normal behavior. Projects save automatically.</p>
+    <div class="help-shortcuts">
+      <div><span>Brush / Eraser</span><kbd>B</kbd><kbd>E</kbd></div>
+      <div><span>Fill / Pick / Select</span><kbd>G</kbd><kbd>I</kbd><kbd>M</kbd></div>
+      <div><span>Copy / Cut / Paste selection</span><kbd>Ctrl/⌘ C</kbd><kbd>Ctrl/⌘ X</kbd><kbd>Ctrl/⌘ V</kbd></div>
+      <div><span>Select all / Deselect</span><kbd>Ctrl/⌘ A</kbd><kbd>Ctrl/⌘ D</kbd></div>
+      <div><span>Undo / Redo</span><kbd>Ctrl/⌘ Z</kbd><kbd>Ctrl/⌘ Shift Z</kbd></div>
+      <div><span>Zoom out / in / fit</span><kbd>[</kbd><kbd>]</kbd><kbd>0</kbd></div>
+      <div><span>Open animation workspace</span><kbd>Animate button</kbd></div>
+    </div>
   </div>
 </dialog>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -925,6 +1008,12 @@ function renderSelectionOverlay(){
 }
 function renderSelectionTools(){
   const active=Boolean(selection);
+  const contextual=tool==="select"||active;
+  const controls=$("selectionTools");
+  const status=$("selectionStatus");
+  controls.classList.toggle("visible",contextual);
+  controls.setAttribute("aria-hidden",String(!contextual));
+  status.classList.toggle("visible",contextual);
   $("selectionCopyBtn").disabled=!active;
   $("selectionCutBtn").disabled=!active||!isActiveLayerEditable();
   $("selectionClearBtn").disabled=!active||!isActiveLayerEditable();
@@ -935,7 +1024,7 @@ function renderSelectionTools(){
   $("selectionRotateBtn").disabled=!active||!isActiveLayerEditable();
   $("selectionStatus").textContent=active
     ?selection.width+" × "+selection.height+" PX · X "+selection.x+" · Y "+selection.y
-    :"NO SELECTION · M TO SELECT";
+    :"NO SELECTION · DRAG TO SELECT";
   $("selectionStatus").classList.toggle("active",active);
 }
 function setSelectionRect(rect){
@@ -1237,7 +1326,13 @@ function renderPalette(){
 }
 function renderTimeline(){
   const list=$("frameList"),fragment=document.createDocumentFragment();
-  $("frameCount").textContent=projectDoc.frames.length+" FRAME"+(projectDoc.frames.length===1?"":"S");
+  const hasAnimation=projectDoc.frames.length>1;
+  $("frameCount").textContent=projectDoc.frames.length+" FRAME"+(hasAnimation?"S":"");
+  $("timelinePlayback").classList.toggle("hidden",!hasAnimation);
+  $("animationHint").classList.toggle("hidden",hasAnimation);
+  $("addFrameBtn").textContent=hasAnimation?"＋ Frame":"＋ Add frame to animate";
+  $("duplicateFrameBtn").classList.toggle("hidden",!hasAnimation);
+  $("deleteFrameBtn").classList.toggle("hidden",!hasAnimation);
   projectDoc.frames.forEach((frame,index)=>{
     const card=document.createElement("div");
     card.dataset.frameId=frame.id;
@@ -1588,18 +1683,31 @@ function syncDimensionSelect(){
 }
 function setTool(name){
   tool=name;
-  document.querySelectorAll(".tool").forEach(b=>b.classList.toggle("active",b.dataset.tool===name));
+  document.querySelectorAll(".tool").forEach(button=>{
+    const active=button.dataset.tool===name;
+    button.classList.toggle("active",active);
+    button.setAttribute("aria-pressed",String(active));
+  });
   $("shapeFillOption").classList.toggle("hidden",name!=="rect"&&name!=="ellipse");
-  $("activeToolCaption").textContent=name.toUpperCase()+" TOOL";
-  $("toolMeta").textContent=name.toUpperCase()+" · "+(name==="eraser"?"ERASE":name==="eyedropper"?"PICK":name==="fill"?"AREA":name==="select"?"MARQUEE":(name==="rect"||name==="ellipse")&&$("shapeFillToggle").checked?"FILLED":"1 PX");
   $("canvasTip").textContent=name==="select"?"DRAG TO SELECT / MOVE":name==="eyedropper"?"CLICK TO PICK A COLOR":name==="fill"?"CLICK TO FILL AN AREA":"DRAG TO DRAW";
+  renderSelectionTools();
 }
 function applyZoom(){
-  const parentWidth=grid.parentElement?grid.parentElement.clientWidth:600;
-  const maxSide=Math.max(96,Math.min(560,parentWidth-48));
-  const scale=(maxSide*zoom)/Math.max(w,h);
-  grid.style.width=Math.max(1,Math.round(w*scale))+"px";
-  grid.style.height=Math.max(1,Math.round(h*scale))+"px";
+  const viewport=grid.parentElement;
+  const viewportStyle=window.getComputedStyle(viewport);
+  const gridStyle=window.getComputedStyle(grid);
+  const number=value=>Number.parseFloat(value)||0;
+  const availableWidth=Math.max(1,viewport.clientWidth-number(viewportStyle.paddingLeft)-number(viewportStyle.paddingRight));
+  const availableHeight=Math.max(1,viewport.clientHeight-number(viewportStyle.paddingTop)-number(viewportStyle.paddingBottom));
+  const gapX=grid.classList.contains("no-grid")?0:number(gridStyle.columnGap);
+  const gapY=grid.classList.contains("no-grid")?0:number(gridStyle.rowGap);
+  const borderX=number(gridStyle.borderLeftWidth)+number(gridStyle.borderRightWidth);
+  const borderY=number(gridStyle.borderTopWidth)+number(gridStyle.borderBottomWidth);
+  const fitByWidth=(availableWidth-borderX-gapX*(w-1))/w;
+  const fitByHeight=(availableHeight-borderY-gapY*(h-1))/h;
+  const cellSize=Math.max(.25,Math.min(fitByWidth,fitByHeight)*zoom);
+  grid.style.width=(cellSize*w+gapX*(w-1)+borderX)+"px";
+  grid.style.height=(cellSize*h+gapY*(h-1)+borderY)+"px";
   $("zoomReset").textContent=Math.round(zoom*100)+"%";
   $("zoomOut").disabled=zoom<=0.5;
   $("zoomIn").disabled=zoom>=2;
@@ -1607,6 +1715,12 @@ function applyZoom(){
 function setZoom(value){
   zoom=Math.max(0.5,Math.min(2,Math.round(value*4)/4));
   applyZoom();
+}
+if("ResizeObserver" in window){
+  const canvasResizeObserver=new ResizeObserver(()=>applyZoom());
+  canvasResizeObserver.observe(grid.parentElement);
+}else{
+  window.addEventListener("resize",applyZoom,{passive:true});
 }
 function readLocalValue(key){
   try{return localStorage.getItem(key)}catch(_){return null}
@@ -2367,6 +2481,24 @@ function openCanvasDialog(mode){
   const dialog=$("canvasDialog");
   if(typeof dialog.showModal==="function")dialog.showModal();else dialog.setAttribute("open","");
 }
+$("animateToggleBtn").addEventListener("click",()=>{
+  const open=!$("timelineArea").classList.contains("is-open");
+  $("timelineArea").classList.toggle("is-open",open);
+  $("timelineArea").setAttribute("aria-hidden",String(!open));
+  $("animateToggleBtn").setAttribute("aria-expanded",String(open));
+  $("animateToggleBtn").textContent=open?"Close animation":"Animate";
+  applyZoom();
+});
+$("paletteCollapseBtn").addEventListener("click",()=>{
+  const collapsed=$("paletteArea").classList.toggle("collapsed");
+  $("paletteCollapseBtn").setAttribute("aria-expanded",String(!collapsed));
+  $("paletteCollapseBtn").textContent=collapsed?"Expand":"Collapse";
+});
+$("shortcutsBtn").addEventListener("click",()=>$("helpDialog").showModal());
+$("closeHelpDialog").addEventListener("click",()=>$("helpDialog").close());
+$("helpDialog").addEventListener("click",event=>{
+  if(event.target===$("helpDialog"))$("helpDialog").close();
+});
 $("newProjectBtn").addEventListener("click",()=>openCanvasDialog("new"));
 $("customCanvasBtn").addEventListener("click",()=>openCanvasDialog("resize"));
 $("closeCanvasDialog").addEventListener("click",()=>$("canvasDialog").close());
@@ -2397,7 +2529,7 @@ $("gridSize").addEventListener("change",e=>{
   if(!confirm("Resize to "+nextWidth+" × "+nextHeight+"? Artwork will be resampled to the new grid.")){syncDimensionSelect();return}
   resizeCanvas(nextWidth,nextHeight);
 });
-$("gridToggle").addEventListener("change",()=>grid.classList.toggle("no-grid",!$("gridToggle").checked));
+$("gridToggle").addEventListener("change",()=>{grid.classList.toggle("no-grid",!$("gridToggle").checked);applyZoom()});
 $("checkerToggle").addEventListener("change",e=>{grid.style.backgroundImage=e.target.checked?"":"none";grid.style.backgroundColor=e.target.checked?"#e2e7df":"#f3f0e9"});
 $("colorPicker").addEventListener("input",e=>$("hexValue").value=e.target.value.toUpperCase());
 $("hexValue").addEventListener("change",e=>{
