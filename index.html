@@ -2693,9 +2693,12 @@ $("imageInput").addEventListener("change",async e=>{
       toast("The converted image matches the active cel. No changes were made.");
       return;
     }
-    const mapped=staged.warnings.length?" Palette-mapped with transparency preserved.":"";
+    const importNotes=[];
+    if(staged.warnings.some(item=>item.code==="PALETTE_QUANTIZATION"))importNotes.push("colors mapped to the palette");
+    if(staged.warnings.some(item=>item.code==="TRANSPARENT_PIXELS_PRESERVED"))importNotes.push("transparent pixels preserved");
+    const note=importNotes.length?" "+importNotes.join("; ")+".":"";
     await commitSafeEditResult(result,editContext,
-      "Image converted to "+targetWidth+" × "+targetHeight+" grid cells."+mapped);
+      "Image converted to "+targetWidth+" × "+targetHeight+" grid cells."+note);
   }catch(error){
     if(requestId===imageImportRequestId){
       toast(error&&error.message?error.message:"Could not import that image safely.");
